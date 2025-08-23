@@ -2,7 +2,11 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:docs.dndkit.com)"
+      "WebFetch(domain:docs.dndkit.com)",
+      "Bash(pnpm add:*)",
+      "Bash(mkdir:*)",
+      "Bash(pnpm lint:*)",
+      "Bash(pnpm dev:*)"
     ],
     "deny": [],
     "ask": []
