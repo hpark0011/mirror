@@ -75,7 +75,7 @@ export function BoardColumn({
               size='sm'
               variant='outline'
               onClick={onAddTicket}
-              className='w-full justify-start bg-transparent border-neutral-200 border p-0  rounded-xl h-[56px]'
+              className='w-full justify-start bg-transparent border-neutral-200 border p-0  rounded-xl h-[56px] has-[>svg]:pl-3.5 hover:bg-dq-gray-150'
             >
               <PlusIcon className='h-4 w-4' />
               Add Ticket
