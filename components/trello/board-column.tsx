@@ -62,7 +62,7 @@ export function BoardColumn({
           items={tickets.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className='space-y-1 h-full'>
+          <div className='space-y-1.5 h-full'>
             {tickets.map((ticket) => (
               <TicketCard
                 key={ticket.id}
@@ -73,9 +73,9 @@ export function BoardColumn({
             ))}
             <button
               onClick={onAddTicket}
-              className='flex w-full items-center flex-col justify-center bg-transparent border-neutral-200 border p-2 rounded-xl h-[56px] hover:bg-base/50 transition-all duration-200 ease-out hover:scale-102 shadow-none scale-100 active:scale-98 cursor-pointer relative group hover:border-white/100 inset-shadow-none hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.8),_0_14px_14px_-6px_rgba(0,0,0,0.3)]'
+              className='flex w-full items-center flex-col justify-center bg-transparent border-neutral-200 border p-2 rounded-xl h-[50px] hover:bg-base/50 transition-all duration-200 ease-out hover:scale-102 shadow-none scale-100 active:scale-98 cursor-pointer relative group hover:border-white/100 inset-shadow-none hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]'
             >
-              <div className='flex items-center gap-2 drop-shadow-none group-hover:drop-shadow-[2px_2px_0px_rgba(0,0,0,0.1)] transition-all duration-200 ease-out group-hover:scale-105 scale-100'>
+              <div className='flex items-center gap-1 drop-shadow-none group-hover:drop-shadow-[2px_2px_0px_rgba(0,0,0,0.1)] transition-all duration-200 ease-out group-hover:scale-105 scale-100'>
                 <PlusIcon className='size-4 text-text-muted group-hover:text-text-primary' />
                 <span className='text-sm text-text-muted group-hover:text-text-primary'>
                   Add Ticket

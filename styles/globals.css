@@ -38,6 +38,16 @@
 
   --color-text-highlight: var(--color-text-highlight);
 
+  /* Border Colors */
+  --color-border-extra-light: var(--color-border-extra-light);
+  --color-border-light: var(--color-border-light);
+  --color-border-medium: var(--color-border-medium);
+  --color-border-dark: var(--color-border-dark);
+  --color-border-extra-dark: var(--color-border-extra-dark);
+  --color-border-extra-light-inverse: var(--color-border-extra-light-inverse);
+  --color-border-light-inverse: var(--color-border-light-inverse);
+  --color-border-medium-inverse: var(--color-border-medium-inverse);
+
   /* Icon Colors */
   --color-icon-extra-light: var(--color-icon-extra-light);
   --color-icon-light: var(--color-icon-light);

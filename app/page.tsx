@@ -1,7 +1,7 @@
 "use client";
 
-import { ColumnBoard } from "@/components/trello/column-board";
+import { Board } from "@/components/trello/board";
 
 export default function Home() {
-  return <ColumnBoard />;
+  return <Board />;
 }

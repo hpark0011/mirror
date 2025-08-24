@@ -39,7 +39,7 @@ const INITIAL_BOARD_STATE: BoardState = {
   complete: [],
 };
 
-export function ColumnBoard() {
+export function Board() {
   const [rawBoard, setRawBoard, clearBoard] = useLocalStorage<string>(
     STORAGE_KEY,
     serializeBoardData(INITIAL_BOARD_STATE)
@@ -332,7 +332,7 @@ export function ColumnBoard() {
                 onEditTicket={handleEditTicket}
                 onDeleteTicket={handleDeleteTicket}
               />
-              <div className='w-[1px] bg-neutral-200 last:hidden' />
+              <div className='w-[1px] min-w-[1px] bg-neutral-200 last:hidden' />
             </Fragment>
           ))}
         </div>
