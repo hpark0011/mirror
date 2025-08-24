@@ -1,0 +1,22 @@
+:root {
+  --color-border-extra-light: var(--color-dq-gray-25);
+  --color-border-light: var(--color-dq-gray-150);
+  --color-border-medium: var(--color-dq-gray-200);
+  --color-border-dark: var(--color-dq-gray-300);
+  --color-border-extra-dark: var(--color-dq-gray-400);
+  --color-border-extra-light-inverse: var(--color-dq-gray-975);
+  --color-border-light-inverse: var(--color-dq-gray-950);
+  --color-border-medium-inverse: var(--color-dq-gray-900);
+}
+
+.dark {
+  --color-border-extra-light: var(--color-dq-gray-975);
+  --color-border-light: var(--color-dq-gray-950);
+  --color-border-medium: var(--color-dq-gray-900);
+  --color-border-dark: var(--color-dq-gray-850);
+  --color-border-extra-dark: var(--color-dq-gray-800);
+  --color-border-extra-light-inverse: var(--color-dq-gray-50);
+  --color-border-light-inverse: var(--color-dq-gray-75);
+  --color-border-medium-inverse: var(--color-dq-gray-100);
+  --color-border-dark-inverse: var(--color-dq-gray-200);
+}

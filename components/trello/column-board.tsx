@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -27,18 +27,7 @@ import {
   importBoardFromJson,
   downloadJsonFile,
 } from "@/lib/storage";
-import { Button } from "@/components/ui/button";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Header } from "./header";
 
 const COLUMNS = [
   { id: "not-started" as ColumnId, title: "Not Started" },
@@ -54,7 +43,7 @@ const INITIAL_BOARD_STATE: BoardState = {
   complete: [],
 };
 
-export function TrelloBoard() {
+export function ColumnBoard() {
   const [rawBoard, setRawBoard, clearBoard] = useLocalStorage<string>(
     STORAGE_KEY,
     serializeBoardData(INITIAL_BOARD_STATE)
@@ -68,15 +57,17 @@ export function TrelloBoard() {
     }
   })();
 
-  const setBoard = (newBoard: BoardState | ((prev: BoardState) => BoardState)) => {
-    const updatedBoard = typeof newBoard === "function" ? newBoard(board) : newBoard;
+  const setBoard = (
+    newBoard: BoardState | ((prev: BoardState) => BoardState)
+  ) => {
+    const updatedBoard =
+      typeof newBoard === "function" ? newBoard(board) : newBoard;
     setRawBoard(serializeBoardData(updatedBoard));
   };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [formColumnId, setFormColumnId] = useState<ColumnId>("not-started");
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -315,57 +306,18 @@ export function TrelloBoard() {
       }
     };
     reader.readAsText(file);
-    
-    // Reset file input
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
   };
 
   const activeTicket = activeId ? findTicket(activeId) : null;
 
   return (
     <>
-      <div className="flex justify-between items-center p-4 bg-white border-b">
-        <h1 className="text-2xl font-bold">Trello Board</h1>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => fileInputRef.current?.click()}
-          >
-            Import Board
-          </Button>
-          <Button variant="outline" onClick={handleExportBoard}>
-            Export Board
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive">Clear Board</Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Clear Board</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete all tickets and reset the board to empty state. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleClearBoard}>
-                  Clear Board
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleImportBoard}
-          style={{ display: "none" }}
-        />
-      </div>
+      <Header
+        onImport={handleImportBoard}
+        onExport={handleExportBoard}
+        onClear={handleClearBoard}
+        title='Greyboard'
+      />
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -373,7 +325,7 @@ export function TrelloBoard() {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className='flex gap-4 p-4 overflow-x-auto min-h-screen bg-gray-50'>
+        <div className='flex gap-4 p-4 overflow-x-auto min-h-screen pt-20'>
           {COLUMNS.map((column) => (
             <BoardColumn
               key={column.id}

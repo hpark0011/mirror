@@ -1,0 +1,45 @@
+:root {
+  /* Text Colors */
+  --color-text-strong: var(--color-dq-gray-1000);
+  --color-text-primary: var(--color-dq-gray-900);
+  --color-text-secondary: var(--color-dq-gray-700);
+  --color-text-tertiary: var(--color-dq-gray-600);
+  --color-text-muted: var(--color-dq-gray-500);
+
+  /* Text Colors Inverse */
+  --color-text-primary-inverse: var(--color-dq-gray-25);
+  --color-text-secondary-inverse: var(--color-dq-gray-200);
+  --color-text-tertiary-inverse: var(--color-dq-gray-400);
+
+  /* Status Text Colors */
+  --color-text-success: var(--color-dq-green-500);
+  --color-text-error: var(--color-dq-red-500);
+  --color-text-warning: var(--color-dq-yellow-500);
+  --color-text-info: var(--color-dq-blue-500);
+
+  /* Text Highlight Colors */
+  --color-text-highlight: rgba(234, 255, 170, 0.9);
+}
+
+.dark {
+  /* Text Colors */
+  --color-text-strong: var(--color-dq-gray-25);
+  --color-text-primary: var(--color-dq-gray-100);
+  --color-text-secondary: var(--color-dq-gray-300);
+  --color-text-tertiary: var(--color-dq-gray-400);
+  --color-text-muted: var(--color-dq-gray-600);
+
+  /* Text Colors Inverse */
+  --color-text-primary-inverse: var(--color-dq-gray-950);
+  --color-text-secondary-inverse: var(--color-dq-gray-800);
+  --color-text-tertiary-inverse: var(--color-dq-gray-600);
+
+  /* Status Text Colors */
+  --color-text-success: var(--color-dq-green-500);
+  --color-text-error: var(--color-dq-red-500);
+  --color-text-warning: var(--color-dq-yellow-500);
+  --color-text-info: var(--color-dq-blue-500);
+
+  /* Text Highlight Colors */
+  --color-text-highlight: rgba(234, 255, 170, 0.2);
+}

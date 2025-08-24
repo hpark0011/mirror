@@ -1,0 +1,19 @@
+:root {
+  --color-icon-extra-light: var(--color-dq-gray-300);
+  --color-icon-light: var(--color-dq-gray-400);
+  --color-icon-medium: var(--color-dq-gray-500);
+  --color-icon-dark: var(--color-dq-gray-600);
+  --color-icon-light-inverse: var(--color-dq-gray-700);
+  --color-icon-medium-inverse: var(--color-dq-gray-600);
+  --color-icon-dark-inverse: var(--color-dq-gray-500);
+}
+
+.dark {
+  --color-icon-extra-light: var(--color-dq-gray-800);
+  --color-icon-light: var(--color-dq-gray-700);
+  --color-icon-medium: var(--color-dq-gray-600);
+  --color-icon-dark: var(--color-dq-gray-500);
+  --color-icon-light-inverse: var(--color-dq-gray-300);
+  --color-icon-medium-inverse: var(--color-dq-gray-400);
+  --color-icon-dark-inverse: var(--color-dq-gray-500);
+}

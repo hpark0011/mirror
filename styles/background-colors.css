@@ -1,0 +1,29 @@
+:root {
+  --color-base: var(--color-white);
+  --color-extra-light: var(--color-dq-gray-150);
+  --color-light: var(--color-dq-gray-200);
+  --color-medium: var(--color-dq-gray-300);
+  --color-dark: var(--color-dq-gray-400);
+  --color-extra-dark: var(--color-dq-gray-500);
+  --color-extra-light-inverse: var(--color-dq-gray-975);
+  --color-light-inverse: var(--color-dq-gray-950);
+  --color-medium-inverse: var(--color-dq-gray-900);
+  --color-dark-inverse: var(--color-dq-gray-850);
+  --color-extra-dark-inverse: var(--color-dq-gray-800);
+  --color-highlight: var(--color-neon-yellow);
+}
+
+.dark {
+  --color-base: var(--color-black);
+  --color-extra-light: var(--color-dq-gray-975);
+  --color-light: var(--color-dq-gray-950);
+  --color-medium: var(--color-dq-gray-900);
+  --color-dark: var(--color-dq-gray-850);
+  --color-extra-dark: var(--color-dq-gray-800);
+  --color-extra-light-inverse: var(--color-dq-gray-50);
+  --color-light-inverse: var(--color-dq-gray-75);
+  --color-medium-inverse: var(--color-dq-gray-100);
+  --color-dark-inverse: var(--color-dq-gray-200);
+  --color-extra-dark-inverse: var(--color-dq-gray-300);
+  --color-highlight: var(--color-neon-yellow);
+}

@@ -11,6 +11,7 @@ export { default as ArrowClockwiseIcon } from "@/icons/arrow.clockwise.svg";
 export { default as ArrowDownDocFillIcon } from "@/icons/arrow.down.doc.fill.svg";
 export { default as ArrowDownDocIcon } from "@/icons/arrow.down.doc.svg";
 export { default as ArrowDownIcon } from "@/icons/arrow.down.svg";
+export { default as ArrowDownToLineCompactIcon } from "@/icons/arrow.down.to.line.compact.svg";
 export { default as ArrowForwardIcon } from "@/icons/arrow.forward.svg";
 export { default as ArrowLeftCircleFillIcon } from "@/icons/arrow.left.circle.fill.svg";
 export { default as ArrowLeftLineIcon } from "@/icons/arrow.left.line.svg";
@@ -22,6 +23,7 @@ export { default as ArrowTurnDownRightIcon } from "@/icons/arrow.turn.down.right
 export { default as ArrowUpAndDownIcon } from "@/icons/arrow.up.and.down.svg";
 export { default as ArrowUpRightIcon } from "@/icons/arrow.up.right.svg";
 export { default as ArrowUpIcon } from "@/icons/arrow.up.svg";
+export { default as ArrowUpToLineCompactIcon } from "@/icons/arrow.up.to.line.compact.svg";
 export { default as ArrowshapeTurnUpRightFillIcon } from "@/icons/arrowshape.turn.up.right.fill.svg";
 export { default as ArrowshapeUpFillIcon } from "@/icons/arrowshape.up.fill.svg";
 export { default as BellFillIcon } from "@/icons/bell.fill.svg";
