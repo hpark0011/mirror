@@ -31,10 +31,10 @@ export function BoardColumn({
   });
 
   return (
-    <Card className='w-80 min-h-[500px] flex flex-col'>
-      <CardHeader className='pb-3'>
+    <Card className='w-80 min-h-[500px] flex flex-col bg-transparent shadow-none rounded-3xl py-0'>
+      <CardHeader className='px-4 py-1'>
         <div className='flex items-center justify-between'>
-          <CardTitle className='text-lg font-semibold'>
+          <CardTitle className='text-sm font-semibold'>
             {column.title}
           </CardTitle>
           <span className='text-sm text-muted-foreground bg-gray-100 px-2 py-1 rounded'>
