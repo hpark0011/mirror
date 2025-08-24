@@ -1,12 +1,15 @@
-'use client';
+"use client";
 
-import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { useDroppable } from '@dnd-kit/core';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { PlusIcon } from 'lucide-react';
-import { TicketCard } from './ticket-card';
-import { Ticket, Column } from './types';
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useDroppable } from "@dnd-kit/core";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { PlusIcon } from "lucide-react";
+import { TicketCard } from "./ticket-card";
+import { Ticket, Column } from "./types";
 
 interface BoardColumnProps {
   column: Column;
@@ -27,39 +30,34 @@ export function BoardColumn({
     id: column.id,
   });
 
-  console.log(`📊 Column ${column.id}:`, {
-    ticketCount: tickets.length,
-    ticketIds: tickets.map(t => t.id),
-    isOver,
-    activeId: active?.id,
-  });
-
   return (
-    <Card className="w-80 min-h-[500px] flex flex-col">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg font-semibold">{column.title}</CardTitle>
-          <span className="text-sm text-muted-foreground bg-gray-100 px-2 py-1 rounded">
+    <Card className='w-80 min-h-[500px] flex flex-col'>
+      <CardHeader className='pb-3'>
+        <div className='flex items-center justify-between'>
+          <CardTitle className='text-lg font-semibold'>
+            {column.title}
+          </CardTitle>
+          <span className='text-sm text-muted-foreground bg-gray-100 px-2 py-1 rounded'>
             {tickets.length}
           </span>
         </div>
         <Button
-          size="sm"
-          variant="ghost"
+          size='sm'
+          variant='ghost'
           onClick={onAddTicket}
-          className="w-full justify-start mt-2"
+          className='w-full justify-start mt-2'
         >
-          <PlusIcon className="h-4 w-4 mr-1" />
+          <PlusIcon className='h-4 w-4 mr-1' />
           Add Ticket
         </Button>
       </CardHeader>
-      <CardContent ref={setNodeRef} className="flex-1 p-2">
+      <CardContent ref={setNodeRef} className='flex-1 p-2'>
         <SortableContext
           id={column.id}
           items={tickets.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className="space-y-2">
+          <div className='space-y-2'>
             {tickets.map((ticket) => (
               <TicketCard
                 key={ticket.id}
@@ -71,9 +69,11 @@ export function BoardColumn({
           </div>
         </SortableContext>
         {tickets.length === 0 && (
-          <div className="text-center text-muted-foreground py-8">
-            <p className="text-sm">No tickets yet</p>
-            <p className="text-xs mt-1">Drop tickets here or create a new one</p>
+          <div className='text-center text-muted-foreground py-8'>
+            <p className='text-sm'>No tickets yet</p>
+            <p className='text-xs mt-1'>
+              Drop tickets here or create a new one
+            </p>
           </div>
         )}
       </CardContent>

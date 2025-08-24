@@ -1,17 +1,17 @@
 "use client";
 
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
+import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { GripVertical, Edit, Trash } from "lucide-react";
-import { Ticket } from "./types";
 import { cn } from "@/lib/utils";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { Edit, GripVertical, Trash } from "lucide-react";
+import { Ticket } from "./types";
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -35,15 +35,6 @@ export function TicketCard({
     isDragging: isSortableDragging,
   } = useSortable({ id: ticket.id });
 
-  console.log(`🎫 Ticket ${ticket.id}:`, {
-    title: ticket.title,
-    isDragging,
-    isSortableDragging,
-    transform,
-    listeners: !!listeners,
-    attributes,
-  });
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -55,7 +46,7 @@ export function TicketCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "cursor-move bg-white hover:shadow-md transition-shadow group",
+        "bg-white hover:shadow-md transition-shadow group cursor-grab active:cursor-grabbing",
         isDragging && "rotate-3 scale-105 shadow-xl"
       )}
       {...attributes}
@@ -64,8 +55,6 @@ export function TicketCard({
       <CardHeader className='p-3'>
         <div className='flex items-start gap-2'>
           <button
-            // {...attributes}
-            // {...listeners}
             className='cursor-grab active:cursor-grabbing mt-1 touch-none'
             type='button'
           >
