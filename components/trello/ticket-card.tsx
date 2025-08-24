@@ -46,7 +46,7 @@ export function TicketCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-white hover:shadow-md transition-shadow shadow-none group cursor-grab active:cursor-grabbing",
+        "bg-white hover:shadow-xl transition-all duration-200 translate-y-0 hover:translate-y-[-1px] scale-100 hover:scale-[1.02] ease-out shadow-none group cursor-grab active:cursor-grabbing border-none",
         isDragging && "rotate-3 scale-105 shadow-xl"
       )}
       {...attributes}
@@ -54,12 +54,6 @@ export function TicketCard({
     >
       <CardHeader className='p-3'>
         <div className='flex items-start gap-2'>
-          <button
-            className='cursor-grab active:cursor-grabbing mt-1 touch-none'
-            type='button'
-          >
-            <GripVertical className='h-4 w-4 text-muted-foreground' />
-          </button>
           <div className='flex-1 min-w-0'>
             <CardTitle className='text-sm font-medium leading-none'>
               {ticket.title}

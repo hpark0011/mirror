@@ -32,14 +32,14 @@ export function BoardColumn({
   });
 
   return (
-    <Card className='w-80 h-[calc(100vh-84px)] flex flex-col bg-transparent shadow-none rounded-2xl py-0 overflow-y-hidden gap-0'>
+    <Card className='w-1/4 h-[calc(100vh-96px)] flex flex-col bg-transparent shadow-none rounded-2xl py-0 overflow-y-hidden gap-0'>
       <CardHeader className='pl-3.5 py-2 gap-0 pr-2'>
         <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-1'>
-            <CardTitle className='text-sm font-semibold'>
+          <div className='flex items-baseline gap-0.5'>
+            <CardTitle className='text-sm font-medium'>
               {column.title}
             </CardTitle>
-            <span className='text-xs bg-light-inverse px-1.5 min-w-[20px] h-[20px] rounded-full flex items-center justify-center'>
+            <span className='text-[13px] text-primary px-1.5 min-w-[20px] h-[20px] rounded-full flex items-center justify-center'>
               {tickets.length}
             </span>
           </div>
@@ -48,11 +48,16 @@ export function BoardColumn({
             onClick={onAddTicket}
             className='p-2 w-6 h-6 rounded-md'
           >
-            <PlusIcon className='h-4 w-4' />
+            <PlusIcon className='h-3.5 w-3.5' />
           </Button>
         </div>
       </CardHeader>
-      <CardContent ref={setNodeRef} className='flex-1 p-2 overflow-y-scroll'>
+      <CardContent
+        ref={setNodeRef}
+        className='flex-1 p-0 px-2 overflow-y-scroll relative'
+      >
+        <div className='h-6 w-full bg-gradient-to-t from-transparent to-neutral-100 sticky top-0 left-0 z-10' />
+
         <SortableContext
           id={column.id}
           items={tickets.map((t) => t.id)}
@@ -86,6 +91,7 @@ export function BoardColumn({
             </p>
           </div>
         )}
+        <div className='h-6 w-full bg-gradient-to-b from-transparent to-neutral-100 sticky bottom-0 left-0' />
       </CardContent>
     </Card>
   );
