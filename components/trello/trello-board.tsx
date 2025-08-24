@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -19,6 +19,26 @@ import { BoardColumn } from "./board-column";
 import { TicketCard } from "./ticket-card";
 import { Ticket, BoardState, ColumnId } from "./types";
 import { TicketForm } from "./ticket-form";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import {
+  serializeBoardData,
+  deserializeBoardData,
+  exportBoardAsJson,
+  importBoardFromJson,
+  downloadJsonFile,
+} from "@/lib/storage";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const COLUMNS = [
   { id: "not-started" as ColumnId, title: "Not Started" },
@@ -26,25 +46,37 @@ const COLUMNS = [
   { id: "complete" as ColumnId, title: "Complete" },
 ] as const;
 
+const STORAGE_KEY = "trello-board-state";
+
+const INITIAL_BOARD_STATE: BoardState = {
+  "not-started": [],
+  "in-progress": [],
+  complete: [],
+};
+
 export function TrelloBoard() {
-  const [board, setBoard] = useState<BoardState>({
-    "not-started": [
-      {
-        id: "test-ticket-1",
-        title: "Test Ticket 1",
-        description: "This is a test ticket for debugging",
-        status: "not-started",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      },
-    ],
-    "in-progress": [],
-    complete: [],
-  });
+  const [rawBoard, setRawBoard, clearBoard] = useLocalStorage<string>(
+    STORAGE_KEY,
+    serializeBoardData(INITIAL_BOARD_STATE)
+  );
+
+  const board = (() => {
+    try {
+      return deserializeBoardData(rawBoard);
+    } catch {
+      return INITIAL_BOARD_STATE;
+    }
+  })();
+
+  const setBoard = (newBoard: BoardState | ((prev: BoardState) => BoardState)) => {
+    const updatedBoard = typeof newBoard === "function" ? newBoard(board) : newBoard;
+    setRawBoard(serializeBoardData(updatedBoard));
+  };
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [formColumnId, setFormColumnId] = useState<ColumnId>("not-started");
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -256,10 +288,84 @@ export function TrelloBoard() {
     setEditingTicket(null);
   };
 
+  const handleClearBoard = () => {
+    setBoard(INITIAL_BOARD_STATE);
+  };
+
+  const handleExportBoard = () => {
+    const timestamp = new Date().toISOString().split("T")[0];
+    const filename = `trello-board-${timestamp}.json`;
+    const data = exportBoardAsJson(board);
+    downloadJsonFile(data, filename);
+  };
+
+  const handleImportBoard = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        const importedBoard = importBoardFromJson(content);
+        setBoard(importedBoard);
+      } catch (error) {
+        console.error("Failed to import board:", error);
+        alert("Failed to import board. Please check the file format.");
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
   const activeTicket = activeId ? findTicket(activeId) : null;
 
   return (
     <>
+      <div className="flex justify-between items-center p-4 bg-white border-b">
+        <h1 className="text-2xl font-bold">Trello Board</h1>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => fileInputRef.current?.click()}
+          >
+            Import Board
+          </Button>
+          <Button variant="outline" onClick={handleExportBoard}>
+            Export Board
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive">Clear Board</Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear Board</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all tickets and reset the board to empty state. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleClearBoard}>
+                  Clear Board
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleImportBoard}
+          style={{ display: "none" }}
+        />
+      </div>
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
