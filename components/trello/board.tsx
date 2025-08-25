@@ -319,7 +319,7 @@ export function Board() {
         onImport={handleImportBoard}
         onExport={handleExportBoard}
         onClear={handleClearBoard}
-        title='Greyboard'
+        title='Delphi'
       />
       <DndContext
         sensors={sensors}
@@ -338,7 +338,11 @@ export function Board() {
                 onAddTicket={() => handleAddTicket(column.id)}
                 onEditTicket={handleEditTicket}
                 onDeleteTicket={handleDeleteTicket}
-                onClearColumn={column.id === 'complete' ? () => handleClearColumn('complete') : undefined}
+                onClearColumn={
+                  column.id === "complete"
+                    ? () => handleClearColumn("complete")
+                    : undefined
+                }
               />
               <div className='w-[1px] min-w-[1px] bg-gray-300 last:hidden' />
             </Fragment>

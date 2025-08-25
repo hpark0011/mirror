@@ -51,6 +51,7 @@ export { default as CursorArrowClick2Icon } from "@/icons/cursorarrow.click.2.sv
 export { default as CursorArrowRaysIcon } from "@/icons/cursorarrow.rays.svg";
 export { default as CursorArrowIcon } from "@/icons/cursorarrow.svg";
 export { default as DeleteLeftFillIcon } from "@/icons/delete.left.fill.svg";
+export { default as DelphiIcon } from "@/public/delphi.svg";
 export { default as DocFillIcon } from "@/icons/doc.fill.svg";
 export { default as DocPlainTextFillIcon } from "@/icons/doc.plain.text.fill.svg";
 export { default as EllipsisIcon } from "@/icons/ellipsis.svg";
