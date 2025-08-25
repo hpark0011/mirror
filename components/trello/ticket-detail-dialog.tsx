@@ -1,5 +1,4 @@
 "use client";
-
 import {
   Dialog,
   DialogContent,
@@ -7,8 +6,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Badge } from "@/components/ui/badge";
 import { Ticket } from "../../types/board.types";
+import { Icon } from "../ui/icon";
+import { COLUMNS } from "@/config/board-config";
+import { DescriptionList } from "./description-list";
 
 interface TicketDetailDialogProps {
   ticket: Ticket | null;
@@ -16,19 +17,9 @@ interface TicketDetailDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-const STATUS_LABELS = {
-  backlog: "Backlog",
-  "not-started": "Not Started",
-  "in-progress": "In Progress",
-  complete: "Complete",
-} as const;
-
-const STATUS_COLORS = {
-  backlog: "bg-gray-100 text-gray-800",
-  "not-started": "bg-blue-100 text-blue-800",
-  "in-progress": "bg-yellow-100 text-yellow-800",
-  complete: "bg-green-100 text-green-800",
-} as const;
+const getColumnConfig = (status: string) => {
+  return COLUMNS.find((col) => col.id === status);
+};
 
 export function TicketDetailDialog({
   ticket,
@@ -36,6 +27,8 @@ export function TicketDetailDialog({
   onOpenChange,
 }: TicketDetailDialogProps) {
   if (!ticket) return null;
+
+  const columnConfig = getColumnConfig(ticket.status);
 
   const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString("en-US", {
@@ -49,33 +42,67 @@ export function TicketDetailDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className='sm:max-w-xl px-4'>
         <DialogHeader>
-          <div className="flex items-start justify-between">
-            <DialogTitle className="text-xl pr-4">{ticket.title}</DialogTitle>
-            <Badge
-              variant="secondary"
-              className={`${STATUS_COLORS[ticket.status]} shrink-0`}
-            >
-              {STATUS_LABELS[ticket.status]}
-            </Badge>
+          <div className='flex flex-col items-start justify-between'>
+            <DialogTitle className='text-xl font-medium leading-[1] mb-4'>
+              {ticket.title}
+            </DialogTitle>
+            <DescriptionList
+              items={[
+                {
+                  label: "Status",
+                  value: (
+                    <div className='flex items-center gap-1'>
+                      {columnConfig && (
+                        <Icon
+                          name={columnConfig.icon}
+                          className={`${columnConfig.iconColor} ${columnConfig.iconSize}`}
+                        />
+                      )}
+                      <span className='text-xs text-text-tertiary'>
+                        {columnConfig?.title}
+                      </span>
+                    </div>
+                  ),
+                },
+                {
+                  label: "Created At",
+                  value: (
+                    <div className='flex items-center gap-1 text-xs text-text-tertiary'>
+                      <Icon
+                        name='CalendarFillIcon'
+                        className='text-icon-light size-[22px]'
+                      />
+                      <span>{formatDate(ticket.createdAt)}</span>
+                    </div>
+                  ),
+                },
+                // {
+                //   label: "Updated At",
+                //   value: (
+                //     <div className='flex items-center gap-1 text-xs text-text-tertiary'>
+                //       <Icon
+                //         name='CalendarFillIcon'
+                //         className='text-icon-light size-[22px]'
+                //       />
+                //       <span>{formatDate(ticket.updatedAt)}</span>
+                //     </div>
+                //   ),
+                // },
+              ]}
+            />
           </div>
+
           {ticket.description && (
-            <DialogDescription className="mt-4 text-base text-text-secondary whitespace-pre-wrap">
-              {ticket.description}
-            </DialogDescription>
+            <>
+              <div className='h-[1px] w-full bg-extra-light mt-2' />
+              <DialogDescription className='mt-2 text-text-primary whitespace-pre-wrap text-md leading-[1.4]'>
+                {ticket.description}
+              </DialogDescription>
+            </>
           )}
         </DialogHeader>
-        <div className="mt-6 space-y-2 text-sm text-text-tertiary">
-          <div className="flex justify-between">
-            <span>Created:</span>
-            <span>{formatDate(ticket.createdAt)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Last updated:</span>
-            <span>{formatDate(ticket.updatedAt)}</span>
-          </div>
-        </div>
       </DialogContent>
     </Dialog>
   );

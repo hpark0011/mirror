@@ -60,7 +60,7 @@ function DialogContent({
       <DialogPrimitive.Content
         data-slot='dialog-content'
         className={cn(
-          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-53%] gap-4 border p-6  duration-200 sm:max-w-lg  rounded-3xl shadow-[0_16px_24px_-16px_rgba(0,0,0,0.1),_0_24px_48px_-24px_rgba(0,0,0,0.2)] border-t-[1px] border-white/90 dark:border-white/5 bg-gradient-to-b from-[#F1F1F2] to-[#EDEDEF] dark:from-[#0F0F0F] dark:to-[#0D0D0D] py-[18px] px-2",
+          "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-53%] gap-4 border p-6  duration-200 sm:max-w-lg  rounded-3xl shadow-[0_16px_24px_-16px_rgba(0,0,0,0.1),_0_24px_48px_-24px_rgba(0,0,0,0.2)] border-t-[1px] border-white/90 dark:border-white/5 bg-gradient-to-b from-[#F1F1F2] to-[#EDEDEF] dark:from-[#0F0F0F] dark:to-[#0D0D0D] pb-[18px] pt-[16px] px-2",
           className
         )}
         {...props}
