@@ -44,7 +44,7 @@ export function Header({
           <TooltipTrigger asChild>
             <Button
               variant='ghost'
-              onClick={() => fileInputRef.current?.click()}
+              onClick={onExport}
               className='h-6 w-6 bg-transparent cursor-pointer'
             >
               <Icon
@@ -59,7 +59,7 @@ export function Header({
           <TooltipTrigger asChild>
             <Button
               variant='ghost'
-              onClick={onExport}
+              onClick={() => fileInputRef.current?.click()}
               className='h-6 w-6 cursor-pointer'
             >
               <Icon
