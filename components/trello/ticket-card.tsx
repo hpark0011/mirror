@@ -18,6 +18,7 @@ interface TicketCardProps {
   isDragging?: boolean;
   onEdit?: () => void;
   onDelete?: () => void;
+  onClick?: () => void;
 }
 
 export function TicketCard({
@@ -25,6 +26,7 @@ export function TicketCard({
   isDragging = false,
   onEdit,
   onDelete,
+  onClick,
 }: TicketCardProps) {
   const {
     attributes,
@@ -60,6 +62,15 @@ export function TicketCard({
         isDragging &&
           "rotate-5 scale-105 shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]"
       )}
+      onClick={(e) => {
+        if (!isSortableDragging && onClick) {
+          const target = e.target as HTMLElement;
+          const isButton = target.closest('button');
+          if (!isButton) {
+            onClick();
+          }
+        }
+      }}
       {...attributes}
       {...listeners}
     >
