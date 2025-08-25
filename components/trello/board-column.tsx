@@ -54,7 +54,7 @@ export function BoardColumn({
               </span>
             </div>
           </div>
-          {column.id !== 'complete' && (
+          {column.id !== "complete" && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -90,7 +90,7 @@ export function BoardColumn({
                 onDelete={() => onDeleteTicket(ticket.id)}
               />
             ))}
-            {column.id !== 'complete' && (
+            {column.id !== "complete" && (
               <button
                 onClick={onAddTicket}
                 className='flex w-full items-center flex-col justify-center bg-transparent border-neutral-200 border p-2 rounded-xl h-[48px] hover:bg-base/50 transition-all duration-200 ease-out hover:scale-102 shadow-none scale-100 active:scale-98 cursor-pointer relative group hover:border-white/100 inset-shadow-none hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]'
