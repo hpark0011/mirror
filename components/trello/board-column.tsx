@@ -39,7 +39,7 @@ export function BoardColumn({
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
 
-  const { setNodeRef, isOver, active } = useDroppable({
+  const { setNodeRef } = useDroppable({
     id: column.id,
   });
 

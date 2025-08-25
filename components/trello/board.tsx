@@ -40,7 +40,7 @@ const INITIAL_BOARD_STATE: BoardState = {
 };
 
 export function Board() {
-  const [rawBoard, setRawBoard, clearBoard] = useLocalStorage<string>(
+  const [rawBoard, setRawBoard] = useLocalStorage<string>(
     STORAGE_KEY,
     serializeBoardData(INITIAL_BOARD_STATE)
   );

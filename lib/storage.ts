@@ -43,8 +43,8 @@ function serializeTickets(boardState: BoardState): BoardState {
   for (const [columnId, tickets] of Object.entries(boardState)) {
     serialized[columnId] = tickets.map((ticket) => ({
       ...ticket,
-      createdAt: ticket.createdAt.toISOString() as any,
-      updatedAt: ticket.updatedAt.toISOString() as any,
+      createdAt: ticket.createdAt.toISOString() as unknown as Date,
+      updatedAt: ticket.updatedAt.toISOString() as unknown as Date,
     }));
   }
 
@@ -57,8 +57,8 @@ function deserializeTickets(boardState: BoardState): BoardState {
   for (const [columnId, tickets] of Object.entries(boardState)) {
     deserialized[columnId] = tickets.map((ticket) => ({
       ...ticket,
-      createdAt: new Date(ticket.createdAt as any),
-      updatedAt: new Date(ticket.updatedAt as any),
+      createdAt: new Date(ticket.createdAt as unknown as string),
+      updatedAt: new Date(ticket.updatedAt as unknown as string),
     }));
   }
 
@@ -66,7 +66,7 @@ function deserializeTickets(boardState: BoardState): BoardState {
 }
 
 function migrateData(data: SerializedBoardData): SerializedBoardData {
-  let migrated = { ...data };
+  const migrated = { ...data };
 
   // Handle future migrations
   if (migrated.version < CURRENT_VERSION) {
@@ -86,13 +86,15 @@ function migrateData(data: SerializedBoardData): SerializedBoardData {
   return migrated;
 }
 
-export function validateBoardData(data: any): data is SerializedBoardData {
-  if (!data || typeof data !== "object") return false;
-  if (typeof data.version !== "number") return false;
-  if (!data.data || typeof data.data !== "object") return false;
+export function validateBoardData(data: unknown): data is SerializedBoardData {
+  if (!data || typeof data !== "object" || data === null) return false;
+  
+  const obj = data as Record<string, unknown>;
+  if (typeof obj.version !== "number") return false;
+  if (!obj.data || typeof obj.data !== "object") return false;
 
   // Validate board structure
-  for (const [columnId, tickets] of Object.entries(data.data)) {
+  for (const [, tickets] of Object.entries(obj.data as Record<string, unknown>)) {
     if (!Array.isArray(tickets)) return false;
 
     for (const ticket of tickets) {
@@ -103,17 +105,18 @@ export function validateBoardData(data: any): data is SerializedBoardData {
   return true;
 }
 
-function isValidTicket(ticket: any): ticket is Ticket {
+function isValidTicket(ticket: unknown): ticket is Ticket {
+  if (!ticket || typeof ticket !== "object" || ticket === null) return false;
+  
+  const t = ticket as Record<string, unknown>;
   return (
-    ticket &&
-    typeof ticket === "object" &&
-    typeof ticket.id === "string" &&
-    typeof ticket.title === "string" &&
-    typeof ticket.description === "string" &&
-    typeof ticket.status === "string" &&
-    (ticket.createdAt instanceof Date ||
-      typeof ticket.createdAt === "string") &&
-    (ticket.updatedAt instanceof Date || typeof ticket.updatedAt === "string")
+    typeof t.id === "string" &&
+    typeof t.title === "string" &&
+    typeof t.description === "string" &&
+    typeof t.status === "string" &&
+    (t.createdAt instanceof Date ||
+      typeof t.createdAt === "string") &&
+    (t.updatedAt instanceof Date || typeof t.updatedAt === "string")
   );
 }
 
