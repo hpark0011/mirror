@@ -37,9 +37,9 @@ export function Header({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className='flex justify-between items-center py-2  bg-transparent fixed top-0 w-full px-6'>
+    <div className='flex justify-between items-center py-2  bg-transparent fixed top-0 w-full px-4 pl-5'>
       <h1 className='text-xl font-medium'>{title}</h1>
-      <div className='flex gap-0.5'>
+      <div className='flex gap-0'>
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -47,7 +47,10 @@ export function Header({
               onClick={() => fileInputRef.current?.click()}
               className='h-6 w-6 bg-transparent'
             >
-              <Icon name='ArrowDownToLineCompactIcon' className='h-4 w-4' />
+              <Icon
+                name='ArrowDownToLineCompactIcon'
+                className='h-4 w-4 text-icon-light'
+              />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Export Board as JSON</TooltipContent>
@@ -55,7 +58,10 @@ export function Header({
         <Tooltip>
           <TooltipTrigger asChild>
             <Button variant='ghost' onClick={onExport} className='h-6 w-6'>
-              <Icon name='ArrowUpToLineCompactIcon' className='h-4 w-4' />
+              <Icon
+                name='ArrowUpToLineCompactIcon'
+                className='h-4 w-4 text-icon-light'
+              />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Import Board</TooltipContent>
@@ -65,7 +71,10 @@ export function Header({
             <TooltipTrigger asChild>
               <AlertDialogTrigger asChild>
                 <Button variant='ghost' className='h-6 w-6'>
-                  <Icon name='TrashIcon' className='h-4 w-4' />
+                  <Icon
+                    name='XmarkCircleFillIcon'
+                    className='size-5 text-icon-light'
+                  />
                 </Button>
               </AlertDialogTrigger>
             </TooltipTrigger>

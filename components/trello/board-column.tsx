@@ -1,23 +1,23 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDroppable } from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-} from "@dnd-kit/sortable";
-import { PlusIcon, Trash2Icon } from "lucide-react";
-import { TicketCard } from "./ticket-card";
-import { TicketDetailDialog } from "./ticket-detail-dialog";
-import { Column, Ticket } from "../../types/board.types";
-import { Icon } from "../ui/icon";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { useDroppable } from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { PlusIcon } from "lucide-react";
+import { useState } from "react";
+import { Column, Ticket } from "../../types/board.types";
+import { Icon } from "../ui/icon";
+import { TicketCard } from "./ticket-card";
+import { TicketDetailDialog } from "./ticket-detail-dialog";
 
 interface BoardColumnProps {
   column: Column;
@@ -75,15 +75,15 @@ export function BoardColumn({
                     <Button
                       variant='ghost'
                       onClick={onClearColumn}
-                      className='p-2 w-6 h-6 rounded-md cursor-pointer active:scale-90 transition-all duration-200 ease-out'
+                      className='p-0 w-6 h-6 rounded-md cursor-pointer active:scale-90 transition-all duration-200 ease-out'
                     >
                       <Icon
-                        name='TrashIcon'
-                        className='h-3.5 w-3.5 text-icon-light'
+                        name='XmarkIcon'
+                        className='h-6 w-6 text-icon-light'
                       />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>Clear all completed tickets</TooltipContent>
+                  <TooltipContent>Clear All Completed Tickets</TooltipContent>
                 </Tooltip>
               )}
             {column.id !== "complete" && (

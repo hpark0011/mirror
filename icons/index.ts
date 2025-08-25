@@ -143,5 +143,6 @@ export { default as VideoSlashFillIcon } from "@/icons/video.slash.fill.svg";
 export { default as WonSignIcon } from "@/icons/won.sign.svg";
 export { default as XCircleFillIcon } from "@/icons/x.circle.fill.svg";
 export { default as XMarkBoldIcon } from "@/icons/x.mark.bold.svg";
+export { default as XmarkCircleFillIcon } from "@/icons/xmark.circle.fill.svg";
 export { default as XmarkSmallIcon } from "@/icons/xmark.small.svg";
 export { default as XmarkIcon } from "@/icons/xmark.svg";
