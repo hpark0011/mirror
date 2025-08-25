@@ -1,10 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import url("@/styles/primitives.css");
-@import url("@/styles/text-colors.css");
-@import url("@/styles/icon-colors.css");
-@import url("@/styles/background-colors.css");
-@import url("@/styles/shadows.css");
+@import "./primitives.css";
+@import "./text-colors.css";
+@import "./icon-colors.css";
+@import "./background-colors.css";
+@import "./shadows.css";
 
 @custom-variant dark (&:is(.dark *));
 
