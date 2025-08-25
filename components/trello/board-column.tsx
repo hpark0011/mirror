@@ -13,7 +13,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { PlusIcon } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Column, Ticket } from "../../types/board.types";
 import { Icon } from "../ui/icon";
 import { TicketCard } from "./ticket-card";
@@ -38,6 +38,16 @@ export function BoardColumn({
 }: BoardColumnProps) {
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useEffect(() => {
+    // Disable initial load animations after they complete
+    const timer = setTimeout(() => {
+      setIsInitialLoad(false);
+    }, 1000); // Adjust based on your animation duration
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const { setNodeRef } = useDroppable({
     id: column.id,
@@ -115,10 +125,12 @@ export function BoardColumn({
           strategy={verticalListSortingStrategy}
         >
           <div className='space-y-1.5 h-fit pb-4'>
-            {tickets.map((ticket) => (
+            {tickets.map((ticket, index) => (
               <TicketCard
                 key={ticket.id}
                 ticket={ticket}
+                index={index}
+                isInitialLoad={isInitialLoad}
                 onEdit={() => onEditTicket(ticket)}
                 onDelete={() => onDeleteTicket(ticket.id)}
                 onClick={() => handleTicketClick(ticket)}

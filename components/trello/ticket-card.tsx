@@ -11,7 +11,18 @@ import {
 import { cn } from "@/lib/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { motion, type Variants } from "framer-motion";
+import { forwardRef } from "react";
 import { Ticket } from "../../types/board.types";
+
+// Create motion component outside to prevent re-creation
+const ForwardedCard = forwardRef<
+  HTMLDivElement,
+  React.ComponentProps<typeof Card>
+>((props, ref) => <Card ref={ref} {...props} />);
+ForwardedCard.displayName = "ForwardedCard";
+
+const MotionCard = motion(ForwardedCard);
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -19,7 +30,37 @@ interface TicketCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   onClick?: () => void;
+  index?: number;
+  isInitialLoad?: boolean;
 }
+
+const cardVariants: Variants = {
+  hidden: {
+    opacity: 0,
+    y: 30,
+    scale: 0.98,
+  },
+  visible: (index: number) => ({
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: {
+      delay: index * 0.05,
+      type: "spring" as const,
+      damping: 20,
+      stiffness: 300,
+    },
+  }),
+  exit: {
+    opacity: 0,
+    scale: 0.95,
+    y: -10,
+    transition: {
+      duration: 0.2,
+      ease: "easeOut",
+    },
+  },
+};
 
 export function TicketCard({
   ticket,
@@ -27,6 +68,8 @@ export function TicketCard({
   onEdit,
   onDelete,
   onClick,
+  index = 0,
+  isInitialLoad = false,
 }: TicketCardProps) {
   const {
     attributes,
@@ -52,28 +95,25 @@ export function TicketCard({
       "bg-white/30 border-white/30 row-span-full row-start-1 hidden border-x bg-[image:repeating-linear-gradient(315deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] bg-[size:10px_10px] bg-fixed [--pattern-fg:var(--color-black)]/5 md:col-start-3 md:block dark:[--pattern-fg:var(--color-white)]/10",
   };
 
-  return (
-    <Card
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "relative border transition-all duration-200 translate-y-0 hover:translate-y-[-1px] scale-100 hover:scale-[1.02] ease-out group cursor-grab active:cursor-grabbing p-0 gap-0 hover:border-opacity-100 inset-shadow-none shadow-xs hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]",
-        statusStyles[ticket.status],
-        isDragging &&
-          "rotate-5 scale-105 shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]"
-      )}
-      onClick={(e) => {
-        if (!isSortableDragging && onClick) {
-          const target = e.target as HTMLElement;
-          const isButton = target.closest("button");
-          if (!isButton) {
-            onClick();
-          }
-        }
-      }}
-      {...attributes}
-      {...listeners}
-    >
+  const cardClassName = cn(
+    "relative border transition-all duration-200 translate-y-0 hover:translate-y-[-1px] scale-100 hover:scale-[1.02] ease-out group cursor-grab active:cursor-grabbing p-0 gap-0 hover:border-opacity-100 inset-shadow-none shadow-xs hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]",
+    statusStyles[ticket.status],
+    isDragging &&
+      "rotate-5 scale-105 shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]"
+  );
+
+  const handleClick = (e: React.MouseEvent) => {
+    if (!isSortableDragging && onClick) {
+      const target = e.target as HTMLElement;
+      const isButton = target.closest("button");
+      if (!isButton) {
+        onClick();
+      }
+    }
+  };
+
+  const cardContent = (
+    <>
       <CardHeader className={cn("p-4 pb-4 flex", ticket.description && "pb-2")}>
         <div className='flex items-start gap-2'>
           <div className='flex-1 min-w-0'>
@@ -131,6 +171,40 @@ export function TicketCard({
           </p>
         </CardContent>
       )}
+    </>
+  );
+
+  // Only use animated card for initial load
+  if (isInitialLoad && !isSortableDragging) {
+    return (
+      <MotionCard
+        ref={setNodeRef}
+        style={style}
+        variants={cardVariants}
+        initial='hidden'
+        animate='visible'
+        custom={index}
+        className={cardClassName}
+        onClick={handleClick}
+        {...attributes}
+        {...listeners}
+      >
+        {cardContent}
+      </MotionCard>
+    );
+  }
+
+  // Regular non-animated card for all other cases
+  return (
+    <Card
+      ref={setNodeRef}
+      style={style}
+      className={cardClassName}
+      onClick={handleClick}
+      {...attributes}
+      {...listeners}
+    >
+      {cardContent}
     </Card>
   );
 }
