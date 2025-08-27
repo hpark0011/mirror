@@ -1,6 +1,56 @@
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import React from "react";
+import { InsightCard } from "./_components/insight-card";
+
+const insights = [
+  {
+    user: "John Doe",
+    userDescription: "Writer - currently writing about healthy diet",
+    reason: [
+      "Influential tech founder with 50K+ followers. Mentioned considering a public testimonial about your product.",
+      "Technical leader evaluating AI for fraud detection. Your expertise in financial AI makes this a perfect match.",
+    ],
+    match: 90,
+    actionType: "contact",
+  },
+  {
+    user: "Sam Jung",
+    userDescription: "CTO at FinanceFlow - Currently evaluating AI solutions",
+    reason: [
+      "Technical leader evaluating AI for fraud detection. Your expertise in financial AI makes this a perfect match.",
+    ],
+    match: 80,
+    actionType: "contact",
+  },
+  {
+    user: "Sam Jung",
+    userDescription: "CTO at FinanceFlow - Currently evaluating AI solutions",
+    reason: [
+      "Technical leader evaluating AI for fraud detection. Your expertise in financial AI makes this a perfect match.",
+    ],
+    match: 80,
+    actionType: "contact",
+  },
+  {
+    user: "David Thompson",
+    userDescription: "AI Researcher at University",
+    reason: [
+      "47 users asked about integrating AI ethics into corporate training. This could be your next viral blog post or video series.",
+    ],
+    match: 75,
+    actionType: "create-content",
+  },
+  {
+    user: "Sam Jung",
+    userDescription: "CTO at FinanceFlow - Currently evaluating AI solutions",
+    reason: [
+      "47 users asked about integrating AI ethics into corporate training. This could be your next viral blog post or video series.",
+    ],
+    match: 74,
+    actionType: "create-content",
+  },
+];
 
 export default function InsightsPage() {
   return (
@@ -8,87 +58,6 @@ export default function InsightsPage() {
       <h1 className='text-2xl font-medium w-full flex items-center justify-center mb-8'>
         Good afternoon, Han
       </h1>
-
-      <TrendGroupWrapper>
-        <div className='text-text-muted text-sm w-full flex items-center gap-1'>
-          <Icon name='SparkleIcon' className='size-5 text-icon-light -ml-1' />{" "}
-          Top actions you can take
-        </div>
-        <div className='space-y-3'>
-          <div className='text-text-strong text-lg w-full'>
-            Take these actions to get more opportunities.
-          </div>
-          <div className='grid grid-cols-3 gap-2 w-[calc(100%+16px)] -ml-2'>
-            <ActionCardWrapper className='gap-2 justify-start'>
-              <div className='flex flex-col gap-1'>
-                <div className='text-text-tertiary text-sm leading-[120%] items-baseline'>
-                  Create content on
-                  <div className='inline-flex text-[13px] mx-1 py-0.5 px-2 bg-orange-500/7 text-orange-500 rounded-md'>
-                    Healthy Diet
-                  </div>
-                </div>
-              </div>
-              <div className='flex flex-col gap-0'>
-                <div className='text-text-tertiary text-sm'>
-                  • 24 users asked about this
-                </div>
-                <div className='text-text-tertiary text-sm'>
-                  • Get more qualified leads
-                </div>
-              </div>
-            </ActionCardWrapper>
-            <ActionCardWrapper className='gap-2 justify-start'>
-              <div className='text-text-tertiary text-sm leading-[120%] items-baseline'>
-                Reach out to
-                <div className='inline-flex text-[13px] mx-1 py-0.5 px-2 bg-orange-500/7 text-orange-500 rounded-md'>
-                  @chefjohnny-1443
-                </div>
-              </div>
-              <div className='flex flex-col gap-0'>
-                <div className='text-text-tertiary text-sm'>• 78% match</div>
-                <div className='text-text-tertiary text-sm'>
-                  • Potential client
-                </div>
-              </div>
-            </ActionCardWrapper>
-            <ActionCardWrapper className='gap-2'>
-              <div className='flex flex-col gap-1'>
-                <div className='text-text-tertiary text-sm leading-[120%]'>
-                  Add
-                  <div className='inline-flex text-[13px] mx-1 py-0.5 px-2 bg-orange-500/7 text-orange-500 rounded-md'>
-                    Use simpler language
-                  </div>
-                  to your clone's speaking style.
-                </div>
-              </div>
-              <div className='flex flex-col gap-0'>
-                <div className='text-text-tertiary text-sm leading-[120%]'>
-                  • 3 users had hard time reading your clone's response
-                </div>
-              </div>
-            </ActionCardWrapper>
-          </div>
-        </div>
-      </TrendGroupWrapper>
-
-      <TrendGroupWrapper>
-        <div className='text-text-muted text-sm w-full flex items-center gap-1'>
-          <Icon name='EyesIcon' className='size-5 text-icon-light -ml-1' />{" "}
-          Noticeable users
-        </div>
-        <div className='flex flex-col gap-6 w-full'></div>
-      </TrendGroupWrapper>
-
-      <TrendGroupWrapper>
-        <div className='text-text-muted text-sm w-full flex items-center gap-1'>
-          <Icon
-            name='QuoteOpeningIcon'
-            className='size-5 text-icon-light -ml-1'
-          />{" "}
-          Interesting chats
-        </div>
-        <div className='flex flex-col gap-6 w-full'></div>
-      </TrendGroupWrapper>
 
       <TrendGroupWrapper>
         <div className='text-text-muted text-sm w-full flex items-center gap-1'>
@@ -200,6 +169,37 @@ export default function InsightsPage() {
                   </div>
                 </div>
               </InsightsCardWrapper>
+            </div>
+          </div>
+        </div>
+      </TrendGroupWrapper>
+
+      <TrendGroupWrapper>
+        <div className='text-text-muted text-sm w-full flex items-center gap-1'>
+          <Icon name='SparkleIcon' className='size-5 text-icon-light -ml-1' />{" "}
+          Top actions you can take
+        </div>
+        <div className='space-y-3'>
+          <div className='text-text-strong text-lg w-full'>
+            Take these actions to get more opportunities.
+          </div>
+          <div className='flex flex-col gap-6 w-full'>
+            <div className='flex flex-col gap-2 w-[calc(100%+16px)] -ml-2'>
+              {insights.map((insight, index) => (
+                <InsightCard
+                  key={index}
+                  user={insight.user ?? ""}
+                  userDescription={insight.userDescription ?? ""}
+                  reason={insight.reason ?? [""]}
+                  match={insight.match ?? 0}
+                  actionType={
+                    insight.actionType as
+                      | "contact"
+                      | "create-content"
+                      | "add-data"
+                  }
+                />
+              ))}
             </div>
           </div>
         </div>

@@ -50,6 +50,7 @@ export { default as CodeIcon } from "@/icons/code.svg";
 export { default as CursorArrowClick2Icon } from "@/icons/cursorarrow.click.2.svg";
 export { default as CursorArrowRaysIcon } from "@/icons/cursorarrow.rays.svg";
 export { default as CursorArrowIcon } from "@/icons/cursorarrow.svg";
+export { default as CylinderSplit1x2FillIcon } from "@/icons/cylinder.split.1x2.fill.svg";
 export { default as DeleteLeftFillIcon } from "@/icons/delete.left.fill.svg";
 export { default as DocFillIcon } from "@/icons/doc.fill.svg";
 export { default as DocPlainTextFillIcon } from "@/icons/doc.plain.text.fill.svg";
