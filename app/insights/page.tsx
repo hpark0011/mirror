@@ -2,6 +2,7 @@ import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
 import React from "react";
 import { InsightCard } from "./_components/insight-card";
+import { Button } from "@/components/ui/button";
 
 const insights = [
   {
@@ -54,8 +55,8 @@ const insights = [
 
 export default function InsightsPage() {
   return (
-    <div className='flex flex-col max-w-3xl mx-auto w-full gap-4 pb-[80px]'>
-      <h1 className='text-2xl font-medium w-full flex items-center justify-center mb-8'>
+    <div className='flex flex-col max-w-3xl mx-auto w-full gap-8 pb-[80px]'>
+      <h1 className='text-2xl font-medium w-full flex items-center justify-center mb-4'>
         Good afternoon, Han
       </h1>
 
@@ -172,6 +173,24 @@ export default function InsightsPage() {
             </div>
           </div>
         </div>
+        <div className='text-center flex flex-col justify-center w-full gap-2.5 items-center mb-8 mt-4'>
+          <div className='text-text-strong text-sm'>
+            Is this summary helpful?
+          </div>
+          <div className='flex items-center justify-center gap-0 border border-dq-gray-200 w-fit rounded-lg'>
+            <Button variant='outline' size='sm' className='text-text-primary'>
+              Yes
+            </Button>
+            <div className='w-px h-4 bg-dq-gray-200' />
+            <Button variant='outline' size='sm' className='text-text-primary'>
+              No
+            </Button>
+            <div className='w-px h-4 bg-dq-gray-200' />
+            <Button variant='outline' size='sm' className='text-text-primary'>
+              Provide detail feedback
+            </Button>
+          </div>
+        </div>
       </TrendGroupWrapper>
 
       <TrendGroupWrapper>
@@ -201,6 +220,25 @@ export default function InsightsPage() {
                 />
               ))}
             </div>
+          </div>
+        </div>
+
+        <div className='text-center flex flex-col justify-center w-full gap-2.5 items-center mb-8 mt-4'>
+          <div className='text-text-strong text-sm'>
+            Is this action recommendation helpful?
+          </div>
+          <div className='flex items-center justify-center gap-0 border border-dq-gray-200 w-fit rounded-lg'>
+            <Button variant='outline' size='sm' className='text-text-primary'>
+              Yes
+            </Button>
+            <div className='w-px h-4 bg-dq-gray-200' />
+            <Button variant='outline' size='sm' className='text-text-primary'>
+              No
+            </Button>
+            <div className='w-px h-4 bg-dq-gray-200' />
+            <Button variant='outline' size='sm' className='text-text-primary'>
+              Provide detail feedback
+            </Button>
           </div>
         </div>
       </TrendGroupWrapper>
