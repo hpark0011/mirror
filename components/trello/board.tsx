@@ -27,7 +27,7 @@ import {
   importBoardFromJson,
   downloadJsonFile,
 } from "@/lib/storage";
-import { Header } from "./header";
+import { KanbanHeader } from "./kanban-header";
 import { COLUMNS } from "@/config/board-config";
 
 const STORAGE_KEY = "trello-board-state";
@@ -315,7 +315,7 @@ export function Board() {
 
   return (
     <>
-      <Header
+      <KanbanHeader
         onImport={handleImportBoard}
         onExport={handleExportBoard}
         onClear={handleClearBoard}
