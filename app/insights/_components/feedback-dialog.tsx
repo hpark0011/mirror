@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -27,6 +27,11 @@ export function FeedbackDialog({
 }: FeedbackDialogProps) {
   const [showTextarea, setShowTextarea] = useState(false);
   const [feedback, setFeedback] = useState("");
+  const firstPageRef = useRef<HTMLDivElement>(null);
+  const secondPageRef = useRef<HTMLDivElement>(null);
+  const [containerHeight, setContainerHeight] = useState<number | "auto">(
+    "auto"
+  );
 
   // When dialog opens, decide which page to show based on prop
   useEffect(() => {
@@ -34,6 +39,16 @@ export function FeedbackDialog({
       setShowTextarea(!!startOnSecondPage);
     }
   }, [open, startOnSecondPage]);
+
+  // Update height when switching pages
+  useEffect(() => {
+    if (open) {
+      const targetRef = showTextarea ? secondPageRef : firstPageRef;
+      if (targetRef.current) {
+        setContainerHeight(targetRef.current.scrollHeight);
+      }
+    }
+  }, [showTextarea, open]);
 
   const handleClose = () => {
     onOpenChange(false);
@@ -62,89 +77,99 @@ export function FeedbackDialog({
           "duration-300"
         )}
       >
-        <div className='overflow-hidden relative px-5'>
-          <motion.div
-            className='flex gap-6'
-            animate={{ x: showTextarea ? "calc(-100% - 24px)" : "0%" }}
-            transition={{
-              type: "spring",
-              damping: 25,
-              stiffness: 300,
-              duration: 0.3,
-            }}
-          >
-            {/* First Page */}
-            <div className='w-full flex-shrink-0 flex flex-col justify-center items-center gap-4'>
-              <DialogHeader>
-                <DialogTitle className='text-xl font-medium text-center'>
-                  <div className='leading-[1.2]'>
-                    We noticed that you took{" "}
-                    <div className='inline-flex items-center'>
-                      <span className='text-orange-500'>0</span>
-                      <span className='mx-0.5'>/ </span>
-                      <span className='mr-1'>12</span>
+        <motion.div
+          className='relative'
+          animate={{ height: containerHeight }}
+          initial={false}
+          transition={{ duration: 0.3, ease: "easeInOut" }}
+        >
+          <div className='overflow-hidden relative px-5'>
+            <motion.div
+              className='flex gap-6'
+              animate={{ x: showTextarea ? "calc(-100% - 24px)" : "0%" }}
+              transition={{
+                type: "spring",
+                damping: 25,
+                stiffness: 300,
+                duration: 0.3,
+              }}
+            >
+              {/* First Page */}
+              <div
+                ref={firstPageRef}
+                className='w-full flex-shrink-0 flex flex-col justify-center items-center gap-4 py-6'
+              >
+                <DialogHeader>
+                  <DialogTitle className='text-xl font-medium text-center'>
+                    <div className='leading-[1.2]'>
+                      We noticed that you took{" "}
+                      <div className='inline-flex items-center'>
+                        <span className='text-orange-500'>0</span>
+                        <span className='mx-0.5'>/ </span>
+                        <span className='mr-1'>12</span>
+                      </div>
+                      actions we suggested.
                     </div>
-                    actions we suggested.
-                  </div>
-                </DialogTitle>
-                <DialogDescription className='text-text-tertiary text-md text-center'>
-                  Tell us why and we&apos;ll give you better recommendations.
-                </DialogDescription>
-              </DialogHeader>
+                  </DialogTitle>
+                  <DialogDescription className='text-text-tertiary text-md text-center'>
+                    Tell us why and we&apos;ll give you better recommendations.
+                  </DialogDescription>
+                </DialogHeader>
 
-              <DialogFooter className='flex-row gap-2 sm:gap-2 justify-center items-center flex'>
-                <Button variant='outline' onClick={handleClose} size='sm'>
-                  Cancel
-                </Button>
-                <Button
-                  onClick={() => setShowTextarea(true)}
-                  variant='primary'
-                  size='sm'
-                >
-                  Give Feedback
-                </Button>
-              </DialogFooter>
-            </div>
-
-            {/* Second Page */}
-            <div className='w-full flex-shrink-0 py-4'>
-              <DialogHeader className='gap-0 mb-0 px-1'>
-                <DialogTitle className='text-xl font-medium'>
-                  Tell us more
-                </DialogTitle>
-                <DialogDescription className='text-text-tertiary text-md'>
-                  Your detailed feedback helps us improve recommendations.
-                </DialogDescription>
-              </DialogHeader>
-
-              <div className='py-2 pb-4'>
-                <Textarea
-                  placeholder='What would make our recommendations more helpful?'
-                  value={feedback}
-                  onChange={(e) => setFeedback(e.target.value)}
-                  className='min-h-[80px] resize-none'
-                />
+                <DialogFooter className='flex-row gap-2 sm:gap-2 justify-center items-center flex'>
+                  <Button variant='outline' onClick={handleClose} size='sm'>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={() => setShowTextarea(true)}
+                    variant='primary'
+                    size='sm'
+                  >
+                    Give Feedback
+                  </Button>
+                </DialogFooter>
               </div>
 
-              <DialogFooter className='flex-row gap-2 sm:gap-2'>
-                <Button
-                  variant='outline'
-                  onClick={() => setShowTextarea(false)}
-                  className='flex-1'
-                >
-                  Back
-                </Button>
-                <Button
-                  onClick={handleFeedbackSubmit}
-                  disabled={!feedback.trim()}
-                  className='flex-1 bg-black text-white hover:bg-gray-800 disabled:opacity-50'
-                >
-                  Submit
-                </Button>
-              </DialogFooter>
-            </div>
-          </motion.div>
-        </div>
+              {/* Second Page */}
+              <div ref={secondPageRef} className='w-full flex-shrink-0 py-6'>
+                <DialogHeader className='gap-0 mb-0 px-1'>
+                  <DialogTitle className='text-xl font-medium'>
+                    Tell us more
+                  </DialogTitle>
+                  <DialogDescription className='text-text-tertiary text-md'>
+                    Your detailed feedback helps us improve recommendations.
+                  </DialogDescription>
+                </DialogHeader>
+
+                <div className='py-2 pb-4'>
+                  <Textarea
+                    placeholder='What would make our recommendations more helpful?'
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    className='min-h-[80px] resize-none'
+                  />
+                </div>
+
+                <DialogFooter className='flex-row gap-2 sm:gap-2'>
+                  <Button
+                    variant='outline'
+                    onClick={() => setShowTextarea(false)}
+                    className='flex-1'
+                  >
+                    Back
+                  </Button>
+                  <Button
+                    onClick={handleFeedbackSubmit}
+                    disabled={!feedback.trim()}
+                    className='flex-1 bg-black text-white hover:bg-gray-800 disabled:opacity-50'
+                  >
+                    Submit
+                  </Button>
+                </DialogFooter>
+              </div>
+            </motion.div>
+          </div>
+        </motion.div>
       </DialogContent>
     </Dialog>
   );
