@@ -3,7 +3,7 @@ import React from "react";
 
 export function TrendGroupWrapper({ children }: { children: React.ReactNode }) {
   return (
-    <div className='py-3.5 pt-3 px-5 border border-light rounded-3xl gap-6 flex flex-col w-full'>
+    <div className='py-3.5 pt-3 px-5 border border-extra-light rounded-3xl gap-6 flex flex-col w-full'>
       {children}
     </div>
   );
@@ -27,7 +27,7 @@ export function ActionCardWrapper({
   return (
     <div
       className={cn(
-        "rounded-xl w-full border p-3 py-2.5 flex flex-col justify-between items-start relative  transition-all duration-200 translate-y-0  scale-100 ease-out group bg-white/30 border-white/30  gap-0 inset-shadow-none shadow-xs hover:bg-base hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3) hover:translate-y-[-1px] hover:border-opacity-100 hover:scale-[1.02] cursor-pointer gap-2 justify-start",
+        "rounded-xl w-full border p-3 py-2.5 flex flex-col justify-between items-start relative  transition-all duration-200 translate-y-0  scale-100 ease-out group bg-white/30 border-white/30  gap-0 inset-shadow-none hover:bg-base hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3) hover:translate-y-[-1px] hover:border-opacity-100 hover:scale-[1.02] cursor-pointer gap-2 justify-start",
         className
       )}
     >
@@ -50,7 +50,7 @@ export function InsightsCardWrapper({
   return (
     <div
       className={cn(
-        "rounded-xl w-full border p-3 py-2.5 flex flex-row justify-between items-center relative  transition-all duration-200 translate-y-0  scale-100 ease-out group bg-white/30 border-white/30  gap-0 inset-shadow-none shadow-xs",
+        "rounded-xl w-full border p-3 py-2.5 flex flex-row justify-between items-center relative  transition-all duration-200 translate-y-0  scale-100 ease-out group border-extra-light  gap-0 inset-shadow-none",
         orientation === "vertical" && "flex-col items-start",
         className,
         isHoverable &&

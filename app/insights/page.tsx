@@ -78,7 +78,7 @@ export default function InsightsPage() {
           <div className='w-px h-4 bg-dq-gray-200' />
           <TabsTrigger value='actions'>All Actions</TabsTrigger>
           <div className='w-px h-4 bg-dq-gray-200' />
-          <TabsTrigger value='chats'>All Chats</TabsTrigger>
+          <TabsTrigger value='chats'>All Insights</TabsTrigger>
         </TabsList>
 
         <TabsContent
@@ -130,7 +130,7 @@ export default function InsightsPage() {
                 </div>
               </div>
 
-              <div className='space-y-3'>
+              {/* <div className='space-y-3'>
                 <div className='text-text-strong text-lg leading-[140%]'>
                   <span className='flex items-center gap-1'>
                     Your audience is{" "}
@@ -196,9 +196,9 @@ export default function InsightsPage() {
                     </div>
                   </InsightsCardWrapper>
                 </div>
-              </div>
+              </div> */}
             </div>
-            <div className='text-center flex flex-col justify-center w-full gap-2.5 items-center mb-8 mt-4'>
+            {/* <div className='text-center flex flex-col justify-center w-full gap-2.5 items-center mb-8 mt-4'>
               <div className='text-text-strong text-sm'>
                 Is this summary helpful?
               </div>
@@ -227,7 +227,7 @@ export default function InsightsPage() {
                   Provide detail feedback
                 </Button>
               </div>
-            </div>
+            </div> */}
           </TrendGroupWrapper>
 
           <TrendGroupWrapper>
@@ -267,11 +267,11 @@ export default function InsightsPage() {
               <div className='text-text-strong text-sm'>
                 Is this action recommendation helpful?
               </div>
-              <div className='flex items-center justify-center gap-0 border border-dq-gray-200 w-fit rounded-lg'>
+              <div className='flex items-center justify-center gap-0 border w-fit rounded-lg bg-neutral-100'>
                 <Button
                   variant='outline'
                   size='sm'
-                  className='text-text-primary'
+                  className='text-text-primary bg-transparent border-none hover:bg-white'
                 >
                   Yes
                 </Button>
@@ -279,7 +279,7 @@ export default function InsightsPage() {
                 <Button
                   variant='outline'
                   size='sm'
-                  className='text-text-primary'
+                  className='text-text-primary bg-transparent border-none hover:bg-white'
                 >
                   No
                 </Button>
@@ -287,7 +287,7 @@ export default function InsightsPage() {
                 <Button
                   variant='outline'
                   size='sm'
-                  className='text-text-primary'
+                  className='text-text-primary bg-transparent border-none hover:bg-white'
                 >
                   Provide detail feedback
                 </Button>
@@ -334,7 +334,7 @@ export default function InsightsPage() {
         >
           <div className='flex flex-col justify-center items-center'>
             <div className='text-text-strong text-[15px] text-center w-full'>
-              All chats
+              All Insights
             </div>
             <div className='text-blue-500 text-[15px] w-full text-center mb-2'>
               Sort and filters ui comes here
