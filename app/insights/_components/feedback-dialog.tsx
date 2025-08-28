@@ -74,9 +74,9 @@ export function FeedbackDialog({
             }}
           >
             {/* First Page */}
-            <div className='w-full flex-shrink-0'>
+            <div className='w-full flex-shrink-0 flex flex-col justify-center items-center gap-4'>
               <DialogHeader>
-                <DialogTitle className='text-xl font-medium'>
+                <DialogTitle className='text-xl font-medium text-center'>
                   <div className='leading-[1.2]'>
                     We noticed that you took{" "}
                     <div className='inline-flex items-center'>
@@ -87,7 +87,7 @@ export function FeedbackDialog({
                     actions we suggested.
                   </div>
                 </DialogTitle>
-                <DialogDescription className='text-text-tertiary text-md'>
+                <DialogDescription className='text-text-tertiary text-md text-center'>
                   Tell us why and we&apos;ll give you better recommendations.
                 </DialogDescription>
               </DialogHeader>
@@ -107,22 +107,22 @@ export function FeedbackDialog({
             </div>
 
             {/* Second Page */}
-            <div className='w-full flex-shrink-0 '>
-              <DialogHeader>
+            <div className='w-full flex-shrink-0 py-4'>
+              <DialogHeader className='gap-0 mb-0 px-1'>
                 <DialogTitle className='text-xl font-medium'>
                   Tell us more
                 </DialogTitle>
                 <DialogDescription className='text-text-tertiary text-md'>
-                  Your detailed feedback helps us improve recommendations
+                  Your detailed feedback helps us improve recommendations.
                 </DialogDescription>
               </DialogHeader>
 
-              <div className='py-4'>
+              <div className='py-2 pb-4'>
                 <Textarea
                   placeholder='What would make our recommendations more helpful?'
                   value={feedback}
                   onChange={(e) => setFeedback(e.target.value)}
-                  className='min-h-[120px] resize-none'
+                  className='min-h-[80px] resize-none'
                 />
               </div>
 
