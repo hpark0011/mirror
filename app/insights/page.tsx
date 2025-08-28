@@ -186,8 +186,8 @@ export default function InsightsPage() {
                   </div>
                 </div>
 
-                <div className='text-center flex flex-col justify-center w-full gap-2.5 items-center mb-8 mt-4'>
-                  <div className='text-text-strong text-sm'>
+                <div className='text-center flex flex-col justify-center w-full gap-2.5 items-center mb-10 mt-4'>
+                  <div className='text-text-tertiary text-sm'>
                     Is this action recommendation helpful?
                   </div>
                   <div className='flex items-center justify-center gap-0 border w-fit rounded-lg bg-neutral-100 p-0.5fe'>

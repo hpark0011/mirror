@@ -68,7 +68,7 @@ export function FeedbackDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn(
-          "fixed left-1/2 bottom-0 translate-x-[-50%] translate-y-0",
+          "fixed left-1/2 bottom-0 translate-x-[-50%] translate-y-[calc(100%-3rem)]",
           "max-w-[496px] rounded-2xl shadow-2xl h-fit p-0",
           "bg-white dark:bg-gray-900 border-gray-200",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
