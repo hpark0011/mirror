@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
 
 interface FeedbackDialogProps {
   open: boolean;
@@ -41,7 +42,7 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
       <DialogContent
         className={cn(
           "fixed left-1/2 bottom-0 translate-x-[-50%] translate-y-0",
-          "mb-8 max-w-[496px] rounded-2xl shadow-2xl h-fit px-5",
+          "mb-8 max-w-[496px] rounded-2xl shadow-2xl h-fit p-0",
           "bg-white dark:bg-gray-900 border-gray-200",
           "data-[state=open]:animate-in data-[state=closed]:animate-out",
           "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom",
@@ -49,116 +50,90 @@ export function FeedbackDialog({ open, onOpenChange }: FeedbackDialogProps) {
           "duration-300"
         )}
       >
-        {!showTextarea ? (
-          <>
-            <DialogHeader>
-              <DialogTitle className='text-xl font-medium'>
-                <div className='leading-[1.2]'>
-                  We noticed that you took{" "}
-                  <div className='inline-flex items-center'>
-                    <span className='text-orange-500'>0</span>
-                    <span className='mx-0.5'>/ </span>
-                    <span className='mr-1'>12</span>
+        <div className='overflow-hidden relative px-5'>
+          <motion.div
+            className='flex gap-6'
+            layout
+            animate={{ x: showTextarea ? "calc(-100% - 24px)" : "0%" }}
+            transition={{
+              type: "spring",
+              damping: 25,
+              stiffness: 300,
+              duration: 0.3,
+            }}
+          >
+            {/* First Page */}
+            <div className='w-full flex-shrink-0'>
+              <DialogHeader>
+                <DialogTitle className='text-xl font-medium'>
+                  <div className='leading-[1.2]'>
+                    We noticed that you took{" "}
+                    <div className='inline-flex items-center'>
+                      <span className='text-orange-500'>0</span>
+                      <span className='mx-0.5'>/ </span>
+                      <span className='mr-1'>12</span>
+                    </div>
+                    actions we suggested.
                   </div>
-                  actions we suggested.
-                </div>
-              </DialogTitle>
-              <DialogDescription className='text-text-tertiary text-md'>
-                Tell us why and we&apos;ll give you better recommendations.
-              </DialogDescription>
-            </DialogHeader>
+                </DialogTitle>
+                <DialogDescription className='text-text-tertiary text-md'>
+                  Tell us why and we&apos;ll give you better recommendations.
+                </DialogDescription>
+              </DialogHeader>
 
-            <div className='flex flex-col gap-4 py-4'>
-              <div className='flex items-center justify-center gap-0 border w-fit rounded-lg bg-neutral-100 mx-auto p-0.5'>
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='text-text-primary bg-transparent border-none hover:bg-white'
-                  onClick={() => {
-                    console.log("Feedback: Yes");
-                    handleClose();
-                  }}
-                >
-                  Yes
+              <DialogFooter className='flex-row gap-2 sm:gap-2 justify-center items-center flex'>
+                <Button variant='outline' onClick={handleClose} size='sm'>
+                  Cancel
                 </Button>
-                <div className='w-px h-4 bg-dq-gray-200' />
                 <Button
-                  variant='outline'
-                  size='sm'
-                  className='text-text-primary bg-transparent border-none hover:bg-white'
-                  onClick={() => {
-                    console.log("Feedback: No");
-                    handleClose();
-                  }}
-                >
-                  No
-                </Button>
-                <div className='w-px h-4 bg-dq-gray-200' />
-                <Button
-                  variant='outline'
-                  size='sm'
-                  className='text-text-primary bg-transparent border-none hover:bg-white'
                   onClick={() => setShowTextarea(true)}
+                  variant='primary'
+                  size='sm'
                 >
-                  Provide detailed feedback
+                  Give Feedback
                 </Button>
+              </DialogFooter>
+            </div>
+
+            {/* Second Page */}
+            <div className='w-full flex-shrink-0 '>
+              <DialogHeader>
+                <DialogTitle className='text-xl font-medium'>
+                  Tell us more
+                </DialogTitle>
+                <DialogDescription className='text-text-tertiary text-md'>
+                  Your detailed feedback helps us improve recommendations
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className='py-4'>
+                <Textarea
+                  placeholder='What would make our recommendations more helpful?'
+                  value={feedback}
+                  onChange={(e) => setFeedback(e.target.value)}
+                  className='min-h-[120px] resize-none'
+                />
               </div>
+
+              <DialogFooter className='flex-row gap-2 sm:gap-2'>
+                <Button
+                  variant='outline'
+                  onClick={() => setShowTextarea(false)}
+                  className='flex-1'
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handleFeedbackSubmit}
+                  disabled={!feedback.trim()}
+                  className='flex-1 bg-black text-white hover:bg-gray-800 disabled:opacity-50'
+                >
+                  Submit
+                </Button>
+              </DialogFooter>
             </div>
-
-            <DialogFooter className='flex-row gap-2 sm:gap-2'>
-              <Button
-                variant='outline'
-                onClick={handleClose}
-                className='flex-1'
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={() => setShowTextarea(true)}
-                className='flex-1 bg-black text-white hover:bg-gray-800'
-              >
-                Give Feedback
-              </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className='text-xl font-medium'>
-                Tell us more
-              </DialogTitle>
-              <DialogDescription className='text-text-tertiary text-md'>
-                Your detailed feedback helps us improve recommendations
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className='py-4'>
-              <Textarea
-                placeholder='What would make our recommendations more helpful?'
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                className='min-h-[120px] resize-none'
-              />
-            </div>
-
-            <DialogFooter className='flex-row gap-2 sm:gap-2'>
-              <Button
-                variant='outline'
-                onClick={() => setShowTextarea(false)}
-                className='flex-1'
-              >
-                Back
-              </Button>
-              <Button
-                onClick={handleFeedbackSubmit}
-                disabled={!feedback.trim()}
-                className='flex-1 bg-black text-white hover:bg-gray-800 disabled:opacity-50'
-              >
-                Submit
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+          </motion.div>
+        </div>
       </DialogContent>
     </Dialog>
   );
