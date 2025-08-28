@@ -95,17 +95,37 @@ export function InsightCard({
           name='LightbulbFillIcon'
           className='size-4.5 text-icon-light min-w-4.5 mt-[1px]'
         />
-        <p className='text-text-strong text-md leading-[1.2] pl-0.5'>
-          {segments?.map((segment, index) =>
-            segment.highlight ? (
-              <span key={index} className='text-[#FF5C02] font-medium'>
-                {segment.text}
-              </span>
-            ) : (
-              <span key={index}>{segment.text}</span>
-            )
-          )}
-        </p>
+        <div>
+          <p className='text-text-strong text-md leading-[1.2] pl-0.5'>
+            {segments?.map((segment, index) =>
+              segment.highlight ? (
+                <span key={index} className='text-[#FF5C02] font-medium'>
+                  {segment.text}
+                </span>
+              ) : (
+                <span key={index}>{segment.text}</span>
+              )
+            )}
+          </p>
+          <div className='flex items-center mt-2 -ml-0.5 gap-1'>
+            <div className='px-2 pl-1.5 gap-1 text-[11px] flex items-center bg-neutral-100 rounded-md h-[24px]'>
+              <Avatar className='size-[14px]'>
+                <AvatarFallback className='bg-dq-gray-900 text-text-primary-inverse text-[8px]'>
+                  HP
+                </AvatarFallback>
+              </Avatar>
+              Chat with hello
+            </div>
+            <div className='px-2 pl-1.5 gap-1 text-[11px] flex items-center bg-neutral-100 rounded-md h-[24px]'>
+              <Avatar className='size-[14px]'>
+                <AvatarFallback className='bg-dq-gray-900 text-text-primary-inverse text-[8px]'>
+                  HP
+                </AvatarFallback>
+              </Avatar>
+              Chat with hello
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
