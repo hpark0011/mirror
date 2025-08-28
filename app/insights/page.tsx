@@ -65,7 +65,7 @@ const insights = [
 
 export default function InsightsPage() {
   return (
-    <div className='flex flex-col max-w-3xl mx-auto w-full gap-6 pb-[80px] px-4 justify-center items-center'>
+    <div className='flex flex-col max-w-2xl mx-auto w-full gap-6 pb-[80px] px-4 justify-center items-center'>
       <h1 className='text-2xl font-medium w-full flex items-center justify-center mb-4'>
         Good afternoon, Han
       </h1>
