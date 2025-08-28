@@ -189,7 +189,7 @@ export default function InsightsPage() {
                   <div className='text-text-strong text-sm'>
                     Is this action recommendation helpful?
                   </div>
-                  <div className='flex items-center justify-center gap-0 border w-fit rounded-lg bg-neutral-100'>
+                  <div className='flex items-center justify-center gap-0 border w-fit rounded-lg bg-neutral-100 p-0.5'>
                     <Button
                       variant='outline'
                       size='sm'
