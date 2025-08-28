@@ -66,6 +66,8 @@ export { default as GlobeFillIcon } from "@/icons/globe.fill.svg";
 export { default as GlobeIcon } from "@/icons/globe.svg";
 export { default as HandTapFillIcon } from "@/icons/hand.tap.fill.svg";
 export { default as HandWaveFillIcon } from "@/icons/hand.wave.fill.svg";
+export { default as HandsThumbsdownFillIcon } from "@/icons/hands.thumbsdown.fill.svg";
+export { default as HandsThumbsupFillIcon } from "@/icons/hands.thumbsup.fill.svg";
 export { default as HeartFillIcon } from "@/icons/heart.fill.svg";
 export { default as HeartIcon } from "@/icons/heart.svg";
 export { default as HouseFillIcon } from "@/icons/house.fill.svg";
@@ -123,6 +125,7 @@ export { default as SquareGrid2x2FillInIcon } from "@/icons/square.grid.2x2.fill
 export { default as SquareOnSquareFillIcon } from "@/icons/square.on.square.fill.svg";
 export { default as SquareOnSquareIcon } from "@/icons/square.on.square.svg";
 export { default as SquareStackFillIcon } from "@/icons/square.stack.fill.svg";
+export { default as SquareTextSquareFillIcon } from "@/icons/square.text.square.fill.svg";
 export { default as StarFillIcon } from "@/icons/star.fill.svg";
 export { default as StarIcon } from "@/icons/star.svg";
 export { default as StopFillIcon } from "@/icons/stop.fill.svg";

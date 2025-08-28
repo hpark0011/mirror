@@ -26,10 +26,10 @@ export type RingPercentageProps = {
  */
 export function RingPercentage({
   value,
-  size = 96,
-  strokeWidth = 3.5,
-  trackColor = "var(--color-dq-gray-150)", // Tailwind gray-200
-  progressColor = "var(--color-green-500)", // Deep navy-like
+  size = 12,
+  strokeWidth = 2,
+  trackColor = "var(--color-neutral-200)", // Tailwind gray-200
+  progressColor = "var(--color-neutral-400)", // Deep navy-like
   label,
   animate = true,
   className,
@@ -48,14 +48,36 @@ export function RingPercentage({
     <div
       className={className}
       style={{
-        width: size,
+        width: "fit-content",
         height: size,
         position: "relative",
-        display: "inline-block",
+        display: "flex",
+        alignItems: "center",
       }}
       role='img'
       aria-label={`${ariaLabel}: ${clamped}%`}
     >
+      <div
+        style={{
+          position: "relative",
+          inset: 0,
+          display: "grid",
+          placeItems: "center",
+          marginRight: "3px",
+        }}
+        aria-hidden
+      >
+        <span
+          style={{
+            fontWeight: 600,
+            fontFeatureSettings: "'tnum' on",
+            fontSize: "12px",
+            color: "var(--color-neutral-500)",
+          }}
+        >
+          {label ?? `${clamped}%`}
+        </span>
+      </div>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <title>{`${clamped}%`}</title>
         <circle
@@ -82,25 +104,6 @@ export function RingPercentage({
           }}
         />
       </svg>
-      <div
-        style={{
-          position: "absolute",
-          inset: 0,
-          display: "grid",
-          placeItems: "center",
-        }}
-        aria-hidden
-      >
-        <span
-          style={{
-            fontWeight: 700,
-            fontFeatureSettings: "'tnum' on",
-            fontSize: "11px",
-          }}
-        >
-          {label ?? `${clamped}`}
-        </span>
-      </div>
     </div>
   );
 }
