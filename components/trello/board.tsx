@@ -344,7 +344,7 @@ export function Board() {
                     : undefined
                 }
               />
-              <div className='w-[1px] min-w-[1px] bg-gray-300 last:hidden' />
+              <div className='w-[1px] min-w-[1px] bg-gray-200 last:hidden' />
             </Fragment>
           ))}
         </div>
