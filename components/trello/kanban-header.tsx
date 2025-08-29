@@ -33,16 +33,23 @@ type HeaderProps = {
   title?: string;
 };
 
-export function KanbanHeader({
-  onImport,
-  onExport,
-  onClear,
-}: HeaderProps) {
+export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <HeaderContainer>
       <HeaderLogo title='Delphi' />
+      <button className='bg-white/100 shadow-xs border-white border rounded-md text-[15px] px-2 h-[28px] hover:bg-white/70 transition-all duration-200 ease-out hover:scale-105 cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center gap-1 translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg'>
+        <div className='text-text-primary font-medium'>
+          {new Date().toLocaleDateString(undefined, {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+          })}
+        </div>
+        <div className='w-px self-stretch mx-1 bg-neutral-100' />
+        <span className='text-text-muted'>Set today's focus</span>
+      </button>
       <HeaderMenu>
         <Tooltip>
           <TooltipTrigger asChild>
