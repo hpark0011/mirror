@@ -74,7 +74,7 @@ export function FocusForm({
       <DialogContent className='sm:max-w-md px-4'>
         <DialogHeader className='mb-6'>
           <DialogTitle className='text-lg font-medium leading-[1]'>
-            Set Today's Focus
+            Set Today&apos;s Focus
           </DialogTitle>
           <DialogDescription className='sr-only'>
             Set your focus for today to stay productive.
@@ -91,7 +91,7 @@ export function FocusForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className='sr-only'>
-                    What's your focus for today?
+                    What&apos;s your focus for today?
                   </FormLabel>
                   <FormControl>
                     <Input
