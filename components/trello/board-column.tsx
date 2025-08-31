@@ -17,7 +17,6 @@ import { useState, useEffect } from "react";
 import { Column, Ticket } from "../../types/board.types";
 import { Icon } from "../ui/icon";
 import { TicketCard } from "./ticket-card";
-import { TicketDetailDialog } from "./ticket-detail-dialog";
 
 interface BoardColumnProps {
   column: Column;
@@ -56,8 +55,6 @@ export function BoardColumn({
   onDeleteTicket,
   onClearColumn,
 }: BoardColumnProps) {
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   useEffect(() => {
@@ -74,8 +71,7 @@ export function BoardColumn({
   });
 
   const handleTicketClick = (ticket: Ticket) => {
-    setSelectedTicket(ticket);
-    setIsDetailOpen(true);
+    onEditTicket(ticket);
   };
 
   return (
@@ -164,12 +160,6 @@ export function BoardColumn({
 
         <div className='h-4 w-full bg-gradient-to-b from-transparent to-background fixed bottom-0 left-0' />
       </CardContent>
-
-      <TicketDetailDialog
-        ticket={selectedTicket}
-        open={isDetailOpen}
-        onOpenChange={setIsDetailOpen}
-      />
     </Card>
   );
 }

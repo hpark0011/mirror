@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -28,10 +27,12 @@ import {
 } from "@/components/ui/select";
 import { COLUMNS } from "@/config/board-config";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { AutoResizingTextarea } from "../ui/auto-resizing-textarea";
+import { cn } from "@/lib/utils";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 const ticketSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
@@ -69,6 +70,9 @@ export function TicketForm({
   },
   mode = "create",
 }: TicketFormProps) {
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
+
   const form = useForm<TicketFormInput, unknown, TicketFormOutput>({
     resolver: zodResolver(ticketSchema),
     defaultValues,
@@ -92,91 +96,114 @@ export function TicketForm({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-xl px-4'>
-        <DialogHeader className='mb-6'>
-          <DialogTitle className='text-lg font-medium leading-[1]'>
-            {mode === "create" ? "Create New Ticket" : "Edit Ticket"}
-          </DialogTitle>
-          <DialogDescription className='sr-only'>
-            {mode === "create"
-              ? "Add a new ticket to your board."
-              : "Update the ticket details below."}
-          </DialogDescription>
+      <DialogContent
+        className='sm:max-w-xl px-4'
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          const input = titleInputRef.current;
+          if (input) {
+            input.focus({ preventScroll: true });
+            try {
+              const position = input.value?.length ?? 0;
+              input.setSelectionRange(position, position);
+            } catch {}
+          }
+        }}
+      >
+        <DialogHeader>
+          <VisuallyHidden asChild>
+            <DialogTitle>
+              {mode === "create" ? "Create New Ticket" : "Edit Ticket"}
+            </DialogTitle>
+          </VisuallyHidden>
         </DialogHeader>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className='space-y-6'
+            className='space-y-4'
           >
-            <FormField
-              control={form.control}
-              name='title'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Title</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder='Enter ticket title...'
-                      {...field}
-                      className='h-9 border-[1px] px-2.5 rounded-md placeholder:text-muted-foreground w-[calc(100%+8px)] ml-[-4px]'
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='description'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <AutoResizingTextarea
-                      placeholder='Enter ticket description...'
-                      maxHeight={400}
-                      className='resize-none h-full bg-transparent border-[1px] rounded-lg min-h-[160px] w-[calc(100%+8px)] ml-[-4px] flex-1'
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='status'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+            <div>
+              <FormField
+                control={form.control}
+                name='title'
+                render={({ field }) => (
+                  <FormItem>
                     <FormControl>
-                      <SelectTrigger className='ml-[-4px]'>
-                        <SelectValue placeholder='Select a status' />
-                      </SelectTrigger>
+                      <Input
+                        placeholder='Enter ticket title…'
+                        {...field}
+                        ref={(el) => {
+                          field.ref(el);
+                          titleInputRef.current = el;
+                        }}
+                        className={cn(
+                          "md:text-xl h-auto py-1 px-2 rounded-lg placeholder:text-text-muted transition-all w-[calc(100%+8px)] ml-[-4px] mt-[-4px]",
+                          "border-transparent hover:border-light"
+                        )}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {COLUMN_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div className='flex items-center gap-1'>
-                            <Icon
-                              name={option.icon}
-                              className={`${option.iconColor} ${option.iconSize}`}
-                            />
-                            <span>{option.label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter className='gap-1'>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='description'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='sr-only'>Description</FormLabel>
+                    <FormControl>
+                      <AutoResizingTextarea
+                        placeholder='Enter ticket description...'
+                        maxHeight={400}
+                        {...field}
+                        onFocus={() => setDescriptionFocused(true)}
+                        onBlur={() => setDescriptionFocused(false)}
+                        className={cn(
+                          "resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all w-[calc(100%+8px)] ml-[-4px] border-transparent hover:border-light px-2"
+                        )}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter className='gap-1 w-full flex justify-between items-center'>
+              <FormField
+                control={form.control}
+                name='status'
+                render={({ field }) => (
+                  <FormItem className='w-full'>
+                    <FormLabel className='sr-only'>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className=''>
+                          <SelectValue placeholder='Select a status' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {COLUMN_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className='flex items-center gap-1'>
+                              <Icon
+                                name={option.icon}
+                                className={`${option.iconColor} ${option.iconSize}`}
+                              />
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button
                 type='button'
                 variant='ghost'
