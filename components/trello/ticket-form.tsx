@@ -27,7 +27,7 @@ import {
 } from "@/components/ui/select";
 import { COLUMNS } from "@/config/board-config";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { AutoResizingTextarea } from "../ui/auto-resizing-textarea";
@@ -71,6 +71,7 @@ export function TicketForm({
   mode = "create",
 }: TicketFormProps) {
   const [descriptionFocused, setDescriptionFocused] = useState(false);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
 
   const form = useForm<TicketFormInput, unknown, TicketFormOutput>({
     resolver: zodResolver(ticketSchema),
@@ -95,7 +96,20 @@ export function TicketForm({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-xl px-4'>
+      <DialogContent
+        className='sm:max-w-xl px-4'
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          const input = titleInputRef.current;
+          if (input) {
+            input.focus({ preventScroll: true });
+            try {
+              const position = input.value?.length ?? 0;
+              input.setSelectionRange(position, position);
+            } catch {}
+          }
+        }}
+      >
         <DialogHeader>
           <VisuallyHidden asChild>
             <DialogTitle>
@@ -118,6 +132,10 @@ export function TicketForm({
                       <Input
                         placeholder='Enter ticket title…'
                         {...field}
+                        ref={(el) => {
+                          field.ref(el);
+                          titleInputRef.current = el;
+                        }}
                         className={cn(
                           "md:text-xl h-auto py-1 px-2 rounded-lg placeholder:text-text-muted transition-all w-[calc(100%+8px)] ml-[-4px] mt-[-4px]",
                           "border-transparent hover:border-light"
