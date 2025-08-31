@@ -16,7 +16,6 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -25,14 +24,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { COLUMNS } from "@/config/board-config";
+import { cn } from "@/lib/utils";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { AutoResizingTextarea } from "../ui/auto-resizing-textarea";
-import { cn } from "@/lib/utils";
-import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 const ticketSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
@@ -54,9 +53,6 @@ interface TicketFormProps {
 const COLUMN_OPTIONS = COLUMNS.map((column) => ({
   value: column.id,
   label: column.title,
-  icon: column.icon,
-  iconColor: column.iconColor,
-  iconSize: column.iconSize,
 }));
 
 export function TicketForm({
@@ -70,8 +66,8 @@ export function TicketForm({
   },
   mode = "create",
 }: TicketFormProps) {
-  const [descriptionFocused, setDescriptionFocused] = useState(false);
   const titleInputRef = useRef<HTMLInputElement | null>(null);
+  const [isCancelAction, setIsCancelAction] = useState(false);
 
   const form = useForm<TicketFormInput, unknown, TicketFormOutput>({
     resolver: zodResolver(ticketSchema),
@@ -88,9 +84,30 @@ export function TicketForm({
   };
 
   const handleOpenChange = (newOpen: boolean) => {
-    if (!newOpen) {
-      form.reset();
+    // If dialog is opening, just pass through
+    if (newOpen) {
+      onOpenChange(newOpen);
+      return;
     }
+
+    // If cancel action, reset and close
+    if (isCancelAction) {
+      form.reset();
+      setIsCancelAction(false);
+      onOpenChange(newOpen);
+      return;
+    }
+
+    // Try to save valid data on close
+    const formValues = form.getValues();
+    if (formValues.title && formValues.title.trim().length > 0) {
+      handleSubmit(formValues as TicketFormOutput);
+      return;
+    }
+
+    // No valid data, just reset and close
+    form.reset();
+    setIsCancelAction(false);
     onOpenChange(newOpen);
   };
 
@@ -157,8 +174,6 @@ export function TicketForm({
                         placeholder='Enter ticket description...'
                         maxHeight={400}
                         {...field}
-                        onFocus={() => setDescriptionFocused(true)}
-                        onBlur={() => setDescriptionFocused(false)}
                         className={cn(
                           "resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all w-[calc(100%+8px)] ml-[-4px] border-transparent hover:border-light px-2"
                         )}
@@ -190,10 +205,6 @@ export function TicketForm({
                         {COLUMN_OPTIONS.map((option) => (
                           <SelectItem key={option.value} value={option.value}>
                             <div className='flex items-center gap-1'>
-                              <Icon
-                                name={option.icon}
-                                className={`${option.iconColor} ${option.iconSize}`}
-                              />
                               <span>{option.label}</span>
                             </div>
                           </SelectItem>
@@ -207,7 +218,10 @@ export function TicketForm({
               <Button
                 type='button'
                 variant='ghost'
-                onClick={() => handleOpenChange(false)}
+                onClick={() => {
+                  setIsCancelAction(true);
+                  handleOpenChange(false);
+                }}
                 size='sm'
               >
                 Cancel
