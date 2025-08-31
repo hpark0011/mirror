@@ -70,9 +70,8 @@ export function TicketForm({
   },
   mode = "create",
 }: TicketFormProps) {
-  const [titleFocused, setTitleFocused] = useState(false);
   const [descriptionFocused, setDescriptionFocused] = useState(false);
-  
+
   const form = useForm<TicketFormInput, unknown, TicketFormOutput>({
     resolver: zodResolver(ticketSchema),
     defaultValues,
@@ -107,86 +106,86 @@ export function TicketForm({
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className='space-y-6'
+            className='space-y-4'
           >
-            <FormField
-              control={form.control}
-              name='title'
-              render={({ field }) => (
-                <FormItem>
-                  <FormControl>
-                    <Input
-                      placeholder='Enter ticket title…'
-                      {...field}
-                      onFocus={() => setTitleFocused(true)}
-                      onBlur={() => setTitleFocused(false)}
-                      className={cn(
-                        'text-xl font-medium h-auto py-2 px-3 rounded-md placeholder:text-muted-foreground transition-all',
-                        titleFocused ? 'border-opacity-100' : 'border-opacity-0 hover:border-opacity-50'
-                      )}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='description'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Description</FormLabel>
-                  <FormControl>
-                    <AutoResizingTextarea
-                      placeholder='Enter ticket description...'
-                      maxHeight={400}
-                      {...field}
-                      onFocus={() => setDescriptionFocused(true)}
-                      onBlur={() => setDescriptionFocused(false)}
-                      className={cn(
-                        'resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all',
-                        descriptionFocused ? 'border-opacity-100' : 'border-opacity-0 hover:border-opacity-50'
-                      )}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name='status'
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
+            <div>
+              <FormField
+                control={form.control}
+                name='title'
+                render={({ field }) => (
+                  <FormItem>
                     <FormControl>
-                      <SelectTrigger className='ml-[-4px]'>
-                        <SelectValue placeholder='Select a status' />
-                      </SelectTrigger>
+                      <Input
+                        placeholder='Enter ticket title…'
+                        {...field}
+                        className={cn(
+                          "md:text-xl h-auto py-1 px-2 rounded-lg placeholder:text-text-muted transition-all w-[calc(100%+8px)] ml-[-4px] mt-[-4px]",
+                          "border-transparent hover:border-light"
+                        )}
+                      />
                     </FormControl>
-                    <SelectContent>
-                      {COLUMN_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          <div className='flex items-center gap-1'>
-                            <Icon
-                              name={option.icon}
-                              className={`${option.iconColor} ${option.iconSize}`}
-                            />
-                            <span>{option.label}</span>
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <DialogFooter className='gap-1'>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name='description'
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className='sr-only'>Description</FormLabel>
+                    <FormControl>
+                      <AutoResizingTextarea
+                        placeholder='Enter ticket description...'
+                        maxHeight={400}
+                        {...field}
+                        onFocus={() => setDescriptionFocused(true)}
+                        onBlur={() => setDescriptionFocused(false)}
+                        className={cn(
+                          "resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all w-[calc(100%+8px)] ml-[-4px] border-transparent hover:border-light px-2"
+                        )}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+
+            <DialogFooter className='gap-1 w-full flex justify-between items-center'>
+              <FormField
+                control={form.control}
+                name='status'
+                render={({ field }) => (
+                  <FormItem className='w-full'>
+                    <FormLabel className='sr-only'>Status</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger className=''>
+                          <SelectValue placeholder='Select a status' />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {COLUMN_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            <div className='flex items-center gap-1'>
+                              <Icon
+                                name={option.icon}
+                                className={`${option.iconColor} ${option.iconSize}`}
+                              />
+                              <span>{option.label}</span>
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <Button
                 type='button'
                 variant='ghost'
