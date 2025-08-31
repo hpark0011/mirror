@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -28,10 +27,12 @@ import {
 } from "@/components/ui/select";
 import { COLUMNS } from "@/config/board-config";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { AutoResizingTextarea } from "../ui/auto-resizing-textarea";
+import { cn } from "@/lib/utils";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 
 const ticketSchema = z.object({
   title: z.string().min(1, "Title is required").max(100, "Title is too long"),
@@ -69,6 +70,9 @@ export function TicketForm({
   },
   mode = "create",
 }: TicketFormProps) {
+  const [titleFocused, setTitleFocused] = useState(false);
+  const [descriptionFocused, setDescriptionFocused] = useState(false);
+  
   const form = useForm<TicketFormInput, unknown, TicketFormOutput>({
     resolver: zodResolver(ticketSchema),
     defaultValues,
@@ -93,15 +97,12 @@ export function TicketForm({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='sm:max-w-xl px-4'>
-        <DialogHeader className='mb-6'>
-          <DialogTitle className='text-lg font-medium leading-[1]'>
-            {mode === "create" ? "Create New Ticket" : "Edit Ticket"}
-          </DialogTitle>
-          <DialogDescription className='sr-only'>
-            {mode === "create"
-              ? "Add a new ticket to your board."
-              : "Update the ticket details below."}
-          </DialogDescription>
+        <DialogHeader>
+          <VisuallyHidden asChild>
+            <DialogTitle>
+              {mode === "create" ? "Create New Ticket" : "Edit Ticket"}
+            </DialogTitle>
+          </VisuallyHidden>
         </DialogHeader>
         <Form {...form}>
           <form
@@ -113,12 +114,16 @@ export function TicketForm({
               name='title'
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Title</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder='Enter ticket title...'
+                      placeholder='Enter ticket title…'
                       {...field}
-                      className='h-9 border-[1px] px-2.5 rounded-md placeholder:text-muted-foreground w-[calc(100%+8px)] ml-[-4px]'
+                      onFocus={() => setTitleFocused(true)}
+                      onBlur={() => setTitleFocused(false)}
+                      className={cn(
+                        'text-xl font-medium h-auto py-2 px-3 rounded-md placeholder:text-muted-foreground transition-all',
+                        titleFocused ? 'border-opacity-100' : 'border-opacity-0 hover:border-opacity-50'
+                      )}
                     />
                   </FormControl>
                   <FormMessage />
@@ -135,8 +140,13 @@ export function TicketForm({
                     <AutoResizingTextarea
                       placeholder='Enter ticket description...'
                       maxHeight={400}
-                      className='resize-none h-full bg-transparent border-[1px] rounded-lg min-h-[160px] w-[calc(100%+8px)] ml-[-4px] flex-1'
                       {...field}
+                      onFocus={() => setDescriptionFocused(true)}
+                      onBlur={() => setDescriptionFocused(false)}
+                      className={cn(
+                        'resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all',
+                        descriptionFocused ? 'border-opacity-100' : 'border-opacity-0 hover:border-opacity-50'
+                      )}
                     />
                   </FormControl>
                   <FormMessage />
