@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import type React from "react";
+import { useTodayFocus } from "@/hooks/use-today-focus";
 import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
@@ -38,7 +39,7 @@ type HeaderProps = {
 export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [focusDialogOpen, setFocusDialogOpen] = useState(false);
-  const [todayFocus, setTodayFocus] = useState<string | null>(null);
+  const [todayFocus, setTodayFocus] = useTodayFocus();
 
   return (
     <HeaderContainer>
@@ -147,7 +148,7 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
           setTodayFocus(data.focus);
           setFocusDialogOpen(false);
         }}
-        defaultValue={todayFocus || ""}
+        defaultValue={todayFocus}
       />
     </HeaderContainer>
   );

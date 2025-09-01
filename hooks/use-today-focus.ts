@@ -1,7 +1,7 @@
 "use client";
 
 import { useLocalStorage } from "./use-local-storage";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 type FocusData = {
   [date: string]: string; // "2025-08-29": "Complete the design system"
@@ -39,7 +39,7 @@ export function useTodayFocus(): [string, (focus: string) => void] {
   const [focusData, setFocusData] = useLocalStorage<FocusData>(STORAGE_KEY, {});
   const hasCleanedRef = useRef(false);
   
-  const todayKey = useMemo(() => getTodayDateString(), []);
+  const todayKey = getTodayDateString();
   
   // Clean up old entries only once when component mounts
   useEffect(() => {
