@@ -28,9 +28,14 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { COLUMNS } from "@/config/board-config";
 import { useDialogAutoSave } from "@/hooks/use-dialog-auto-save";
 import { useFocusManagement } from "@/hooks/use-focus-management";
-import { type TicketFormInput, type TicketFormOutput, useTicketForm } from "@/hooks/use-ticket-form";
+import {
+  type TicketFormInput,
+  type TicketFormOutput,
+  useTicketForm,
+} from "@/hooks/use-ticket-form";
 import { cn } from "@/lib/utils";
 import { AutoResizingTextarea } from "../ui/auto-resizing-textarea";
+import { Icon, IconName } from "../ui/icon";
 
 interface TicketFormProps {
   open: boolean;
@@ -43,6 +48,9 @@ interface TicketFormProps {
 const COLUMN_OPTIONS = COLUMNS.map((column) => ({
   value: column.id,
   label: column.title,
+  icon: column.icon as IconName,
+  iconColor: column.iconColor,
+  iconSize: column.iconSize,
 }));
 
 export function TicketForm({
@@ -142,14 +150,25 @@ export function TicketForm({
                       defaultValue={field.value}
                     >
                       <FormControl>
-                        <SelectTrigger className=''>
+                        <SelectTrigger className='pl-1.5'>
                           <SelectValue placeholder='Select a status' />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {COLUMN_OPTIONS.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div className='flex items-center gap-1'>
+                          <SelectItem
+                            key={option.value}
+                            value={option.value}
+                            className='pl-1.5'
+                          >
+                            <div className='flex items-center gap-1 px-1 pl-0'>
+                              <Icon
+                                name={option.icon}
+                                className={cn(
+                                  option.iconColor,
+                                  "min-h-5 min-w-5"
+                                )}
+                              />
                               <span>{option.label}</span>
                             </div>
                           </SelectItem>
