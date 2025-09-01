@@ -51,22 +51,28 @@ export function useLocalStorage<T>(
     (value: T | ((val: T) => T)) => {
       if (typeof window === "undefined") return;
 
-      try {
-        const valueToStore = value instanceof Function ? value(storedValue) : value;
-        setStoredValue(valueToStore);
-        
-        // Save to localStorage
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      } catch (error) {
-        console.warn(`Error setting localStorage key "${key}":`, error);
-        
-        // Handle quota exceeded error
-        if (error instanceof DOMException && error.name === "QuotaExceededError") {
-          console.error("LocalStorage quota exceeded. Consider clearing some data.");
+      setStoredValue((currentStoredValue) => {
+        try {
+          const valueToStore = value instanceof Function 
+            ? value(currentStoredValue) 
+            : value;
+          
+          // Save to localStorage
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+          return valueToStore;
+        } catch (error) {
+          console.warn(`Error setting localStorage key "${key}":`, error);
+          
+          // Handle quota exceeded error
+          if (error instanceof DOMException && error.name === "QuotaExceededError") {
+            console.error("LocalStorage quota exceeded. Consider clearing some data.");
+          }
+          
+          return currentStoredValue;
         }
-      }
+      });
     },
-    [key, storedValue]
+    [key]
   );
 
   // Clear value function
