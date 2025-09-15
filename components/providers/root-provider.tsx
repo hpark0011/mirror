@@ -2,9 +2,16 @@
 
 // all the providers go here
 import { ThemeProvider } from "@/components/providers/theme-provider";
+import { useThemeToggle } from "@/hooks/use-theme-toggle";
 
 import { Toaster } from "sonner";
 import { ReactQueryProvider } from "./react-query-provider";
+
+function ThemeWrapper({ children }: { children: React.ReactNode }) {
+  useThemeToggle();
+  return children;
+}
+
 export function RootProvider({ children }: { children: React.ReactNode }) {
   return (
     <ReactQueryProvider>
@@ -14,10 +21,12 @@ export function RootProvider({ children }: { children: React.ReactNode }) {
         enableSystem
         disableTransitionOnChange
         storageKey='theme'
-        // themes={['light', 'dark']}
+        themes={["light", "dark"]}
       >
-        {children}
-        <Toaster />
+        <ThemeWrapper>
+          {children}
+          <Toaster />
+        </ThemeWrapper>
       </ThemeProvider>
     </ReactQueryProvider>
   );
