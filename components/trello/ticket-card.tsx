@@ -87,18 +87,16 @@ export function TicketCard({
   };
 
   const statusStyles = {
-    backlog:
-      "bg-white/70 dark:bg-white/5 border-white/30 dark:border-white/2 hover:bg-base",
-    "to-do":
-      "bg-white/70 dark:bg-white/5 border-white/30 dark:border-white/2 hover:bg-base",
+    backlog: "",
+    "to-do": "",
     "in-progress":
-      "bg-white/70 border-white/60 shadow-[0_8px_8px_-4px_rgba(255,255,255,0.9),_0_12px_12px_-6px_rgba(0,0,0,0.3)] hover:shadow-[0_24px_24px_-12px_rgba(255,255,255,0.9),_0_24px_24px_-12px_rgba(19, 10, 10, 0.3)] hover:bg-base",
+      "shadow-[0_8px_8px_-4px_rgba(255,255,255,0.9),_0_12px_12px_-6px_rgba(0,0,0,0.3)] hover:shadow-[0_24px_24px_-12px_rgba(255,255,255,0.9),_0_24px_24px_-12px_rgba(19, 10, 10, 0.3)] dark:shadow-[0_8px_8px_-4px_rgba(255,255,255,0.15),_0_12px_12px_-6px_rgba(0,0,0,0.9)] dark:hover:shadow-[0_24px_24px_-12px_rgba(255,255,255,0.15),_0_24px_24px_-12px_rgba(19, 10, 10, 0.3)] hover:bg-base",
     complete:
-      "bg-white/70 border-white/30 row-span-full row-start-1 hidden border-x bg-[image:repeating-linear-gradient(315deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] bg-[size:10px_10px] bg-fixed [--pattern-fg:var(--color-black)]/5 md:col-start-3 md:block dark:[--pattern-fg:var(--color-white)]/10",
+      "bg-white/80 border-white/30 row-span-full row-start-1 hidden border-x bg-[image:repeating-linear-gradient(315deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] bg-[size:10px_10px] bg-fixed [--pattern-fg:var(--color-black)]/5 md:col-start-3 md:block dark:[--pattern-fg:var(--color-white)]/10",
   };
 
   const cardClassName = cn(
-    "relative border transition-all duration-200 translate-y-0 hover:translate-y-[-1px] scale-100 hover:scale-[1.02] ease-out group cursor-grab active:cursor-grabbing p-0 gap-0 hover:border-opacity-100 inset-shadow-none shadow-xs hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]",
+    "bg-card border-card-border hover:bg-base dark:hover:bg-neutral-900 relative border transition-all duration-200 translate-y-0 hover:translate-y-[-1px] scale-100 hover:scale-[1.02] ease-out group cursor-grab active:cursor-grabbing p-0 gap-0 hover:border-opacity-100 inset-shadow-none shadow-xs hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.15),_0_14px_14px_-6px_rgba(0,0,0,0.9)]",
     statusStyles[ticket.status],
     isDragging &&
       "rotate-5 scale-105 shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]"
@@ -119,18 +117,18 @@ export function TicketCard({
       <CardHeader className={cn("p-4 pb-4 flex", ticket.description && "pb-2")}>
         <div className='flex items-start gap-2'>
           <div className='flex-1 min-w-0'>
-            <CardTitle className='text-md font-medium leading-none'>
+            <CardTitle className='text-md font-medium leading-[1.2]'>
               {ticket.title}
             </CardTitle>
           </div>
           {!isDragging && (
-            <div className='absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 flex-row items-center transition-opacity pointer-events-none group-hover:pointer-events-auto border rounded-md border-gray-100 bg-base'>
+            <div className='absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 flex-row items-center transition-opacity pointer-events-none group-hover:pointer-events-auto border rounded-md border-border-light bg-white dark:bg-neutral-800'>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     size='icon'
                     variant='ghost'
-                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 rounded-none cursor-pointer hover:shadow-lg rounded-l-md'
+                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-l-[7px]'
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit?.();
@@ -144,13 +142,13 @@ export function TicketCard({
                 </TooltipTrigger>
                 <TooltipContent>Edit Ticket</TooltipContent>
               </Tooltip>
-              <div className='self-stretch w-px bg-neutral-100' />
+              <div className='self-stretch w-px bg-border-light' />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
                     size='icon'
                     variant='ghost'
-                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 rounded-none cursor-pointer hover:shadow-lg rounded-r-md'
+                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-r-[7px]'
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete?.();
