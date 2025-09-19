@@ -1,6 +1,6 @@
 :root {
   --color-base: var(--color-white);
-  --color-extra-light: var(--color-dq-gray-100);
+  --color-extra-light: var(--color-neutral-50);
   --color-light: var(--color-dq-gray-200);
   --color-medium: var(--color-dq-gray-300);
   --color-dark: var(--color-dq-gray-400);

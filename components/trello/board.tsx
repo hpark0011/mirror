@@ -1,6 +1,7 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, forwardRef, useImperativeHandle, useState } from "react";
+import type React from "react";
 import {
   DndContext,
   DragEndEvent,
@@ -27,12 +28,17 @@ import {
   importBoardFromJson,
   downloadJsonFile,
 } from "@/lib/storage";
-import { KanbanHeader } from "./kanban-header";
 import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board-config";
 
 const STORAGE_KEY = "trello-board-state";
 
-export function Board() {
+export type BoardHandle = {
+  importFromInput: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  exportBoard: () => void;
+  clearBoard: () => void;
+};
+
+export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
   const [rawBoard, setRawBoard] = useLocalStorage<string>(
     STORAGE_KEY,
     serializeBoardData(INITIAL_BOARD_STATE)
@@ -303,16 +309,20 @@ export function Board() {
     reader.readAsText(file);
   };
 
+  useImperativeHandle(
+    ref,
+    () => ({
+      importFromInput: handleImportBoard,
+      exportBoard: handleExportBoard,
+      clearBoard: handleClearBoard,
+    }),
+    [board]
+  );
+
   const activeTicket = activeId ? findTicket(activeId) : null;
 
   return (
     <>
-      <KanbanHeader
-        onImport={handleImportBoard}
-        onExport={handleExportBoard}
-        onClear={handleClearBoard}
-        title='Delphi'
-      />
       <DndContext
         sensors={sensors}
         collisionDetection={closestCenter}
@@ -374,4 +384,4 @@ export function Board() {
       />
     </>
   );
-}
+});

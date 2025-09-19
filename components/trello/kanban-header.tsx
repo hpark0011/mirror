@@ -37,6 +37,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 type HeaderProps = {
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -68,7 +74,24 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
             />
           </BreadcrumbSeparator>
           <BreadcrumbItem>
-            <BreadcrumbPage className='text-[15px]'>Tasks</BreadcrumbPage>
+            <BreadcrumbPage className='text-[15px]'>
+              <DropdownMenu>
+                <DropdownMenuTrigger className='outline-none hover:bg-extra-light rounded-sm'>
+                  <div className='flex items-center gap-1.5 px-1.5 py-1 rounded-sm leading-[1.0]'>
+                    Tasks{" "}
+                    <Icon
+                      name='TriangleFillDownIcon'
+                      className='size-2 text-icon-light'
+                    />
+                  </div>{" "}
+                </DropdownMenuTrigger>
+                <DropdownMenuContent side='bottom' align='start'>
+                  <DropdownMenuItem>Tasks</DropdownMenuItem>
+                  <DropdownMenuItem>Tasks</DropdownMenuItem>
+                  <DropdownMenuItem>Tasks</DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
