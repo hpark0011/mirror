@@ -43,7 +43,14 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
 
   return (
     <HeaderContainer className='justify-between'>
-      <HeaderLogo />
+      <div className='flex items-center gap-1'>
+        <HeaderLogo />
+        <Icon
+          name='LineDiagonalIcon'
+          className='size-5.5 text-neutral-400/50 dark:text-neutral-700'
+        />
+        <div className='text-[15px]'>Tasks</div>
+      </div>
       <button
         onClick={() => setFocusDialogOpen(true)}
         className='bg-white/100 dark:bg-neutral-900 shadow-xs border-white dark:border-white/2 border rounded-md text-[15px] h-[28px] hover:bg-white/70 dark:hover:bg-white/10 transition-all duration-200 ease-out hover:scale-105 cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden'

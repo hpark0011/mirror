@@ -14,7 +14,7 @@ export const HeaderContainer = ({
   return (
     <div
       className={cn(
-        "flex justify-between items-center py-2 bg-transparent fixed top-0 w-full px-4 pl-5",
+        "flex justify-between items-center py-2 bg-transparent fixed top-0 w-full px-4",
         className
       )}
     >
@@ -25,14 +25,14 @@ export const HeaderContainer = ({
 
 export const HeaderLogo = () => {
   return (
-    <div className='flex items-center gap-1.5 cursor-pointer left-[-4px] relative'>
+    <div className='flex items-center gap-1.5 cursor-pointer'>
       <Image
         src='/gb-logo-light.png'
         alt='GraphBase logo'
         width={120}
         height={64}
         priority
-        className='h-7 w-auto dark:hidden'
+        className='h-6 w-auto dark:hidden'
       />
       <Image
         src='/gb-logo-dark.png'
@@ -40,7 +40,7 @@ export const HeaderLogo = () => {
         width={120}
         height={64}
         priority
-        className='hidden h-7 w-auto dark:inline'
+        className='hidden h-6 w-auto dark:inline'
       />
     </div>
   );

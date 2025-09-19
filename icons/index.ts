@@ -81,6 +81,7 @@ export { default as LightbulbMaxFillIcon } from "@/icons/lightbulb.max.fill.svg"
 export { default as LightbulbIcon } from "@/icons/lightbulb.svg";
 export { default as Line3HorizontalIcon } from "@/icons/line.3.horizontal.svg";
 export { default as Line3Icon } from "@/icons/line.3.svg";
+export { default as LineDiagonalIcon } from "@/icons/line.diagonal.svg";
 export { default as LineDownTrendIcon } from "@/icons/line.downtrend.svg";
 export { default as LineUpTrendIcon } from "@/icons/line.uptrend.svg";
 export { default as LinkIcon } from "@/icons/link.svg";
