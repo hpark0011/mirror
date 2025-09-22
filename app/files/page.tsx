@@ -1,5 +1,9 @@
-import React from "react";
+import { FilesHeader } from "@/components/files/files-header";
 
 export default function FilesPage() {
-  return <div>files page</div>;
+  return (
+    <div>
+      <FilesHeader />
+    </div>
+  );
 }

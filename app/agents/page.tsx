@@ -1,5 +1,9 @@
-import React from "react";
+import { AgentsHeader } from "@/components/agents/agents-header";
 
 export default function AgentsPage() {
-  return <div>agents page</div>;
+  return (
+    <div>
+      <AgentsHeader />
+    </div>
+  );
 }

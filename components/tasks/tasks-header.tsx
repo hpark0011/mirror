@@ -52,7 +52,7 @@ type HeaderProps = {
   onClear: () => void;
 };
 
-export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
+export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [focusDialogOpen, setFocusDialogOpen] = useState(false);
   const [todayFocus, setTodayFocus] = useTodayFocus();
