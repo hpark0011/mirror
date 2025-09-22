@@ -29,6 +29,7 @@ import {
   downloadJsonFile,
 } from "@/lib/storage";
 import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board-config";
+import { BodyContainer } from "../layout/layout-ui";
 
 const STORAGE_KEY = "trello-board-state";
 
@@ -330,7 +331,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
         onDragOver={handleDragOver}
         onDragEnd={handleDragEnd}
       >
-        <div className='flex p-0 overflow-x-auto min-h-screen pt-20'>
+        <BodyContainer>
           {COLUMNS.map((column) => (
             <Fragment key={column.id}>
               <BoardColumn
@@ -349,7 +350,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
               <div className='w-[1px] min-w-[1px] bg-neutral-200 dark:bg-neutral-900 last:hidden' />
             </Fragment>
           ))}
-        </div>
+        </BodyContainer>
         <DragOverlay>
           {activeTicket ? (
             <TicketCard ticket={activeTicket} isDragging />
