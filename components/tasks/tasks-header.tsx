@@ -40,8 +40,8 @@ import {
 } from "@/components/ui/tooltip";
 import { useTodayFocus } from "@/hooks/use-today-focus";
 import { cn } from "@/lib/utils";
+import { useNavigation } from "@/hooks/use-navigation";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 import type React from "react";
 import { useRef, useState } from "react";
 import { FocusForm } from "./focus-form";
@@ -56,25 +56,7 @@ export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [focusDialogOpen, setFocusDialogOpen] = useState(false);
   const [todayFocus, setTodayFocus] = useTodayFocus();
-  const router = useRouter();
-  const pathname = usePathname();
-
-  // Map pathname to select value
-  const getCurrentValue = () => {
-    if (pathname === "/files") return "Files";
-    if (pathname === "/agents") return "Agents";
-    return "Tasks"; // default to Tasks for /tasks or any other path
-  };
-
-  // Handle navigation
-  const handleNavigate = (value: string) => {
-    const routes: Record<string, string> = {
-      Files: "/files",
-      Tasks: "/tasks",
-      Agents: "/agents",
-    };
-    router.push(routes[value]);
-  };
+  const { getCurrentValue, handleNavigate, navItems } = useNavigation();
 
   return (
     <HeaderContainer className='justify-between'>
@@ -111,9 +93,11 @@ export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
                   sideOffset={0}
                   className='rounded-[11px]'
                 >
-                  <SelectItem value='Files'>Files</SelectItem>
-                  <SelectItem value='Tasks'>Tasks</SelectItem>
-                  <SelectItem value='Agents'>Agents</SelectItem>
+                  {navItems.map((item) => (
+                    <SelectItem key={item.href} value={item.label}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </BreadcrumbPage>

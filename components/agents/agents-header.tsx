@@ -17,29 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useNavigation } from "@/hooks/use-navigation";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 
 export function AgentsHeader() {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  // Map pathname to select value
-  const getCurrentValue = () => {
-    if (pathname === "/files") return "Files";
-    if (pathname === "/agents") return "Agents";
-    return "Tasks"; // default to Tasks for /tasks or any other path
-  };
-
-  // Handle navigation
-  const handleNavigate = (value: string) => {
-    const routes: Record<string, string> = {
-      Files: "/files",
-      Tasks: "/tasks",
-      Agents: "/agents",
-    };
-    router.push(routes[value]);
-  };
+  const { getCurrentValue, handleNavigate, navItems } = useNavigation();
 
   return (
     <HeaderContainer className='justify-between'>

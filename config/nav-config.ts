@@ -1,9 +1,9 @@
-export type SidebarNavItem = {
+export type NavItem = {
   label: string;
   href: string;
 };
 
-export const SIDEBAR_NAV_ITEMS: SidebarNavItem[] = [
+export const NAV_ITEMS: NavItem[] = [
   {
     label: "Files",
     href: "/files",
