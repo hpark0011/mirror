@@ -21,7 +21,7 @@ import { useNavigation } from "@/hooks/use-navigation";
 import Link from "next/link";
 
 export function AgentsHeader() {
-  const { getCurrentValue, handleNavigate, navItems } = useNavigation();
+  const { getCurrentValue, handleNavigate } = useNavigation();
 
   return (
     <HeaderContainer className='justify-between'>
