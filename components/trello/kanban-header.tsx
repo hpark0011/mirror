@@ -92,9 +92,9 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
                   sideOffset={0}
                   className='rounded-[11px]'
                 >
-                  <SelectItem value='Finder'>Finder</SelectItem>
+                  <SelectItem value='Files'>Files</SelectItem>
                   <SelectItem value='Tasks'>Tasks</SelectItem>
-                  <SelectItem value='Projects'>Projects</SelectItem>
+                  <SelectItem value='Agents'>Agents</SelectItem>
                 </SelectContent>
               </Select>
             </BreadcrumbPage>
