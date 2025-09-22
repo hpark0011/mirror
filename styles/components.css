@@ -1,9 +1,15 @@
 :root {
   --card: oklch(0.98 0 0 / 100%);
   --card-border: oklch(1 0 0 / 70%);
+
+  --popover: oklch(0.98 0 0 / 100%);
+  --popover-border: oklch(1 0 0 / 70%);
 }
 
 .dark {
   --card: oklch(0.18 0 0 / 100%);
   --card-border: oklch(1 0 0 / 2%);
+
+  --popover: oklch(0.18 0 0 / 100%);
+  --popover-border: oklch(1 0 0 / 2%);
 }

@@ -1,9 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
-import type React from "react";
-import { useTodayFocus } from "@/hooks/use-today-focus";
-import { Button } from "@/components/ui/button";
+import {
+  HeaderContainer,
+  HeaderLogo,
+  HeaderMenu,
+} from "@/components/header/header-ui";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -15,20 +16,6 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Icon } from "@/components/ui/icon";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
-  HeaderContainer,
-  HeaderLogo,
-  HeaderMenu,
-} from "@/components/header/header-ui";
-import { FocusForm } from "./focus-form";
-import { cn } from "@/lib/utils";
-import Link from "next/link";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -37,12 +24,26 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { Button } from "@/components/ui/button";
+import { Icon } from "@/components/ui/icon";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { useTodayFocus } from "@/hooks/use-today-focus";
+import { cn } from "@/lib/utils";
+import Link from "next/link";
+import type React from "react";
+import { useRef, useState } from "react";
+import { FocusForm } from "./focus-form";
 
 type HeaderProps = {
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -59,7 +60,7 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
   return (
     <HeaderContainer className='justify-between'>
       <Breadcrumb>
-        <BreadcrumbList className='items-center text-[15px] text-foreground sm:gap-1'>
+        <BreadcrumbList className='items-center text-[15px] text-foreground sm:gap-0'>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
               <Link href='/' aria-label='Go to home'>
@@ -67,7 +68,7 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className='text-neutral-400/50 pt-0.5 dark:text-neutral-700 [&>svg]:!size-5'>
+          <BreadcrumbSeparator className='text-neutral-400/50 pt-0.5 dark:text-neutral-700 [&>svg]:!size-5 ml-1'>
             <Icon
               name='LineDiagonalIcon'
               className=' text-neutral-400/50 dark:text-neutral-700'
@@ -75,22 +76,27 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
           </BreadcrumbSeparator>
           <BreadcrumbItem>
             <BreadcrumbPage className='text-[15px]'>
-              <DropdownMenu>
-                <DropdownMenuTrigger className='outline-none hover:bg-extra-light rounded-sm'>
-                  <div className='flex items-center gap-1.5 px-1.5 py-1 rounded-sm leading-[1.0]'>
-                    Tasks{" "}
+              <Select defaultValue={"Tasks"}>
+                <SelectTrigger className='outline-none hover:bg-extra-light rounded-sm border-none data-[size=default]:h-6 data-[size=sm]:h-6 focus-visible:bg-extra-light focus-visible:ring-0'>
+                  <div className='flex items-center gap-1.5 pr-0.5 py-0.5 rounded-sm leading-[1.0] '>
+                    <SelectValue />
                     <Icon
                       name='TriangleFillDownIcon'
-                      className='size-2 text-icon-light'
+                      className='size-2 text-icon-extra-light'
                     />
                   </div>{" "}
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side='bottom' align='start'>
-                  <DropdownMenuItem>Tasks</DropdownMenuItem>
-                  <DropdownMenuItem>Tasks</DropdownMenuItem>
-                  <DropdownMenuItem>Tasks</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+                </SelectTrigger>
+                <SelectContent
+                  side='bottom'
+                  align='start'
+                  sideOffset={0}
+                  className='rounded-[11px]'
+                >
+                  <SelectItem value='Finder'>Finder</SelectItem>
+                  <SelectItem value='Tasks'>Tasks</SelectItem>
+                  <SelectItem value='Projects'>Projects</SelectItem>
+                </SelectContent>
+              </Select>
             </BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>

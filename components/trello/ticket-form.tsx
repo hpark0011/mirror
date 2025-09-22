@@ -36,6 +36,8 @@ import {
 import { cn } from "@/lib/utils";
 import { AutoResizingTextarea } from "../ui/auto-resizing-textarea";
 import { Icon, IconName } from "../ui/icon";
+import { ChevronDownIcon } from "lucide-react";
+import { SelectIcon } from "@radix-ui/react-select";
 
 interface TicketFormProps {
   open: boolean;
@@ -171,6 +173,10 @@ export function TicketForm({
                               />
                               <span>{option.label}</span>
                             </div>
+                            <div className='absolute right-[26px] self-stretch h-full top-0 w-[1px] bg-light' />
+                            <SelectIcon asChild>
+                              <ChevronDownIcon className='size-4 opacity-50' />
+                            </SelectIcon>
                           </SelectItem>
                         ))}
                       </SelectContent>
