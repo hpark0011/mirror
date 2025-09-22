@@ -41,6 +41,7 @@ import {
 import { useTodayFocus } from "@/hooks/use-today-focus";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import type React from "react";
 import { useRef, useState } from "react";
 import { FocusForm } from "./focus-form";
@@ -49,13 +50,31 @@ type HeaderProps = {
   onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
   onClear: () => void;
-  title?: string;
 };
 
 export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [focusDialogOpen, setFocusDialogOpen] = useState(false);
   const [todayFocus, setTodayFocus] = useTodayFocus();
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // Map pathname to select value
+  const getCurrentValue = () => {
+    if (pathname === "/files") return "Files";
+    if (pathname === "/agents") return "Agents";
+    return "Tasks"; // default to Tasks for /tasks or any other path
+  };
+
+  // Handle navigation
+  const handleNavigate = (value: string) => {
+    const routes: Record<string, string> = {
+      Files: "/files",
+      Tasks: "/tasks",
+      Agents: "/agents",
+    };
+    router.push(routes[value]);
+  };
 
   return (
     <HeaderContainer className='justify-between'>
@@ -76,7 +95,7 @@ export function KanbanHeader({ onImport, onExport, onClear }: HeaderProps) {
           </BreadcrumbSeparator>
           <BreadcrumbItem>
             <BreadcrumbPage className='text-[15px]'>
-              <Select defaultValue={"Tasks"}>
+              <Select value={getCurrentValue()} onValueChange={handleNavigate}>
                 <SelectTrigger className='outline-none hover:bg-extra-light rounded-sm border-none data-[size=default]:h-6 data-[size=sm]:h-6 focus-visible:bg-extra-light focus-visible:ring-0'>
                   <div className='flex items-center gap-1.5 pr-0.5 py-0.5 rounded-sm leading-[1.0] '>
                     <SelectValue />

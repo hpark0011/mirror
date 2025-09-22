@@ -13,7 +13,6 @@ export default function TasksPage() {
         onImport={(e) => boardRef.current?.importFromInput(e)}
         onExport={() => boardRef.current?.exportBoard()}
         onClear={() => boardRef.current?.clearBoard()}
-        title='Delphi'
       />
       <Board ref={boardRef} />
     </>
