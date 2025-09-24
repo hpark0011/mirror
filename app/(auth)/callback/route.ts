@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import type { NextRequest } from "next/server";
 
-import { createAuthCallbackService } from "@/services/auth-callback.service";
+import { createAuthCallbackService } from "@/lib/services/auth-callback.service";
 import { getSupabaseServerClient } from "@/utils/supabase/client/supabase-server";
 
 import { PATHS } from "@/config/paths.config";
