@@ -6,7 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "supabase:diff": "supabase db diff -f",
+    "supabase:migrate": "supabase migration new",
+    "supabase:migrate:up": "supabase migration up",
+    "supabase:reset": "supabase db reset",
+    "supabase:status": "supabase status",
+    "supabase:test": "supabase db test",
+    "supabase:db:lint": "supabase db lint",
+    "supabase:deploy": "supabase link --project-ref txjiiufjeccmdyzkatkt && supabase db push",
+    "supabase:types": "supabase gen types --lang=typescript --local > ./types/database.types.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
