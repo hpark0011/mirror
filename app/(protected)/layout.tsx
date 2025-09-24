@@ -12,7 +12,7 @@ export default async function ProtectedLayout({
   return (
     <div className='min-h-screen bg-background'>
       {/* Simple layout wrapper for protected pages */}
-      <main className='container mx-auto'>{children}</main>
+      <main className='mx-auto'>{children}</main>
     </div>
   );
 }

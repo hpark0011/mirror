@@ -8,6 +8,7 @@ export const PATHS = {
   },
   app: {
     dashboard: "/dashboard",
+    files: "/dashboard/files",
     settings: "/settings",
     profile: "/profile",
   },
