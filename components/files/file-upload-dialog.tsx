@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import {
   Dialog,
+  DialogBody,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -76,11 +77,11 @@ export function FileUploadDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className='space-y-4'>
+        <DialogBody className='space-y-4'>
           <div
             className={cn(
-              "border-2 border-dashed rounded-lg p-8 text-center transition-colors",
-              "hover:border-primary/50 hover:bg-muted/30",
+              "border-[2px] border-dashed rounded-lg p-8 text-center transition-colors",
+              "hover:border-primary/50 hover:bg-muted/30 w-[calc(100%+8px)] ml-[-4px]",
               isDragging && "border-primary bg-primary/5"
             )}
             onDrop={handleDrop}
@@ -152,14 +153,18 @@ export function FileUploadDialog({
               </div>
             </div>
           )}
-        </div>
+        </DialogBody>
 
         <DialogFooter>
-          <Button variant='outline' onClick={() => onOpenChange(false)}>
+          <Button variant='ghost' onClick={() => onOpenChange(false)} size='sm'>
             Cancel
           </Button>
-          <Button onClick={handleUpload} disabled={selectedFiles.length === 0}>
-            <Icon name='PlusIcon' className='w-4 h-4 mr-2' />
+          <Button
+            variant='primary'
+            size='sm'
+            onClick={handleUpload}
+            disabled={selectedFiles.length === 0}
+          >
             Upload {selectedFiles.length > 0 && `(${selectedFiles.length})`}
           </Button>
         </DialogFooter>

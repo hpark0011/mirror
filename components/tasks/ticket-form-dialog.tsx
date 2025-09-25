@@ -150,6 +150,10 @@ export function TicketFormDialog({
                       <FormControl>
                         <SelectTrigger className='pl-1.5'>
                           <SelectValue placeholder='Select a status' />
+                          <div className='absolute right-[26px] self-stretch h-full top-0 w-[1px] bg-light' />
+                          <SelectIcon asChild>
+                            <ChevronDownIcon className='size-4 opacity-50' />
+                          </SelectIcon>
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
@@ -169,10 +173,6 @@ export function TicketFormDialog({
                               />
                               <span>{option.label}</span>
                             </div>
-                            <div className='absolute right-[26px] self-stretch h-full top-0 w-[1px] bg-light' />
-                            <SelectIcon asChild>
-                              <ChevronDownIcon className='size-4 opacity-50' />
-                            </SelectIcon>
                           </SelectItem>
                         ))}
                       </SelectContent>

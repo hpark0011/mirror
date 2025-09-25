@@ -84,7 +84,7 @@ export function FilesHeader() {
           size='sm'
           onClick={() => setIsUploadDialogOpen(true)}
         >
-          <Icon name='PlusIcon' /> Add Files
+          <Icon name='PaperClipIcon' /> Add Files
         </Button>
       </HeaderMenu>
 
