@@ -72,7 +72,7 @@ export function FocusForm({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className='sm:max-w-md px-4'>
-        <DialogHeader className='mb-6'>
+        <DialogHeader className='mb-4'>
           <DialogTitle className='text-lg font-medium leading-[1]'>
             Set Today&apos;s Focus
           </DialogTitle>
@@ -81,10 +81,7 @@ export function FocusForm({
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form
-            onSubmit={form.handleSubmit(handleSubmit)}
-            className='space-y-6'
-          >
+          <form onSubmit={form.handleSubmit(handleSubmit)}>
             <FormField
               control={form.control}
               name='focus'
@@ -105,7 +102,7 @@ export function FocusForm({
                 </FormItem>
               )}
             />
-            <DialogFooter className='gap-1'>
+            <DialogFooter className='gap-1 mt-4'>
               <Button
                 type='button'
                 variant='ghost'
