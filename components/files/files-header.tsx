@@ -27,9 +27,21 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { FileUploadDialog } from "./file-upload-dialog";
 
-export function FilesHeader() {
+interface FilesHeaderProps {
+  onUploadComplete?: () => void;
+}
+
+export function FilesHeader({ onUploadComplete }: FilesHeaderProps) {
   const { getCurrentValue, handleNavigate, navItems } = useNavigation();
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  
+  const handleDialogClose = (open: boolean) => {
+    setIsUploadDialogOpen(open);
+    // Call onUploadComplete when dialog closes after successful upload
+    if (!open && onUploadComplete) {
+      onUploadComplete();
+    }
+  };
 
   return (
     <HeaderContainer className='justify-between'>
@@ -90,7 +102,7 @@ export function FilesHeader() {
 
       <FileUploadDialog
         open={isUploadDialogOpen}
-        onOpenChange={setIsUploadDialogOpen}
+        onOpenChange={handleDialogClose}
       />
     </HeaderContainer>
   );
