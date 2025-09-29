@@ -30,25 +30,29 @@ export function FileUploadDialog({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState<FileUploadProgress[]>([]);
-  const [validationErrors, setValidationErrors] = useState<Map<string, string>>(new Map());
+  const [uploadProgress, setUploadProgress] = useState<FileUploadProgress[]>(
+    []
+  );
+  const [validationErrors, setValidationErrors] = useState<Map<string, string>>(
+    new Map()
+  );
 
   const handleFileSelect = (files: FileList | null) => {
     if (files) {
       const newFiles = Array.from(files);
       const errors = new Map<string, string>();
-      
+
       // Validate each file
-      newFiles.forEach(file => {
+      newFiles.forEach((file) => {
         const validation = validateFile(file);
         if (!validation.valid && validation.error) {
           errors.set(file.name, validation.error);
         }
       });
-      
+
       setValidationErrors(errors);
       // Only set files that passed validation
-      setSelectedFiles(newFiles.filter(file => !errors.has(file.name)));
+      setSelectedFiles(newFiles.filter((file) => !errors.has(file.name)));
     }
   };
 
@@ -71,62 +75,66 @@ export function FileUploadDialog({
     if (selectedFiles.length === 0 || isUploading) return;
 
     setIsUploading(true);
-    const progress: FileUploadProgress[] = selectedFiles.map(file => ({
+    const progress: FileUploadProgress[] = selectedFiles.map((file) => ({
       file,
-      status: 'pending' as const,
+      status: "pending" as const,
       progress: 0,
     }));
     setUploadProgress(progress);
 
     const uploadResults: FileUploadProgress[] = [];
-    
+
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
-      const progressItem = { ...progress[i], status: 'uploading' as const, progress: 50 };
-      
+      const progressItem = {
+        ...progress[i],
+        status: "uploading" as const,
+        progress: 50,
+      };
+
       // Update progress for current file
-      setUploadProgress(prev => [
+      setUploadProgress((prev) => [
         ...uploadResults,
         progressItem,
-        ...progress.slice(i + 1)
+        ...progress.slice(i + 1),
       ]);
 
       try {
         const result = await uploadFileAction({ file });
-        
+
         if (result.success && result.data) {
           uploadResults.push({
             ...progressItem,
-            status: 'success',
+            status: "success",
             progress: 100,
-            result: result.data
+            result: result.data,
           });
         } else {
           uploadResults.push({
             ...progressItem,
-            status: 'error',
+            status: "error",
             progress: 100,
-            error: result.message || 'Upload failed'
+            error: result.message || "Upload failed",
           });
         }
       } catch (error) {
         uploadResults.push({
           ...progressItem,
-          status: 'error',
+          status: "error",
           progress: 100,
-          error: error instanceof Error ? error.message : 'Upload failed'
+          error: error instanceof Error ? error.message : "Upload failed",
         });
       }
-      
+
       // Update progress with result
       setUploadProgress([...uploadResults, ...progress.slice(i + 1)]);
     }
 
     setIsUploading(false);
-    
+
     // Check if all uploads succeeded
-    const allSuccess = uploadResults.every(r => r.status === 'success');
-    
+    const allSuccess = uploadResults.every((r) => r.status === "success");
+
     if (allSuccess) {
       // Reset and close dialog after a short delay to show success
       setTimeout(() => {
@@ -177,11 +185,13 @@ export function FileUploadDialog({
                 Some files could not be added:
               </p>
               <ul className='space-y-1'>
-                {Array.from(validationErrors.entries()).map(([filename, error]) => (
-                  <li key={filename} className='text-xs text-destructive/90'>
-                    <span className='font-medium'>{filename}:</span> {error}
-                  </li>
-                ))}
+                {Array.from(validationErrors.entries()).map(
+                  ([filename, error]) => (
+                    <li key={filename} className='text-xs text-destructive/90'>
+                      <span className='font-medium'>{filename}:</span> {error}
+                    </li>
+                  )
+                )}
               </ul>
             </div>
           )}
@@ -227,9 +237,7 @@ export function FileUploadDialog({
           {/* Show upload progress when uploading */}
           {isUploading && uploadProgress.length > 0 && (
             <div className='space-y-2'>
-              <p className='text-sm font-medium'>
-                Uploading files...
-              </p>
+              <p className='text-sm font-medium'>Uploading files...</p>
               <div className='max-h-[200px] overflow-y-auto space-y-2'>
                 {uploadProgress.map((item, index) => (
                   <div
@@ -238,20 +246,21 @@ export function FileUploadDialog({
                   >
                     <Icon
                       name={
-                        item.status === 'success' 
-                          ? 'CheckCircleIcon'
-                          : item.status === 'error'
-                          ? 'ExclamationCircleIcon'
-                          : item.status === 'uploading'
-                          ? 'ArrowUpIcon'
-                          : 'ClockIcon'
+                        item.status === "success"
+                          ? "CheckCircleIcon"
+                          : item.status === "error"
+                            ? "ExclamationmarkTriangleFillIcon"
+                            : item.status === "uploading"
+                              ? "ArrowUpIcon"
+                              : "ClockFillIcon"
                       }
                       className={cn(
-                        'w-4 h-4 flex-shrink-0',
-                        item.status === 'success' && 'text-green-600',
-                        item.status === 'error' && 'text-destructive',
-                        item.status === 'uploading' && 'text-primary animate-pulse',
-                        item.status === 'pending' && 'text-muted-foreground'
+                        "w-4 h-4 flex-shrink-0",
+                        item.status === "success" && "text-green-600",
+                        item.status === "error" && "text-destructive",
+                        item.status === "uploading" &&
+                          "text-primary animate-pulse",
+                        item.status === "pending" && "text-muted-foreground"
                       )}
                     />
                     <div className='flex-1 min-w-0'>
@@ -259,9 +268,9 @@ export function FileUploadDialog({
                       {item.error && (
                         <p className='text-xs text-destructive'>{item.error}</p>
                       )}
-                      {item.status === 'uploading' && (
+                      {item.status === "uploading" && (
                         <div className='mt-1 h-1 bg-muted rounded-full overflow-hidden'>
-                          <div 
+                          <div
                             className='h-full bg-primary transition-all duration-300'
                             style={{ width: `${item.progress}%` }}
                           />
@@ -318,13 +327,13 @@ export function FileUploadDialog({
         </DialogBody>
 
         <DialogFooter>
-          <Button 
-            variant='ghost' 
-            onClick={() => handleClose(false)} 
+          <Button
+            variant='ghost'
+            onClick={() => handleClose(false)}
             size='sm'
             disabled={isUploading}
           >
-            {isUploading ? 'Close' : 'Cancel'}
+            {isUploading ? "Close" : "Cancel"}
           </Button>
           <Button
             variant='primary'
@@ -334,11 +343,16 @@ export function FileUploadDialog({
           >
             {isUploading ? (
               <>
-                <Icon name='ArrowUpIcon' className='w-4 h-4 mr-1 animate-pulse' />
+                <Icon
+                  name='ArrowUpIcon'
+                  className='w-4 h-4 mr-1 animate-pulse'
+                />
                 Uploading...
               </>
             ) : (
-              <>Upload {selectedFiles.length > 0 && `(${selectedFiles.length})`}</>
+              <>
+                Upload {selectedFiles.length > 0 && `(${selectedFiles.length})`}
+              </>
             )}
           </Button>
         </DialogFooter>
