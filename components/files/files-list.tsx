@@ -115,18 +115,18 @@ export function FilesList({
   };
 
   const getFileIcon = (mimeType: string | null) => {
-    if (!mimeType) return "4CircleFillIcon";
+    if (!mimeType) return "DocTextLightIcon";
 
     const category = getFileCategory(mimeType);
     switch (category) {
       case "image":
-        return "1CircleFillIcon";
+        return "DocImageLightIcon";
       case "document":
-        if (mimeType.includes("pdf")) return "2CircleFillIcon";
-        if (mimeType.includes("word")) return "3CircleFillIcon";
-        return "4CircleFillIcon";
+        if (mimeType.includes("pdf")) return "DocPdfLightIcon";
+        if (mimeType.includes("word")) return "DocTextLightIcon";
+        return "DocTextLightIcon";
       default:
-        return "5CircleFillIcon";
+        return "DocTextLightIcon";
     }
   };
 
@@ -177,7 +177,7 @@ export function FilesList({
       <div className='flex flex-col items-center justify-center py-16 px-4'>
         <div className='p-4 bg-muted/30 rounded-full mb-4'>
           <Icon
-            name='FolderFillIcon'
+            name='DocTextLightIcon'
             className='w-12 h-12 text-muted-foreground'
           />
         </div>
@@ -224,7 +224,7 @@ export function FilesList({
                       className='w-4 h-4 animate-pulse'
                     />
                   ) : (
-                    <Icon name='ArrowDownTrayIcon' className='w-4 h-4' />
+                    <Icon name='ArrowDownIcon' className='w-4 h-4' />
                   )}
                 </Button>
                 <Button
@@ -308,7 +308,7 @@ export function FilesList({
                       className='w-3.5 h-3.5 animate-pulse'
                     />
                   ) : (
-                    <Icon name='ArrowDownTrayIcon' className='w-3.5 h-3.5' />
+                    <Icon name='ArrowDownIcon' className='w-3.5 h-3.5' />
                   )}
                 </Button>
                 <Button
