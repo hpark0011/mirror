@@ -6,6 +6,7 @@ import { FilesList } from "@/components/files/files-list";
 import { BodyContainer } from "@/components/layout/layout-ui";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
+import { cn } from "@/lib/utils";
 
 export default function FilesPage() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
@@ -23,23 +24,35 @@ export default function FilesPage() {
         <div className='px-5 py-4 w-full'>
           {/* View mode toggle */}
           <div className='flex items-center justify-between mb-6'>
-            <h2 className='text-lg font-semibold'>Your Files</h2>
-            <div className='flex items-center gap-2'>
+            <h2 className='text-lg font-medium'>All</h2>
+            <div className='flex items-center rounded-md p-0.5'>
               <Button
                 size='sm'
-                variant={viewMode === "grid" ? "default" : "ghost"}
+                variant='icon'
                 onClick={() => setViewMode("grid")}
-                className='h-8 w-8 p-0'
+                className={cn(
+                  viewMode === "grid" ? "bg-[var(--color-extra-light)]" : "",
+                  "h-6 rounded-sm"
+                )}
               >
-                <Icon name='SquareGrid2x2FillInIcon' className='w-4 h-4' />
+                <Icon
+                  name='SquareGrid2x2FillInIcon'
+                  className='w-4 h-4 text-icon-light'
+                />
               </Button>
               <Button
                 size='sm'
-                variant={viewMode === "list" ? "default" : "ghost"}
+                variant='icon'
                 onClick={() => setViewMode("list")}
-                className='h-8 w-8 p-0'
+                className={cn(
+                  viewMode === "list" ? "bg-[var(--color-extra-light)]" : "",
+                  "h-6 rounded-sm"
+                )}
               >
-                <Icon name='ListBulletIcon' className='w-4 h-4' />
+                <Icon
+                  name='ListBulletIcon'
+                  className='w-4 h-4 text-icon-light'
+                />
               </Button>
             </div>
           </div>
