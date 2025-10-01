@@ -14,5 +14,9 @@
     ],
     "deny": [],
     "ask": []
-  }
+  },
+  "disabledMcpjsonServers": [
+    "supabase",
+    "Context7"
+  ]
 }
