@@ -196,7 +196,7 @@ export function FilesList({
           {files.map((file) => (
             <div
               key={file.id}
-              className='flex items-center gap-1 px-2.5 hover:bg-card rounded-md transition-colors w-[calc(100%+24px)] -ml-3'
+              className='flex items-center gap-1 px-2.5 hover:bg-card py-[1px] rounded-md transition-colors w-[calc(100%+24px)] -ml-3'
             >
               <Icon
                 name={getFileIcon(file.mime_type)}

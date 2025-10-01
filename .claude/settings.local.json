@@ -15,8 +15,12 @@
     "deny": [],
     "ask": []
   },
+  "enabledMcpjsonServers": [
+    "shadcn"
+  ],
   "disabledMcpjsonServers": [
     "supabase",
     "Context7"
-  ]
+  ],
+  "enableAllProjectMcpServers": true
 }
