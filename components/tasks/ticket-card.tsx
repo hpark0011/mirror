@@ -128,7 +128,7 @@ export function TicketCard({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    size='icon'
+                    size='sm'
                     variant='ghost'
                     className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-l-[7px]'
                     onClick={(e) => {
@@ -148,7 +148,7 @@ export function TicketCard({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    size='icon'
+                    size='sm'
                     variant='ghost'
                     className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-r-[7px]'
                     onClick={(e) => {

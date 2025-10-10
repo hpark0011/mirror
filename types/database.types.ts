@@ -44,6 +44,7 @@ export type Database = {
           original_name: string
           size: number
           storage_path: string
+          token_count: number | null
           updated_at: string
           user_id: string
         }
@@ -56,6 +57,7 @@ export type Database = {
           original_name: string
           size: number
           storage_path: string
+          token_count?: number | null
           updated_at?: string
           user_id: string
         }
@@ -68,6 +70,7 @@ export type Database = {
           original_name?: string
           size?: number
           storage_path?: string
+          token_count?: number | null
           updated_at?: string
           user_id?: string
         }

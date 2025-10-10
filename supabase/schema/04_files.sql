@@ -11,6 +11,7 @@ create table public.files (
   bucket_name text not null default 'documents',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
+  token_count integer,
   
   -- Ensure storage path is unique per user
   constraint files_storage_path_unique unique (storage_path),
@@ -25,6 +26,7 @@ comment on column public.files.size is 'File size in bytes';
 comment on column public.files.mime_type is 'MIME type of the file';
 comment on column public.files.storage_path is 'Path to the file in Supabase Storage bucket';
 comment on column public.files.bucket_name is 'Name of the storage bucket containing the file';
+comment on column public.files.token_count is 'Number of tokens in the file content for AI processing';
 
 -- Enable Row Level Security
 alter table public.files enable row level security;

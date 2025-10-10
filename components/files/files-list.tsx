@@ -17,23 +17,16 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
-import { Skeleton } from "@/components/ui/skeleton";
-import { formatFileSize, getFileCategory } from "@/lib/schema/file.schema";
-import { cn } from "@/lib/utils";
 import type { FileRow } from "@/types/file.types";
 import { useEffect, useState } from "react";
+import { DataTable } from "./data-table";
+import { createColumns } from "./columns";
 
 interface FilesListProps {
   refreshTrigger?: number; // Optional prop to trigger refresh from parent
-  onFileSelect?: (file: FileRow) => void;
-  view?: "grid" | "list";
 }
 
-export function FilesList({
-  refreshTrigger,
-  onFileSelect,
-  view = "grid",
-}: FilesListProps) {
+export function FilesList({ refreshTrigger }: FilesListProps) {
   const [files, setFiles] = useState<FileRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -114,45 +107,57 @@ export function FilesList({
     }
   };
 
-  const getFileIcon = (mimeType: string | null) => {
-    if (!mimeType) return "DocTextLightIcon";
-
-    const category = getFileCategory(mimeType);
-    switch (category) {
-      case "image":
-        return "DocImageLightIcon";
-      case "document":
-        if (mimeType.includes("pdf")) return "DocPdfLightIcon";
-        if (mimeType.includes("word")) return "DocTextLightIcon";
-        return "DocTextLightIcon";
-      default:
-        return "DocTextLightIcon";
+  const handleBulkDownload = async (selectedFiles: FileRow[]) => {
+    for (const file of selectedFiles) {
+      await handleDownload(file);
+      // Add a small delay between downloads to avoid overwhelming the browser
+      await new Promise((resolve) => setTimeout(resolve, 500));
     }
   };
 
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return new Intl.DateTimeFormat("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    }).format(date);
+  const handleBulkDelete = async (selectedFiles: FileRow[]) => {
+    const fileIds = selectedFiles.map((f) => f.id);
+    const confirmMessage = `Are you sure you want to delete ${fileIds.length} file(s)? This action cannot be undone.`;
+
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsDeletingFile(true);
+    try {
+      // Delete all files sequentially
+      const results = await Promise.all(
+        fileIds.map((fileId) => deleteFileAction({ fileId }))
+      );
+
+      const successCount = results.filter((r) => r.success).length;
+      const failCount = results.length - successCount;
+
+      if (successCount > 0) {
+        // Remove successfully deleted files from list
+        setFiles(files.filter((f) => !fileIds.includes(f.id)));
+      }
+
+      if (failCount > 0) {
+        setError(`Failed to delete ${failCount} file(s)`);
+      }
+    } catch (err) {
+      setError("Failed to delete files");
+      console.error("Error deleting files:", err);
+    } finally {
+      setIsDeletingFile(false);
+    }
   };
+
+  const columns = createColumns(handleDownload, setDeleteFileId, downloadingFileId);
 
   if (isLoading) {
     return (
-      <div
-        className={cn(
-          view === "grid"
-            ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
-            : "space-y-2"
-        )}
-      >
-        {[...Array(6)].map((_, i) => (
-          <Skeleton key={i} className={view === "grid" ? "h-32" : "h-16"} />
-        ))}
+      <div className="flex items-center justify-center py-12">
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-sm text-muted-foreground">Loading files...</p>
+        </div>
       </div>
     );
   }
@@ -174,177 +179,29 @@ export function FilesList({
 
   if (files.length === 0) {
     return (
-      <div className='flex flex-col items-center justify-center py-16 px-4'>
-        <div className='p-4 bg-muted/30 rounded-full mb-4'>
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="p-4 bg-muted/30 rounded-full mb-4">
           <Icon
-            name='DocTextLightIcon'
-            className='w-12 h-12 text-muted-foreground'
+            name="DocTextLightIcon"
+            className="w-12 h-12 text-muted-foreground"
           />
         </div>
-        <h3 className='text-lg font-medium mb-2'>No files uploaded</h3>
-        <p className='text-sm text-muted-foreground text-center max-w-sm'>
+        <h3 className="text-lg font-medium mb-2">No files uploaded</h3>
+        <p className="text-sm text-muted-foreground text-center max-w-sm">
           Upload your first file to get started. Your files will appear here.
         </p>
       </div>
     );
   }
 
-  if (view === "list") {
-    return (
-      <>
-        <div className='space-y-0'>
-          {files.map((file) => (
-            <div
-              key={file.id}
-              className='flex items-center gap-1 px-2.5 hover:bg-card py-[1px] rounded-md transition-colors w-[calc(100%+24px)] -ml-3'
-            >
-              <Icon
-                name={getFileIcon(file.mime_type)}
-                className='w-8 h-8 text-muted-foreground flex-shrink-0'
-              />
-              <div className='flex-1 min-w-0 flex'>
-                <p className='font-medium text-[15px] flex-1 truncate'>
-                  {file.name}
-                </p>
-                <div className='flex items-center gap-2 text-sm text-muted-foreground mt-1'>
-                  <span>{formatFileSize(file.size)}</span>
-                  <span>•</span>
-                  <span>{formatDate(file.created_at)}</span>
-                </div>
-              </div>
-              <div className='flex items-center gap-1'>
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  onClick={() => handleDownload(file)}
-                  disabled={downloadingFileId === file.id}
-                  className='h-8 w-8 p-0'
-                >
-                  {downloadingFileId === file.id ? (
-                    <Icon
-                      name='ArrowDownIcon'
-                      className='w-4 h-4 animate-pulse'
-                    />
-                  ) : (
-                    <Icon name='ArrowDownIcon' className='w-4 h-4' />
-                  )}
-                </Button>
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  onClick={() => setDeleteFileId(file.id)}
-                  className='h-8 w-8 p-0 hover:text-destructive'
-                >
-                  <Icon name='TrashIcon' className='w-4 h-4' />
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Delete confirmation dialog */}
-        <AlertDialog
-          open={!!deleteFileId}
-          onOpenChange={() => setDeleteFileId(null)}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Delete File</AlertDialogTitle>
-              <AlertDialogDescription>
-                Are you sure you want to delete this file? This action cannot be
-                undone.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel disabled={isDeletingFile}>
-                Cancel
-              </AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                disabled={isDeletingFile}
-                className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
-              >
-                {isDeletingFile ? "Deleting..." : "Delete"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </>
-    );
-  }
-
-  // Grid view
   return (
     <>
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4'>
-        {files.map((file) => (
-          <div
-            key={file.id}
-            className={cn(
-              "group relative bg-card border rounded-lg p-4 hover:shadow-md transition-all",
-              onFileSelect && "cursor-pointer hover:border-primary/50"
-            )}
-            onClick={() => onFileSelect?.(file)}
-          >
-            <div className='flex items-start justify-between mb-3'>
-              <div className='p-2 bg-muted/50 rounded-lg'>
-                <Icon
-                  name={getFileIcon(file.mime_type)}
-                  className='w-8 h-8 text-muted-foreground'
-                />
-              </div>
-              <div className='flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity'>
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownload(file);
-                  }}
-                  disabled={downloadingFileId === file.id}
-                  className='h-7 w-7 p-0'
-                >
-                  {downloadingFileId === file.id ? (
-                    <Icon
-                      name='ArrowDownIcon'
-                      className='w-3.5 h-3.5 animate-pulse'
-                    />
-                  ) : (
-                    <Icon name='ArrowDownIcon' className='w-3.5 h-3.5' />
-                  )}
-                </Button>
-                <Button
-                  size='sm'
-                  variant='ghost'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setDeleteFileId(file.id);
-                  }}
-                  className='h-7 w-7 p-0 hover:text-destructive'
-                >
-                  <Icon name='TrashIcon' className='w-3.5 h-3.5' />
-                </Button>
-              </div>
-            </div>
-
-            <h4 className='font-medium text-sm mb-1 truncate' title={file.name}>
-              {file.name}
-            </h4>
-
-            <p
-              className='text-xs text-muted-foreground truncate'
-              title={file.original_name}
-            >
-              {file.original_name}
-            </p>
-
-            <div className='flex items-center justify-between mt-3 text-xs text-muted-foreground'>
-              <span>{formatFileSize(file.size)}</span>
-              <span>{new Date(file.created_at).toLocaleDateString()}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      <DataTable
+        columns={columns}
+        data={files}
+        onBulkDelete={handleBulkDelete}
+        onBulkDownload={handleBulkDownload}
+      />
 
       {/* Delete confirmation dialog */}
       <AlertDialog
@@ -366,7 +223,7 @@ export function FilesList({
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeletingFile}
-              className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               {isDeletingFile ? "Deleting..." : "Delete"}
             </AlertDialogAction>

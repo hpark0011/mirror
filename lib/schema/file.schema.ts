@@ -20,10 +20,10 @@ const fileSchema = z.custom<File>(
   { message: 'Invalid file object' }
 ).refine(
   (file) => file.size <= MAX_FILE_SIZE,
-  (file) => ({ message: `File size exceeds 50MB limit (${Math.round(file.size / 1048576)}MB)` })
+  { message: 'File size exceeds 50MB limit' }
 ).refine(
-  (file) => !file.type || ALLOWED_MIME_TYPES.includes(file.type as any),
-  (file) => ({ message: `File type not allowed: ${file.type}` })
+  (file) => !file.type || ALLOWED_MIME_TYPES.includes(file.type as typeof ALLOWED_MIME_TYPES[number]),
+  { message: 'File type not allowed' }
 );
 
 // Schema for file upload action
@@ -71,7 +71,7 @@ export function validateFile(file: File): { valid: boolean; error?: string } {
     return { valid: true };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { valid: false, error: error.errors[0]?.message || 'Invalid file' };
+      return { valid: false, error: error.issues[0]?.message || 'Invalid file' };
     }
     return { valid: false, error: 'File validation failed' };
   }
