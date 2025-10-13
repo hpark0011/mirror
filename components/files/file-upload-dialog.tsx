@@ -191,15 +191,15 @@ export function FileUploadDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className='sm:max-w-[600px]'>
-        <DialogHeader>
+      <DialogContent className='sm:max-w-[600px] max-h-[calc(100vh-32px)] flex flex-col overflow-hidden'>
+        <DialogHeader className='flex-shrink-0'>
           <DialogTitle>Upload Files</DialogTitle>
           <DialogDescription className='sr-only'>
             Select files from your computer or drag and drop them here
           </DialogDescription>
         </DialogHeader>
 
-        <DialogBody className='space-y-4'>
+        <DialogBody className='space-y-4 flex-1 overflow-y-auto min-h-0'>
           <input
             ref={fileInputRef}
             type='file'
@@ -257,9 +257,9 @@ export function FileUploadDialog({
 
           {/* Show upload progress when uploading */}
           {isUploading && uploadProgress.length > 0 && (
-            <div className='space-y-2'>
-              <p className='text-sm font-medium'>Uploading files...</p>
-              <div className='max-h-[200px] overflow-y-auto space-y-2'>
+            <div className='flex flex-col space-y-2 flex-1 min-h-0'>
+              <p className='text-sm font-medium flex-shrink-0'>Uploading files...</p>
+              <div className='overflow-y-auto space-y-2 flex-1 min-h-0'>
                 {uploadProgress.map((item, index) => (
                   <div
                     key={index}
@@ -306,11 +306,11 @@ export function FileUploadDialog({
 
           {/* Show selected files when not uploading */}
           {!isUploading && selectedFiles.length > 0 && (
-            <div className='space-y-2'>
-              <p className='text-sm font-medium'>
+            <div className='flex flex-col space-y-2 flex-1 min-h-0'>
+              <p className='text-sm font-medium flex-shrink-0'>
                 Selected files ({selectedFiles.length})
               </p>
-              <div className='max-h-[200px] overflow-y-auto space-y-2'>
+              <div className='overflow-y-auto space-y-2 flex-1 min-h-0'>
                 {selectedFiles.map((file, index) => (
                   <div
                     key={index}
@@ -348,6 +348,7 @@ export function FileUploadDialog({
                 size='sm'
                 onClick={() => fileInputRef.current?.click()}
                 disabled={isUploading}
+                className='w-full flex-shrink-0'
               >
                 Add file
               </Button>
@@ -355,7 +356,7 @@ export function FileUploadDialog({
           )}
         </DialogBody>
 
-        <DialogFooter>
+        <DialogFooter className='flex-shrink-0'>
           <Button
             variant='ghost'
             onClick={() => handleClose(false)}
