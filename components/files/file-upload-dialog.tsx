@@ -38,21 +38,43 @@ export function FileUploadDialog({
   );
 
   const handleFileSelect = (files: FileList | null) => {
-    if (files) {
-      const newFiles = Array.from(files);
-      const errors = new Map<string, string>();
+    if (!files) return;
 
-      // Validate each file
-      newFiles.forEach((file) => {
+    const incomingFiles = Array.from(files);
+    const validFiles: File[] = [];
+
+    setValidationErrors((prevErrors) => {
+      const updatedErrors = new Map(prevErrors);
+
+      incomingFiles.forEach((file) => {
         const validation = validateFile(file);
         if (!validation.valid && validation.error) {
-          errors.set(file.name, validation.error);
+          updatedErrors.set(file.name, validation.error);
+        } else {
+          updatedErrors.delete(file.name);
+          validFiles.push(file);
         }
       });
 
-      setValidationErrors(errors);
-      // Only set files that passed validation
-      setSelectedFiles(newFiles.filter((file) => !errors.has(file.name)));
+      return updatedErrors;
+    });
+
+    setSelectedFiles((prevFiles) => {
+      const existingNames = new Set(prevFiles.map((file) => file.name));
+      const nextFiles = [...prevFiles];
+
+      validFiles.forEach((file) => {
+        if (!existingNames.has(file.name)) {
+          nextFiles.push(file);
+          existingNames.add(file.name);
+        }
+      });
+
+      return nextFiles;
+    });
+
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -178,6 +200,16 @@ export function FileUploadDialog({
         </DialogHeader>
 
         <DialogBody className='space-y-4'>
+          <input
+            ref={fileInputRef}
+            type='file'
+            multiple
+            accept='.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif'
+            className='hidden'
+            onChange={(e) => handleFileSelect(e.target.files)}
+            disabled={isUploading}
+          />
+
           {/* Show validation errors if any */}
           {validationErrors.size > 0 && (
             <div className='bg-destructive/10 border border-destructive/20 rounded-lg p-3'>
@@ -196,43 +228,32 @@ export function FileUploadDialog({
             </div>
           )}
 
-          <div
-            className={cn(
-              "rounded-lg p-8 text-center transition-colors",
-              "hover:border-primary/50 hover:bg-muted/30 w-[calc(100%+8px)] ml-[-4px]",
-              isDragging && "border-primary bg-primary/5"
-            )}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onClick={() => fileInputRef.current?.click()}
-          >
-            <div className='flex flex-col items-center gap-3 cursor-pointer'>
-              <div className='p-3 bg-muted rounded-lg'>
-                <Icon
-                  name='PaperClipIcon'
-                  className='w-6 h-6 text-muted-foreground'
-                />
-              </div>
-              <div>
-                <p className='text-sm font-medium'>
-                  Click to upload or drag and drop
-                </p>
-                <p className='text-xs text-muted-foreground mt-1'>
-                  PDF, Word documents, text files, and images (Max 50MB)
-                </p>
+          {/* Upload input area */}
+          {selectedFiles.length === 0 && (
+            <div
+              className={cn(
+                "rounded-lg p-8 text-center transition-colors flex flex-col justify-center items-center",
+                "hover:bg-white w-[calc(100%+8px)] ml-[-4px] h-[200px] cursor-pointer",
+                isDragging && "border-primary bg-primary/5"
+              )}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <div className='flex flex-col items-center gap-3 cursor-pointer'>
+                <Icon name='DocTextLightIcon' className='w-10 h-10' />
+                <div>
+                  <p className='text-sm font-medium'>
+                    Click to upload or drag and drop
+                  </p>
+                  <p className='text-xs text-muted-foreground mt-1'>
+                    PDF, Word documents, text files, and images (Max 50MB)
+                  </p>
+                </div>
               </div>
             </div>
-            <input
-              ref={fileInputRef}
-              type='file'
-              multiple
-              accept='.pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif'
-              className='hidden'
-              onChange={(e) => handleFileSelect(e.target.files)}
-              disabled={isUploading}
-            />
-          </div>
+          )}
 
           {/* Show upload progress when uploading */}
           {isUploading && uploadProgress.length > 0 && (
@@ -322,6 +343,14 @@ export function FileUploadDialog({
                   </div>
                 ))}
               </div>
+              <Button
+                variant='outline'
+                size='sm'
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isUploading}
+              >
+                Add file
+              </Button>
             </div>
           )}
         </DialogBody>
