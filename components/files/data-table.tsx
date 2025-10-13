@@ -32,6 +32,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { cn } from "@/lib/utils";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -146,7 +147,13 @@ export function DataTable<TData, TValue>({
               <TableRow key={headerGroup.id} className='border-neutral-300'>
                 {headerGroup.headers.map((header) => {
                   return (
-                    <TableHead key={header.id} className='py-0 h-8'>
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        "py-0 h-8",
+                        header.id === "select" ? "px-0" : "px-2"
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(
@@ -164,7 +171,13 @@ export function DataTable<TData, TValue>({
               table.getRowModel().rows.map((row) => (
                 <TableRow key={row.id} className='border-neutral-300'>
                   {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className='py-0'>
+                    <TableCell
+                      key={cell.id}
+                      className={cn(
+                        "py-0",
+                        cell.column.id === "select" ? "px-0" : "px-2"
+                      )}
+                    >
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

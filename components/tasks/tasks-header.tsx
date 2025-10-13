@@ -108,7 +108,7 @@ export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
         onClick={() => setFocusDialogOpen(true)}
         className='bg-white/100 dark:bg-neutral-900 shadow-xs border-white dark:border-white/2 border rounded-md text-[15px] h-[28px] hover:bg-white/70 dark:hover:bg-white/10 transition-all duration-200 ease-out hover:scale-105 cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden'
       >
-        <div className='text-text-muted font-medium pl-2 pr-1.5 h-full flex items-center'>
+        <div className='text-text-muted font-medium pl-2 pr-2 h-full flex items-center'>
           {new Date().toLocaleDateString(undefined, {
             weekday: "short",
             month: "short",
