@@ -30,8 +30,9 @@ import {
 } from "@/lib/storage";
 import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board-config";
 import { BodyContainer } from "../layout/layout-ui";
+import { getStorageKey } from "@/lib/storage-keys";
 
-const STORAGE_KEY = "trello-board-state";
+const STORAGE_KEY = getStorageKey("TASKS", "BOARD_STATE");
 
 export type BoardHandle = {
   importFromInput: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -287,7 +288,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
 
   const handleExportBoard = () => {
     const timestamp = new Date().toISOString().split("T")[0];
-    const filename = `trello-board-${timestamp}.json`;
+    const filename = `task-board-${timestamp}.json`;
     const data = exportBoardAsJson(board);
     downloadJsonFile(data, filename);
   };

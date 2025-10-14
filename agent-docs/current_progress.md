@@ -28,7 +28,7 @@ Found that `useTodayFocus` hook already existed with full date-based persistence
 
 ### Integration Changes
 
-**File**: `/modules/components/trello/kanban-header.tsx`
+**File**: `/modules/components/tasks/tasks-header.tsx`
 
 - Added import: `import { useTodayFocus } from "@/hooks/use-today-focus";`
 - Replaced: `const [todayFocus, setTodayFocus] = useState<string | null>(null);`
@@ -46,4 +46,4 @@ Found that `useTodayFocus` hook already existed with full date-based persistence
 ## Files Modified
 
 1. `/modules/hooks/use-today-focus.ts` - Fixed date caching bug
-2. `/modules/components/trello/kanban-header.tsx` - Integrated persistence hook
+2. `/modules/components/tasks/tasks-header.tsx` - Integrated persistence hook

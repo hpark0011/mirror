@@ -55,10 +55,11 @@ interface Ticket {
 
 ### Storage Strategy
 
-- **Storage Key**: `"trello-projects"`
+- **Storage Key**: `getStorageKey("TASKS", "PROJECTS")` → `"docgen.v1.tasks.projects"`
 - **Format**: JSON array of `Project[]`
 - **Persistence**: localStorage with cross-tab synchronization
 - **Migration**: Existing tickets without `projectId` remain valid (backward compatible)
+- **Key Management**: Uses centralized storage key system from `@/lib/storage-keys`
 
 ### Components
 
@@ -77,11 +78,25 @@ interface UseProjectsReturn {
 }
 ```
 
+**Implementation:**
+```typescript
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { getStorageKey } from "@/lib/storage-keys";
+
+const STORAGE_KEY = getStorageKey("TASKS", "PROJECTS");
+
+export function useProjects(): UseProjectsReturn {
+  const [projects, setProjects] = useLocalStorage<Project[]>(STORAGE_KEY, []);
+  // ... implementation
+}
+```
+
 **Features:**
 - Uses `useLocalStorage` hook for persistence
 - Validates project names (non-empty, max length)
 - Generates unique IDs for new projects
 - Handles cross-tab storage events
+- Uses centralized storage key management
 
 #### 2. `components/tasks/project-select.tsx` (NEW)
 

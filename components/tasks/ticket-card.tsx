@@ -130,7 +130,7 @@ export function TicketCard({
                   <Button
                     size='sm'
                     variant='ghost'
-                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-l-[7px]'
+                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-l-[7px] flex items-center justify-center has-[svg]:pl-0 has-[svg]:pr-0'
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit?.();
@@ -150,7 +150,7 @@ export function TicketCard({
                   <Button
                     size='sm'
                     variant='ghost'
-                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-r-[7px]'
+                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-r-[7px] has-[svg]:pl-0 has-[svg]:pr-0'
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete?.();

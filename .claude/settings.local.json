@@ -10,17 +10,27 @@
       "Bash(gh issue create:*)",
       "Bash(pnpm build:*)",
       "Bash(cat:*)",
-      "WebFetch(domain:supabase.com)"
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:medium.com)",
+      "WebFetch(domain:www.herodevs.com)",
+      "WebFetch(domain:dev.to)",
+      "Bash(git log:*)",
+      "Bash(ls:*)",
+      "WebFetch(domain:blog.logrocket.com)",
+      "WebFetch(domain:zustand.docs.pmnd.rs)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:stackoverflow.com)",
+      "WebFetch(domain:www.robinwieruch.de)"
     ],
     "deny": [],
     "ask": []
   },
+  "enableAllProjectMcpServers": true,
   "enabledMcpjsonServers": [
     "shadcn"
   ],
   "disabledMcpjsonServers": [
     "supabase",
     "Context7"
-  ],
-  "enableAllProjectMcpServers": true
+  ]
 }

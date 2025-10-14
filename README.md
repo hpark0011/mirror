@@ -34,7 +34,7 @@ Use `pnpm` for all package operations (not npm, yarn, or bun).
 - `/app` - Next.js App Router pages and layouts
 - `/components/ui` - shadcn/ui components (pre-configured with New York style)
 - `/components/providers` - React context providers (root-provider, react-query, theme)
-- `/components/trello` - Trello board implementation with drag-and-drop
+- `/components/tasks` - Task board implementation with drag-and-drop
 - `/lib` - Utility functions and shared logic
 - `/hooks` - Custom React hooks
 - `/icons` - Custom SVG icon library (100+ icons with TypeScript support)
@@ -94,9 +94,9 @@ Use `pnpm` for all package operations (not npm, yarn, or bun).
 
 ## Current Features
 
-### Trello Board Implementation
+### Task Board Implementation
 
-- Located in `/components/trello/`
+- Located in `/components/tasks/`
 - Four columns: "Backlog", "To Do", "In Progress", "Complete"
 - Drag-and-drop between columns using @dnd-kit
 - Ticket CRUD operations with modal forms

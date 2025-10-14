@@ -2,12 +2,13 @@
 
 import { useLocalStorage } from "./use-local-storage";
 import { useEffect, useRef } from "react";
+import { getStorageKey } from "@/lib/storage-keys";
 
 type FocusData = {
   [date: string]: string; // "2025-08-29": "Complete the design system"
 };
 
-const STORAGE_KEY = "today-focus";
+const STORAGE_KEY = getStorageKey("UI", "TODAY_FOCUS");
 const MAX_DAYS_TO_KEEP = 7;
 
 function getTodayDateString(): string {

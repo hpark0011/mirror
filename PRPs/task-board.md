@@ -1,8 +1,10 @@
-# Product Requirements Plan: Trello Clone Board
+# Product Requirements Plan: Task Board
 
 ## Executive Summary
 
-Implementation of a Trello-style kanban board with drag-and-drop functionality using @dnd-kit library. The board features three columns (Not Started, In Progress, Complete) with draggable tickets that can be created, edited, deleted, and moved between columns.
+Implementation of a kanban-style task board with drag-and-drop functionality using @dnd-kit library. The board features four columns (Backlog, To Do, In Progress, Complete) with draggable tickets that can be created, edited, deleted, and moved between columns.
+
+> **Note**: This document was originally created as a planning document. The task board is now fully implemented in `/components/tasks/`.
 
 ## Context & Requirements
 
@@ -33,7 +35,7 @@ Implementation of a Trello-style kanban board with drag-and-drop functionality u
 1. **@dnd-kit Documentation**: https://docs.dndkit.com/
 2. **@dnd-kit Sortable Preset**: https://docs.dndkit.com/presets/sortable
 3. **DND Kit Examples**: https://github.com/clauderic/dnd-kit/tree/master/stories
-4. **Trello Clone Tutorial**: https://medium.com/@kurniawanc/create-multiple-drag-and-drop-list-like-trello-in-react-js-using-dnd-kit-library-b2acd9a65fab
+4. **DnD Kit Tutorial**: https://medium.com/@kurniawanc/create-multiple-drag-and-drop-list-like-trello-in-react-js-using-dnd-kit-library-b2acd9a65fab
 5. **React Hook Form**: https://react-hook-form.com/docs
 6. **Zod Schema Validation**: https://zod.dev/
 
@@ -55,12 +57,12 @@ From dnd-kit documentation:
 ```
 ┌─────────────────────────────────────────────┐
 │                App Router Page               │
-│                 /app/page.tsx                │
+│            /app/dashboard/tasks              │
 └─────────────────────┬───────────────────────┘
                       │
 ┌─────────────────────▼───────────────────────┐
-│            TrelloBoard Component             │
-│         /components/trello-board.tsx         │
+│              Board Component                 │
+│           /components/tasks/board.tsx        │
 │     (DndContext, state management, layout)   │
 └─────────────────────┬───────────────────────┘
                       │
@@ -76,22 +78,21 @@ From dnd-kit documentation:
 
 ```
 components/
-├── trello/
-│   ├── trello-board.tsx        # Main board component with DnD context
+├── tasks/
+│   ├── board.tsx               # Main board component with DnD context
 │   ├── board-column.tsx        # Column component with SortableContext
 │   ├── ticket-card.tsx         # Individual draggable ticket
-│   ├── ticket-form.tsx         # Form for creating/editing tickets
-│   ├── types.ts                # TypeScript interfaces
-│   └── utils.ts                # Helper functions
+│   ├── ticket-form-dialog.tsx  # Form for creating/editing tickets
+types/
+│   └── board.types.ts          # TypeScript interfaces
 lib/
-├── trello/
-│   └── storage.ts               # Local storage persistence
+│   └── storage.ts              # Local storage persistence
 ```
 
 ### Data Model
 
 ```typescript
-// components/trello/types.ts
+// types/board.types.ts
 export interface Ticket {
   id: string;
   title: string;
@@ -113,7 +114,7 @@ export type BoardState = Record<string, Ticket[]>;
 ### Implementation Code Examples
 
 ```typescript
-// 1. Main Board Component (components/trello/trello-board.tsx)
+// 1. Main Board Component (components/tasks/board.tsx)
 'use client';
 
 import { useState, useCallback } from 'react';
@@ -145,7 +146,7 @@ const COLUMNS = [
   { id: 'complete', title: 'Complete' },
 ] as const;
 
-export function TrelloBoard() {
+export function Board() {
   const [board, setBoard] = useState<BoardState>({
     'not-started': [],
     'in-progress': [],
@@ -254,7 +255,7 @@ export function TrelloBoard() {
   );
 }
 
-// 2. Column Component (components/trello/board-column.tsx)
+// 2. Column Component (components/tasks/board-column.tsx)
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -288,7 +289,7 @@ export function BoardColumn({ column, tickets, onAddTicket }) {
   );
 }
 
-// 3. Draggable Ticket (components/trello/ticket-card.tsx)
+// 3. Draggable Ticket (components/tasks/ticket-card.tsx)
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -358,26 +359,26 @@ export function TicketCard({ ticket, isDragging = false }) {
 
 2. **Create Type Definitions**
 
-   - Create `/components/trello/types.ts`
+   - Create `/types/board.types.ts`
    - Define Ticket, Column, BoardState interfaces
    - Export type utilities
 
 3. **Setup Board Layout**
-   - Create `/components/trello/trello-board.tsx`
-   - Implement three-column layout with Card components
+   - Create `/components/tasks/board.tsx`
+   - Implement four-column layout (Backlog, To Do, In Progress, Complete)
    - Add DndContext provider
 
 ### Phase 2: Drag and Drop
 
 4. **Implement Column Components**
 
-   - Create `/components/trello/board-column.tsx`
+   - Create `/components/tasks/board-column.tsx`
    - Setup SortableContext per column
    - Add useDroppable hook
 
 5. **Create Draggable Tickets**
 
-   - Create `/components/trello/ticket-card.tsx`
+   - Create `/components/tasks/ticket-card.tsx`
    - Implement useSortable hook
    - Add drag handle with GripVertical icon
 
@@ -390,7 +391,7 @@ export function TicketCard({ ticket, isDragging = false }) {
 
 7. **Create Ticket Form**
 
-   - Create `/components/trello/ticket-form.tsx`
+   - Create `/components/tasks/ticket-form-dialog.tsx`
    - Use React Hook Form + Zod
    - Implement in Dialog component
    - Fields: title (required), description, status
