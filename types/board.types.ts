@@ -5,9 +5,26 @@ export interface Ticket {
   title: string;
   description: string;
   status: ColumnId;
+  projectId?: string;
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface Project {
+  id: string;
+  name: string;
+  color: ProjectColor;
+}
+
+export type ProjectColor =
+  | "gray"
+  | "red"
+  | "orange"
+  | "yellow"
+  | "green"
+  | "blue"
+  | "purple"
+  | "pink";
 
 export interface Column {
   id: ColumnId;

@@ -83,13 +83,14 @@ export function validateBoardData(data: unknown): data is SerializedBoardData {
 
 function isValidTicket(ticket: unknown): ticket is Ticket {
   if (!ticket || typeof ticket !== "object" || ticket === null) return false;
-  
+
   const t = ticket as Record<string, unknown>;
   return (
     typeof t.id === "string" &&
     typeof t.title === "string" &&
     typeof t.description === "string" &&
     typeof t.status === "string" &&
+    (t.projectId === undefined || typeof t.projectId === "string") &&
     (t.createdAt instanceof Date ||
       typeof t.createdAt === "string") &&
     (t.updatedAt instanceof Date || typeof t.updatedAt === "string")

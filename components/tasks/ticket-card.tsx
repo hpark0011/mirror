@@ -14,6 +14,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { motion, type Variants } from "framer-motion";
 import { forwardRef } from "react";
 import { Ticket } from "../../types/board.types";
+import { useProjects } from "@/hooks/use-projects";
 
 // Create motion component outside to prevent re-creation
 const ForwardedCard = forwardRef<
@@ -23,6 +24,17 @@ const ForwardedCard = forwardRef<
 ForwardedCard.displayName = "ForwardedCard";
 
 const MotionCard = motion(ForwardedCard);
+
+const PROJECT_COLOR_CLASSES: Record<string, string> = {
+  gray: "text-neutral-500",
+  red: "text-red-500",
+  orange: "text-orange-500",
+  yellow: "text-yellow-500",
+  green: "text-green-500",
+  blue: "text-blue-500",
+  purple: "text-purple-500",
+  pink: "text-pink-500",
+};
 
 interface TicketCardProps {
   ticket: Ticket;
@@ -71,6 +83,9 @@ export function TicketCard({
   index = 0,
   isInitialLoad = false,
 }: TicketCardProps) {
+  const { getProjectById } = useProjects();
+  const project = ticket.projectId ? getProjectById(ticket.projectId) : undefined;
+
   const {
     attributes,
     listeners,
@@ -122,6 +137,19 @@ export function TicketCard({
             <CardTitle className='text-md font-medium leading-[1.2]'>
               {ticket.title}
             </CardTitle>
+            {project && (
+              <div className='flex items-center gap-1.5 mt-2'>
+                <span
+                  className={cn(
+                    "size-2 rounded-full",
+                    PROJECT_COLOR_CLASSES[project.color]
+                  )}
+                />
+                <span className='text-xs text-muted-foreground'>
+                  {project.name}
+                </span>
+              </div>
+            )}
           </div>
           {!isDragging && (
             <div className='absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 flex-row items-center transition-opacity pointer-events-none group-hover:pointer-events-auto border rounded-md border-border-light bg-white dark:bg-neutral-800'>
