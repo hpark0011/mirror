@@ -61,6 +61,7 @@ export function ProjectSelect({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
   const selectedProject = value ? getProjectById(value) : undefined;
 
@@ -68,6 +69,14 @@ export function ProjectSelect({
   const filteredProjects = projects.filter((project) =>
     project.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Check if search query exactly matches an existing project
+  const exactMatch = filteredProjects.some(
+    (p) => p.name.toLowerCase() === searchQuery.trim().toLowerCase()
+  );
+
+  // Can create new project if search has text and no exact match
+  const canCreateNew = searchQuery.trim() && !exactMatch;
 
   // Reset highlighted index when search changes
   useEffect(() => {
@@ -144,6 +153,7 @@ export function ProjectSelect({
       setSelectedColor("blue");
       setSearchQuery("");
       setHighlightedIndex(-1);
+      setShowColorPicker(false);
     }
   };
 
@@ -156,16 +166,24 @@ export function ProjectSelect({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === "Enter" && highlightedIndex >= 0) {
+    } else if (e.key === "Enter") {
       e.preventDefault();
-      const selectedProject = filteredProjects[highlightedIndex];
-      onValueChange(selectedProject.id);
-      setOpen(false);
-      setSearchQuery("");
-      setHighlightedIndex(-1);
+      if (highlightedIndex >= 0) {
+        // Select highlighted project
+        const selectedProject = filteredProjects[highlightedIndex];
+        onValueChange(selectedProject.id);
+        setOpen(false);
+        setSearchQuery("");
+        setHighlightedIndex(-1);
+      } else if (canCreateNew) {
+        // Toggle color picker for creation
+        setShowColorPicker((prev) => !prev);
+      }
     } else if (e.key === "Escape") {
       e.preventDefault();
-      if (searchQuery) {
+      if (showColorPicker) {
+        setShowColorPicker(false);
+      } else if (searchQuery) {
         setSearchQuery("");
         setHighlightedIndex(-1);
       } else {
@@ -211,13 +229,13 @@ export function ProjectSelect({
         <DropdownMenuContent className='min-w-[280px]' align='start'>
           {viewMode === "list" ? (
             <>
-              <div className='px-2 pt-2 pb-1'>
+              <div>
                 <Input
                   placeholder='Search projects...'
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyDown={handleSearchKeyDown}
-                  className='h-8'
+                  className='h-8 border-none'
                   autoFocus={false}
                 />
               </div>
@@ -227,9 +245,9 @@ export function ProjectSelect({
                   <DropdownMenuItem
                     key={project.id}
                     className={cn(
-                      'flex items-center justify-between gap-2 pr-1',
+                      "flex items-center justify-between gap-2 pr-1",
                       highlightedIndex === index &&
-                        'bg-accent text-accent-foreground'
+                        "bg-accent text-accent-foreground"
                     )}
                     onSelect={(e) => {
                       e.preventDefault();
@@ -299,16 +317,65 @@ export function ProjectSelect({
                 </DropdownMenuItem>
               )}
 
-              <DropdownMenuItem
-                onSelect={(e) => {
-                  e.preventDefault();
-                  setViewMode("create");
-                  setSearchQuery("");
-                  setHighlightedIndex(-1);
-                }}
-              >
-                Create New Project
-              </DropdownMenuItem>
+              {canCreateNew ? (
+                <>
+                  <DropdownMenuItem
+                    onSelect={(e) => {
+                      e.preventDefault();
+                      setShowColorPicker((prev) => !prev);
+                    }}
+                  >
+                    Create &apos;{searchQuery.trim()}&apos;
+                  </DropdownMenuItem>
+                  {showColorPicker && (
+                    <div className='px-2 py-2 space-y-2'>
+                      <div className='text-xs font-medium text-foreground px-1'>
+                        Choose color
+                      </div>
+                      <div className='flex gap-2 flex-wrap px-1'>
+                        {PROJECT_COLORS.map(({ color, bgClass }) => (
+                          <button
+                            key={color}
+                            type='button'
+                            onClick={() => {
+                              try {
+                                const newProject = addProject(
+                                  searchQuery.trim(),
+                                  color
+                                );
+                                onValueChange(newProject.id);
+                                setSearchQuery("");
+                                setShowColorPicker(false);
+                                setHighlightedIndex(-1);
+                                setOpen(false);
+                              } catch (error) {
+                                console.error("Failed to create project:", error);
+                              }
+                            }}
+                            className={cn(
+                              "size-6 rounded-full transition-all border-2 hover:scale-110",
+                              "border-transparent hover:border-foreground/20",
+                              bgClass
+                            )}
+                            aria-label={`Create project with ${color} color`}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <DropdownMenuItem
+                  onSelect={(e) => {
+                    e.preventDefault();
+                    setViewMode("create");
+                    setSearchQuery("");
+                    setHighlightedIndex(-1);
+                  }}
+                >
+                  Create new project
+                </DropdownMenuItem>
+              )}
             </>
           ) : (
             <div className='p-2 space-y-3'>

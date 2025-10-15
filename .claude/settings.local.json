@@ -20,7 +20,9 @@
       "WebFetch(domain:zustand.docs.pmnd.rs)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:stackoverflow.com)",
-      "WebFetch(domain:www.robinwieruch.de)"
+      "WebFetch(domain:www.robinwieruch.de)",
+      "WebFetch(domain:developer.chrome.com)",
+      "Read(//Users/disquiet/Library/Application Support/Claude/**)"
     ],
     "deny": [],
     "ask": []
