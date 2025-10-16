@@ -196,33 +196,25 @@ export function ProjectSelect({
     <>
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
-          <div>
-            <Button
-              variant='outline'
-              className={cn(
-                "border-light data-[placeholder]:text-muted-foreground [&_svg:not([class*='text-'])]:text-muted-foreground focus-visible:ring-ring/50 dark:bg-transparent dark:hover:bg-input/10 flex w-full items-center justify-between gap-3.5 rounded-md border bg-transparent pl-1.5 pr-[5px] py-1.5 text-[14px] whitespace-nowrap transition-[color,box-shadow] outline-none focus-visible:ring-[2px] disabled:cursor-not-allowed disabled:opacity-50 h-7 hover:bg-extra-light relative cursor-pointer",
-                className
+          <div className='flex items-center gap-2'>
+            <div className='flex items-center gap-2 flex-1 min-w-0'>
+              {selectedProject ? (
+                <>
+                  <span
+                    className={cn(
+                      "size-2 rounded-full flex-shrink-0",
+                      PROJECT_COLORS.find(
+                        (c) => c.color === selectedProject.color
+                      )?.bgClass
+                    )}
+                  />
+                  <span className='truncate'>{selectedProject.name}</span>
+                </>
+              ) : (
+                <span className='text-muted-foreground'>No project</span>
               )}
-            >
-              <div className='flex items-center gap-2 flex-1 min-w-0'>
-                {selectedProject ? (
-                  <>
-                    <span
-                      className={cn(
-                        "size-2 rounded-full flex-shrink-0",
-                        PROJECT_COLORS.find(
-                          (c) => c.color === selectedProject.color
-                        )?.bgClass
-                      )}
-                    />
-                    <span className='truncate'>{selectedProject.name}</span>
-                  </>
-                ) : (
-                  <span className='text-muted-foreground'>No project</span>
-                )}
-              </div>
-              <ChevronDownIcon className='size-4 opacity-50 shrink-0' />
-            </Button>
+            </div>
+            <ChevronDownIcon className='size-4 opacity-50 shrink-0' />
           </div>
         </DropdownMenuTrigger>
 
@@ -355,7 +347,10 @@ export function ProjectSelect({
                                 setHighlightedIndex(-1);
                                 setOpen(false);
                               } catch (error) {
-                                console.error("Failed to create project:", error);
+                                console.error(
+                                  "Failed to create project:",
+                                  error
+                                );
                               }
                             }}
                             className={cn(

@@ -258,7 +258,9 @@ export function FileUploadDialog({
           {/* Show upload progress when uploading */}
           {isUploading && uploadProgress.length > 0 && (
             <div className='flex flex-col space-y-2 flex-1 min-h-0'>
-              <p className='text-sm font-medium flex-shrink-0'>Uploading files...</p>
+              <p className='text-sm font-medium flex-shrink-0'>
+                Uploading files...
+              </p>
               <div className='overflow-y-auto space-y-2 flex-1 min-h-0'>
                 {uploadProgress.map((item, index) => (
                   <div

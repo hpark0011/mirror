@@ -39,7 +39,6 @@ interface TicketFormProps {
   mode?: "create" | "edit";
 }
 
-
 export function TicketFormDialog({
   open,
   onOpenChange,
@@ -79,26 +78,44 @@ export function TicketFormDialog({
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
             <DialogBody className='mt-4'>
-              <FormField
-                control={form.control}
-                name='title'
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Input
-                        placeholder='Enter ticket title…'
-                        {...field}
-                        ref={(el) => setRefs(el, field.ref)}
-                        className={cn(
-                          "md:text-xl h-auto py-1 px-2 rounded-lg placeholder:text-text-muted transition-all w-[calc(100%+8px)] ml-[-4px] mt-[-4px]",
-                          "border-transparent hover:border-light"
-                        )}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className='flex gap-2 items-baseline'>
+                <FormField
+                  control={form.control}
+                  name='projectId'
+                  render={({ field }) => (
+                    <FormItem className=''>
+                      <FormLabel className='sr-only'>Project</FormLabel>
+                      <FormControl>
+                        <ProjectSelect
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='title'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Input
+                          placeholder='Enter ticket title…'
+                          {...field}
+                          ref={(el) => setRefs(el, field.ref)}
+                          className={cn(
+                            "md:text-lg h-auto py-1 px-2 rounded-lg placeholder:text-text-muted transition-all w-[calc(100%+8px)] ml-[-4px] mt-[-4px]",
+                            "border-transparent hover:border-light"
+                          )}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name='description'
@@ -123,22 +140,6 @@ export function TicketFormDialog({
 
             <DialogFooter className='gap-1 w-full flex justify-between items-center '>
               <div className='flex gap-2 flex-1'>
-                <FormField
-                  control={form.control}
-                  name='projectId'
-                  render={({ field }) => (
-                    <FormItem className='flex-1'>
-                      <FormLabel className='sr-only'>Project</FormLabel>
-                      <FormControl>
-                        <ProjectSelect
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name='status'
