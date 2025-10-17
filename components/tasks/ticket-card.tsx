@@ -96,9 +96,8 @@ export function TicketCard({
   };
 
   const cardWrapperClassName = cn(
-    "relative",
-    isDragging &&
-      "rotate-5 scale-105 shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]"
+    "relative scale-100 hover:scale-[1.02] transition-all duration-200 ease-out",
+    isDragging && "rotate-5 scale-105"
   );
 
   const statusStyles = {
@@ -111,10 +110,8 @@ export function TicketCard({
   };
 
   const cardClassName = cn(
-    "bg-card border-card-border hover:bg-base dark:hover:bg-neutral-900 relative border transition-all duration-200 translate-y-0 hover:translate-y-[-1px] scale-100 hover:scale-[1.02] ease-out group cursor-grab active:cursor-grabbing p-0 gap-0 hover:border-opacity-100 inset-shadow-none shadow-xs hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.15),_0_14px_14px_-6px_rgba(0,0,0,0.9)] relative rounded-[12px]",
+    "bg-card border-card-border hover:bg-base dark:hover:bg-neutral-900 relative border transition-all duration-200 translate-y-0 hover:translate-y-[-1px] ease-out group cursor-grab active:cursor-grabbing p-0 gap-0 hover:border-opacity-100 inset-shadow-none shadow-xs hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)] dark:hover:shadow-[0_12px_12px_-6px_rgba(255,255,255,0.15),_0_14px_14px_-6px_rgba(0,0,0,0.9)] relative rounded-[12px]",
     statusStyles[ticket.status]
-    // isDragging &&
-    //   "rotate-5 scale-105 shadow-[0_12px_12px_-6px_rgba(255,255,255,0.9),_0_14px_14px_-6px_rgba(0,0,0,0.3)]"
   );
 
   const handleClick = (e: React.MouseEvent) => {
@@ -143,10 +140,20 @@ export function TicketCard({
           <span className='text-xs text-text-tertiary'>{project.name}</span>
         </div>
         <div className='absolute bottom-[-4px] left-[-6px] bg-neutral-100 dark:bg-neutral-900'>
-          <div className='w-[7px] h-[8px] bg-background rounded-br-full border-r border-b border-white dark:border-neutral-900' />
+          <div
+            className={cn(
+              "w-[7px] h-[8px] bg-background rounded-br-full border-r border-b border-white dark:border-neutral-900",
+              isDragging && "hidden"
+            )}
+          />
         </div>
         <div className='absolute bottom-[-1px] right-[-7px] bg-neutral-100 dark:bg-neutral-900'>
-          <div className='w-[8px] h-[8px] bg-background rounded-bl-[6px] border-l border-b border-white dark:border-neutral-900' />
+          <div
+            className={cn(
+              "w-[8px] h-[8px] bg-background rounded-bl-[6px] border-l border-b border-white dark:border-neutral-900",
+              isDragging && "hidden"
+            )}
+          />
         </div>
       </div>
     );
@@ -155,7 +162,7 @@ export function TicketCard({
   const cardContent = (
     <>
       <CardHeader
-        className={cn("p-4 py-2.5 flex", ticket.description && "pb-2")}
+        className={cn("p-3.5 py-2.5 flex", ticket.description && "pb-2")}
       >
         <div className='flex items-center gap-1.5 leading-[1.2] font-medium'>
           <div className='flex-1 min-w-0'>
