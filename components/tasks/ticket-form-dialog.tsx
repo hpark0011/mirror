@@ -77,8 +77,8 @@ export function TicketFormDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmit)}>
-            <DialogBody className='mt-4'>
-              <div className='flex gap-2 items-baseline'>
+            <DialogBody className='mt-3'>
+              <div className='flex gap-0.5 items-center w-[calc(100%+8px)] ml-[-4px] mb-2'>
                 <FormField
                   control={form.control}
                   name='projectId'
@@ -95,6 +95,7 @@ export function TicketFormDialog({
                     </FormItem>
                   )}
                 />
+                <div className='text-gray-300'>/</div>
                 <FormField
                   control={form.control}
                   name='title'
@@ -106,8 +107,8 @@ export function TicketFormDialog({
                           {...field}
                           ref={(el) => setRefs(el, field.ref)}
                           className={cn(
-                            "md:text-lg h-auto py-1 px-2 rounded-lg placeholder:text-text-muted transition-all w-[calc(100%+8px)] ml-[-4px] mt-[-4px]",
-                            "border-transparent hover:border-light"
+                            "md:text-text-primary h-auto py-0 px-1.5 rounded-sm placeholder:text-text-muted transition-all md:text-[17px] border-none ",
+                            "bg-transparent hover:bg-base"
                           )}
                         />
                       </FormControl>
@@ -128,7 +129,7 @@ export function TicketFormDialog({
                         maxHeight={400}
                         {...field}
                         className={cn(
-                          "resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all w-[calc(100%+8px)] ml-[-4px] border-transparent hover:border-light px-2"
+                          "resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all w-[calc(100%+12px)] ml-[-6px] border-transparent hover:border-light px-2"
                         )}
                       />
                     </FormControl>

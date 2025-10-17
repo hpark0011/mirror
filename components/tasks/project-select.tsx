@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -9,19 +16,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogBody,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import { useProjects } from "@/hooks/use-projects";
+import { cn } from "@/lib/utils";
 import { ProjectColor } from "@/types/board.types";
-import { ChevronDownIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { PencilIcon, TrashIcon } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Icon } from "@/components/ui/icon";
 
 interface ProjectSelectProps {
   value?: string;
@@ -196,13 +197,13 @@ export function ProjectSelect({
     <>
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger asChild>
-          <div className='flex items-center gap-2'>
-            <div className='flex items-center gap-2 flex-1 min-w-0'>
+          <div className='flex items-center gap-1.5 cursor-pointer hover:bg-base px-1.5 py-0 rounded-sm'>
+            <div className='flex items-center gap-1.5 flex-1 min-w-0 text-[17px]'>
               {selectedProject ? (
                 <>
                   <span
                     className={cn(
-                      "size-2 rounded-full flex-shrink-0",
+                      "size-1.5 rounded-full flex-shrink-0",
                       PROJECT_COLORS.find(
                         (c) => c.color === selectedProject.color
                       )?.bgClass
@@ -211,10 +212,13 @@ export function ProjectSelect({
                   <span className='truncate'>{selectedProject.name}</span>
                 </>
               ) : (
-                <span className='text-muted-foreground'>No project</span>
+                <span className='text-text-muted'>Project</span>
               )}
             </div>
-            <ChevronDownIcon className='size-4 opacity-50 shrink-0' />
+            <Icon
+              name='TriangleFillDownIcon'
+              className='size-2 text-icon-extra-light'
+            />
           </div>
         </DropdownMenuTrigger>
 
