@@ -134,12 +134,14 @@ export function TicketCard({
     return (
       <div className='relative ml-[10px] w-fit'>
         <div className='flex items-center gap-[3px] bg-neutral-100 dark:bg-neutral-900 w-fit px-2 pl-2 py-[1px] rounded-t-md after:content-[""] after:absolute after:bottom-[-12px] after:left-0 after:w-full after:h-[12px] after:bg-neutral-100 dark:after:bg-neutral-900 relative border-card-border dark:border-neutral-900 border'>
-          <span
-            className={cn(
-              "size-1.5 rounded-full",
-              PROJECT_COLOR_CLASSES[project.color]
-            )}
-          />
+          <div className='flex items-center justify-center'>
+            <div
+              className={cn(
+                "size-[5px] mr-[1px] rounded-full",
+                PROJECT_COLOR_CLASSES[project.color]
+              )}
+            />
+          </div>
           <span className='text-xs text-text-tertiary'>{project.name}</span>
         </div>
         <div className='absolute bottom-[-4px] left-[-6px] bg-neutral-100 dark:bg-neutral-900'>
