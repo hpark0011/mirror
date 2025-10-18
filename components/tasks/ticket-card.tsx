@@ -104,7 +104,7 @@ export function TicketCard({
     backlog: "",
     "to-do": "",
     "in-progress":
-      "shadow-[0_8px_8px_-4px_rgba(255,255,255,0.9),_0_12px_12px_-6px_rgba(0,0,0,0.3)] hover:shadow-[0_24px_24px_-12px_rgba(255,255,255,0.9),_0_24px_24px_-12px_rgba(19, 10, 10, 0.3)] dark:shadow-[0_8px_8px_-4px_rgba(255,255,255,0.15),_0_12px_12px_-6px_rgba(0,0,0,0.9)] dark:hover:shadow-[0_24px_24px_-12px_rgba(255,255,255,0.15),_0_24px_24px_-12px_rgba(19, 10, 10, 0.3)] hover:bg-base",
+      "shadow-[0_8px_8px_-4px_rgba(255,255,255,0.9),_0_12px_12px_-6px_rgba(0,0,0,0.3)] hover:shadow-[0_24px_24px_-12px_rgba(255,255,255,0.9),_0_24px_24px_-12px_rgba(19, 10, 10, 0.3)] dark:shadow-[0_8px_12px_-4px_rgba(0,0,0,0.12),_0_12px_12px_-6px_rgba(0,0,0,0.9)] dark:hover:shadow-[0_24px_24px_-12px_rgba(255,255,255,0.15),_0_24px_24px_-12px_rgba(19, 10, 10, 0.3)] hover:bg-base",
     complete:
       "bg-white/80 border-white/30 row-span-full row-start-1 hidden border-x bg-[image:repeating-linear-gradient(315deg,_var(--pattern-fg)_0,_var(--pattern-fg)_1px,_transparent_0,_transparent_50%)] bg-[size:10px_10px] bg-fixed [--pattern-fg:var(--color-black)]/5 md:col-start-3 md:block dark:[--pattern-fg:var(--color-white)]/10",
   };
@@ -127,7 +127,7 @@ export function TicketCard({
   const ProjectTag = () => {
     if (!project) return null;
     return (
-      <div className='relative ml-[10px] w-fit'>
+      <div className='relative ml-[12px] w-fit'>
         <div className='flex items-center gap-[3px] bg-neutral-100 dark:bg-neutral-900 w-fit px-2 pl-2 py-[1px] rounded-t-md after:content-[""] after:absolute after:bottom-[-12px] after:left-0 after:w-full after:h-[12px] after:bg-neutral-100 dark:after:bg-neutral-900 relative border-card-border dark:border-neutral-900 border'>
           <div className='flex items-center justify-center'>
             <div
@@ -139,7 +139,7 @@ export function TicketCard({
           </div>
           <span className='text-xs text-text-tertiary'>{project.name}</span>
         </div>
-        <div className='absolute bottom-[-4px] left-[-6px] bg-neutral-100 dark:bg-neutral-900'>
+        <div className='absolute bottom-[-3px] left-[-6px] bg-neutral-100 dark:bg-neutral-900'>
           <div
             className={cn(
               "w-[7px] h-[8px] bg-background rounded-br-full border-r border-b border-white dark:border-neutral-900",
@@ -162,7 +162,10 @@ export function TicketCard({
   const cardContent = (
     <>
       <CardHeader
-        className={cn("p-3.5 py-2.5 flex", ticket.description && "pb-2")}
+        className={cn(
+          "p-3.5 py-2.5 flex h-[40px]",
+          ticket.description && "pb-2 h-fit"
+        )}
       >
         <div className='flex items-center gap-1.5 leading-[1.2] font-medium'>
           <div className='flex-1 min-w-0'>
@@ -171,7 +174,7 @@ export function TicketCard({
             </CardTitle>
           </div>
           {!isDragging && (
-            <div className='absolute top-2 right-2 flex opacity-0 group-hover:opacity-100 flex-row items-center transition-opacity pointer-events-none group-hover:pointer-events-auto border rounded-md border-border-light bg-white dark:bg-neutral-800'>
+            <div className='absolute top-[6px] right-[6px] flex opacity-0 group-hover:opacity-100 flex-row items-center transition-opacity pointer-events-none group-hover:pointer-events-auto border rounded-md border-border-light bg-white dark:bg-neutral-800'>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
