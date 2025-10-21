@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useRef, type KeyboardEvent } from "react";
 
 export function useFocusManagement() {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -16,8 +16,13 @@ export function useFocusManagement() {
     }
   };
 
-  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter" && !event.shiftKey && !event.metaKey && !event.ctrlKey) {
+  const handleTitleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (
+      event.key === "Enter" &&
+      !event.shiftKey &&
+      !event.metaKey &&
+      !event.ctrlKey
+    ) {
       event.preventDefault();
       const description = descriptionRef.current;
       if (description) {
@@ -31,12 +36,18 @@ export function useFocusManagement() {
     }
   };
 
-  const setRefs = (el: HTMLInputElement | null, fieldRef: (el: HTMLInputElement | null) => void) => {
+  const setRefs = (
+    el: HTMLInputElement | null,
+    fieldRef: (el: HTMLInputElement | null) => void
+  ) => {
     fieldRef(el);
     inputRef.current = el;
   };
 
-  const setDescriptionRef = (el: HTMLTextAreaElement | null, fieldRef: (el: HTMLTextAreaElement | null) => void) => {
+  const setDescriptionRef = (
+    el: HTMLTextAreaElement | null,
+    fieldRef: (el: HTMLTextAreaElement | null) => void
+  ) => {
     fieldRef(el);
     descriptionRef.current = el;
   };

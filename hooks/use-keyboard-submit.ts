@@ -1,11 +1,20 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface UseKeyboardSubmitProps {
   enabled: boolean;
   onSubmit: () => void;
 }
 
-export function useKeyboardSubmit({ enabled, onSubmit }: UseKeyboardSubmitProps) {
+export function useKeyboardSubmit({
+  enabled,
+  onSubmit,
+}: UseKeyboardSubmitProps) {
+  const onSubmitRef = useRef(onSubmit);
+
+  useEffect(() => {
+    onSubmitRef.current = onSubmit;
+  }, [onSubmit]);
+
   useEffect(() => {
     if (!enabled) return;
 
@@ -18,9 +27,8 @@ export function useKeyboardSubmit({ enabled, onSubmit }: UseKeyboardSubmitProps)
     };
 
     window.addEventListener("keydown", handleKeyDown);
-
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [enabled, onSubmit]);
+  }, [enabled]);
 }
