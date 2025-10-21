@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useDialogAutoSave } from "@/hooks/use-dialog-auto-save";
 import { useFocusManagement } from "@/hooks/use-focus-management";
+import { useKeyboardSubmit } from "@/hooks/use-keyboard-submit";
 import {
   type TicketFormInput,
   type TicketFormOutput,
@@ -62,7 +63,13 @@ export function TicketFormDialog({
     onOpenChange,
   });
 
-  const { handleAutoFocus, setRefs } = useFocusManagement();
+  const { handleAutoFocus, handleTitleKeyDown, setRefs, setDescriptionRef } =
+    useFocusManagement();
+
+  useKeyboardSubmit({
+    enabled: open,
+    onSubmit: () => form.handleSubmit(handleSubmit)(),
+  });
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
@@ -89,6 +96,7 @@ export function TicketFormDialog({
                           placeholder='Enter ticket title…'
                           {...field}
                           ref={(el) => setRefs(el, field.ref)}
+                          onKeyDown={handleTitleKeyDown}
                           className={cn(
                             "md:text-text-primary h-auto py-0 px-1.5 rounded-sm placeholder:text-text-muted transition-all md:text-[18px] border-none ",
                             "bg-transparent hover:bg-base"
@@ -111,6 +119,7 @@ export function TicketFormDialog({
                         placeholder='Enter ticket description...'
                         maxHeight={400}
                         {...field}
+                        ref={(el) => setDescriptionRef(el, field.ref)}
                         className={cn(
                           "resize-none h-full bg-transparent rounded-lg min-h-[160px] flex-1 transition-all w-[calc(100%+12px)] ml-[-6px] border-transparent px-2"
                         )}

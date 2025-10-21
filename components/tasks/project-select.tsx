@@ -27,7 +27,6 @@ import { Icon } from "@/components/ui/icon";
 interface ProjectSelectProps {
   value?: string;
   onValueChange: (projectId: string | undefined) => void;
-  className?: string;
 }
 
 const PROJECT_COLORS: {
@@ -47,11 +46,7 @@ const PROJECT_COLORS: {
 
 type ViewMode = "list" | "create" | { mode: "edit"; projectId: string };
 
-export function ProjectSelect({
-  value,
-  onValueChange,
-  className,
-}: ProjectSelectProps) {
+export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
   const { projects, addProject, updateProject, deleteProject, getProjectById } =
     useProjects();
   const [viewMode, setViewMode] = useState<ViewMode>("list");

@@ -115,7 +115,7 @@ export function FileUploadDialog({
       };
 
       // Update progress for current file
-      setUploadProgress((prev) => [
+      setUploadProgress(() => [
         ...uploadResults,
         progressItem,
         ...progress.slice(i + 1),
