@@ -63,7 +63,8 @@ export function TicketFormDialog({
     onOpenChange,
   });
 
-  const { handleAutoFocus, handleTitleKeyDown, setRefs, setDescriptionRef } = useFocusManagement();
+  const { handleAutoFocus, handleTitleKeyDown, setRefs, setDescriptionRef } =
+    useFocusManagement();
 
   useKeyboardSubmit({
     enabled: open,
