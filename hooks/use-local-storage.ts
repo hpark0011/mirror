@@ -43,6 +43,21 @@ export function useLocalStorage<T>(
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [key]);
 
+  // Listen for same-tab localStorage changes via custom event
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleLocalStorageChange = (e: Event) => {
+      const customEvent = e as CustomEvent<{ key: string; newValue: T }>;
+      if (customEvent.detail.key === key) {
+        setStoredValue(customEvent.detail.newValue);
+      }
+    };
+
+    window.addEventListener("local-storage-change", handleLocalStorageChange);
+    return () => window.removeEventListener("local-storage-change", handleLocalStorageChange);
+  }, [key]);
+
   // Set value function
   const setValue = useCallback(
     (value: T | ((val: T) => T)) => {
@@ -50,21 +65,30 @@ export function useLocalStorage<T>(
 
       setStoredValue((currentStoredValue) => {
         try {
-          const valueToStore = value instanceof Function 
-            ? value(currentStoredValue) 
+          const valueToStore = value instanceof Function
+            ? value(currentStoredValue)
             : value;
-          
+
           // Save to localStorage
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
+
+          // Dispatch custom event for same-tab synchronization
+          // This ensures all components using this hook update immediately
+          window.dispatchEvent(
+            new CustomEvent('local-storage-change', {
+              detail: { key, newValue: valueToStore },
+            })
+          );
+
           return valueToStore;
         } catch (error) {
           console.warn(`Error setting localStorage key "${key}":`, error);
-          
+
           // Handle quota exceeded error
           if (error instanceof DOMException && error.name === "QuotaExceededError") {
             console.error("LocalStorage quota exceeded. Consider clearing some data.");
           }
-          
+
           return currentStoredValue;
         }
       });
