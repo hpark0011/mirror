@@ -26,6 +26,7 @@ const STORAGE_KEYS = {
   TASKS: {
     BOARD_STATE: `${APP_PREFIX}.${KEY_VERSION}.tasks.board-state`,
     PROJECTS: `${APP_PREFIX}.${KEY_VERSION}.tasks.projects`,
+    PROJECT_FILTER: `${APP_PREFIX}.${KEY_VERSION}.tasks.project-filter`,
   },
 
   // Dashboard/UI preferences

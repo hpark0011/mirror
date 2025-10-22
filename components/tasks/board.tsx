@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, forwardRef, useImperativeHandle, useState } from "react";
+import { Fragment, forwardRef, useImperativeHandle, useState, useMemo } from "react";
 import type React from "react";
 import {
   DndContext,
@@ -31,6 +31,7 @@ import {
 import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board-config";
 import { BodyContainer } from "../layout/layout-ui";
 import { getStorageKey } from "@/lib/storage-keys";
+import { useProjectFilter } from "@/hooks/use-project-filter";
 
 const STORAGE_KEY = getStorageKey("TASKS", "BOARD_STATE");
 
@@ -65,6 +66,30 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
   const [formColumnId, setFormColumnId] = useState<ColumnId>("backlog");
+
+  // Project filter
+  const { selectedProjectIds } = useProjectFilter();
+
+  // Filter board based on selected projects
+  const filteredBoard = useMemo(() => {
+    // If no filters are active, return the full board
+    if (selectedProjectIds.length === 0) {
+      return board;
+    }
+
+    // Filter each column's tickets
+    const filtered: BoardState = {};
+    for (const [columnId, tickets] of Object.entries(board)) {
+      filtered[columnId] = tickets.filter((ticket) => {
+        // Show tickets that match any of the selected projects
+        // Also show tickets without a project if any filters are active
+        return ticket.projectId
+          ? selectedProjectIds.includes(ticket.projectId)
+          : false;
+      });
+    }
+    return filtered;
+  }, [board, selectedProjectIds]);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -341,7 +366,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
               <BoardColumn
                 key={column.id}
                 column={column}
-                tickets={board[column.id] || []}
+                tickets={filteredBoard[column.id] || []}
                 onAddTicket={() => handleAddTicket(column.id)}
                 onEditTicket={handleEditTicket}
                 onDeleteTicket={handleDeleteTicket}
