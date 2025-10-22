@@ -73,12 +73,15 @@ export function useLocalStorage<T>(
           window.localStorage.setItem(key, JSON.stringify(valueToStore));
 
           // Dispatch custom event for same-tab synchronization
-          // This ensures all components using this hook update immediately
-          window.dispatchEvent(
-            new CustomEvent('local-storage-change', {
-              detail: { key, newValue: valueToStore },
-            })
-          );
+          // Use queueMicrotask to defer event dispatch until after current render
+          // This prevents "Cannot update component during render" errors
+          queueMicrotask(() => {
+            window.dispatchEvent(
+              new CustomEvent('local-storage-change', {
+                detail: { key, newValue: valueToStore },
+              })
+            );
+          });
 
           return valueToStore;
         } catch (error) {

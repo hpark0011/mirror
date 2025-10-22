@@ -106,7 +106,7 @@ describe('useProjectFilter - Same-Tab Synchronization', () => {
     jest.clearAllMocks();
   });
 
-  it('should synchronize filter changes across multiple hook instances in same tab', () => {
+  it('should synchronize filter changes across multiple hook instances in same tab', async () => {
     // Simulate two components using the same hook (like ProjectFilter and Board)
     const { result: filterComponent } = renderHook(() => useProjectFilter());
     const { result: boardComponent } = renderHook(() => useProjectFilter());
@@ -116,8 +116,10 @@ describe('useProjectFilter - Same-Tab Synchronization', () => {
     expect(boardComponent.current.selectedProjectIds).toEqual([]);
 
     // User clicks filter in ProjectFilter component
-    act(() => {
+    await act(async () => {
       filterComponent.current.toggleProject('project-1');
+      // Wait for microtask to complete
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     // ProjectFilter component updates
@@ -127,49 +129,54 @@ describe('useProjectFilter - Same-Tab Synchronization', () => {
     expect(boardComponent.current.selectedProjectIds).toEqual(['project-1']);
   });
 
-  it('should synchronize multiple filter changes', () => {
+  it('should synchronize multiple filter changes', async () => {
     const { result: instance1 } = renderHook(() => useProjectFilter());
     const { result: instance2 } = renderHook(() => useProjectFilter());
 
     // Toggle multiple projects
-    act(() => {
+    await act(async () => {
       instance1.current.toggleProject('project-1');
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     expect(instance1.current.selectedProjectIds).toEqual(['project-1']);
     expect(instance2.current.selectedProjectIds).toEqual(['project-1']);
 
-    act(() => {
+    await act(async () => {
       instance1.current.toggleProject('project-2');
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     expect(instance1.current.selectedProjectIds).toEqual(['project-1', 'project-2']);
     expect(instance2.current.selectedProjectIds).toEqual(['project-1', 'project-2']);
 
     // Toggle off from instance2
-    act(() => {
+    await act(async () => {
       instance2.current.toggleProject('project-1');
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     expect(instance1.current.selectedProjectIds).toEqual(['project-2']);
     expect(instance2.current.selectedProjectIds).toEqual(['project-2']);
   });
 
-  it('should clear filters across all instances', () => {
+  it('should clear filters across all instances', async () => {
     const { result: instance1 } = renderHook(() => useProjectFilter());
     const { result: instance2 } = renderHook(() => useProjectFilter());
 
-    act(() => {
+    await act(async () => {
       instance1.current.toggleProject('project-1');
       instance1.current.toggleProject('project-2');
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     expect(instance1.current.selectedProjectIds).toEqual(['project-1', 'project-2']);
     expect(instance2.current.selectedProjectIds).toEqual(['project-1', 'project-2']);
 
     // Clear from one instance
-    act(() => {
+    await act(async () => {
       instance2.current.clearFilter();
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     // Both should be cleared
@@ -185,7 +192,7 @@ describe('Board Filter Integration - Real Behavior', () => {
     jest.clearAllMocks();
   });
 
-  it('should filter board tickets immediately when user selects a project', () => {
+  it('should filter board tickets immediately when user selects a project', async () => {
     const tickets = [
       { id: 'ticket-1', title: 'Ticket 1', projectId: 'project-1' },
       { id: 'ticket-2', title: 'Ticket 2', projectId: 'project-2' },
@@ -262,8 +269,9 @@ describe('Board Filter Integration - Real Behavior', () => {
     expect(screen.getByTestId('ticket-ticket-3')).toBeInTheDocument();
 
     // User clicks to filter by project-1
-    act(() => {
+    await act(async () => {
       getByTestId('toggle-project-1').click();
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     // Board should IMMEDIATELY show only project-1 tickets (no refresh needed)
@@ -274,8 +282,9 @@ describe('Board Filter Integration - Real Behavior', () => {
     expect(screen.queryByTestId('ticket-ticket-3')).not.toBeInTheDocument();
 
     // User adds project-2 to filter
-    act(() => {
+    await act(async () => {
       getByTestId('toggle-project-2').click();
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     // Board should show both project-1 and project-2 tickets
@@ -286,8 +295,9 @@ describe('Board Filter Integration - Real Behavior', () => {
     expect(screen.queryByTestId('ticket-ticket-3')).not.toBeInTheDocument();
 
     // User removes project-1 from filter
-    act(() => {
+    await act(async () => {
       getByTestId('toggle-project-1').click();
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     // Board should show only project-2
@@ -301,7 +311,7 @@ describe('Board Filter Integration - Real Behavior', () => {
     expect(filterChangeCount).toBeGreaterThan(0);
   });
 
-  it('should handle filter updates without browser refresh', () => {
+  it('should handle filter updates without browser refresh', async () => {
     // This is the critical test that ensures the bug is fixed
 
     const BoardWithFilter = () => {
@@ -329,8 +339,9 @@ describe('Board Filter Integration - Real Behavior', () => {
     expect(getByTestId('selected-count')).toHaveTextContent('0');
 
     // Click to apply filter
-    act(() => {
+    await act(async () => {
       getByText('Toggle').click();
+      await new Promise(resolve => setTimeout(resolve, 0));
     });
 
     // Component should re-render with new filter (update count increases)
