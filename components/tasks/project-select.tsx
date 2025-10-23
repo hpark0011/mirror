@@ -223,22 +223,20 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
         <DropdownMenuContent className='min-w-[280px]' align='start'>
           {viewMode === "list" ? (
             <>
-              <div>
-                <Input
-                  placeholder='Search projects...'
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyDown={(e) => {
-                    // Prevent DropdownMenu typeahead from intercepting keystrokes
-                    e.stopPropagation();
+              <Input
+                placeholder='Search projects...'
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  // Prevent DropdownMenu typeahead from intercepting keystrokes
+                  e.stopPropagation();
 
-                    // Handle our custom keyboard navigation
-                    handleSearchKeyDown(e);
-                  }}
-                  className='h-8 border-none'
-                  autoFocus={false}
-                />
-              </div>
+                  // Handle our custom keyboard navigation
+                  handleSearchKeyDown(e);
+                }}
+                className='h-8 border-none'
+                autoFocus={false}
+              />
               <DropdownMenuSeparator />
               {filteredProjects.length > 0 ? (
                 filteredProjects.map((project, index) => (

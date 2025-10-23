@@ -1,19 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Icon } from "@/components/ui/icon";
+import { Input } from "@/components/ui/input";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { useProjects } from "@/hooks/use-projects";
 import { useProjectFilter } from "@/hooks/use-project-filter";
@@ -34,12 +30,59 @@ export function ProjectFilter() {
   const { projects } = useProjects();
   const { selectedProjectIds, toggleProject, clearFilter } = useProjectFilter();
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const hasActiveFilters = selectedProjectIds.length > 0;
+
+  // Filter projects based on search query
+  const filteredProjects = projects.filter((project) =>
+    project.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // Reset highlighted index when search changes
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchQuery]);
 
   const handleClearFilter = () => {
     clearFilter();
     setOpen(false);
+  };
+
+  const handleOpenChange = (newOpen: boolean) => {
+    setOpen(newOpen);
+    if (!newOpen) {
+      // Reset search when closing
+      setSearchQuery("");
+      setHighlightedIndex(-1);
+    }
+  };
+
+  const handleSearchKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlightedIndex((prev) =>
+        prev < filteredProjects.length - 1 ? prev + 1 : prev
+      );
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (highlightedIndex >= 0 && filteredProjects[highlightedIndex]) {
+        // Toggle highlighted project
+        toggleProject(filteredProjects[highlightedIndex].id);
+      }
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      if (searchQuery) {
+        setSearchQuery("");
+        setHighlightedIndex(-1);
+      } else {
+        setOpen(false);
+      }
+    }
   };
 
   if (projects.length === 0) {
@@ -47,7 +90,7 @@ export function ProjectFilter() {
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
         <Button
           variant='ghost'
@@ -74,10 +117,9 @@ export function ProjectFilter() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent align='end' className='w-[240px] p-3'>
-        <div className='space-y-3'>
+      <PopoverContent align='end' className='w-[240px] p-0'>
+        <div>
           <div className='flex items-center justify-between'>
-            <h4 className='text-sm font-medium'>Filter by Project</h4>
             {hasActiveFilters && (
               <Button
                 variant='ghost'
@@ -90,36 +132,56 @@ export function ProjectFilter() {
             )}
           </div>
 
+          <Input
+            placeholder='Filter by projects...'
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            className='h-8 border-none'
+            autoFocus={false}
+          />
+
           <div className='space-y-2'>
-            {projects.map((project: Project) => {
-              const isSelected = selectedProjectIds.includes(project.id);
-              return (
-                <div
-                  key={project.id}
-                  className='flex items-center space-x-2 rounded-md px-2 py-1.5 hover:bg-accent cursor-pointer'
-                  onClick={() => toggleProject(project.id)}
-                >
-                  <Checkbox
-                    id={`project-${project.id}`}
-                    checked={isSelected}
-                    onCheckedChange={() => toggleProject(project.id)}
-                    className='pointer-events-none'
-                  />
-                  <label
-                    htmlFor={`project-${project.id}`}
-                    className='flex items-center gap-2 flex-1 text-sm cursor-pointer'
+            {filteredProjects.length > 0 ? (
+              filteredProjects.map((project: Project, index) => {
+                const isSelected = selectedProjectIds.includes(project.id);
+                return (
+                  <div
+                    key={project.id}
+                    className={cn(
+                      "flex items-center space-x-2 rounded-md px-2 py-1.5 hover:bg-accent cursor-pointer",
+                      highlightedIndex === index &&
+                        "bg-accent text-accent-foreground"
+                    )}
+                    onClick={() => toggleProject(project.id)}
+                    onMouseEnter={() => setHighlightedIndex(index)}
                   >
-                    <div
-                      className={cn(
-                        "size-2 rounded-full",
-                        PROJECT_COLOR_CLASSES[project.color]
-                      )}
+                    <Checkbox
+                      id={`project-${project.id}`}
+                      checked={isSelected}
+                      onCheckedChange={() => toggleProject(project.id)}
+                      className='pointer-events-none'
                     />
-                    <span className='flex-1'>{project.name}</span>
-                  </label>
-                </div>
-              );
-            })}
+                    <label
+                      htmlFor={`project-${project.id}`}
+                      className='flex items-center gap-2 flex-1 text-sm cursor-pointer'
+                    >
+                      <div
+                        className={cn(
+                          "size-2 rounded-full",
+                          PROJECT_COLOR_CLASSES[project.color]
+                        )}
+                      />
+                      <span className='flex-1'>{project.name}</span>
+                    </label>
+                  </div>
+                );
+              })
+            ) : (
+              <div className='px-2 py-6 text-center text-sm text-muted-foreground'>
+                No projects found
+              </div>
+            )}
           </div>
         </div>
       </PopoverContent>
