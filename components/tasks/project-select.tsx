@@ -246,7 +246,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                   <DropdownMenuItem
                     key={project.id}
                     className={cn(
-                      "group flex items-center justify-between gap-2 pr-1",
+                      "group flex items-center justify-between gap-2 pl-1 pr-0.5 data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
                       highlightedIndex === index &&
                         "bg-accent text-accent-foreground"
                     )}
@@ -259,10 +259,10 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                     onMouseEnter={() => setHighlightedIndex(index)}
                     onMouseLeave={() => setHighlightedIndex(-1)}
                   >
-                    <div className='flex items-center gap-2 flex-1 min-w-0'>
+                    <div className='flex flex-1 min-w-0 items-center gap-1.5 px-1'>
                       <span
                         className={cn(
-                          "size-1.5 rounded-full flex-shrink-0",
+                          "size-1.5 rounded-full",
                           PROJECT_COLORS.find((c) => c.color === project.color)
                             ?.bgClass
                         )}
@@ -271,7 +271,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                     </div>
                     <div
                       className={cn(
-                        "flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-data-[highlighted]:opacity-100",
+                        "flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-data-[highlighted]:opacity-100",
                         highlightedIndex === index && "opacity-100"
                       )}
                     >
