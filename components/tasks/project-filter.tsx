@@ -100,12 +100,12 @@ export function ProjectFilter() {
               "bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] transition-all duration-200 ease-out cursor-pointer scale-100 flex items-center translate-y-[0px] overflow-hidden text-[13px] mr-1.5"
           )}
         >
-          <div className='flex items-center justify-center hover:bg-hover h-6 w-6 rounded-sm'>
+          <div className='flex items-center justify-center hover:bg-hover h-6 w-6 rounded-sm relative'>
             <Icon
               name='Line3Icon'
               className={cn(
-                "size-4.5",
-                hasActiveFilters ? "text-blue-500" : "text-icon-light"
+                "size-4.5 text-icon-light",
+                hasActiveFilters ? "text-blue-400" : "text-icon-light"
               )}
             />
           </div>
