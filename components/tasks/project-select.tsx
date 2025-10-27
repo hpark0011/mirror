@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { useProjects } from "@/hooks/use-projects";
 import { cn } from "@/lib/utils";
 import { ProjectColor } from "@/types/board.types";
-import { ChevronDownIcon, PencilIcon, TrashIcon } from "lucide-react";
+import { ChevronDownIcon, CheckIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 
@@ -269,42 +269,47 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                       />
                       <span className='truncate'>{project.name}</span>
                     </div>
-                    <div
-                      className={cn(
-                        "flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-data-[highlighted]:opacity-100",
-                        highlightedIndex === index && "opacity-100"
+                    <div className='flex items-center gap-0.5'>
+                      <div
+                        className={cn(
+                          "flex items-center opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 group-data-[highlighted]:opacity-100",
+                          highlightedIndex === index && "opacity-100"
+                        )}
+                      >
+                        <Button
+                          size='sm'
+                          variant='icon'
+                          className='h-6 w-6 p-0'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startEdit(project.id);
+                          }}
+                          aria-label='Edit project'
+                        >
+                          <Icon
+                            name='PencilIcon'
+                            className='size-4 text-icon-light'
+                          />
+                        </Button>
+                        <Button
+                          size='sm'
+                          variant='icon'
+                          className='h-6 w-6 p-0 text-destructive hover:text-destructive'
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            startDelete(project.id);
+                          }}
+                          aria-label='Delete project'
+                        >
+                          <Icon
+                            name='TrashFillIcon'
+                            className='size-4 text-icon-light'
+                          />
+                        </Button>
+                      </div>
+                      {value === project.id && (
+                        <CheckIcon className='size-4 text-blue-400 mr-1 ml-0.5' />
                       )}
-                    >
-                      <Button
-                        size='sm'
-                        variant='icon'
-                        className='h-6 w-6 p-0'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startEdit(project.id);
-                        }}
-                        aria-label='Edit project'
-                      >
-                        <Icon
-                          name='PencilIcon'
-                          className='size-4 text-icon-light'
-                        />
-                      </Button>
-                      <Button
-                        size='sm'
-                        variant='icon'
-                        className='h-6 w-6 p-0 text-destructive hover:text-destructive'
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          startDelete(project.id);
-                        }}
-                        aria-label='Delete project'
-                      >
-                        <Icon
-                          name='TrashFillIcon'
-                          className='size-4 text-icon-light'
-                        />
-                      </Button>
                     </div>
                   </DropdownMenuItem>
                 ))

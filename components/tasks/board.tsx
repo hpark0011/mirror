@@ -32,6 +32,7 @@ import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board-config";
 import { BodyContainer } from "../layout/layout-ui";
 import { getStorageKey } from "@/lib/storage-keys";
 import { useProjectFilter } from "@/hooks/use-project-filter";
+import { useLastSelectedProject } from "@/hooks/use-last-selected-project";
 
 const STORAGE_KEY = getStorageKey("TASKS", "BOARD_STATE");
 
@@ -69,6 +70,9 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
 
   // Project filter
   const { selectedProjectIds } = useProjectFilter();
+
+  // Last selected project for default value
+  const { lastSelectedProjectId, setLastSelectedProjectId } = useLastSelectedProject();
 
   // Filter board based on selected projects
   const filteredBoard = useMemo(() => {
@@ -252,6 +256,9 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     status: ColumnId;
     projectId?: string;
   }) => {
+    // Save the selected project as the last selected (for both create and edit)
+    setLastSelectedProjectId(data.projectId);
+
     if (editingTicket) {
       const oldColumn = findColumn(editingTicket.id);
       if (!oldColumn) return;
@@ -409,7 +416,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
                 title: "",
                 description: "",
                 status: formColumnId,
-                projectId: undefined,
+                projectId: lastSelectedProjectId,
               }
         }
         mode={editingTicket ? "edit" : "create"}
