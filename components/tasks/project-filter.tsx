@@ -97,21 +97,22 @@ export function ProjectFilter() {
       <PopoverTrigger asChild>
         <button
           className={cn(
-            "flex items-center h-6 w-fit bg-transparent cursor-pointer relative gap-0.5 mr-1"
+            "flex items-center h-6 w-fit bg-transparent cursor-pointer relative gap-1 mr-1.5",
+            hasActiveFilters &&
+              "gap-1 bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] transition-all duration-200 ease-out cursor-pointer scale-100 flex items-center translate-y-[0px] overflow-hidden text-[13px] pl-1"
           )}
         >
           <Icon
             name='Line3Icon'
             className={cn(
-              "size-5.5",
-              hasActiveFilters
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-icon-light"
+              "size-5",
+              hasActiveFilters ? "text-blue-500" : "text-icon-light"
             )}
           />
+          <div className='w-px self-stretch mx-0 bg-border-light' />
 
           {hasActiveFilters && (
-            <div className='gap-1 bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] transition-all duration-200 ease-out cursor-pointer scale-100 flex items-center translate-y-[0px] overflow-hidden text-[13px]'>
+            <div className='h-full'>
               {selectedProjectIds.length === 1 ? (
                 <div className='flex items-center relative h-full'>
                   <div className='px-1.5 flex items-center gap-1.5'>
@@ -149,12 +150,13 @@ export function ProjectFilter() {
                   </span>
                 </div>
               ) : (
-                <div className='flex items-center relative h-full'>
-                  <div className='px-1.5'>
-                    <span className='text-text-muted'>
-                      {" "}
-                      {selectedProjectIds.length} filters
-                    </span>
+                <div className='flex items-center relative h-full pl-0.5'>
+                  <Icon
+                    name='FolderFillIcon'
+                    className='size-4 text-icon-light'
+                  />
+                  <div className='px-1.5 pl-1 text-text-primary'>
+                    {selectedProjectIds.length} projects
                   </div>
                   <div className='w-px self-stretch mx-0 bg-border-light' />
                   <span
