@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent } from "react";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
@@ -10,13 +9,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { useProjects } from "@/hooks/use-projects";
 import { useProjectFilter } from "@/hooks/use-project-filter";
+import { useProjects } from "@/hooks/use-projects";
+import { cn } from "@/lib/utils";
 import type { Project } from "@/types/board.types";
-import { Separator } from "@radix-ui/react-separator";
 import { XIcon } from "lucide-react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 
 const PROJECT_COLOR_CLASSES: Record<string, string> = {
   gray: "bg-neutral-500",
