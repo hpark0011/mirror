@@ -140,7 +140,7 @@ export function ProjectFilter() {
         <div>
           {hasActiveFilters && (
             <>
-              <div className='flex items-center gap-1.5 px-2 py-1.5 flex-wrap'>
+              <div className='flex items-center gap-1 px-1 py-1 flex-wrap'>
                 {selectedProjectIds.map((projectId) => {
                   const project = projects.find((p) => p.id === projectId);
                   if (!project) return null;
@@ -170,6 +170,21 @@ export function ProjectFilter() {
                     </Badge>
                   );
                 })}
+                <button
+                  type='button'
+                  onClick={handleClearFilter}
+                  className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light border border-border-light rounded-sm px-1.5 pl-[1px] py-0.5 h-[22px] gap-[1px] group'
+                  aria-label='Clear filters'
+                >
+                  <Icon
+                    name='XmarkCircleFillIcon'
+                    className='size-4.5 text-icon-light group-hover:text-blue-500'
+                  />
+                  <span className='text-xs group-hover:text-blue-500 text-text-muted'>
+                    {" "}
+                    Clear{" "}
+                  </span>
+                </button>
               </div>
               <div className='h-[1px] bg-border-light w-full' />
             </>
