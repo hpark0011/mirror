@@ -243,8 +243,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                     </div>
                     <button
                       type='button'
-                      onClick={(e) => {
-                        e.stopPropagation();
+                      onClick={() => {
                         onValueChange(undefined);
                       }}
                       className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5'
