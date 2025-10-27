@@ -95,8 +95,10 @@
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
+  --color-border-highlight: var(--border-highlight);
   --color-border-light: var(--border-light);
   --color-hover: var(--hover);
+  --color-badge-background: var(--badge-background);
   --color-destructive: var(--destructive);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
@@ -108,7 +110,6 @@
   --color-primary: var(--primary);
   --color-popover-foreground: var(--popover-foreground);
   --color-popover: var(--popover);
-  --color-popover-border: var(--popover-border);
   --color-card: var(--card);
   --color-card-border: var(--card-border);
   --radius-sm: calc(var(--radius) - 4px);
@@ -133,8 +134,10 @@
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
   --border-light: oklch(0.95 0 0);
-  --input: var(--color-dq-gray-150);
+  --border-highlight: oklch(1 0 0 / 95%);
+  --input: oklch(0.95 0 0);
   --hover: var(--color-white);
+  --badge-background: oklch(0.95 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
@@ -166,8 +169,10 @@
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
   --border-light: oklch(1 0 0 / 5%);
+  --border-highlight: oklch(1 0 0 / 3%);
   --input: oklch(1 0 0 / 15%);
-  --hover: oklch(0.203 0 0);
+  --hover: oklch(0.269 0 0);
+  --badge-background: oklch(0.269 0 0);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.488 0.243 264.376);
   --chart-2: oklch(0.696 0.17 162.48);

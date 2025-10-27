@@ -16,7 +16,7 @@ const buttonVariants = cva(
         outline:
           "border bg-transparent hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50",
         primary:
-          "bg-medium-inverse dark:bg-dark-inverse text-light font-base shadow-button-primary transform transition-all duration-200 disabled:text-secondary-inverse dark:disabled:text-dq-gray-700 dark:disabled:bg-medium disabled:shadow-none disabled:bg-dark hover:shadow-button-primary-hover hover:bg-extra-dark-inverse [&_svg:not([class*='size-'])]:text-icon-light ",
+          "bg-medium-inverse dark:bg-dark-inverse text-light font-base shadow-button-primary transform transition-all disabled:text-secondary-inverse dark:disabled:text-dq-gray-700 dark:disabled:bg-medium disabled:shadow-none disabled:bg-dark hover:shadow-button-primary-hover hover:bg-extra-dark-inverse [&_svg:not([class*='size-'])]:text-icon-light ",
         secondary:
           "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80",
         ghost: "hover:bg-hover text-text-secondary",

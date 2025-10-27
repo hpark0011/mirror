@@ -115,6 +115,7 @@ export { default as PersonFillIcon } from "@/icons/person.fill.svg";
 export { default as PhotoFillIcon } from "@/icons/photo.fill.svg";
 export { default as PlayFillIcon } from "@/icons/play.fill.svg";
 export { default as PlayRectangleIcon } from "@/icons/play.rectangle.svg";
+export { default as PlusCircleFillIcon } from "@/icons/plus.circle.fill.svg";
 export { default as PlusIcon } from "@/icons/plus.svg";
 export { default as QuestionMarkCircleFillIcon } from "@/icons/question.mark.circle.fill.svg";
 export { default as QuoteClosingIcon } from "@/icons/quote.closing.svg";

@@ -107,16 +107,16 @@ export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
       </Breadcrumb>
       <button
         onClick={() => setFocusDialogOpen(true)}
-        className='bg-white/100 dark:bg-neutral-900 shadow-xs border-white dark:border-white/2 border rounded-md h-[28px] hover:bg-white/70 dark:hover:bg-white/10 transition-all duration-200 ease-out hover:scale-105 cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden text-[14px]'
+        className='bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] hover:bg-base  transition-all duration-200 ease-out hover:scale-105 cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden text-[14px]'
       >
-        <div className='text-text-muted font-medium pl-2 pr-2 h-full flex items-center'>
+        <div className='text-text-muted font-medium px-2 h-full flex items-center'>
           {new Date().toLocaleDateString(undefined, {
             weekday: "short",
             month: "short",
             day: "numeric",
           })}
         </div>
-        <div className='w-px self-stretch mx-0 bg-neutral-100 dark:bg-neutral-800' />
+        <div className='w-px self-stretch mx-0 bg-border-light' />
         <span
           className={cn(
             "hover:bg-neutral-100 dark:hover:bg-neutral-700 px-2 h-full flex items-center dark:hover:text-white/70",
@@ -130,36 +130,7 @@ export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
       </button>
       <HeaderMenu>
         <ProjectFilter />
-        {/* <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='ghost'
-              onClick={onExport}
-              className='h-6 w-6 bg-transparent cursor-pointer'
-            >
-              <Icon
-                name='ArrowDownToLineCompactIcon'
-                className='size-5 text-icon-light'
-              />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Export Board as JSON</TooltipContent>
-        </Tooltip>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant='ghost'
-              onClick={() => fileInputRef.current?.click()}
-              className='h-6 w-6 cursor-pointer'
-            >
-              <Icon
-                name='ArrowUpToLineCompactIcon'
-                className='size-5 text-icon-light'
-              />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Import Board</TooltipContent>
-        </Tooltip> */}
+
         <AlertDialog>
           <Tooltip>
             <TooltipTrigger asChild>

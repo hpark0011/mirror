@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, type KeyboardEvent } from "react";
-import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
@@ -10,11 +9,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-import { useProjects } from "@/hooks/use-projects";
 import { useProjectFilter } from "@/hooks/use-project-filter";
+import { useProjects } from "@/hooks/use-projects";
+import { cn } from "@/lib/utils";
 import type { Project } from "@/types/board.types";
-import { Separator } from "@radix-ui/react-separator";
+import { XIcon } from "lucide-react";
+import { useEffect, useState, type KeyboardEvent } from "react";
 
 const PROJECT_COLOR_CLASSES: Record<string, string> = {
   gray: "bg-neutral-500",
@@ -93,46 +93,100 @@ export function ProjectFilter() {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <Button
-          variant='ghost'
+        <button
           className={cn(
-            "h-6 w-fit bg-transparent cursor-pointer relative",
-            hasActiveFilters && "text-blue-600 dark:text-blue-400"
+            "flex items-center h-6 w-fit bg-transparent cursor-pointer relative mr-0.5",
+            hasActiveFilters &&
+              "bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] transition-all duration-200 ease-out cursor-pointer scale-100 flex items-center translate-y-[0px] overflow-hidden text-[13px] mr-1.5"
           )}
-          size='sm'
         >
-          <Icon
-            name='Line3Icon'
-            className={cn(
-              "size-5.5",
-              hasActiveFilters
-                ? "text-blue-600 dark:text-blue-400"
-                : "text-icon-light"
-            )}
-          />
-          {hasActiveFilters ? (
-            <div className='absolute -top-0.5 -right-0.5 size-2 bg-blue-600 dark:bg-blue-400 rounded-full' />
-          ) : (
-            "Filter"
+          <div className='flex items-center justify-center hover:bg-hover h-6 w-6 rounded-sm relative'>
+            <Icon
+              name='Line3Icon'
+              className={cn(
+                "size-4.5 text-icon-light",
+                hasActiveFilters ? "text-blue-400" : "text-icon-light"
+              )}
+            />
+          </div>
+          <div className='w-px self-stretch mx-0 bg-border-light' />
+
+          {hasActiveFilters && (
+            <div className='h-full'>
+              {selectedProjectIds.length === 1 ? (
+                <div className='flex items-center relative h-full'>
+                  <div className='px-1.5 flex items-center gap-1.5'>
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full flex-shrink-0",
+                        PROJECT_COLOR_CLASSES[
+                          projects.find((p) => p.id === selectedProjectIds[0])
+                            ?.color || "gray"
+                        ]
+                      )}
+                    />
+                    {projects.find((p) => p.id === selectedProjectIds[0])
+                      ?.name || "Filter"}
+                  </div>
+                  <div className='w-px self-stretch mx-0 bg-border-light' />
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearFilter();
+                    }}
+                    className='flex items-center justify-center transition-colors hover:text-blue-500 cursor-pointer px-1 group h-full hover:bg-base hover:shadow-lg'
+                    aria-label='Clear filters'
+                    role='button'
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleClearFilter();
+                      }
+                    }}
+                  >
+                    <XIcon className='size-3.5 text-icon-light group-hover:text-blue-500' />
+                  </span>
+                </div>
+              ) : (
+                <div className='flex items-center relative h-full pl-1.5'>
+                  <Icon
+                    name='FolderFillIcon'
+                    className='size-4 text-icon-light'
+                  />
+                  <div className='pr-1.5 pl-1 text-text-primary'>
+                    {selectedProjectIds.length} projects
+                  </div>
+                  <div className='w-px self-stretch mx-0 bg-border-light' />
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleClearFilter();
+                    }}
+                    className='flex items-center justify-center transition-colors cursor-pointer px-1 group hover:bg-hover h-full hover:shadow-lg'
+                    aria-label='Clear filters'
+                    role='button'
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleClearFilter();
+                      }
+                    }}
+                  >
+                    <XIcon className='size-3.5 text-icon-light group-hover:text-blue-500' />
+                  </span>
+                </div>
+              )}
+            </div>
           )}
-        </Button>
+        </button>
       </PopoverTrigger>
 
       <PopoverContent align='end' className='w-[240px] p-0'>
         <div>
-          <div className='flex items-center justify-between'>
-            {hasActiveFilters && (
-              <Button
-                variant='ghost'
-                size='sm'
-                onClick={handleClearFilter}
-                className='h-6 px-2 text-xs text-muted-foreground hover:text-foreground'
-              >
-                Clear
-              </Button>
-            )}
-          </div>
-
           <Input
             placeholder='Filter by projects...'
             value={searchQuery}
@@ -142,9 +196,59 @@ export function ProjectFilter() {
             autoFocus={false}
           />
           <div className='h-[1px] bg-border-light w-full' />
-          <Separator />
+          {hasActiveFilters && (
+            <>
+              <div className='flex items-center gap-1 p-1 flex-wrap'>
+                {selectedProjectIds.map((projectId) => {
+                  const project = projects.find((p) => p.id === projectId);
+                  if (!project) return null;
 
-          <div>
+                  return (
+                    <Badge key={projectId}>
+                      <div className='flex items-center gap-1.5'>
+                        <span
+                          className={cn(
+                            "size-1.5 rounded-full flex-shrink-0 ml-0.5",
+                            PROJECT_COLOR_CLASSES[project.color]
+                          )}
+                        />
+                        <span className='truncate'>{project.name}</span>
+                      </div>
+                      <button
+                        type='button'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleProject(projectId);
+                        }}
+                        className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5 outline-none'
+                        aria-label={`Remove ${project.name} filter`}
+                      >
+                        <XIcon className='size-3' />
+                      </button>
+                    </Badge>
+                  );
+                })}
+                <button
+                  type='button'
+                  onClick={handleClearFilter}
+                  className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light border border-border-light rounded-sm px-1.5 pl-[1px] py-0.5 h-[22px] gap-[1px] group'
+                  aria-label='Clear filters'
+                >
+                  <Icon
+                    name='XmarkCircleFillIcon'
+                    className='size-4.5 text-icon-light group-hover:text-blue-500'
+                  />
+                  <span className='text-xs group-hover:text-blue-500 text-text-muted'>
+                    {" "}
+                    Clear{" "}
+                  </span>
+                </button>
+              </div>
+              <div className='h-[1px] bg-border-light w-full' />
+            </>
+          )}
+
+          <div className='p-0.5'>
             {filteredProjects.length > 0 ? (
               filteredProjects.map((project: Project, index) => {
                 const isSelected = selectedProjectIds.includes(project.id);
@@ -152,7 +256,7 @@ export function ProjectFilter() {
                   <div
                     key={project.id}
                     className={cn(
-                      "flex items-center space-x-2 rounded-md px-2 py-1.5 hover:bg-accent cursor-pointer h-7",
+                      "flex items-center space-x-2 rounded-md px-2 pl-1 py-1.5 hover:bg-accent cursor-pointer h-7",
                       highlightedIndex === index &&
                         "bg-accent text-accent-foreground"
                     )}
@@ -181,7 +285,7 @@ export function ProjectFilter() {
                 );
               })
             ) : (
-              <div className='px-2 py-6 text-center text-sm text-muted-foreground'>
+              <div className='px-1 py-6 text-center text-xs text-muted-foreground'>
                 No projects found
               </div>
             )}
