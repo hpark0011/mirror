@@ -17,10 +17,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/hooks/use-projects";
 import { cn } from "@/lib/utils";
 import { ProjectColor } from "@/types/board.types";
-import { ChevronDownIcon, CheckIcon } from "lucide-react";
+import { ChevronDownIcon, CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 
@@ -226,20 +227,49 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
         <DropdownMenuContent className='min-w-[280px]' align='start'>
           {viewMode === "list" ? (
             <>
-              <Input
-                placeholder='Search projects...'
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  // Prevent DropdownMenu typeahead from intercepting keystrokes
-                  e.stopPropagation();
+              {selectedProject ? (
+                <div className='flex items-center px-0.5 h-7'>
+                  <Badge>
+                    <div className='flex items-center gap-1.5'>
+                      <span
+                        className={cn(
+                          "size-1.5 rounded-full flex-shrink-0 ml-0.5",
+                          PROJECT_COLORS.find(
+                            (c) => c.color === selectedProject.color
+                          )?.bgClass
+                        )}
+                      />
+                      <span className='truncate'>{selectedProject.name}</span>
+                    </div>
+                    <button
+                      type='button'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onValueChange(undefined);
+                      }}
+                      className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5'
+                      aria-label='Clear project selection'
+                    >
+                      <XIcon className='size-3' />
+                    </button>
+                  </Badge>
+                </div>
+              ) : (
+                <Input
+                  placeholder='Search projects...'
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Prevent DropdownMenu typeahead from intercepting keystrokes
+                    e.stopPropagation();
 
-                  // Handle our custom keyboard navigation
-                  handleSearchKeyDown(e);
-                }}
-                className='h-7 border-none p-2'
-                autoFocus={false}
-              />
+                    // Handle our custom keyboard navigation
+                    handleSearchKeyDown(e);
+                  }}
+                  className='h-7 border-none p-2'
+                  autoFocus={false}
+                />
+              )}
               <DropdownMenuSeparator />
               {filteredProjects.length > 0 ? (
                 filteredProjects.map((project, index) => (
@@ -324,16 +354,6 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
               )}
 
               <DropdownMenuSeparator />
-
-              {value && (
-                <DropdownMenuItem
-                  onSelect={() => {
-                    onValueChange(undefined);
-                  }}
-                >
-                  Clear Selection
-                </DropdownMenuItem>
-              )}
 
               {canCreateNew ? (
                 <>
