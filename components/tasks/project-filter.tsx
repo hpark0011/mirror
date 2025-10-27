@@ -121,23 +121,40 @@ export function ProjectFilter() {
               : "Filter"}
           </span>
           {hasActiveFilters && (
-            <button
-              type='button'
+            <span
               onClick={(e) => {
                 e.stopPropagation();
                 handleClearFilter();
               }}
-              className='flex items-center justify-center transition-colors hover:text-blue-500'
+              className='flex items-center justify-center transition-colors hover:text-blue-500 cursor-pointer'
               aria-label='Clear filters'
+              role='button'
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleClearFilter();
+                }
+              }}
             >
               <XIcon className='size-3' />
-            </button>
+            </span>
           )}
         </Button>
       </PopoverTrigger>
 
       <PopoverContent align='end' className='w-[240px] p-0'>
         <div>
+          <Input
+            placeholder='Filter by projects...'
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={handleSearchKeyDown}
+            className='h-8 border-none'
+            autoFocus={false}
+          />
+          <div className='h-[1px] bg-border-light w-full' />
           {hasActiveFilters && (
             <>
               <div className='flex items-center gap-1 px-1 py-1 flex-wrap'>
@@ -162,7 +179,7 @@ export function ProjectFilter() {
                           e.stopPropagation();
                           toggleProject(projectId);
                         }}
-                        className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5'
+                        className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5 outline-none'
                         aria-label={`Remove ${project.name} filter`}
                       >
                         <XIcon className='size-3' />
@@ -189,17 +206,6 @@ export function ProjectFilter() {
               <div className='h-[1px] bg-border-light w-full' />
             </>
           )}
-
-          <Input
-            placeholder='Filter by projects...'
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={handleSearchKeyDown}
-            className='h-8 border-none'
-            autoFocus={false}
-          />
-          <div className='h-[1px] bg-border-light w-full' />
-          <Separator />
 
           <div>
             {filteredProjects.length > 0 ? (
