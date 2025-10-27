@@ -112,35 +112,35 @@ export function ProjectFilter() {
                 : "text-icon-light"
             )}
           />
-          <span>
+          <div className='flex items-center gap-1'>
             {hasActiveFilters
               ? selectedProjectIds.length === 1
                 ? projects.find((p) => p.id === selectedProjectIds[0])?.name ||
                   "Filter"
                 : `${selectedProjectIds.length} filters`
               : "Filter"}
-          </span>
-          {hasActiveFilters && (
-            <span
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClearFilter();
-              }}
-              className='flex items-center justify-center transition-colors hover:text-blue-500 cursor-pointer'
-              aria-label='Clear filters'
-              role='button'
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
+            {hasActiveFilters && (
+              <span
+                onClick={(e) => {
                   e.stopPropagation();
                   handleClearFilter();
-                }
-              }}
-            >
-              <XIcon className='size-3' />
-            </span>
-          )}
+                }}
+                className='flex items-center justify-center transition-colors hover:text-blue-500 cursor-pointer'
+                aria-label='Clear filters'
+                role='button'
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleClearFilter();
+                  }
+                }}
+              >
+                <XIcon className='size-3' />
+              </span>
+            )}
+          </div>
         </Button>
       </PopoverTrigger>
 
