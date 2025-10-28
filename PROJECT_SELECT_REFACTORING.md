@@ -5,12 +5,14 @@
 Refactor `components/tasks/project-select.tsx` (544 lines) into smaller, maintainable components following KISS and YAGNI principles.
 
 **Current Issues:**
+
 - Single component doing too much (selection, CRUD, search, keyboard nav)
 - 9 separate useState hooks managing related state
 - Code duplication (color picker, form submission)
 - Mixed concerns (UI, business logic, state management)
 
 **Goals:**
+
 - Reduce component size to ~150 lines
 - Improve testability and reusability
 - Maintain existing functionality
@@ -23,6 +25,7 @@ Refactor `components/tasks/project-select.tsx` (544 lines) into smaller, maintai
 ### Phase 1: Low-Risk Extractions (Start Here)
 
 - [ ] **1.1 Extract DeleteProjectDialog Component**
+
   - Lines: 514-540
   - Estimated reduction: ~30 lines
   - Risk: Low (self-contained, no state dependencies)
@@ -32,21 +35,17 @@ Refactor `components/tasks/project-select.tsx` (544 lines) into smaller, maintai
   - Estimated reduction: ~40 lines
   - Risk: Low (pure UI component)
 
-- [ ] **1.3 Extract Constants (if needed elsewhere)**
-  - Lines: 33-46 (PROJECT_COLORS)
-  - Move to: `lib/constants/projects.ts`
-  - Risk: Low
-  - Note: Only do this if colors will be reused in agents/files
-
 ### Phase 2: Hook Extractions
 
 - [ ] **2.1 Create use-keyboard-navigation Hook**
+
   - Logic: Lines 159-192 (handleSearchKeyDown)
   - File: `hooks/use-keyboard-navigation.ts`
   - Include JSDoc documentation
   - Estimated reduction: ~30 lines
 
 - [ ] **2.2 Create use-project-search Hook**
+
   - Logic: Lines 68-83 (filtering, exact match, canCreateNew)
   - File: `hooks/use-project-search.ts`
   - Include JSDoc documentation
@@ -62,17 +61,20 @@ Refactor `components/tasks/project-select.tsx` (544 lines) into smaller, maintai
 ### Phase 3: Component Breakdown
 
 - [ ] **3.1 Extract ProjectMenuItem Component**
+
   - Logic: Lines 277-345 (individual project row)
   - Features: hover state, edit/delete buttons, selection
   - File: `components/tasks/project-select/project-menu-item.tsx`
   - Estimated reduction: ~60 lines
 
 - [ ] **3.2 Extract ProjectListView Component**
+
   - Logic: Lines 230-426 (search input, filtered list, create button)
   - File: `components/tasks/project-select/project-list-view.tsx`
   - Estimated reduction: ~150 lines
 
 - [ ] **3.3 Extract ProjectFormView Component**
+
   - Logic: Lines 428-510 (create/edit form)
   - File: `components/tasks/project-select/project-form-view.tsx`
   - Estimated reduction: ~80 lines
@@ -85,6 +87,7 @@ Refactor `components/tasks/project-select.tsx` (544 lines) into smaller, maintai
 ### Phase 4: Advanced Refactoring (Optional)
 
 - [ ] **4.1 Implement useReducer for State Management**
+
   - Replace 9 useState hooks with single reducer
   - Create discriminated union for ViewMode
   - File: `hooks/use-project-select-state.ts`
@@ -102,6 +105,7 @@ Refactor `components/tasks/project-select.tsx` (544 lines) into smaller, maintai
 ### 1.1 DeleteProjectDialog
 
 **Props Interface:**
+
 ```typescript
 interface DeleteProjectDialogProps {
   open: boolean;
@@ -112,6 +116,7 @@ interface DeleteProjectDialogProps {
 ```
 
 **Testing:**
+
 - Verify dialog opens/closes
 - Verify onConfirm callback fires
 - Verify cancel button works
@@ -121,19 +126,22 @@ interface DeleteProjectDialogProps {
 ### 1.2 ProjectColorPicker
 
 **Props Interface:**
+
 ```typescript
 interface ProjectColorPickerProps {
   selectedColor: ProjectColor;
   onColorSelect: (color: ProjectColor) => void;
-  variant?: 'compact' | 'full'; // compact for inline, full for form
+  variant?: "compact" | "full"; // compact for inline, full for form
 }
 ```
 
 **Usage Locations:**
+
 - Inline creation (lines 373-411)
 - Create/edit form (lines 462-478)
 
 **Testing:**
+
 - Verify color selection updates state
 - Verify visual feedback (border on selected)
 - Verify hover states
@@ -143,6 +151,7 @@ interface ProjectColorPickerProps {
 ### 2.1 use-keyboard-navigation Hook
 
 **Hook Signature:**
+
 ```typescript
 /**
  * Manages keyboard navigation for dropdown menus with arrow keys.
@@ -160,10 +169,11 @@ export function useKeyboardNavigation<T>(
   highlightedIndex: number;
   handleKeyDown: (e: React.KeyboardEvent) => void;
   resetHighlight: () => void;
-}
+};
 ```
 
 **Testing:**
+
 - Arrow up/down navigation
 - Enter key selection
 - Escape key handling
@@ -174,6 +184,7 @@ export function useKeyboardNavigation<T>(
 ### 2.2 use-project-search Hook
 
 **Hook Signature:**
+
 ```typescript
 /**
  * Handles project search, filtering, and creation validation.
@@ -189,10 +200,11 @@ export function useProjectSearch(
   filteredProjects: Project[];
   exactMatch: boolean;
   canCreateNew: boolean;
-}
+};
 ```
 
 **Testing:**
+
 - Case-insensitive filtering
 - Exact match detection
 - Empty query handling
@@ -203,6 +215,7 @@ export function useProjectSearch(
 ### 2.3 use-project-form Hook
 
 **Hook Signature:**
+
 ```typescript
 /**
  * Manages project form state for create/edit operations.
@@ -217,10 +230,11 @@ export function useProjectForm(initialProject?: Project): {
   setColor: (color: ProjectColor) => void;
   reset: () => void;
   isValid: boolean;
-}
+};
 ```
 
 **Testing:**
+
 - Initial state (create vs edit)
 - Reset functionality
 - Validation (non-empty name)
@@ -230,6 +244,7 @@ export function useProjectForm(initialProject?: Project): {
 ### 3.1 ProjectMenuItem
 
 **Props Interface:**
+
 ```typescript
 interface ProjectMenuItemProps {
   project: Project;
@@ -244,6 +259,7 @@ interface ProjectMenuItemProps {
 ```
 
 **Testing:**
+
 - Click to select
 - Edit button shows on hover
 - Delete button shows on hover
@@ -255,6 +271,7 @@ interface ProjectMenuItemProps {
 ### 3.2 ProjectListView
 
 **Props Interface:**
+
 ```typescript
 interface ProjectListViewProps {
   projects: Project[];
@@ -267,6 +284,7 @@ interface ProjectListViewProps {
 ```
 
 **Features:**
+
 - Search input with auto-focus
 - Filtered project list
 - Inline creation with color picker
@@ -278,9 +296,10 @@ interface ProjectListViewProps {
 ### 3.3 ProjectFormView
 
 **Props Interface:**
+
 ```typescript
 interface ProjectFormViewProps {
-  mode: 'create' | 'edit';
+  mode: "create" | "edit";
   initialData?: { name: string; color: ProjectColor };
   onSubmit: (name: string, color: ProjectColor) => void;
   onCancel: () => void;
@@ -288,6 +307,7 @@ interface ProjectFormViewProps {
 ```
 
 **Features:**
+
 - Project name input
 - Color picker
 - Cancel/Submit buttons
@@ -300,6 +320,7 @@ interface ProjectFormViewProps {
 ### 3.4 Main Component Structure
 
 **After Refactoring:**
+
 ```typescript
 // components/tasks/project-select/index.tsx
 export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
@@ -325,6 +346,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
 ```
 
 **Target Metrics:**
+
 - Main component: ~100-150 lines
 - Total lines saved: ~200-250 lines through deduplication and extraction
 
@@ -333,6 +355,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
 ## Success Criteria
 
 ### Functional Requirements
+
 - [ ] All existing functionality works (no regressions)
 - [ ] Project selection works correctly
 - [ ] Create/edit/delete operations work
@@ -341,6 +364,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
 - [ ] Color picker works in both contexts
 
 ### Code Quality
+
 - [ ] Main component under 150 lines
 - [ ] All custom hooks have JSDoc comments
 - [ ] No code duplication
@@ -348,6 +372,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
 - [ ] Imports follow project standards (type imports for types)
 
 ### Testing (Manual)
+
 - [ ] Open dropdown and search for projects
 - [ ] Create new project via search + color picker
 - [ ] Create new project via "Create new" button
@@ -386,26 +411,39 @@ lib/services/project-service.ts  # Business logic (optional, Phase 4)
 
 ### Current Implementation
 
-| Feature | Lines | Notes |
-|---------|-------|-------|
-| Component definition | 50-543 | Main component body |
-| Props & types | 28-48 | Interfaces and constants |
-| State declarations | 51-61 | 9 useState hooks |
-| Search filtering | 68-78 | Can be extracted to hook |
-| Keyboard navigation | 159-192 | Can be extracted to hook |
+| Feature                | Lines   | Notes                         |
+| ---------------------- | ------- | ----------------------------- |
+| Component definition   | 50-543  | Main component body           |
+| Props & types          | 28-48   | Interfaces and constants      |
+| State declarations     | 51-61   | 9 useState hooks              |
+| Search filtering       | 68-78   | Can be extracted to hook      |
+| Keyboard navigation    | 159-192 | Can be extracted to hook      |
 | Project list rendering | 275-355 | Can be extracted to component |
-| Inline color picker | 373-411 | Duplicated in form |
-| Create/edit form | 428-510 | Can be extracted to component |
-| Form color picker | 462-478 | Duplicated from inline |
-| Delete dialog | 514-540 | Can be extracted to component |
+| Inline color picker    | 373-411 | Duplicated in form            |
+| Create/edit form       | 428-510 | Can be extracted to component |
+| Form color picker      | 462-478 | Duplicated from inline        |
+| Delete dialog          | 514-540 | Can be extracted to component |
 
 ### Import Dependencies to Maintain
 
 ```typescript
 // UI Components
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogBody, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Icon } from "@/components/ui/icon";
@@ -426,20 +464,26 @@ import { ChevronDownIcon, CheckIcon, XIcon } from "lucide-react";
 ## Notes & Considerations
 
 ### When to Stop
+
 Following YAGNI principle:
+
 - **Stop after Phase 1** if the component is stable and no new features are planned
 - **Stop after Phase 2** if you don't need the extracted components elsewhere
 - **Stop after Phase 3** if state management is working well
 - **Only do Phase 4** if there's a clear, demonstrable need
 
 ### Testing Strategy
+
 Since the project has no test framework configured:
+
 - Rely on manual testing after each phase
 - Test in isolation (Storybook) if available
 - Consider adding tests after Phase 3 for critical hooks
 
 ### Migration Path
+
 Each phase is deployable independently:
+
 1. Create new files alongside existing component
 2. Test new implementation thoroughly
 3. Switch imports in one commit
@@ -452,6 +496,7 @@ This allows easy rollback if issues arise.
 ## Commit Message Templates
 
 **After Phase 1:**
+
 ```
 refactor(project-select): extract delete dialog and color picker components
 
@@ -462,6 +507,7 @@ refactor(project-select): extract delete dialog and color picker components
 ```
 
 **After Phase 2:**
+
 ```
 refactor(project-select): extract keyboard navigation and search hooks
 
@@ -473,6 +519,7 @@ refactor(project-select): extract keyboard navigation and search hooks
 ```
 
 **After Phase 3:**
+
 ```
 refactor(project-select): break down into focused sub-components
 

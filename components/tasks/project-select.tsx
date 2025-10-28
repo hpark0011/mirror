@@ -24,7 +24,8 @@ import { ProjectColor } from "@/types/board.types";
 import { ChevronDownIcon, CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import { PROJECT_COLORS, getProjectColorBgClass } from "@/config/tasks.config";
+import { PROJECT_COLORS } from "@/config/tasks.config";
+import { ProjectColorIndicator } from "./project-color-indicator";
 
 interface ProjectSelectProps {
   value?: string;
@@ -186,15 +187,11 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
         >
           <div className='flex items-center gap-1.5 flex-1 min-w-0 text-[13px]'>
             {selectedProject ? (
-              <>
-                <span
-                  className={cn(
-                    "size-1.5 rounded-full flex-shrink-0",
-                    getProjectColorBgClass(selectedProject.color)
-                  )}
-                />
-                <span className='truncate'>{selectedProject.name}</span>
-              </>
+              <ProjectColorIndicator
+                color={selectedProject.color}
+                name={selectedProject.name}
+                className='flex-1 min-w-0'
+              />
             ) : (
               <>
                 <Icon
@@ -214,15 +211,11 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
               {selectedProject ? (
                 <div className='flex items-center px-0.5 h-7'>
                   <Badge>
-                    <div className='flex items-center gap-1.5'>
-                      <span
-                        className={cn(
-                          "size-1.5 rounded-full flex-shrink-0 ml-0.5",
-                          getProjectColorBgClass(selectedProject.color)
-                        )}
-                      />
-                      <span className='truncate'>{selectedProject.name}</span>
-                    </div>
+                    <ProjectColorIndicator
+                      color={selectedProject.color}
+                      name={selectedProject.name}
+                      className='ml-0.5'
+                    />
                     <button
                       type='button'
                       onClick={() => {
@@ -270,14 +263,12 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                     onMouseEnter={() => setHighlightedIndex(index)}
                     onMouseLeave={() => setHighlightedIndex(-1)}
                   >
-                    <div className='flex flex-1 min-w-0 items-center gap-1.5 px-1'>
-                      <span
-                        className={cn(
-                          "size-1.5 rounded-full",
-                          getProjectColorBgClass(project.color)
-                        )}
+                    <div className='flex flex-1 min-w-0 items-center px-1'>
+                      <ProjectColorIndicator
+                        color={project.color}
+                        name={project.name}
+                        className='flex-1 min-w-0'
                       />
-                      <span className='truncate'>{project.name}</span>
                     </div>
                     <div className='flex items-center gap-0.5'>
                       <div
