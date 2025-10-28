@@ -51,7 +51,7 @@ export function ProjectCreateEditForm({
           onChange={(e) => onProjectNameChange(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus
-          className='h-8'
+          className='h-8 w-[calc(100%+12px)] ml-[-6px]'
         />
       </div>
 
