@@ -510,6 +510,9 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
           }
         }}
         onConfirm={handleDelete}
+        projectName={
+          projectToDelete ? getProjectById(projectToDelete)?.name : undefined
+        }
       />
     </>
   );
