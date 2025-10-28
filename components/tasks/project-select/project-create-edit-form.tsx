@@ -40,9 +40,9 @@ export function ProjectCreateEditForm({
   };
 
   return (
-    <div className='p-2 '>
-      <div className='flex flex-col w-full'>
-        <label className='text-xs font-medium text-foreground'>
+    <div className='px-2.5 pt-2 pb-1.5 flex flex-col w-full gap-3'>
+      <div className='flex flex-col w-full gap-1.5'>
+        <label className='text-xs font-medium text-text-muted'>
           Project Name
         </label>
         <Input
@@ -51,22 +51,22 @@ export function ProjectCreateEditForm({
           onChange={(e) => onProjectNameChange(e.target.value)}
           onKeyDown={handleKeyDown}
           autoFocus
-          className='h-8 w-[calc(100%+12px)] ml-[-6px]'
+          className='h-8 w-[calc(100%+8px)] ml-[-4px]'
         />
       </div>
 
-      <div className='space-y-2'>
-        <label className='text-xs font-medium text-foreground'>Color</label>
-        <div className='flex gap-2 flex-wrap'>
+      <div className='flex flex-col w-full gap-1.5'>
+        <label className='text-xs font-medium text-text-muted'>Color</label>
+        <div className='flex justify-between flex-row'>
           {PROJECT_COLORS.map(({ color, bgClass }) => (
             <button
               key={color}
               type='button'
               onClick={() => onColorChange(color)}
               className={cn(
-                "size-6 rounded-full transition-all border-2",
+                "size-6 rounded-full transition-all border-1",
                 selectedColor === color
-                  ? "border-foreground scale-110"
+                  ? "shadow-[0_0_0_2px_rgba(0,0,0,0.15)] dark:shadow-[0_0_0_2px_rgba(255,255,255,0.2)] scale-120"
                   : "border-transparent hover:scale-105",
                 bgClass
               )}
@@ -76,11 +76,11 @@ export function ProjectCreateEditForm({
         </div>
       </div>
 
-      <div className='flex gap-2 pt-2'>
+      <div className='flex gap-1 pt-2 w-[calc(100%+8px)] ml-[-4px]'>
         <Button
           size='sm'
           variant='outline'
-          className='flex-1 h-8'
+          className='flex-1'
           onClick={onCancel}
         >
           Cancel
@@ -88,7 +88,7 @@ export function ProjectCreateEditForm({
         <Button
           size='sm'
           variant='primary'
-          className='flex-1 h-8'
+          className='flex-1'
           onClick={handleSubmit}
           disabled={!projectName.trim()}
         >
