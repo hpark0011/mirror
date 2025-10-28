@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { COLUMNS } from "@/config/board-config";
+import { COLUMNS } from "@/config/board.config";
 import { cn } from "@/lib/utils";
 import { ChevronDownIcon } from "lucide-react";
 import { Icon, IconName } from "../ui/icon";

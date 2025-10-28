@@ -24,10 +24,7 @@ import { ProjectColor } from "@/types/board.types";
 import { ChevronDownIcon, CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
-import {
-  PROJECT_COLORS,
-  getProjectColorBgClass,
-} from "@/lib/constants/projects";
+import { PROJECT_COLORS, getProjectColorBgClass } from "@/config/tasks.config";
 
 interface ProjectSelectProps {
   value?: string;

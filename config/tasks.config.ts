@@ -14,9 +14,6 @@ export const PROJECT_COLORS: {
   { color: "pink", bgClass: "bg-pink-500" },
 ];
 
-/**
- * Get the background class for a project color
- */
 export function getProjectColorBgClass(color: ProjectColor): string {
   return (
     PROJECT_COLORS.find((c) => c.color === color)?.bgClass || "bg-neutral-500"

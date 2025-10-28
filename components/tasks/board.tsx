@@ -1,6 +1,12 @@
 "use client";
 
-import { Fragment, forwardRef, useImperativeHandle, useState, useMemo } from "react";
+import {
+  Fragment,
+  forwardRef,
+  useImperativeHandle,
+  useState,
+  useMemo,
+} from "react";
 import type React from "react";
 import {
   DndContext,
@@ -28,7 +34,7 @@ import {
   importBoardFromJson,
   downloadJsonFile,
 } from "@/lib/storage";
-import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board-config";
+import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board.config";
 import { BodyContainer } from "../layout/layout-ui";
 import { getStorageKey } from "@/lib/storage-keys";
 import { useProjectFilter } from "@/hooks/use-project-filter";
@@ -72,7 +78,8 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
   const { selectedProjectIds } = useProjectFilter();
 
   // Last selected project for default value
-  const { lastSelectedProjectId, setLastSelectedProjectId } = useLastSelectedProject();
+  const { lastSelectedProjectId, setLastSelectedProjectId } =
+    useLastSelectedProject();
 
   // Filter board based on selected projects
   const filteredBoard = useMemo(() => {
