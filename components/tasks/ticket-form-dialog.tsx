@@ -56,6 +56,7 @@ export function TicketFormDialog({
   const { form, handleSubmit } = useTicketForm({
     defaultValues,
     onSubmit,
+    open,
   });
 
   const { handleOpenChange, handleCancel } = useDialogAutoSave({

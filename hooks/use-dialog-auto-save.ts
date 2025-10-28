@@ -25,9 +25,8 @@ export function useDialogAutoSave<
       return;
     }
 
-    // If cancel action, reset and close
+    // If cancel action, just close (form will reset on next open)
     if (isCancelAction) {
-      form.reset();
       setIsCancelAction(false);
       onOpenChange(newOpen);
       return;
@@ -41,8 +40,7 @@ export function useDialogAutoSave<
       return;
     }
 
-    // No valid data, just reset and close
-    form.reset();
+    // No valid data, just close (form will reset on next open)
     setIsCancelAction(false);
     onOpenChange(newOpen);
   };

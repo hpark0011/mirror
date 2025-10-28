@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
@@ -16,24 +16,32 @@ type TicketFormOutput = z.output<typeof ticketSchema>;
 interface UseTicketFormProps {
   defaultValues?: TicketFormInput;
   onSubmit: (data: TicketFormOutput) => void;
+  open?: boolean;
 }
 
-export function useTicketForm({ defaultValues, onSubmit }: UseTicketFormProps) {
+export function useTicketForm({
+  defaultValues,
+  onSubmit,
+  open,
+}: UseTicketFormProps) {
   const form = useForm<TicketFormInput, unknown, TicketFormOutput>({
     resolver: zodResolver(ticketSchema),
     defaultValues,
   });
 
-  // console.log("[use-ticket-form] form:::", form);
-  // console.log("[use-ticket-form] defaultValues:::", defaultValues?.projectId);
+  // Track previous open state to detect transitions
+  const prevOpen = useRef(false);
 
+  // Reset form only when dialog transitions from closed to open
   useEffect(() => {
-    form.reset(defaultValues);
-  }, [defaultValues]);
+    if (open && !prevOpen.current) {
+      form.reset(defaultValues);
+    }
+    prevOpen.current = open ?? false;
+  }, [open, defaultValues, form]);
 
   const handleSubmit = (data: TicketFormOutput) => {
     onSubmit(data);
-    form.reset();
   };
 
   return {
