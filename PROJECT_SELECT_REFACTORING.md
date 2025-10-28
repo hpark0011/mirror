@@ -30,11 +30,6 @@ Refactor `components/tasks/project-select.tsx` (544 lines) into smaller, maintai
   - Estimated reduction: ~30 lines
   - Risk: Low (self-contained, no state dependencies)
 
-- [ ] **1.2 Extract ProjectColorPicker Component**
-  - Lines: 373-411 and 462-478 (deduplication)
-  - Estimated reduction: ~40 lines
-  - Risk: Low (pure UI component)
-
 ### Phase 2: Hook Extractions
 
 - [ ] **2.1 Create use-keyboard-navigation Hook**

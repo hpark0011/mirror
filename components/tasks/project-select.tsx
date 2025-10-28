@@ -2,14 +2,6 @@
 
 import { Button } from "@/components/ui/button";
 import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -19,13 +11,17 @@ import {
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useProjects } from "@/hooks/use-projects";
+import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation";
+import { useSearchState } from "@/hooks/use-search-state";
+import { useProjectSelection } from "@/hooks/use-project-selection";
 import { cn } from "@/lib/utils";
 import { ProjectColor } from "@/types/board.types";
 import { ChevronDownIcon, CheckIcon, XIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/ui/icon";
 import { PROJECT_COLORS } from "@/config/tasks.config";
 import { ProjectColorIndicator } from "./project-color-indicator";
+import { DeleteProjectDialog } from "./project-select/delete-project-dialog";
 
 interface ProjectSelectProps {
   value?: string;
@@ -43,29 +39,59 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [projectToDelete, setProjectToDelete] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [highlightedIndex, setHighlightedIndex] = useState(-1);
-  const [showColorPicker, setShowColorPicker] = useState(false);
+
+  // Use extracted hooks for search state management
+  const {
+    searchQuery,
+    setSearchQuery,
+    highlightedIndex,
+    updateHighlightedIndex,
+    showColorPicker,
+    toggleColorPicker,
+    resetSearch,
+  } = useSearchState();
 
   const selectedProject = value ? getProjectById(value) : undefined;
 
-  // Filter projects based on search query
-  const filteredProjects = projects.filter((project) =>
-    project.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Use project selection hook
+  const { selectProject, handleEscape } = useProjectSelection({
+    onValueChange,
+    setOpen,
+    resetSearch,
+  });
+
+  // Filtered projects and derived state with useMemo for performance
+  const filteredProjects = useMemo(
+    () =>
+      projects.filter((project) =>
+        project.name.toLowerCase().includes(searchQuery.toLowerCase())
+      ),
+    [projects, searchQuery]
   );
 
-  // Check if search query exactly matches an existing project
-  const exactMatch = filteredProjects.some(
-    (p) => p.name.toLowerCase() === searchQuery.trim().toLowerCase()
+  const canCreateNew = useMemo(
+    () =>
+      Boolean(searchQuery.trim()) &&
+      !filteredProjects.some(
+        (p) => p.name.toLowerCase() === searchQuery.trim().toLowerCase()
+      ),
+    [searchQuery, filteredProjects]
   );
 
-  // Can create new project if search has text and no exact match
-  const canCreateNew = searchQuery.trim() && !exactMatch;
+  // Keyboard navigation hook
+  const { handleKeyDown: handleNavigationKeyDown } = useKeyboardNavigation({
+    items: filteredProjects,
+    highlightedIndex,
+    onHighlightChange: updateHighlightedIndex,
+    onSelect: selectProject,
+    canCreateNew,
+    onToggleColorPicker: toggleColorPicker,
+  });
 
   // Reset highlighted index when search changes
   useEffect(() => {
-    setHighlightedIndex(-1);
-  }, [searchQuery]);
+    updateHighlightedIndex(-1);
+  }, [searchQuery, updateHighlightedIndex]);
 
   const handleCreate = () => {
     if (!projectName.trim()) return;
@@ -135,46 +161,43 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
       setViewMode("list");
       setProjectName("");
       setSelectedColor("blue");
-      setSearchQuery("");
-      setHighlightedIndex(-1);
-      setShowColorPicker(false);
+      resetSearch();
     }
   };
 
-  const handleSearchKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "ArrowDown") {
-      e.preventDefault();
-      setHighlightedIndex((prev) =>
-        prev < filteredProjects.length - 1 ? prev + 1 : prev
-      );
-    } else if (e.key === "ArrowUp") {
-      e.preventDefault();
-      setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      if (highlightedIndex >= 0) {
-        // Select highlighted project
-        const selectedProject = filteredProjects[highlightedIndex];
-        onValueChange(selectedProject.id);
-        setOpen(false);
-        setSearchQuery("");
-        setHighlightedIndex(-1);
-      } else if (canCreateNew) {
-        // Toggle color picker for creation
-        setShowColorPicker((prev) => !prev);
+  // Main keyboard handler with cleaner logic
+  const handleSearchKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLInputElement>) => {
+      const result = handleNavigationKeyDown(e);
+
+      if (result === "escape") {
+        const action = handleEscape(showColorPicker, searchQuery);
+
+        switch (action) {
+          case "close-color-picker":
+            toggleColorPicker();
+            break;
+          case "clear-search":
+            setSearchQuery("");
+            updateHighlightedIndex(-1);
+            break;
+          case "close-dropdown":
+            setOpen(false);
+            break;
+        }
       }
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      if (showColorPicker) {
-        setShowColorPicker(false);
-      } else if (searchQuery) {
-        setSearchQuery("");
-        setHighlightedIndex(-1);
-      } else {
-        setOpen(false);
-      }
-    }
-  };
+    },
+    [
+      handleNavigationKeyDown,
+      handleEscape,
+      showColorPicker,
+      searchQuery,
+      toggleColorPicker,
+      setSearchQuery,
+      updateHighlightedIndex,
+      setOpen,
+    ]
+  );
 
   return (
     <>
@@ -260,8 +283,8 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                         value === project.id ? undefined : project.id
                       );
                     }}
-                    onMouseEnter={() => setHighlightedIndex(index)}
-                    onMouseLeave={() => setHighlightedIndex(-1)}
+                    onMouseEnter={() => updateHighlightedIndex(index)}
+                    onMouseLeave={() => updateHighlightedIndex(-1)}
                   >
                     <div className='flex flex-1 min-w-0 items-center px-1'>
                       <ProjectColorIndicator
@@ -331,7 +354,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                   <DropdownMenuItem
                     onSelect={(e) => {
                       e.preventDefault();
-                      setShowColorPicker((prev) => !prev);
+                      toggleColorPicker();
                     }}
                   >
                     <Icon
@@ -357,9 +380,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                                   color
                                 );
                                 onValueChange(newProject.id);
-                                setSearchQuery("");
-                                setShowColorPicker(false);
-                                setHighlightedIndex(-1);
+                                resetSearch();
                                 setOpen(false);
                               } catch (error) {
                                 console.error(
@@ -385,8 +406,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                   onSelect={(e) => {
                     e.preventDefault();
                     setViewMode("create");
-                    setSearchQuery("");
-                    setHighlightedIndex(-1);
+                    resetSearch();
                   }}
                 >
                   <Icon name='PlusIcon' className='size-4.5 text-icon-light' />
@@ -481,33 +501,16 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className='sm:max-w-md'>
-          <DialogHeader>
-            <DialogTitle>Delete Project</DialogTitle>
-          </DialogHeader>
-          <DialogBody>
-            <p className='text-sm text-muted-foreground'>
-              Are you sure you want to delete this project? This action cannot
-              be undone.
-            </p>
-          </DialogBody>
-          <DialogFooter>
-            <Button
-              variant='outline'
-              onClick={() => {
-                setDeleteDialogOpen(false);
-                setProjectToDelete(null);
-              }}
-            >
-              Cancel
-            </Button>
-            <Button variant='destructive' onClick={handleDelete}>
-              Delete
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <DeleteProjectDialog
+        open={deleteDialogOpen}
+        onOpenChange={(open) => {
+          setDeleteDialogOpen(open);
+          if (!open) {
+            setProjectToDelete(null); // Cleanup when closing
+          }
+        }}
+        onConfirm={handleDelete}
+      />
     </>
   );
 }
