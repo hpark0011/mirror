@@ -23,6 +23,7 @@ import { PROJECT_COLORS } from "@/config/tasks.config";
 import { ProjectColorIndicator } from "./project-color-indicator";
 import { DeleteProjectDialog } from "./delete-project-dialog";
 import { ProjectMenuItem } from "./project-menu-item";
+import { ProjectCreateEditForm } from "./project-create-edit-form";
 
 interface ProjectSelectProps {
   value?: string;
@@ -53,8 +54,6 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
   } = useSearchState();
 
   const selectedProject = value ? getProjectById(value) : undefined;
-
-  console.log("[project-select] selectedProject::::", selectedProject);
 
   // Use project selection hook
   const { selectProject, handleEscape } = useProjectSelection({
@@ -365,88 +364,24 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
               )}
             </>
           ) : (
-            <div className='p-2 space-y-3'>
-              <div className='space-y-2'>
-                <label className='text-xs font-medium text-foreground'>
-                  Project Name
-                </label>
-                <Input
-                  placeholder='Enter project name...'
-                  value={projectName}
-                  onChange={(e) => setProjectName(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      if (viewMode === "create") {
-                        handleCreate();
-                      } else if (
-                        typeof viewMode === "object" &&
-                        viewMode.mode === "edit"
-                      ) {
-                        handleUpdate(viewMode.projectId);
-                      }
-                    } else if (e.key === "Escape") {
-                      e.preventDefault();
-                      cancelForm();
-                    }
-                  }}
-                  autoFocus
-                  className='h-8'
-                />
-              </div>
-
-              <div className='space-y-2'>
-                <label className='text-xs font-medium text-foreground'>
-                  Color
-                </label>
-                <div className='flex gap-2 flex-wrap'>
-                  {PROJECT_COLORS.map(({ color, bgClass }) => (
-                    <button
-                      key={color}
-                      type='button'
-                      onClick={() => setSelectedColor(color)}
-                      className={cn(
-                        "size-6 rounded-full transition-all border-2",
-                        selectedColor === color
-                          ? "border-foreground scale-110"
-                          : "border-transparent hover:scale-105",
-                        bgClass
-                      )}
-                      aria-label={`Select ${color} color`}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              <div className='flex gap-2 pt-2'>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  className='flex-1 h-8'
-                  onClick={cancelForm}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  size='sm'
-                  variant='primary'
-                  className='flex-1 h-8'
-                  onClick={() => {
-                    if (viewMode === "create") {
-                      handleCreate();
-                    } else if (
-                      typeof viewMode === "object" &&
-                      viewMode.mode === "edit"
-                    ) {
-                      handleUpdate(viewMode.projectId);
-                    }
-                  }}
-                  disabled={!projectName.trim()}
-                >
-                  {viewMode === "create" ? "Create" : "Save"}
-                </Button>
-              </div>
-            </div>
+            <ProjectCreateEditForm
+              viewMode={viewMode}
+              projectName={projectName}
+              selectedColor={selectedColor}
+              onProjectNameChange={setProjectName}
+              onColorChange={setSelectedColor}
+              onCancel={cancelForm}
+              onSubmit={() => {
+                if (viewMode === "create") {
+                  handleCreate();
+                } else if (
+                  typeof viewMode === "object" &&
+                  viewMode.mode === "edit"
+                ) {
+                  handleUpdate(viewMode.projectId);
+                }
+              }}
+            />
           )}
         </DropdownMenuContent>
       </DropdownMenu>
