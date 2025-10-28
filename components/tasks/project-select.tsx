@@ -24,26 +24,15 @@ import { ProjectColor } from "@/types/board.types";
 import { ChevronDownIcon, CheckIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import {
+  PROJECT_COLORS,
+  getProjectColorBgClass,
+} from "@/lib/constants/projects";
 
 interface ProjectSelectProps {
   value?: string;
   onValueChange: (projectId: string | undefined) => void;
 }
-
-const PROJECT_COLORS: {
-  color: ProjectColor;
-  bgClass: string;
-  displayClass: string;
-}[] = [
-  { color: "gray", bgClass: "bg-neutral-500", displayClass: "bg-neutral-500" },
-  { color: "red", bgClass: "bg-red-500", displayClass: "bg-red-500" },
-  { color: "orange", bgClass: "bg-orange-500", displayClass: "bg-orange-500" },
-  { color: "yellow", bgClass: "bg-yellow-500", displayClass: "bg-yellow-500" },
-  { color: "green", bgClass: "bg-green-500", displayClass: "bg-green-500" },
-  { color: "blue", bgClass: "bg-blue-500", displayClass: "bg-blue-500" },
-  { color: "purple", bgClass: "bg-purple-500", displayClass: "bg-purple-500" },
-  { color: "pink", bgClass: "bg-pink-500", displayClass: "bg-pink-500" },
-];
 
 type ViewMode = "list" | "create" | { mode: "edit"; projectId: string };
 
@@ -61,8 +50,6 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const selectedProject = value ? getProjectById(value) : undefined;
-  console.log("[project-select] value:", value);
-  console.log("[project-select] selectedProject:", selectedProject?.name);
 
   // Filter projects based on search query
   const filteredProjects = projects.filter((project) =>
@@ -206,9 +193,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                 <span
                   className={cn(
                     "size-1.5 rounded-full flex-shrink-0",
-                    PROJECT_COLORS.find(
-                      (c) => c.color === selectedProject.color
-                    )?.bgClass
+                    getProjectColorBgClass(selectedProject.color)
                   )}
                 />
                 <span className='truncate'>{selectedProject.name}</span>
@@ -236,9 +221,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                       <span
                         className={cn(
                           "size-1.5 rounded-full flex-shrink-0 ml-0.5",
-                          PROJECT_COLORS.find(
-                            (c) => c.color === selectedProject.color
-                          )?.bgClass
+                          getProjectColorBgClass(selectedProject.color)
                         )}
                       />
                       <span className='truncate'>{selectedProject.name}</span>
@@ -294,8 +277,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                       <span
                         className={cn(
                           "size-1.5 rounded-full",
-                          PROJECT_COLORS.find((c) => c.color === project.color)
-                            ?.bgClass
+                          getProjectColorBgClass(project.color)
                         )}
                       />
                       <span className='truncate'>{project.name}</span>
