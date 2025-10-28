@@ -33,12 +33,14 @@ export function useTicketForm({
   const prevOpen = useRef(false);
 
   // Reset form only when dialog transitions from closed to open
+  // Note: form.reset is stable, so we don't need form in the dependency array
   useEffect(() => {
     if (open && !prevOpen.current) {
       form.reset(defaultValues);
     }
     prevOpen.current = open ?? false;
-  }, [open, defaultValues, form]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, defaultValues]);
 
   const handleSubmit = (data: TicketFormOutput) => {
     onSubmit(data);
