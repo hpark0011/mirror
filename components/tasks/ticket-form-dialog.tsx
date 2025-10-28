@@ -5,6 +5,7 @@ import {
   Dialog,
   DialogBody,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -80,6 +81,13 @@ export function TicketFormDialog({
               {mode === "create" ? "Create New Ticket" : "Edit Ticket"}
             </DialogTitle>
           </VisuallyHidden>
+          <VisuallyHidden asChild>
+            <DialogDescription>
+              {mode === "create"
+                ? "Fill in the ticket details to create a new work item."
+                : "Update the ticket fields and save your changes."}
+            </DialogDescription>
+          </VisuallyHidden>
         </DialogHeader>
 
         <Form {...form}>
@@ -151,18 +159,21 @@ export function TicketFormDialog({
                 <FormField
                   control={form.control}
                   name='projectId'
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className='sr-only'>Project</FormLabel>
-                      <FormControl>
-                        <ProjectSelect
-                          value={field.value}
-                          onValueChange={field.onChange}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    console.log("[ticket-form-dialog] field:::", field);
+                    return (
+                      <FormItem>
+                        <FormLabel className='sr-only'>Project</FormLabel>
+                        <FormControl>
+                          <ProjectSelect
+                            value={field.value}
+                            onValueChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </div>
               <Button

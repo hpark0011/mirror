@@ -18,15 +18,7 @@ interface UseTicketFormProps {
   onSubmit: (data: TicketFormOutput) => void;
 }
 
-export function useTicketForm({
-  defaultValues = {
-    title: "",
-    description: "",
-    status: "backlog",
-    projectId: undefined,
-  },
-  onSubmit,
-}: UseTicketFormProps) {
+export function useTicketForm({ defaultValues, onSubmit }: UseTicketFormProps) {
   const form = useForm<TicketFormInput, unknown, TicketFormOutput>({
     resolver: zodResolver(ticketSchema),
     defaultValues,

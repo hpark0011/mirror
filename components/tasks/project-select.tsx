@@ -61,6 +61,8 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
   const [showColorPicker, setShowColorPicker] = useState(false);
 
   const selectedProject = value ? getProjectById(value) : undefined;
+  console.log("[project-select] value:", value);
+  console.log("[project-select] selectedProject:", selectedProject?.name);
 
   // Filter projects based on search query
   const filteredProjects = projects.filter((project) =>
@@ -244,7 +246,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
                     <button
                       type='button'
                       onClick={() => {
-                        onValueChange(undefined);
+                        onValueChange("");
                       }}
                       className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5'
                       aria-label='Clear project selection'
