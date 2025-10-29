@@ -113,18 +113,6 @@ export function SubTasksList({ value, onChange }: SubTasksListProps) {
           </div>
         ))}
       </div>
-
-      {/* Empty state */}
-      {totalCount === 0 && (
-        <div className='text-center py-6 text-text-muted'>
-          <Icon
-            name='ChecklistIcon'
-            className='size-8 mx-auto mb-2 opacity-50'
-          />
-          <p className='text-sm'>No sub-tasks yet</p>
-          <p className='text-xs'>Add your first sub-task above</p>
-        </div>
-      )}
     </div>
   );
 }

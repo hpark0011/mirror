@@ -156,7 +156,7 @@ export function TicketFormDialog({
                     <FormItem>
                       <FormLabel className='sr-only'>Sub-tasks</FormLabel>
                       <FormControl>
-                        <div className='w-[calc(100%+12px)] ml-[-6px] px-2'>
+                        <div className='w-[calc(100%+12px)] ml-[-6px] p-2 border border-border-light mt-2 rounded-md'>
                           <SubTasksList
                             value={field.value || []}
                             onChange={field.onChange}

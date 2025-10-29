@@ -135,7 +135,7 @@
   --border: oklch(0.922 0 0);
   --border-light: oklch(0.95 0 0);
   --border-highlight: oklch(1 0 0 / 95%);
-  --input: oklch(0.93 0 0);
+  --input: oklch(0.95 0 0);
   --hover: var(--color-white);
   --badge-background: oklch(0.95 0 0);
   --ring: oklch(0.708 0 0);
@@ -170,7 +170,7 @@
   --border: oklch(1 0 0 / 10%);
   --border-light: oklch(1 0 0 / 5%);
   --border-highlight: oklch(1 0 0 / 3%);
-  --input: oklch(0.232 0 0);
+  --input: oklch(1 0 0 / 15%);
   --hover: oklch(0.269 0 0);
   --badge-background: oklch(0.269 0 0);
   --ring: oklch(0.556 0 0);
