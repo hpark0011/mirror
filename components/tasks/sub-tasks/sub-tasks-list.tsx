@@ -65,11 +65,15 @@ export function SubTasksList({ control, name }: SubTasksListProps) {
     <div className='w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg group hover:bg-hover/50 flex flex-col overflow-hidden'>
       {/* Progress indicator */}
       {totalCount > 0 && (
-        <div className='text-xs text-text-muted mb-2 px-2.5 pt-1.5'>
-          {completedCount} / {totalCount} Completed
+        <div className='text-xs text-text-muted px-2 mb-2 pt-1.5 flex items-center gap-1'>
+          <Icon name='ChecklistIcon' className='size-3.5' />
+          {/* <span className='font-medium ml-1'>Sub-tasks</span> */}
+
+          <span className='text-xs text-text-muted'>
+            {completedCount} / {totalCount} Completed
+          </span>
         </div>
       )}
-
       {/* Sub-tasks list */}
       <div className='flex flex-col w-full'>
         {fields.map((field, index) => (
@@ -136,7 +140,7 @@ const SubTaskRow = memo(function SubTaskRow({
   }) as boolean | undefined;
 
   return (
-    <div className='flex items-center gap-2 group hover:bg-hover px-1 pl-2.5'>
+    <div className='flex items-center gap-2 group/subtask hover:bg-hover px-1 pl-2.5'>
       <Controller
         name={completedFieldName}
         control={control}
@@ -173,7 +177,7 @@ const SubTaskRow = memo(function SubTaskRow({
         variant='icon'
         size='sm'
         onClick={() => remove(index)}
-        className='text-icon-light hover:text-icon-primary h-6 w-6 hover:bg-transparent hover:text-blue-500'
+        className='text-icon-light hover:text-icon-primary h-6 w-6 hover:bg-transparent hover:text-blue-500 opacity-0 group-hover/subtask:opacity-100 transition-opacity duration-150'
       >
         <Icon name='XmarkIcon' className='size-3.5' />
       </Button>
