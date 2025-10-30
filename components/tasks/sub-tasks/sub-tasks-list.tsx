@@ -73,7 +73,7 @@ export function SubTasksList({ value, onChange }: SubTasksListProps) {
               value={task.text}
               onChange={(e) => updateSubTask(task.id, { text: e.target.value })}
               className={cn(
-                "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-7 hover:bg-transparent",
+                "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-6 hover:bg-transparent",
                 task.completed && "line-through text-text-muted"
               )}
             />
