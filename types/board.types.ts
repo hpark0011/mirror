@@ -1,11 +1,18 @@
 import { IconName } from "@/components/ui/icon";
 
+export interface SubTask {
+  id: string;
+  text: string;
+  completed: boolean;
+}
+
 export interface Ticket {
   id: string;
   title: string;
   description: string;
   status: ColumnId;
   projectId?: string;
+  subTasks?: SubTask[];
   createdAt: Date;
   updatedAt: Date;
 }

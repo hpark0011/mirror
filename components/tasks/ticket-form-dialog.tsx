@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -29,6 +28,8 @@ import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import { useDialogAutoSave } from "@/hooks/use-dialog-auto-save";
 import { useFocusManagement } from "@/hooks/use-focus-management";
 import { useKeyboardSubmit } from "@/hooks/use-keyboard-submit";
+import { usePersistedSubTasks } from "@/hooks/use-persisted-sub-tasks";
+import { usePersistedSubTasksVisibility } from "@/hooks/use-persisted-sub-tasks-visibility";
 import {
   type TicketFormInput,
   type TicketFormOutput,
@@ -67,6 +68,14 @@ export function TicketFormDialog({
     open,
   });
 
+  // Persist sub-tasks draft to localStorage (create mode only, never auto-clears)
+  usePersistedSubTasks(form, open, mode);
+
+  // Persist visibility toggle to localStorage
+  const [showSubTasks, setShowSubTasks] = usePersistedSubTasksVisibility(
+    (defaultValues?.subTasks?.length ?? 0) > 0
+  );
+
   const { handleOpenChange, handleCancel } = useDialogAutoSave({
     form,
     onSubmit: handleSubmit,
@@ -81,7 +90,6 @@ export function TicketFormDialog({
     onSubmit: () => form.handleSubmit(handleSubmit)(),
   });
 
-  const [showSubTasks, setShowSubTasks] = useState(false);
   const toggleSubTasks = () => setShowSubTasks(!showSubTasks);
 
   return (

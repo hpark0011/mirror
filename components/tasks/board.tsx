@@ -24,7 +24,7 @@ import {
 import { arrayMove } from "@dnd-kit/sortable";
 import { BoardColumn } from "./board-column";
 import { TicketCard } from "./ticket-card";
-import { Ticket, BoardState, ColumnId } from "../../types/board.types";
+import { Ticket, BoardState, ColumnId, SubTask } from "../../types/board.types";
 import { TicketFormDialog } from "./ticket-form-dialog";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import {
@@ -262,6 +262,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     description: string;
     status: ColumnId;
     projectId?: string;
+    subTasks?: SubTask[];
   }) => {
     // Save the selected project as the last selected (for both create and edit)
     setLastSelectedProjectId(data.projectId);
@@ -277,6 +278,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
           description: data.description,
           status: data.status,
           projectId: data.projectId,
+          subTasks: data.subTasks,
           updatedAt: new Date(),
         };
 
@@ -304,6 +306,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
         description: data.description,
         status: data.status,
         projectId: data.projectId,
+        subTasks: data.subTasks,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
@@ -418,12 +421,14 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
                 description: editingTicket.description,
                 status: editingTicket.status,
                 projectId: editingTicket.projectId,
+                subTasks: editingTicket.subTasks || [],
               }
             : {
                 title: "",
                 description: "",
                 status: formColumnId,
                 projectId: lastSelectedProjectId,
+                subTasks: [],
               }
         }
         mode={editingTicket ? "edit" : "create"}

@@ -1,4 +1,4 @@
-import { BoardState, Ticket } from "@/types/board.types";
+import { BoardState, Ticket, SubTask } from "@/types/board.types";
 
 export interface SerializedBoardData {
   version: number;
@@ -85,12 +85,28 @@ function isValidTicket(ticket: unknown): ticket is Ticket {
   if (!ticket || typeof ticket !== "object" || ticket === null) return false;
 
   const t = ticket as Record<string, unknown>;
+
+  // Validate subTasks if present
+  const hasValidSubTasks =
+    t.subTasks === undefined ||
+    (Array.isArray(t.subTasks) &&
+     t.subTasks.every((st: unknown) => {
+       if (!st || typeof st !== "object") return false;
+       const subTask = st as Record<string, unknown>;
+       return (
+         typeof subTask.id === "string" &&
+         typeof subTask.text === "string" &&
+         typeof subTask.completed === "boolean"
+       );
+     }));
+
   return (
     typeof t.id === "string" &&
     typeof t.title === "string" &&
     typeof t.description === "string" &&
     typeof t.status === "string" &&
     (t.projectId === undefined || typeof t.projectId === "string") &&
+    hasValidSubTasks &&
     (t.createdAt instanceof Date ||
       typeof t.createdAt === "string") &&
     (t.updatedAt instanceof Date || typeof t.updatedAt === "string")
