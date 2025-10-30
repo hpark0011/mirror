@@ -70,7 +70,7 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className='text-neutral-400/50 pt-0.5 dark:text-neutral-700 [&>svg]:!size-5 ml-1'>
+          <BreadcrumbSeparator className='text-neutral-400/50 pt-0.5 dark:text-neutral-700 [&>svg]:!size-5 ml-1.5 '>
             <Icon
               name='LineDiagonalIcon'
               className=' text-neutral-400/50 dark:text-neutral-700'
@@ -79,7 +79,7 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
           <BreadcrumbItem>
             <BreadcrumbPage className='text-[14px]'>
               <Select value={getCurrentValue()} onValueChange={handleNavigate}>
-                <SelectTrigger className='outline-none hover:bg-extra-light rounded-sm border-none data-[size=default]:h-6 data-[size=sm]:h-6 focus-visible:bg-extra-light focus-visible:ring-0'>
+                <SelectTrigger className='outline-none hover:bg-hover rounded-sm border-none data-[size=default]:h-6 data-[size=sm]:h-6 focus-visible:bg-extra-light focus-visible:ring-0'>
                   <div className='flex items-center gap-1.5 pr-0.5 py-0.5 rounded-sm leading-[1.0] '>
                     <SelectValue />
                     <Icon
@@ -108,7 +108,7 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
       <button
         type='button'
         onClick={() => setFocusDialogOpen(true)}
-        className='bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] hover:bg-base  transition-all duration-200 ease-out hover:scale-105 cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden text-[14px]'
+        className='bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] hover:bg-base  transition-all duration-200 ease-out cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden text-[14px]'
       >
         <div className='text-text-muted font-medium px-2 h-full flex items-center'>
           {new Date().toLocaleDateString(undefined, {
