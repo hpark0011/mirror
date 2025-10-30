@@ -1,10 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { memo, useRef, useState } from "react";
+import {
+  type Control,
+  Controller,
+  type FieldArrayPath,
+  type FieldPath,
+  useFieldArray,
+  useWatch,
+} from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
+import type { TicketFormInput } from "@/hooks/use-ticket-form";
 import { cn } from "@/lib/utils";
 
 export interface SubTask {
@@ -14,37 +23,43 @@ export interface SubTask {
 }
 
 interface SubTasksListProps {
-  value: SubTask[];
-  onChange: (subTasks: SubTask[]) => void;
+  control: Control<TicketFormInput>;
+  name?: FieldArrayPath<TicketFormInput>;
 }
 
-export function SubTasksList({ value, onChange }: SubTasksListProps) {
+export function SubTasksList({ control, name }: SubTasksListProps) {
   const [newTaskText, setNewTaskText] = useState("");
+  const fieldName = (name ?? "subTasks") as FieldArrayPath<TicketFormInput>;
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: fieldName,
+  });
+
+  const subTasks =
+    (useWatch({ control, name: fieldName }) as SubTask[] | undefined) ?? [];
 
   const addSubTask = () => {
-    if (newTaskText.trim()) {
-      const newTask: SubTask = {
-        id: crypto.randomUUID(),
-        text: newTaskText.trim(),
-        completed: false,
-      };
-      onChange([...value, newTask]);
-      setNewTaskText("");
+    const trimmed = newTaskText.trim();
+    if (!trimmed) {
+      inputRef.current?.focus();
+      return;
     }
+
+    append({
+      id: crypto.randomUUID(),
+      text: trimmed,
+      completed: false,
+    });
+    setNewTaskText("");
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
   };
 
-  const updateSubTask = (id: string, updates: Partial<SubTask>) => {
-    onChange(
-      value.map((task) => (task.id === id ? { ...task, ...updates } : task))
-    );
-  };
-
-  const deleteSubTask = (id: string) => {
-    onChange(value.filter((task) => task.id !== id));
-  };
-
-  const completedCount = value.filter((task) => task.completed).length;
-  const totalCount = value.length;
+  const completedCount = subTasks.filter((task) => task?.completed).length;
+  const totalCount = subTasks.length;
 
   return (
     <div className='w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg group hover:bg-hover/50 flex flex-col overflow-hidden'>
@@ -57,42 +72,21 @@ export function SubTasksList({ value, onChange }: SubTasksListProps) {
 
       {/* Sub-tasks list */}
       <div className='flex flex-col w-full'>
-        {value.map((task) => (
-          <div
-            key={task.id}
-            className='flex items-center gap-2 group hover:bg-hover px-1 pl-2.5'
-          >
-            <Checkbox
-              checked={task.completed}
-              onCheckedChange={(checked) =>
-                updateSubTask(task.id, { completed: !!checked })
-              }
-              className='border-border-medium'
-            />
-            <Input
-              value={task.text}
-              onChange={(e) => updateSubTask(task.id, { text: e.target.value })}
-              className={cn(
-                "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-6 hover:bg-transparent",
-                task.completed && "line-through text-text-muted"
-              )}
-            />
-            <Button
-              type='button'
-              variant='icon'
-              size='sm'
-              onClick={() => deleteSubTask(task.id)}
-              className='text-icon-light hover:text-icon-primary h-6 w-6 hover:bg-transparent hover:text-blue-500'
-            >
-              <Icon name='XmarkIcon' className='size-3.5' />
-            </Button>
-          </div>
+        {fields.map((field, index) => (
+          <SubTaskRow
+            key={field.id ?? `${fieldName}-${index}`}
+            control={control}
+            name={fieldName}
+            index={index}
+            remove={remove}
+          />
         ))}
       </div>
 
       {/* Add new sub-task */}
       <div className='flex gap-2 pl-2.5 items-center hover:bg-hover'>
         <Input
+          ref={inputRef}
           placeholder='Add a sub-task...'
           value={newTaskText}
           onChange={(e) => setNewTaskText(e.target.value)}
@@ -118,3 +112,73 @@ export function SubTasksList({ value, onChange }: SubTasksListProps) {
     </div>
   );
 }
+
+interface SubTaskRowProps {
+  control: Control<TicketFormInput>;
+  name: FieldArrayPath<TicketFormInput>;
+  index: number;
+  remove: (index?: number | number[]) => void;
+}
+
+const SubTaskRow = memo(function SubTaskRow({
+  control,
+  name,
+  index,
+  remove,
+}: SubTaskRowProps) {
+  const textFieldName = `${name}.${index}.text` as FieldPath<TicketFormInput>;
+  const completedFieldName =
+    `${name}.${index}.completed` as FieldPath<TicketFormInput>;
+
+  const completed = useWatch<TicketFormInput>({
+    control,
+    name: completedFieldName,
+  }) as boolean | undefined;
+
+  return (
+    <div className='flex items-center gap-2 group hover:bg-hover px-1 pl-2.5'>
+      <Controller
+        name={completedFieldName}
+        control={control}
+        render={({ field }) => (
+          <Checkbox
+            checked={!!field.value}
+            onCheckedChange={(checked) => field.onChange(!!checked)}
+            className='border-border-medium'
+          />
+        )}
+      />
+      <Controller
+        name={textFieldName}
+        control={control}
+        render={({ field }) => {
+          const { value, onChange, ...rest } = field;
+          const stringValue = typeof value === "string" ? value : "";
+
+          return (
+            <Input
+              {...rest}
+              value={stringValue}
+              onChange={(e) => onChange(e.target.value)}
+              className={cn(
+                "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-6 hover:bg-transparent",
+                completed && "line-through text-text-muted"
+              )}
+            />
+          );
+        }}
+      />
+      <Button
+        type='button'
+        variant='icon'
+        size='sm'
+        onClick={() => remove(index)}
+        className='text-icon-light hover:text-icon-primary h-6 w-6 hover:bg-transparent hover:text-blue-500'
+      >
+        <Icon name='XmarkIcon' className='size-3.5' />
+      </Button>
+    </div>
+  );
+});
+
+SubTaskRow.displayName = "SubTaskRow";

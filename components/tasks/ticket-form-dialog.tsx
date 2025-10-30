@@ -155,14 +155,14 @@ export function TicketFormDialog({
                 <FormField
                   control={form.control}
                   name='subTasks'
-                  render={({ field }) => (
+                  render={() => (
                     <FormItem>
                       <FormLabel className='sr-only'>Sub-tasks</FormLabel>
                       <FormControl>
                         <div className='relative z-1'>
                           <SubTasksList
-                            value={field.value || []}
-                            onChange={field.onChange}
+                            control={form.control}
+                            name={"subTasks"}
                           />
                         </div>
                       </FormControl>
