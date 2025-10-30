@@ -64,16 +64,18 @@ export function SubTasksList({ control, name }: SubTasksListProps) {
   return (
     <div className='w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg group hover:bg-hover/50 flex flex-col overflow-hidden'>
       {/* Progress indicator */}
-      {totalCount > 0 && (
-        <div className='text-xs text-text-muted px-2 mb-2 pt-1.5 flex items-center gap-1'>
-          <Icon name='ChecklistIcon' className='size-3.5' />
-          {/* <span className='font-medium ml-1'>Sub-tasks</span> */}
-
+      <div className='text-xs text-text-muted px-2 mb-2 pt-1.5 flex items-center gap-1'>
+        <Icon name='ChecklistIcon' className='size-3.5' />
+        {/* <span className='font-medium ml-1'>Sub-tasks</span> */}
+        {totalCount > 0 ? (
           <span className='text-xs text-text-muted'>
             {completedCount} / {totalCount} Completed
           </span>
-        </div>
-      )}
+        ) : (
+          <span className='text-xs text-text-muted'>Sub-tasks</span>
+        )}
+      </div>
+
       {/* Sub-tasks list */}
       <div className='flex flex-col w-full'>
         {fields.map((field, index) => (
@@ -88,7 +90,7 @@ export function SubTasksList({ control, name }: SubTasksListProps) {
       </div>
 
       {/* Add new sub-task */}
-      <div className='flex gap-2 pl-2.5 items-center hover:bg-hover'>
+      <div className='flex gap-2 pl-2.5 pr-0 items-center hover:bg-hover'>
         <Input
           ref={inputRef}
           placeholder='Add a sub-task...'
@@ -104,13 +106,14 @@ export function SubTasksList({ control, name }: SubTasksListProps) {
         />
         <Button
           type='button'
-          variant='ghost'
+          variant='icon'
           size='sm'
           onClick={addSubTask}
           disabled={!newTaskText.trim()}
-          className='text-[13px] font-regular h-8 rounded-l-none hover:text-blue-500 text-text-muted'
+          className='text-[13px] font-regular h-8 rounded-l-none hover:text-blue-500 text-text-muted p-0'
         >
-          Add
+          <Icon name='PlusCircleFillIcon' className='size-[22px]' />
+          {/* Add */}
         </Button>
       </div>
     </div>
