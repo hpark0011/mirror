@@ -47,11 +47,11 @@ export function SubTasksList({ value, onChange }: SubTasksListProps) {
   const totalCount = value.length;
 
   return (
-    <div className='w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg group hover:bg-hover/50 flex flex-col'>
+    <div className='w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg group hover:bg-hover/50 flex flex-col overflow-hidden'>
       {/* Progress indicator */}
       {totalCount > 0 && (
-        <div className='text-xs text-text-muted mb-2 px-2 pt-1.5'>
-          {completedCount} / {totalCount} completed
+        <div className='text-xs text-text-muted mb-2 px-2.5 pt-1.5'>
+          {completedCount} / {totalCount} Completed
         </div>
       )}
 
@@ -60,7 +60,7 @@ export function SubTasksList({ value, onChange }: SubTasksListProps) {
         {value.map((task) => (
           <div
             key={task.id}
-            className='flex items-center gap-2 group hover:bg-hover px-1 pl-2'
+            className='flex items-center gap-2 group hover:bg-hover px-1 pl-2.5'
           >
             <Checkbox
               checked={task.completed}
@@ -91,7 +91,7 @@ export function SubTasksList({ value, onChange }: SubTasksListProps) {
       </div>
 
       {/* Add new sub-task */}
-      <div className='flex gap-2 pl-2 items-center'>
+      <div className='flex gap-2 pl-2.5 items-center hover:bg-hover'>
         <Input
           placeholder='Add a sub-task...'
           value={newTaskText}
