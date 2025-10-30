@@ -62,7 +62,7 @@ export function SubTasksList({ control, name }: SubTasksListProps) {
   const totalCount = subTasks.length;
 
   return (
-    <div className='w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg group hover:bg-hover/50 flex flex-col overflow-hidden'>
+    <div className='w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg group hover:bg-hover/30 flex flex-col overflow-hidden'>
       {/* Progress indicator */}
       <div className='text-xs text-text-muted px-2 mb-2 pt-1.5 flex items-center gap-1'>
         <Icon name='ChecklistIcon' className='size-3.5' />
