@@ -83,8 +83,10 @@ export function TicketFormDialog({
   );
 
   // Show sub-tasks section when there are sub-tasks (manual toggle still works)
+  // CREATE mode: Always start collapsed
+  // EDIT mode: Start expanded if ticket has sub-tasks
   const [showSubTasks, setShowSubTasks] = useState(
-    (defaultValues?.subTasks?.length ?? 0) > 0
+    mode === "edit" && (defaultValues?.subTasks?.length ?? 0) > 0
   );
 
   // Track previous count to distinguish between user toggle and user removing items
