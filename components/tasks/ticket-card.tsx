@@ -113,7 +113,7 @@ export function TicketCard({
 
   const {
     control: subTaskControl,
-    reset: resetSubTaskForm,
+    setValue: setSubTaskValue,
     watch: watchSubTaskForm,
   } = useForm<TicketFormInput>({
     defaultValues: {
@@ -126,25 +126,29 @@ export function TicketCard({
   });
 
   const latestSubTasksSnapshotRef = useRef<string>(serializedTicketSubTasks);
+  const isSyncingFromPropsRef = useRef<boolean>(false);
+  const latestOnChangeRef =
+    useRef<TicketCardProps["onSubTasksChange"]>(onSubTasksChange);
 
+  // Keep the latest onSubTasksChange without retriggering effects
   useEffect(() => {
-    resetSubTaskForm({
-      title: ticket.title,
-      description: ticket.description,
-      status: ticket.status,
-      projectId: ticket.projectId,
-      subTasks: ticket.subTasks ?? [],
+    latestOnChangeRef.current = onSubTasksChange;
+  }, [onSubTasksChange]);
+
+  // Sync incoming ticket subTasks to the local form ONLY when they actually change
+  useEffect(() => {
+    if (serializedTicketSubTasks === latestSubTasksSnapshotRef.current) {
+      return;
+    }
+    // Programmatic update: skip emitting change back to parent once
+    isSyncingFromPropsRef.current = true;
+    setSubTaskValue("subTasks", ticket.subTasks ?? [], {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
     });
     latestSubTasksSnapshotRef.current = serializedTicketSubTasks;
-  }, [
-    resetSubTaskForm,
-    ticket.description,
-    ticket.projectId,
-    ticket.status,
-    ticket.title,
-    ticket.subTasks,
-    serializedTicketSubTasks,
-  ]);
+  }, [serializedTicketSubTasks, setSubTaskValue, ticket.subTasks]);
 
   const ticketSubTaskCount = ticket.subTasks?.length ?? 0;
 
@@ -157,7 +161,19 @@ export function TicketCard({
   const watchedSubTasks = watchSubTaskForm("subTasks") ?? [];
 
   useEffect(() => {
-    if (isDragging || !onSubTasksChange) {
+    if (isDragging) {
+      return;
+    }
+
+    const onChange = latestOnChangeRef.current;
+    if (!onChange) {
+      return;
+    }
+
+    if (isSyncingFromPropsRef.current) {
+      // Consume the programmatic update without echoing back
+      isSyncingFromPropsRef.current = false;
+      latestSubTasksSnapshotRef.current = JSON.stringify(watchedSubTasks);
       return;
     }
 
@@ -166,9 +182,9 @@ export function TicketCard({
       return;
     }
 
+    onChange(watchedSubTasks.map((subTask) => ({ ...subTask })));
     latestSubTasksSnapshotRef.current = serialized;
-    onSubTasksChange(watchedSubTasks.map((subTask) => ({ ...subTask })));
-  }, [watchedSubTasks, isDragging, onSubTasksChange]);
+  }, [watchedSubTasks, isDragging]);
 
   const cardWrapperClassName = cn(
     "relative scale-100 hover:scale-[1.02] transition-all duration-200 ease-out",

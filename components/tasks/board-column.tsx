@@ -6,7 +6,7 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { PlusIcon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -145,17 +145,15 @@ export function BoardColumn({
         >
           <div className='space-y-1.5 h-fit pb-4'>
             {tickets.map((ticket, index) => (
-              <TicketCard
+              <TicketCardWithStableCallbacks
                 key={ticket.id}
                 ticket={ticket}
                 index={index}
                 isInitialLoad={isInitialLoad}
-                onEdit={() => onEditTicket(ticket)}
-                onDelete={() => onDeleteTicket(ticket.id)}
-                onClick={() => handleTicketClick(ticket)}
-                onSubTasksChange={(subTasks) =>
-                  onUpdateSubTasks(ticket.id, subTasks)
-                }
+                onEditTicket={onEditTicket}
+                onDeleteTicket={onDeleteTicket}
+                onClickTicket={handleTicketClick}
+                onUpdateSubTasks={onUpdateSubTasks}
               />
             ))}
             {column.id !== "complete" && (
@@ -167,5 +165,43 @@ export function BoardColumn({
         <div className='h-4 w-full bg-gradient-to-b from-transparent to-background fixed bottom-0 left-0' />
       </CardContent>
     </Card>
+  );
+}
+
+function TicketCardWithStableCallbacks({
+  ticket,
+  index,
+  isInitialLoad,
+  onEditTicket,
+  onDeleteTicket,
+  onClickTicket,
+  onUpdateSubTasks,
+}: {
+  ticket: Ticket;
+  index: number;
+  isInitialLoad: boolean;
+  onEditTicket: (t: Ticket) => void;
+  onDeleteTicket: (id: string) => void;
+  onClickTicket: (t: Ticket) => void;
+  onUpdateSubTasks: (ticketId: string, subTasks: SubTask[]) => void;
+}) {
+  const handleEdit = useCallback(() => onEditTicket(ticket), [onEditTicket, ticket]);
+  const handleDelete = useCallback(() => onDeleteTicket(ticket.id), [onDeleteTicket, ticket.id]);
+  const handleClick = useCallback(() => onClickTicket(ticket), [onClickTicket, ticket]);
+  const handleSubTasksChange = useCallback(
+    (subTasks: SubTask[]) => onUpdateSubTasks(ticket.id, subTasks),
+    [onUpdateSubTasks, ticket.id]
+  );
+
+  return (
+    <TicketCard
+      ticket={ticket}
+      index={index}
+      isInitialLoad={isInitialLoad}
+      onEdit={handleEdit}
+      onDelete={handleDelete}
+      onClick={handleClick}
+      onSubTasksChange={handleSubTasksChange}
+    />
   );
 }
