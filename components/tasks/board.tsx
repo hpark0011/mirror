@@ -1,46 +1,62 @@
 "use client";
 
-import {
-  Fragment,
-  forwardRef,
-  useImperativeHandle,
-  useState,
-  useMemo,
-} from "react";
-import type React from "react";
-import {
-  DndContext,
+import type {
   DragEndEvent,
   DragOverEvent,
   DragStartEvent,
+} from "@dnd-kit/core";
+import {
+  closestCenter,
+  DndContext,
+  DragOverlay,
+  MouseSensor,
   PointerSensor,
   TouchSensor,
-  MouseSensor,
   useSensor,
   useSensors,
-  closestCenter,
-  DragOverlay,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import { BoardColumn } from "./board-column";
-import { TicketCard } from "./ticket-card";
-import { Ticket, BoardState, ColumnId, SubTask } from "../../types/board.types";
-import { TicketFormDialog } from "./ticket-form-dialog";
-import { useLocalStorage } from "@/hooks/use-local-storage";
+import type React from "react";
 import {
-  serializeBoardData,
+  Fragment,
+  forwardRef,
+  useCallback,
+  useImperativeHandle,
+  useMemo,
+  useState,
+} from "react";
+import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board.config";
+import { useLastSelectedProject } from "@/hooks/use-last-selected-project";
+import { useLocalStorage } from "@/hooks/use-local-storage";
+import { useProjectFilter } from "@/hooks/use-project-filter";
+import {
   deserializeBoardData,
+  downloadJsonFile,
   exportBoardAsJson,
   importBoardFromJson,
-  downloadJsonFile,
+  serializeBoardData,
 } from "@/lib/storage";
-import { COLUMNS, INITIAL_BOARD_STATE } from "@/config/board.config";
-import { BodyContainer } from "../layout/layout-ui";
 import { getStorageKey } from "@/lib/storage-keys";
-import { useProjectFilter } from "@/hooks/use-project-filter";
-import { useLastSelectedProject } from "@/hooks/use-last-selected-project";
+import type {
+  BoardState,
+  ColumnId,
+  SubTask,
+  Ticket,
+} from "../../types/board.types";
+import { BodyContainer } from "../layout/layout-ui";
+import { BoardColumn } from "./board-column";
+import { TicketCard } from "./ticket-card";
+import { TicketFormDialog } from "./ticket-form-dialog";
 
 const STORAGE_KEY = getStorageKey("TASKS", "BOARD_STATE");
+
+const safelyDeserializeBoard = (raw: string): BoardState => {
+  try {
+    return deserializeBoardData(raw);
+  } catch {
+    return INITIAL_BOARD_STATE;
+  }
+};
 
 export type BoardHandle = {
   importFromInput: (event: React.ChangeEvent<HTMLInputElement>) => void;
@@ -54,21 +70,19 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     serializeBoardData(INITIAL_BOARD_STATE)
   );
 
-  const board = (() => {
-    try {
-      return deserializeBoardData(rawBoard);
-    } catch {
-      return INITIAL_BOARD_STATE;
-    }
-  })();
+  const board = safelyDeserializeBoard(rawBoard);
 
-  const setBoard = (
-    newBoard: BoardState | ((prev: BoardState) => BoardState)
-  ) => {
-    const updatedBoard =
-      typeof newBoard === "function" ? newBoard(board) : newBoard;
-    setRawBoard(serializeBoardData(updatedBoard));
-  };
+  const setBoard = useCallback(
+    (newBoard: BoardState | ((prev: BoardState) => BoardState)) => {
+      setRawBoard((previousRaw) => {
+        const previousBoard = safelyDeserializeBoard(previousRaw);
+        const updatedBoard =
+          typeof newBoard === "function" ? newBoard(previousBoard) : newBoard;
+        return serializeBoardData(updatedBoard);
+      });
+    },
+    [setRawBoard]
+  );
   const [activeId, setActiveId] = useState<string | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingTicket, setEditingTicket] = useState<Ticket | null>(null);
@@ -121,8 +135,11 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     })
   );
 
-  const findColumn = (id: string): string | null => {
-    for (const [columnId, tickets] of Object.entries(board)) {
+  const findColumn = (
+    id: string,
+    sourceBoard: BoardState = board
+  ): string | null => {
+    for (const [columnId, tickets] of Object.entries(sourceBoard)) {
       if (tickets.some((t) => t.id === id)) {
         return columnId;
       }
@@ -165,8 +182,15 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     }
 
     setBoard((board) => {
-      const activeItems = [...board[activeColumn]];
-      const overItems = [...board[overColumn]!];
+      const activeSource = board[activeColumn];
+      const overSource = board[overColumn];
+
+      if (!activeSource || !overSource) {
+        return board;
+      }
+
+      const activeItems = [...activeSource];
+      const overItems = [...overSource];
       const activeIndex = activeItems.findIndex((t) => t.id === active.id);
       const activeItem = activeItems[activeIndex];
 
@@ -257,6 +281,50 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     }));
   };
 
+  const handleUpdateSubTasks = (ticketId: string, subTasks: SubTask[]) => {
+    setBoard((currentBoard) => {
+      const columnId = findColumn(ticketId, currentBoard);
+      if (!columnId) {
+        return currentBoard;
+      }
+
+      const columnTickets = currentBoard[columnId];
+      if (!columnTickets) {
+        return currentBoard;
+      }
+
+      let hasChanges = false;
+      const nextTickets = columnTickets.map((ticket) => {
+        if (ticket.id !== ticketId) {
+          return ticket;
+        }
+
+        const currentSerialized = JSON.stringify(ticket.subTasks ?? []);
+        const nextSerialized = JSON.stringify(subTasks ?? []);
+
+        if (currentSerialized === nextSerialized) {
+          return ticket;
+        }
+
+        hasChanges = true;
+        return {
+          ...ticket,
+          subTasks,
+          updatedAt: new Date(),
+        };
+      });
+
+      if (!hasChanges) {
+        return currentBoard;
+      }
+
+      return {
+        ...currentBoard,
+        [columnId]: nextTickets,
+      };
+    });
+  };
+
   const handleFormSubmit = (data: {
     title: string;
     description: string;
@@ -320,41 +388,47 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     setIsFormOpen(false);
   };
 
-  const handleClearBoard = () => {
+  const handleClearBoard = useCallback(() => {
     setBoard(INITIAL_BOARD_STATE);
-  };
+  }, [setBoard]);
 
-  const handleClearColumn = (columnId: ColumnId) => {
-    setBoard((board) => ({
-      ...board,
-      [columnId]: [],
-    }));
-  };
+  const handleClearColumn = useCallback(
+    (columnId: ColumnId) => {
+      setBoard((board) => ({
+        ...board,
+        [columnId]: [],
+      }));
+    },
+    [setBoard]
+  );
 
-  const handleExportBoard = () => {
+  const handleExportBoard = useCallback(() => {
     const timestamp = new Date().toISOString().split("T")[0];
     const filename = `task-board-${timestamp}.json`;
     const data = exportBoardAsJson(board);
     downloadJsonFile(data, filename);
-  };
+  }, [board]);
 
-  const handleImportBoard = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+  const handleImportBoard = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const content = e.target?.result as string;
-        const importedBoard = importBoardFromJson(content);
-        setBoard(importedBoard);
-      } catch (error) {
-        console.error("Failed to import board:", error);
-        alert("Failed to import board. Please check the file format.");
-      }
-    };
-    reader.readAsText(file);
-  };
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const content = e.target?.result as string;
+          const importedBoard = importBoardFromJson(content);
+          setBoard(importedBoard);
+        } catch (error) {
+          console.error("Failed to import board:", error);
+          alert("Failed to import board. Please check the file format.");
+        }
+      };
+      reader.readAsText(file);
+    },
+    [setBoard]
+  );
 
   useImperativeHandle(
     ref,
@@ -363,7 +437,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
       exportBoard: handleExportBoard,
       clearBoard: handleClearBoard,
     }),
-    [board]
+    [handleImportBoard, handleExportBoard, handleClearBoard]
   );
 
   const activeTicket = activeId ? findTicket(activeId) : null;
@@ -392,6 +466,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
                     ? () => handleClearColumn("complete")
                     : undefined
                 }
+                onUpdateSubTasks={handleUpdateSubTasks}
               />
               <div className='w-[1px] min-w-[1px] bg-neutral-200 dark:bg-neutral-900 last:hidden' />
             </Fragment>

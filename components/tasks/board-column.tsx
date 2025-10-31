@@ -14,7 +14,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { Column, Ticket } from "../../types/board.types";
+import type { Column, SubTask, Ticket } from "../../types/board.types";
 import { Icon } from "../ui/icon";
 import { TicketCard } from "./ticket-card";
 
@@ -25,6 +25,7 @@ interface BoardColumnProps {
   onEditTicket: (ticket: Ticket) => void;
   onDeleteTicket: (ticketId: string) => void;
   onClearColumn?: () => void;
+  onUpdateSubTasks: (ticketId: string, subTasks: SubTask[]) => void;
 }
 
 export const AddTicketButton = ({
@@ -55,6 +56,7 @@ export function BoardColumn({
   onEditTicket,
   onDeleteTicket,
   onClearColumn,
+  onUpdateSubTasks,
 }: BoardColumnProps) {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
@@ -151,6 +153,9 @@ export function BoardColumn({
                 onEdit={() => onEditTicket(ticket)}
                 onDelete={() => onDeleteTicket(ticket.id)}
                 onClick={() => handleTicketClick(ticket)}
+                onSubTasksChange={(subTasks) =>
+                  onUpdateSubTasks(ticket.id, subTasks)
+                }
               />
             ))}
             {column.id !== "complete" && (

@@ -1,5 +1,11 @@
 "use client";
 
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { motion, type Variants } from "framer-motion";
+import type React from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Icon } from "@/components/ui/icon";
@@ -8,12 +14,11 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { cn } from "@/lib/utils";
-import { useSortable } from "@dnd-kit/sortable";
-import { CSS } from "@dnd-kit/utilities";
-import { motion, type Variants } from "framer-motion";
-import { Ticket } from "../../types/board.types";
 import { useProjects } from "@/hooks/use-projects";
+import type { TicketFormInput } from "@/hooks/use-ticket-form";
+import { cn } from "@/lib/utils";
+import type { SubTask, Ticket } from "../../types/board.types";
+import { SubTasksList } from "./sub-tasks/sub-tasks-list";
 
 const MotionWrapper = motion.div;
 
@@ -36,6 +41,7 @@ interface TicketCardProps {
   onClick?: () => void;
   index?: number;
   isInitialLoad?: boolean;
+  onSubTasksChange?: (subTasks: SubTask[]) => void;
 }
 
 const cardVariants: Variants = {
@@ -74,6 +80,7 @@ export function TicketCard({
   onClick,
   index = 0,
   isInitialLoad = false,
+  onSubTasksChange,
 }: TicketCardProps) {
   const { getProjectById } = useProjects();
   const project = ticket.projectId
@@ -94,6 +101,74 @@ export function TicketCard({
     transition: isSortableDragging ? transition : undefined,
     opacity: isSortableDragging ? 0.5 : 1,
   };
+
+  const [isSubTaskEditorOpen, setIsSubTaskEditorOpen] = useState(
+    (ticket.subTasks?.length ?? 0) > 0
+  );
+
+  const serializedTicketSubTasks = useMemo(
+    () => JSON.stringify(ticket.subTasks ?? []),
+    [ticket.subTasks]
+  );
+
+  const {
+    control: subTaskControl,
+    reset: resetSubTaskForm,
+    watch: watchSubTaskForm,
+  } = useForm<TicketFormInput>({
+    defaultValues: {
+      title: ticket.title,
+      description: ticket.description,
+      status: ticket.status,
+      projectId: ticket.projectId,
+      subTasks: ticket.subTasks ?? [],
+    },
+  });
+
+  const latestSubTasksSnapshotRef = useRef<string>(serializedTicketSubTasks);
+
+  useEffect(() => {
+    resetSubTaskForm({
+      title: ticket.title,
+      description: ticket.description,
+      status: ticket.status,
+      projectId: ticket.projectId,
+      subTasks: ticket.subTasks ?? [],
+    });
+    latestSubTasksSnapshotRef.current = serializedTicketSubTasks;
+  }, [
+    resetSubTaskForm,
+    ticket.description,
+    ticket.projectId,
+    ticket.status,
+    ticket.title,
+    ticket.subTasks,
+    serializedTicketSubTasks,
+  ]);
+
+  const ticketSubTaskCount = ticket.subTasks?.length ?? 0;
+
+  useEffect(() => {
+    if (ticketSubTaskCount > 0) {
+      setIsSubTaskEditorOpen(true);
+    }
+  }, [ticketSubTaskCount]);
+
+  const watchedSubTasks = watchSubTaskForm("subTasks") ?? [];
+
+  useEffect(() => {
+    if (isDragging || !onSubTasksChange) {
+      return;
+    }
+
+    const serialized = JSON.stringify(watchedSubTasks);
+    if (serialized === latestSubTasksSnapshotRef.current) {
+      return;
+    }
+
+    latestSubTasksSnapshotRef.current = serialized;
+    onSubTasksChange(watchedSubTasks.map((subTask) => ({ ...subTask })));
+  }, [watchedSubTasks, isDragging, onSubTasksChange]);
 
   const cardWrapperClassName = cn(
     "relative scale-100 hover:scale-[1.02] transition-all duration-200 ease-out",
@@ -118,7 +193,9 @@ export function TicketCard({
     if (!isSortableDragging && onClick) {
       const target = e.target as HTMLElement;
       const isButton = target.closest("button");
-      if (!isButton) {
+      const isSubTaskArea = target.closest('[data-subtasks-area="true"]');
+
+      if (!isButton && !isSubTaskArea) {
         onClick();
       }
     }
@@ -159,10 +236,19 @@ export function TicketCard({
     );
   };
 
+  const stopSubTaskAreaPropagation = (
+    event: React.SyntheticEvent<Element, Event>
+  ) => {
+    event.stopPropagation();
+  };
+
   const cardContent = (
     <>
       <CardHeader
-        className={cn("p-3.5 py-2.5 flex", ticket.description && "pb-2 h-fit")}
+        className={cn(
+          "p-3.5 py-2.5 flex",
+          (ticket.description || isSubTaskEditorOpen) && "pb-2 h-fit"
+        )}
       >
         <div className='flex items-center gap-1.5'>
           <div className='flex-1 min-w-0'>
@@ -178,6 +264,31 @@ export function TicketCard({
                     size='sm'
                     variant='ghost'
                     className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg rounded-l-[7px] flex items-center justify-center has-[svg]:pl-0 has-[svg]:pr-0'
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsSubTaskEditorOpen((prev) => !prev);
+                    }}
+                  >
+                    <Icon
+                      name='ChecklistIcon'
+                      className={cn(
+                        "size-4.5",
+                        isSubTaskEditorOpen ? "text-blue-500" : "text-icon-dark"
+                      )}
+                    />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  {isSubTaskEditorOpen ? "Hide sub-tasks" : "Manage sub-tasks"}
+                </TooltipContent>
+              </Tooltip>
+              <div className='self-stretch w-px bg-border-light' />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size='sm'
+                    variant='ghost'
+                    className='h-6 w-7 bg-transparent hover:bg-neutral-100 dark:hover:bg-neutral-700 rounded-none cursor-pointer hover:shadow-lg flex items-center justify-center has-[svg]:pl-0 has-[svg]:pr-0'
                     onClick={(e) => {
                       e.stopPropagation();
                       onEdit?.();
@@ -213,12 +324,24 @@ export function TicketCard({
         </div>
       </CardHeader>
 
-      {ticket.description && (
+      {isSubTaskEditorOpen ? (
         <CardContent className='p-3.5 pt-0'>
-          <p className='text-sm line-clamp-6 w-full leading-[120%] text-text-tertiary whitespace-pre-wrap'>
-            {ticket.description}
-          </p>
+          <div
+            data-subtasks-area='true'
+            onPointerDown={stopSubTaskAreaPropagation}
+            onPointerUp={stopSubTaskAreaPropagation}
+          >
+            <SubTasksList control={subTaskControl} name={"subTasks"} />
+          </div>
         </CardContent>
+      ) : (
+        ticket.description && (
+          <CardContent className='p-3.5 pt-0'>
+            <p className='text-sm line-clamp-6 w-full leading-[120%] text-text-tertiary whitespace-pre-wrap'>
+              {ticket.description}
+            </p>
+          </CardContent>
+        )
       )}
     </>
   );
