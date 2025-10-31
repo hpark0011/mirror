@@ -70,7 +70,7 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
               </Link>
             </BreadcrumbLink>
           </BreadcrumbItem>
-          <BreadcrumbSeparator className='text-neutral-400/50 pt-0.5 dark:text-neutral-700 [&>svg]:!size-5 ml-1.5 mr-[-2px] '>
+          <BreadcrumbSeparator className='text-neutral-400/50 pt-0.5 dark:text-neutral-700 [&>svg]:!size-5 ml-1 mr-[-4px] '>
             <Icon
               name='LineDiagonalIcon'
               className=' text-neutral-400/50 dark:text-neutral-700'
