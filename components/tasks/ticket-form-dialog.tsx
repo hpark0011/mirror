@@ -92,11 +92,17 @@ export function TicketFormDialog({
   // Track previous count to distinguish between user toggle and user removing items
   const prevCountRef = useRef<number>(defaultValues?.subTasks?.length ?? 0);
   const showSubTasksRef = useRef<boolean>(showSubTasks);
+  const isInitialMountRef = useRef<boolean>(true);
 
   // Keep ref in sync with state
   useEffect(() => {
     showSubTasksRef.current = showSubTasks;
   }, [showSubTasks]);
+
+  // Mark initial mount as complete after first render
+  useEffect(() => {
+    isInitialMountRef.current = false;
+  }, []);
 
   // Auto-show/hide sub-tasks section based on sub-tasks existence
   useEffect(() => {
@@ -105,8 +111,12 @@ export function TicketFormDialog({
       const prevCount = prevCountRef.current;
       const currentShowSubTasks = showSubTasksRef.current;
 
-      // Show when sub-tasks added
-      if (subTasksCount > 0 && !currentShowSubTasks) {
+      // Show when sub-tasks added (but not on initial load for CREATE mode)
+      // This prevents auto-showing when persisted sub-tasks are loaded
+      const shouldAutoShow = subTasksCount > 0 && !currentShowSubTasks;
+      const isInitialLoad = isInitialMountRef.current && mode === "create";
+
+      if (shouldAutoShow && !isInitialLoad) {
         setShowSubTasks(true);
       }
       // Hide only when user REMOVED last sub-task (went from 1+ to 0)
@@ -119,7 +129,7 @@ export function TicketFormDialog({
       prevCountRef.current = subTasksCount;
     });
     return () => subscription.unsubscribe();
-  }, [form]);
+  }, [form, mode]);
 
   const { handleOpenChange: autoSaveOpenChange, handleCancel: autoSaveCancel } =
     useDialogAutoSave({
