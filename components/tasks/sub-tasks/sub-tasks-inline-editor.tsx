@@ -106,7 +106,6 @@ export function SubTasksInlineEditor({
       {!readOnly && isDirty ? (
         <div className='absolute top-2 right-2 flex items-center gap-1 text-[10px] font-medium tracking-[0.08em] text-muted-foreground'>
           <LoaderCircle className='h-3 w-3 animate-spin' aria-hidden='true' />
-          <span className='sr-only'>Saving...</span>
         </div>
       ) : null}
       <SubTasksListControlled
