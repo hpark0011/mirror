@@ -1,4 +1,4 @@
-import { Metadata } from "next";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { AuthForm } from "@/components/auth/auth-form";
 import { PATHS } from "@/config/paths.config";
