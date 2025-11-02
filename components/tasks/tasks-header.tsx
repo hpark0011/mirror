@@ -65,7 +65,7 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
         <BreadcrumbList className='items-center text-[14px] text-foreground sm:gap-0'>
           <BreadcrumbItem>
             <BreadcrumbLink asChild>
-              <div className='p-[4px] px-[5px] border duration-300 ease-out transition-all border-transparent hover:border-border-highlight hover:shadow-[inset_0_0_4px_1px_rgba(255,255,255,1),_0_4px_16px_-8px_rgba(0,0,0,0.2)] rounded-full bg-gradient-to-t hover:from-black/15 hover:to-white'>
+              <div className='p-[4px] px-[5px] border duration-300 ease-out transition-all border-transparent hover:border-border-highlight hover:shadow-[inset_0_0_4px_1px_rgba(255,255,255,1),_0_4px_16px_-8px_rgba(0,0,0,0.2)] hover:dark:shadow-[inset_0_0_4px_1px_rgba(0,0,0,1),_0_4px_16px_-8px_rgba(255,255,255,0.2)] dark:hover:border-neutral-800 rounded-full bg-gradient-to-t hover:from-black/15 hover:to-white hover:dark:from-white/30 hover:dark:to-black'>
                 <Link href='/' aria-label='Go to home'>
                   <HeaderLogo />
                 </Link>
