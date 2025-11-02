@@ -275,7 +275,7 @@ export function ProjectFilter() {
                       {isSelected ? (
                         <Icon
                           name='CheckmarkSmallIcon'
-                          className='size-3 text-white'
+                          className='min-w-4 size-4 text-white'
                         />
                       ) : null}
                     </div>

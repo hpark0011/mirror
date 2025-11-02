@@ -1,6 +1,6 @@
 import "server-only";
 
-import { AuthError, SupabaseClient } from "@supabase/supabase-js";
+import type { AuthError, SupabaseClient } from "@supabase/supabase-js";
 import { PATHS } from "@/config/paths.config";
 
 /**
