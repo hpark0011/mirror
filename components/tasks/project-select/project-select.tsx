@@ -1,6 +1,8 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { ChevronDownIcon, XIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -8,22 +10,19 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { useProjects } from "@/hooks/use-projects";
-import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation";
-import { useSearchState } from "@/hooks/use-search-state";
-import { useProjectSelection } from "@/hooks/use-project-selection";
-import { cn } from "@/lib/utils";
-import { ProjectColor } from "@/types/board.types";
-import { ChevronDownIcon, XIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/ui/icon";
+import { Input } from "@/components/ui/input";
 import { PROJECT_COLORS } from "@/config/tasks.config";
-import { ProjectColorIndicator } from "./project-color-indicator";
+import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation";
+import { useProjectSelection } from "@/hooks/use-project-selection";
+import { useProjects } from "@/hooks/use-projects";
+import { useSearchState } from "@/hooks/use-search-state";
+import { cn } from "@/lib/utils";
+import type { ProjectColor } from "@/types/board.types";
 import { DeleteProjectDialog } from "./delete-project-dialog";
-import { ProjectMenuItem } from "./project-menu-item";
+import { ProjectColorIndicator } from "./project-color-indicator";
 import { ProjectCreateEditForm } from "./project-create-edit-form";
+import { ProjectMenuItem } from "./project-menu-item";
 
 interface ProjectSelectProps {
   value?: string;

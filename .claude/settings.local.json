@@ -25,7 +25,8 @@
       "Read(//Users/disquiet/Library/Application Support/Claude/**)",
       "Bash(pnpm test:*)",
       "Bash(git add:*)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(pnpm tsc:*)"
     ],
     "deny": [],
     "ask": []

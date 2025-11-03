@@ -146,8 +146,8 @@ export function TicketCard({
   const ProjectTag = () => {
     if (!project) return null;
     return (
-      <div className='relative ml-[12px] w-fit'>
-        <div className='flex items-center gap-[3px] bg-neutral-100 dark:bg-neutral-900 w-fit px-2 pl-2 py-[1px] rounded-t-md after:content-[""] after:absolute after:bottom-[-12px] after:left-0 after:w-full after:h-[12px] after:bg-neutral-100 dark:after:bg-neutral-900 relative border-card-border dark:border-neutral-900 border'>
+      <div className='relative ml-[12px] w-fit cursor-pointer'>
+        <div className='flex items-center gap-[3px] bg-neutral-100 dark:bg-neutral-900 w-fit px-2 pl-2 py-[1px] rounded-t-md after:content-[""] after:absolute after:bottom-[-12px] after:left-0 after:w-full after:h-[12px] after:bg-neutral-100 dark:after:bg-neutral-900 relative border-card-border dark:border-neutral-900 border hover:bg-hover'>
           <div className='flex items-center justify-center'>
             <div
               className={cn(
