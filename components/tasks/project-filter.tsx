@@ -256,7 +256,7 @@ export function ProjectFilter() {
                     type='button'
                     key={project.id}
                     className={cn(
-                      "flex items-center space-x-2 rounded-md px-2 pl-1 py-1.5 hover:bg-accent cursor-pointer h-7 w-full",
+                      "flex items-center space-x-2 rounded-md px-2 pl-1 py-1.5 hover:bg-accent cursor-pointer h-6 w-full",
                       highlightedIndex === index &&
                         "bg-accent text-accent-foreground"
                     )}
