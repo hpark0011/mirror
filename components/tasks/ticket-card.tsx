@@ -193,8 +193,22 @@ export function TicketCard({
         )}
       >
         <div className='flex items-center gap-1.5'>
-          <div className='flex-1 min-w-0'>
-            <CardTitle className='text-[15px] font-medium leading-[1.2] '>
+          <div className='flex-1 min-w-0 flex items-start gap-1'>
+            <CardTitle className='text-[15px] font-medium leading-[1.2] relative'>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type='button'
+                    className='items-center absolute justify-center p-0.5 bg-neutral-800 rounded-full min-w-4.5 h-4.5 w-fit left-[-2px] group-hover hidden group-hover:flex shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6)]'
+                  >
+                    <Icon
+                      name='PlayFillIcon'
+                      className='size-3 text-icon-extra-light'
+                    />
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent>Start Timer</TooltipContent>
+              </Tooltip>
               {ticket.title}
             </CardTitle>
           </div>
