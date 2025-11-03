@@ -119,7 +119,7 @@ export function BoardColumn({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
-                    variant='ghost'
+                    variant='icon'
                     onClick={onAddTicket}
                     className='p-2 w-6 h-6 rounded-md cursor-pointer active:scale-90 transition-all duration-200 ease-out'
                   >
@@ -185,9 +185,18 @@ function TicketCardWithStableCallbacks({
   onClickTicket: (t: Ticket) => void;
   onUpdateSubTasks: (ticketId: string, subTasks: SubTask[]) => void;
 }) {
-  const handleEdit = useCallback(() => onEditTicket(ticket), [onEditTicket, ticket]);
-  const handleDelete = useCallback(() => onDeleteTicket(ticket.id), [onDeleteTicket, ticket.id]);
-  const handleClick = useCallback(() => onClickTicket(ticket), [onClickTicket, ticket]);
+  const handleEdit = useCallback(
+    () => onEditTicket(ticket),
+    [onEditTicket, ticket]
+  );
+  const handleDelete = useCallback(
+    () => onDeleteTicket(ticket.id),
+    [onDeleteTicket, ticket.id]
+  );
+  const handleClick = useCallback(
+    () => onClickTicket(ticket),
+    [onClickTicket, ticket]
+  );
   const handleSubTasksChange = useCallback(
     (subTasks: SubTask[]) => onUpdateSubTasks(ticket.id, subTasks),
     [onUpdateSubTasks, ticket.id]

@@ -1,10 +1,10 @@
 "use client";
 
+import { Lock, Sparkles } from "lucide-react";
+import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AUTH_METHODS, DEFAULT_AUTH_METHOD } from "@/config/auth.config";
-import { Lock, Sparkles } from "lucide-react";
-import { useState } from "react";
 import { MagicLinkForm } from "./magic-link-form";
 import { PasswordForm } from "./password-form";
 import { SocialAuth } from "./social-auth";
