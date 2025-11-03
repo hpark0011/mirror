@@ -188,13 +188,13 @@ export function TicketCard({
     <>
       <CardHeader
         className={cn(
-          "p-3.5 py-2.5 flex",
+          "p-2.5 py-2 flex",
           (ticket.description || isSubTaskEditorOpen) && "pb-2 h-fit"
         )}
       >
         <div className='flex items-center gap-1.5'>
           <div className='flex-1 min-w-0'>
-            <CardTitle className='text-[15px] font-medium leading-[1.2]'>
+            <CardTitle className='text-[15px] font-medium leading-[1.2] '>
               {ticket.title}
             </CardTitle>
           </div>
@@ -267,7 +267,7 @@ export function TicketCard({
       </CardHeader>
 
       {isSubTaskEditorOpen ? (
-        <CardContent className='border-border-light mt-0.5 rounded-b-[11px] p-0 overflow-hidden bg-[#f1f1f2] dark:bg-[#0F0F0F]'>
+        <CardContent className='border-border-light mt-0.5 rounded-b-[11px] p-0 overflow-hidden bg-[#f1f1f2] dark:bg-[#0F0F0F] '>
           <div
             data-subtasks-area='true'
             onPointerDown={stopSubTaskAreaPropagation}
@@ -285,7 +285,7 @@ export function TicketCard({
         </CardContent>
       ) : (
         ticket.description && (
-          <CardContent className='p-3.5 pt-0'>
+          <CardContent className='p-2.5 pt-0'>
             <p className='text-sm line-clamp-6 w-full leading-[120%] text-text-tertiary whitespace-pre-wrap'>
               {ticket.description}
             </p>
