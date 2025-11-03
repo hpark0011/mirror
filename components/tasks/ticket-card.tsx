@@ -14,7 +14,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { useProjects } from "@/hooks/use-projects";
-import { formatDuration } from "@/lib/timer-utils";
 import { cn } from "@/lib/utils";
 import { StopWatchState, useStopWatchStore } from "@/store/stop-watch-store";
 import type { SubTask, Ticket } from "../../types/board.types";
@@ -217,7 +216,7 @@ export function TicketCard({
       >
         <div className='flex items-center gap-1.5'>
           <div className='flex-1 min-w-0 flex items-start'>
-            <CardTitle className='text-[15px] font-medium leading-[1.2] relative gap-0.5'>
+            <CardTitle className='text-[15px] font-medium leading-[1.2] relative gap-0.5 flex'>
               {ticket.status === "in-progress" && (
                 <>
                   {/* Timer Display */}
@@ -234,7 +233,7 @@ export function TicketCard({
                       <button
                         type='button'
                         className={cn(
-                          "items-center relative justify-center p-0.5 dark:bg-neutral-900 rounded-[5px] w-3.5 h-3.5 top-[0px] left-[-1px] group-hover inline-flex group-hover:inline-flex shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6),_0_0_0_2px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6),_0_0_0_2px_rgba(255,255,255,0.1)] bg-neutral-50 mr-[4px]",
+                          "items-center relative justify-center p-0.5 dark:bg-neutral-900 rounded-[5px] w-3.5 h-3.5 top-[2px] left-[-1px] group-hover flex shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6),_0_0_0_2px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6),_0_0_0_2px_rgba(255,255,255,0.1)] bg-neutral-50 mr-[4px]",
                           timerState === StopWatchState.Running &&
                             "pulse-shadow"
                         )}
