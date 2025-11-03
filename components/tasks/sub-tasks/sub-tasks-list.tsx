@@ -247,6 +247,61 @@ const ProgressHeader = ({ completed, total }: ProgressHeaderProps) => {
   );
 };
 
+interface SubTaskRowUIProps {
+  checkboxElement: React.ReactNode;
+  inputElement: React.ReactNode;
+  deleteButton?: React.ReactNode;
+  gradientWidth?: "narrow" | "wide";
+}
+
+/**
+ * Pure presentational component for rendering a subtask row.
+ *
+ * Provides the layout structure for a subtask including container,
+ * checkbox, input, gradient fade, and delete button positioning.
+ *
+ * @param checkboxElement - Rendered checkbox component
+ * @param inputElement - Rendered input field component
+ * @param deleteButton - Optional rendered delete button
+ * @param gradientWidth - Controls the fade gradient width ('narrow' = w-8, 'wide' = w-14)
+ */
+function SubTaskRowUI({
+  checkboxElement,
+  inputElement,
+  deleteButton,
+  gradientWidth = "narrow",
+}: SubTaskRowUIProps) {
+  const gradientClass = gradientWidth === "narrow" ? "w-4" : "w-14";
+  const deleteButtonRightClass =
+    gradientWidth === "narrow" ? "right-0" : "right-1";
+
+  return (
+    <div className='relative flex items-center gap-2 group/subtask hover:bg-hover pl-2 pr-1'>
+      {checkboxElement}
+      {inputElement}
+      {deleteButton && (
+        <>
+          <span
+            aria-hidden='true'
+            className={cn(
+              "pointer-events-none absolute inset-y-0 right-0 bg-gradient-to-l from-dialog via-dialog/90 to-transparent group-hover/subtask:from-hover group-hover/subtask:via-hover group-hover/subtask:to-transparent z-10",
+              gradientClass
+            )}
+          />
+          <div
+            className={cn(
+              "absolute top-1/2 -translate-y-1/2 z-20 flex items-center justify-end bg-gradient-to-r from-transparent via-dialog group-hover/subtask:via-hover group-hover/subtask:to-hover to-dialog pl-0 group-hover/subtask:pl-2 h-5",
+              deleteButtonRightClass
+            )}
+          >
+            {deleteButton}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 interface ControlledSubTaskRowProps {
   subTask: SubTask;
   onToggle: () => void;
@@ -262,46 +317,52 @@ const ControlledSubTaskRow = memo(function ControlledSubTaskRow({
   onDelete,
   readOnly = false,
 }: ControlledSubTaskRowProps) {
-  return (
-    <div className='relative flex items-center gap-2 group/subtask hover:bg-hover px-1 pl-2 pr-2'>
-      <Checkbox
-        checked={!!subTask.completed}
-        onCheckedChange={() => {
-          if (!readOnly) {
-            onToggle();
-          }
-        }}
-        className='border-border-medium'
-        disabled={readOnly}
-      />
-      <Input
-        value={subTask.text}
-        onChange={(event) => onTextChange?.(event.target.value)}
-        readOnly={readOnly || !onTextChange}
-        className={cn(
-          "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-5 hover:bg-transparent",
-          subTask.completed && "line-through text-text-muted",
-          readOnly && "cursor-default"
-        )}
-      />
-      {onDelete && !readOnly && (
-        <>
-          <span
-            aria-hidden='true'
-            className='pointer-events-none absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-background via-background/80 to-transparent opacity-80 transition-opacity duration-150 group-hover/subtask:opacity-100 z-10'
-          />
-          <Button
-            type='button'
-            variant='icon'
-            size='sm'
-            onClick={onDelete}
-            className='text-icon-light hover:text-icon-primary hover:bg-transparent hover:text-blue-500 opacity-0 group-hover/subtask:opacity-100 transition-opacity duration-150 absolute right-1 top-1/2 -translate-y-1/2 z-20'
-          >
-            <Icon name='XmarkIcon' className='size-3.5' />
-          </Button>
-        </>
+  const checkboxElement = (
+    <Checkbox
+      checked={!!subTask.completed}
+      onCheckedChange={() => {
+        if (!readOnly) {
+          onToggle();
+        }
+      }}
+      className='border-border-medium'
+      disabled={readOnly}
+    />
+  );
+
+  const inputElement = (
+    <Input
+      value={subTask.text}
+      onChange={(event) => onTextChange?.(event.target.value)}
+      readOnly={readOnly || !onTextChange}
+      className={cn(
+        "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-5 hover:bg-transparent",
+        subTask.completed && "line-through text-text-muted",
+        readOnly && "cursor-default"
       )}
-    </div>
+    />
+  );
+
+  const deleteButton =
+    onDelete && !readOnly ? (
+      <Button
+        type='button'
+        variant='icon'
+        size='sm'
+        onClick={onDelete}
+        className='text-icon-light hover:text-icon-primary hover:bg-transparent hover:text-blue-500 opacity-0 group-hover/subtask:opacity-100'
+      >
+        <Icon name='XmarkIcon' className='size-3.5' />
+      </Button>
+    ) : undefined;
+
+  return (
+    <SubTaskRowUI
+      checkboxElement={checkboxElement}
+      inputElement={inputElement}
+      deleteButton={deleteButton}
+      gradientWidth='narrow'
+    />
   );
 });
 
@@ -329,53 +390,62 @@ const SubTaskRow = memo(function SubTaskRow({
     name: completedFieldName,
   }) as boolean | undefined;
 
-  return (
-    <div className='relative flex items-center gap-2 group/subtask hover:bg-hover px-1 pl-2 pr-2'>
-      <Controller
-        name={completedFieldName}
-        control={control}
-        render={({ field }) => (
-          <Checkbox
-            checked={!!field.value}
-            onCheckedChange={(checked) => field.onChange(!!checked)}
-            className='border-border-medium'
-          />
-        )}
-      />
-      <Controller
-        name={textFieldName}
-        control={control}
-        render={({ field }) => {
-          const { value, onChange, ...rest } = field;
-          const stringValue = typeof value === "string" ? value : "";
+  const checkboxElement = (
+    <Controller
+      name={completedFieldName}
+      control={control}
+      render={({ field }) => (
+        <Checkbox
+          checked={!!field.value}
+          onCheckedChange={(checked) => field.onChange(!!checked)}
+          className='border-border-medium'
+        />
+      )}
+    />
+  );
 
-          return (
-            <Input
-              {...rest}
-              value={stringValue}
-              onChange={(e) => onChange(e.target.value)}
-              className={cn(
-                "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-5 hover:bg-transparent",
-                completed && "line-through text-text-muted"
-              )}
-            />
-          );
-        }}
-      />
-      <span
-        aria-hidden='true'
-        className='pointer-events-none absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-background via-background/80 to-transparent opacity-80 transition-opacity duration-150 group-hover/subtask:opacity-100 z-10'
-      />
-      <Button
-        type='button'
-        variant='icon'
-        size='sm'
-        onClick={() => remove(index)}
-        className='text-icon-light hover:text-icon-primary hover:bg-transparent hover:text-blue-500 opacity-0 group-hover/subtask:opacity-100 transition-opacity duration-150 absolute right-1 top-1/2 -translate-y-1/2 z-20'
-      >
-        <Icon name='XmarkIcon' className='size-3.5' />
-      </Button>
-    </div>
+  const inputElement = (
+    <Controller
+      name={textFieldName}
+      control={control}
+      render={({ field }) => {
+        const { value, onChange, ...rest } = field;
+        const stringValue = typeof value === "string" ? value : "";
+
+        return (
+          <Input
+            {...rest}
+            value={stringValue}
+            onChange={(e) => onChange(e.target.value)}
+            className={cn(
+              "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-5 hover:bg-transparent",
+              completed && "line-through text-text-muted"
+            )}
+          />
+        );
+      }}
+    />
+  );
+
+  const deleteButton = (
+    <Button
+      type='button'
+      variant='icon'
+      size='sm'
+      onClick={() => remove(index)}
+      className='text-icon-light hover:text-icon-primary bg-gradient-to-r from-transparent via-hover to-hover h-5 hover:text-blue-500 opacity-0 group-hover/subtask:opacity-100  rounded-none'
+    >
+      <Icon name='XmarkIcon' className='size-3.5' />
+    </Button>
+  );
+
+  return (
+    <SubTaskRowUI
+      checkboxElement={checkboxElement}
+      inputElement={inputElement}
+      deleteButton={deleteButton}
+      gradientWidth='narrow'
+    />
   );
 });
 

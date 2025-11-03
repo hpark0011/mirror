@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import * as Icons from "@/icons";
 
 export type IconName = keyof typeof Icons;
