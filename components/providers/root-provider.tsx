@@ -1,10 +1,9 @@
 "use client";
 
+import { Toaster } from "sonner";
 // all the providers go here
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { useThemeToggle } from "@/hooks/use-theme-toggle";
-
-import { Toaster } from "sonner";
 import { ReactQueryProvider } from "./react-query-provider";
 
 function ThemeWrapper({ children }: { children: React.ReactNode }) {

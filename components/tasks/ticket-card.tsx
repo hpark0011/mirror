@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useProjects } from "@/hooks/use-projects";
 import { cn } from "@/lib/utils";
+import { useStopWatchStore } from "@/store/stop-watch-store";
 import type { SubTask, Ticket } from "../../types/board.types";
 import { SubTasksInlineEditor } from "./sub-tasks/sub-tasks-inline-editor";
 
@@ -143,6 +144,9 @@ export function TicketCard({
     }
   };
 
+  const { startTimer, stopWatchState } = useStopWatchStore();
+  console.log("stopWatchState", stopWatchState);
+
   const ProjectTag = () => {
     if (!project) return null;
     return (
@@ -193,18 +197,21 @@ export function TicketCard({
         )}
       >
         <div className='flex items-center gap-1.5'>
-          <div className='flex-1 min-w-0 flex items-start gap-1'>
-            <CardTitle className='text-[15px] font-medium leading-[1.2] relative'>
+          <div className='flex-1 min-w-0 flex items-start'>
+            <CardTitle className='text-[15px] font-medium leading-[1.2] relative gap-0.5'>
               {ticket.status === "in-progress" && (
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <button
                       type='button'
-                      className='items-center absolute justify-center p-0.5 bg-neutral-800 rounded-full min-w-4.5 h-4.5 w-fit left-[-2px] group-hover hidden group-hover:flex shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6)] dark:bg-neutral-200'
+                      className='items-center relative justify-center p-0.5 dark:bg-neutral-900 rounded-full min-w-4 h-4 w-fit top-[1px] left-[-1px] group-hover hidden group-hover:inline-flex shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6),_0_0_0_2px_rgba(0,0,0,0.1)] dark:shadow-[0_4px_12px_-4px_rgba(0,0,0,0.6),_0_0_0_2px_rgba(255,255,255,0.1)] bg-neutral-50 mr-[4px]'
+                      onClick={() => {
+                        startTimer();
+                      }}
                     >
                       <Icon
                         name='PlayFillIcon'
-                        className='size-3 text-icon-extra-light'
+                        className='size-3 text-icon-extra-light dark:text-neutral-500'
                       />
                     </button>
                   </TooltipTrigger>
