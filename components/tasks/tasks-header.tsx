@@ -53,8 +53,9 @@ import {
 import { PATHS } from "@/config/paths.config";
 // import { useNavigation } from "@/hooks/use-navigation";
 import { useTodayFocus } from "@/hooks/use-today-focus";
+import { formatDuration } from "@/lib/timer-utils";
 import { cn } from "@/lib/utils";
-import { useStopWatchStore } from "@/store/stop-watch-store";
+import { StopWatchState, useStopWatchStore } from "@/store/stop-watch-store";
 import { FocusFormDialog } from "./focus-form-dialog";
 import { ProjectFilter } from "./project-filter";
 
@@ -77,6 +78,12 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
     (state) => state.activeTicketTitle
   );
   const timerState = useStopWatchStore((state) => state.state);
+  const activeElapsedSeconds = useStopWatchStore((state) => {
+    if (!state.activeTicketId) {
+      return 0;
+    }
+    return state.getElapsedTime(state.activeTicketId);
+  });
   const hydrate = useStopWatchStore((state) => state._hydrate);
 
   // Hydrate timer state from localStorage after mount (prevents hydration errors)
@@ -218,7 +225,17 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
           type='button'
           className='bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] hover:bg-base transition-all duration-200 ease-out cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden text-[14px] px-1 pr-2 gap-1 max-w-full'
         >
-          <Icon name='PlayFillIcon' className='size-4 text-icon-light' />
+          <Icon
+            name={
+              timerState === StopWatchState.Paused
+                ? "PlayFillIcon"
+                : "PauseFillIcon"
+            }
+            className='size-4 text-icon-light'
+          />
+          <span className='text-[11px] font-mono text-orange-400 min-w-[52px] text-left px-1'>
+            {formatDuration(activeElapsedSeconds)}
+          </span>
           <span
             className='max-w-[220px] truncate text-left'
             title={activeTicketTitle ?? undefined}
