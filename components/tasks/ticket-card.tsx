@@ -236,7 +236,7 @@ export function TicketCard({
                             return;
                           }
 
-                          startTimer(ticket.id);
+                          startTimer(ticket.id, ticket.title);
                         }}
                       >
                         <Icon

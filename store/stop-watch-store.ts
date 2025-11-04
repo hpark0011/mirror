@@ -9,6 +9,7 @@ export enum StopWatchState {
 
 interface TimerState {
   activeTicketId: string | null;
+  activeTicketTitle: string | null;
   startTime: number | null; // Timestamp when timer started/resumed
   accumulatedTime: number; // Seconds accumulated before pause
   state: StopWatchState;
@@ -20,7 +21,7 @@ export interface StopWatchStore extends TimerState {
   _hasHydrated: boolean;
 
   // Actions
-  startTimer: (ticketId: string) => void;
+  startTimer: (ticketId: string, ticketTitle: string) => void;
   pauseTimer: () => void;
   stopTimer: () => void;
   resetTimer: (ticketId: string) => void;
@@ -50,19 +51,27 @@ function loadPersistedState(): Partial<TimerState> {
     const stored = localStorage.getItem(key);
     if (!stored) return {};
 
-    const parsed = JSON.parse(stored) as TimerState;
+    const parsed = JSON.parse(stored) as Partial<TimerState>;
+    const normalized: TimerState = {
+      activeTicketId: parsed.activeTicketId ?? null,
+      activeTicketTitle: parsed.activeTicketTitle ?? null,
+      startTime: parsed.startTime ?? null,
+      accumulatedTime: parsed.accumulatedTime ?? 0,
+      state: parsed.state ?? StopWatchState.Stopped,
+    };
 
     // Reset running timers on page load (hydration strategy)
-    if (parsed.state === StopWatchState.Running) {
+    if (normalized.state === StopWatchState.Running) {
       return {
-        activeTicketId: parsed.activeTicketId,
+        activeTicketId: normalized.activeTicketId,
+        activeTicketTitle: normalized.activeTicketTitle,
         startTime: null,
-        accumulatedTime: parsed.accumulatedTime,
+        accumulatedTime: normalized.accumulatedTime,
         state: StopWatchState.Stopped,
       };
     }
 
-    return parsed;
+    return normalized;
   } catch (error) {
     console.error("Error loading timer state:", error);
     return {};
@@ -79,6 +88,7 @@ function persistState(state: TimerState): void {
     const key = getStorageKey("TASKS", "TIMER_STATE");
     const toStore: TimerState = {
       activeTicketId: state.activeTicketId,
+      activeTicketTitle: state.activeTicketTitle,
       startTime: state.startTime,
       accumulatedTime: state.accumulatedTime,
       state: state.state,
@@ -92,6 +102,7 @@ function persistState(state: TimerState): void {
 export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
   // Initial state (same on server and client for hydration)
   activeTicketId: null,
+  activeTicketTitle: null,
   startTime: null,
   accumulatedTime: 0,
   state: StopWatchState.Stopped,
@@ -99,7 +110,7 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
   _hasHydrated: false,
 
   // Actions
-  startTimer: (ticketId: string) => {
+  startTimer: (ticketId: string, ticketTitle: string) => {
     const state = get();
 
     // Single timer guard: Stop any running timer first
@@ -118,6 +129,7 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
 
     set({
       activeTicketId: ticketId,
+      activeTicketTitle: ticketTitle,
       startTime: now,
       accumulatedTime: state.activeTicketId === ticketId ? state.accumulatedTime : 0,
       state: StopWatchState.Running,
@@ -156,6 +168,7 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
 
     set({
       activeTicketId: null,
+      activeTicketTitle: null,
       startTime: null,
       accumulatedTime: 0,
       state: StopWatchState.Stopped,
@@ -220,6 +233,7 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
     const state = get();
     persistState({
       activeTicketId: state.activeTicketId,
+      activeTicketTitle: state.activeTicketTitle,
       startTime: state.startTime,
       accumulatedTime: state.accumulatedTime,
       state: state.state,
