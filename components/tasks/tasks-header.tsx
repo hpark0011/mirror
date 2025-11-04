@@ -233,7 +233,7 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
             }
             className='size-3.5 text-icon-light'
           />
-          <span className='text-[12px] font-mono text-orange-400 text-left pr-0.5 w-fit'>
+          <span className='text-[11px] font-mono text-orange-400 text-left pr-0.5 w-fit'>
             {formatDuration(activeElapsedSeconds)}
           </span>
           <div className='w-px self-stretch mx-1 bg-border-light' />
