@@ -219,7 +219,16 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
         updatedAt: new Date(),
       };
 
-      overItems.push(updatedActiveItem);
+      // Calculate insertion position based on what we're hovering over
+      const overIndex = board[over.id as string]
+        ? overItems.length // Dropped on empty column space → append
+        : overItems.findIndex((t) => t.id === over.id); // Dropped on ticket → insert at position
+
+      if (overIndex >= 0) {
+        overItems.splice(overIndex, 0, updatedActiveItem);
+      } else {
+        overItems.push(updatedActiveItem); // Fallback if index not found
+      }
 
       return {
         ...board,
