@@ -40,8 +40,6 @@ export function recordDuration(
   duration: number,
   setBoard: (updater: (board: BoardState) => BoardState) => void
 ): void {
-  console.log("[DURATION] Recording", { ticketId, duration });
-
   setBoard((currentBoard) => {
     const updatedBoard = { ...currentBoard };
 
@@ -49,21 +47,10 @@ export function recordDuration(
     for (const [columnId, tickets] of Object.entries(updatedBoard)) {
       const ticketIndex = tickets.findIndex((t) => t.id === ticketId);
       if (ticketIndex !== -1) {
-        const currentDuration = tickets[ticketIndex].duration || 0;
-        const newDuration = currentDuration + duration;
-
-        console.log("[DURATION] Found ticket, updating", {
-          ticketId,
-          columnId,
-          currentDuration,
-          adding: duration,
-          newDuration,
-        });
-
         const updatedTickets = [...tickets];
         updatedTickets[ticketIndex] = {
           ...updatedTickets[ticketIndex],
-          duration: newDuration,
+          duration: (updatedTickets[ticketIndex].duration || 0) + duration,
           updatedAt: new Date(),
         };
         updatedBoard[columnId] = updatedTickets;
@@ -72,7 +59,6 @@ export function recordDuration(
     }
 
     // Ticket not found, return unchanged board
-    console.warn("[DURATION] Ticket not found in board", { ticketId });
     return currentBoard;
   });
 }
@@ -147,30 +133,12 @@ export function handleTimerOnStatusChange(
 
   // Case 1: Moving to "complete" - record duration
   if (newStatus === "complete") {
-    console.log("[TIMER] Moving to complete", {
-      ticketId,
-      oldStatus,
-      isTimerActive,
-      storeState: {
-        activeTicketId: stopWatchStore.activeTicketId,
-        accumulatedTime: stopWatchStore.accumulatedTime,
-        state: stopWatchStore.state,
-      },
-    });
-
     if (isTimerActive) {
       const elapsedTime = stopWatchStore.getElapsedTime(ticketId);
-      console.log("[TIMER] Elapsed time:", elapsedTime);
-
       if (elapsedTime > 0) {
-        console.log("[TIMER] Calling recordDuration");
         recordDuration(ticketId, elapsedTime, setBoard);
-      } else {
-        console.warn("[TIMER] Elapsed time is 0, not recording");
       }
       stopWatchStore.stopTimer();
-    } else {
-      console.warn("[TIMER] Timer not active, cannot record duration");
     }
   }
 

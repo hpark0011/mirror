@@ -164,13 +164,6 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
   },
 
   stopTimer: () => {
-    const state = get();
-    console.log("[STORE] stopTimer called", {
-      activeTicketId: state.activeTicketId,
-      accumulatedTime: state.accumulatedTime,
-      callStack: new Error().stack,
-    });
-
     get()._clearInterval();
 
     set({
@@ -198,30 +191,17 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
   // Selectors
   getElapsedTime: (ticketId: string) => {
     const state = get();
-    const isActive = state.activeTicketId === ticketId;
+    if (state.activeTicketId !== ticketId) return 0;
 
-    let result = 0;
-    if (!isActive) {
-      result = 0;
-    } else if (state.state === StopWatchState.Running && state.startTime) {
+    if (state.state === StopWatchState.Running && state.startTime) {
       // Calculate elapsed time using timestamp diff (accurate even if throttled)
       const now = Date.now();
       const elapsedSinceStart = Math.floor((now - state.startTime) / 1000);
-      result = state.accumulatedTime + elapsedSinceStart;
-    } else {
-      // Paused or stopped
-      result = state.accumulatedTime;
+      return state.accumulatedTime + elapsedSinceStart;
     }
 
-    console.log("[STORE] getElapsedTime", {
-      ticketId,
-      isActive,
-      result,
-      storeState: state.state,
-      accumulatedTime: state.accumulatedTime
-    });
-
-    return result;
+    // Paused or stopped
+    return state.accumulatedTime;
   },
 
   isTimerActive: (ticketId: string) => {

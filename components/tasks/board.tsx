@@ -163,10 +163,8 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
     setActiveId(ticketId);
     const sourceColumn = findColumn(ticketId);
     if (!sourceColumn) {
-      console.warn("[DRAG] Could not find source column for ticket:", ticketId);
       return;
     }
-    console.log("[DRAG] Start", { ticketId, sourceColumn });
     setDragSourceColumn(sourceColumn as ColumnId);
   };
 
@@ -216,12 +214,6 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
         status: overColumn as ColumnId,
         updatedAt: new Date(),
       };
-
-      console.log("[DRAG] Over - status changed", {
-        ticketId: activeItem.id,
-        from: activeItem.status,
-        to: overColumn,
-      });
 
       overItems.push(updatedActiveItem);
 
@@ -278,13 +270,6 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
       const ticketId = active.id as string;
       const oldStatus = dragSourceColumn as ColumnId;
       const newStatus = overColumn as ColumnId;
-
-      console.log("[DRAG] End", {
-        ticketId,
-        dragSourceColumn,
-        overColumn,
-        willCallTimerHandler: true,
-      });
 
       // Apply timer rules after drag completes (uses functional setBoard to avoid race conditions)
       handleTimerOnStatusChange(
