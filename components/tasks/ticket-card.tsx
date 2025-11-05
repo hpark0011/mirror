@@ -194,6 +194,16 @@ export function TicketCard({
     event.stopPropagation();
   };
 
+  const durationInSeconds =
+    ticket.status === "complete" &&
+    typeof ticket.duration === "number" &&
+    ticket.duration > 0
+      ? ticket.duration
+      : null;
+
+  const durationLabel =
+    durationInSeconds !== null ? formatDuration(durationInSeconds) : null;
+
   const cardContent = (
     <>
       <CardHeader
@@ -204,7 +214,12 @@ export function TicketCard({
       >
         <div className='flex items-center gap-1.5'>
           <div className='flex-1 min-w-0 flex items-start'>
-            <CardTitle className='text-[14px] font-medium leading-[1.2] relative gap-[1px] flex'>
+            <CardTitle
+              className={cn(
+                "text-[14px] font-medium leading-[1.2] relative gap-[1px] flex",
+                durationLabel && "block"
+              )}
+            >
               {ticket.status === "in-progress" && (
                 <>
                   {/* Play/Pause Button */}
@@ -244,17 +259,13 @@ export function TicketCard({
                   </Tooltip>
                 </>
               )}
-              {ticket.status === "complete" &&
-                ticket.duration &&
-                ticket.duration > 0 && (
-                  <span className='inline-flex items-center gap-1 text-orange-400 text-[11px] mr-1'>
-                    <span className='font-mono'>
-                      {formatDuration(ticket.duration)}
-                    </span>
-                  </span>
-                )}
+              {durationLabel && (
+                <span className='inline-flex items-center text-orange-400 text-[11px] mr-[5px] relative bottom-[1px] '>
+                  <span className='font-mono'>{durationLabel}</span>
+                </span>
+              )}
 
-              {ticket.title}
+              <span>{ticket.title}</span>
             </CardTitle>
           </div>
           {!isDragging && (
