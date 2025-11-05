@@ -220,14 +220,16 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
       };
 
       // Calculate insertion position based on what we're hovering over
-      const overIndex = board[over.id as string]
-        ? overItems.length // Dropped on empty column space → append
-        : overItems.findIndex((t) => t.id === over.id); // Dropped on ticket → insert at position
+      const isOverColumn = !!board[over.id as string];
+      const overIndex = isOverColumn
+        ? overItems.length // Hovering over empty column space → append to end
+        : overItems.findIndex((t) => t.id === over.id); // Hovering over a ticket → insert at that position
 
       if (overIndex >= 0) {
         overItems.splice(overIndex, 0, updatedActiveItem);
       } else {
-        overItems.push(updatedActiveItem); // Fallback if index not found
+        // Fallback: append to end if index not found (shouldn't happen in normal use)
+        overItems.push(updatedActiveItem);
       }
 
       return {
@@ -315,6 +317,12 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
   const handleDeleteTicket = (ticketId: string) => {
     const column = findColumn(ticketId);
     if (!column) return;
+
+    // Stop timer if this ticket has an active timer
+    const stopWatchStore = useStopWatchStore.getState();
+    if (stopWatchStore.isTimerActive(ticketId)) {
+      stopWatchStore.stopTimer();
+    }
 
     setBoard((board) => ({
       ...board,
@@ -444,17 +452,33 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
   };
 
   const handleClearBoard = useCallback(() => {
+    // Stop any active timer before clearing board
+    const stopWatchStore = useStopWatchStore.getState();
+    if (stopWatchStore.activeTicketId) {
+      stopWatchStore.stopTimer();
+    }
+
     setBoard(INITIAL_BOARD_STATE);
   }, [setBoard]);
 
   const handleClearColumn = useCallback(
     (columnId: ColumnId) => {
+      // Stop timer if any ticket in this column has an active timer
+      const stopWatchStore = useStopWatchStore.getState();
+      const ticketsInColumn = board[columnId] || [];
+      for (const ticket of ticketsInColumn) {
+        if (stopWatchStore.isTimerActive(ticket.id)) {
+          stopWatchStore.stopTimer();
+          break; // Only one timer can be active at a time
+        }
+      }
+
       setBoard((board) => ({
         ...board,
         [columnId]: [],
       }));
     },
-    [setBoard]
+    [setBoard, board]
   );
 
   const handleExportBoard = useCallback(() => {

@@ -40,7 +40,7 @@ export function RingPercentage({
   size = 12,
   strokeWidth = 1,
   trackColor = "var(--color-neutral-200)", // Tailwind gray-200
-  progressColor = "var(--color-neutral-400) ", // Deep navy-like
+  progressColor = "var(--color-neutral-400)", // Deep navy-like
   label,
   animate = true,
   className,

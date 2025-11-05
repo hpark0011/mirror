@@ -19,6 +19,7 @@ export interface StopWatchStore extends TimerState {
   // Internal interval ID (not persisted)
   intervalId: ReturnType<typeof setInterval> | null;
   _hasHydrated: boolean;
+  _renderTick: number; // Counter to force re-renders reliably
 
   // Actions
   startTimer: (ticketId: string, ticketTitle: string) => void;
@@ -108,6 +109,7 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
   state: StopWatchState.Stopped,
   intervalId: null,
   _hasHydrated: false,
+  _renderTick: 0,
 
   // Actions
   startTimer: (ticketId: string, ticketTitle: string) => {
@@ -217,9 +219,9 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
 
   // Internal methods
   _tick: () => {
-    // Force re-render for UI update
+    // Force re-render for UI update by incrementing counter
     // The actual elapsed time is calculated in getElapsedTime
-    set((state) => ({ ...state }));
+    set((state) => ({ _renderTick: state._renderTick + 1 }));
   },
 
   _clearInterval: () => {
