@@ -420,6 +420,15 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
         }
       });
 
+      // Update timer title if this ticket has active timer and title changed
+      const stopWatchStore = useStopWatchStore.getState();
+      if (
+        stopWatchStore.activeTicketId === editingTicket.id &&
+        data.title !== editingTicket.title
+      ) {
+        stopWatchStore.updateActiveTicketTitle(editingTicket.id, data.title);
+      }
+
       // Handle timer logic if status changed (uses functional setBoard to avoid race conditions)
       if (oldStatus !== newStatus) {
         handleTimerOnStatusChange(
