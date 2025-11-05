@@ -2,8 +2,13 @@
 
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import type React from "react";
-import { useEffect, useRef, useState, useTransition } from "react";
+import {
+  type ChangeEvent,
+  useEffect,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import { signOutAction } from "@/app/_actions/auth-actions";
 import { customToast } from "@/components/custom-toast";
 import {
@@ -27,8 +32,6 @@ import {
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbList,
-  // BreadcrumbPage,
-  // BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { Button } from "@/components/ui/button";
 import {
@@ -60,7 +63,7 @@ import { FocusFormDialog } from "./focus-form-dialog";
 import { ProjectFilter } from "./project-filter";
 
 type HeaderProps = {
-  onImport: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onImport: (event: ChangeEvent<HTMLInputElement>) => void;
   onExport: () => void;
   onClear: () => void;
 };
@@ -286,7 +289,7 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
         ref={fileInputRef}
         type='file'
         accept='.json'
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
           onImport(e);
           if (fileInputRef.current) {
             fileInputRef.current.value = "";

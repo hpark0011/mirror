@@ -26,6 +26,7 @@ export interface StopWatchStore extends TimerState {
   pauseTimer: () => void;
   stopTimer: () => void;
   resetTimer: (ticketId: string) => void;
+  updateActiveTicketTitle: (ticketId: string, newTitle: string) => void;
 
   // Selectors
   getElapsedTime: (ticketId: string) => number;
@@ -187,6 +188,16 @@ export const useStopWatchStore = create<StopWatchStore>((set, get) => ({
     // If this is the active timer, stop it
     if (state.activeTicketId === ticketId) {
       get().stopTimer();
+    }
+  },
+
+  updateActiveTicketTitle: (ticketId: string, newTitle: string) => {
+    const state = get();
+
+    // Only update if this is the currently active timer
+    if (state.activeTicketId === ticketId) {
+      set({ activeTicketTitle: newTitle });
+      get()._persistState();
     }
   },
 
