@@ -147,24 +147,11 @@ export function TicketCard({
 
   const startTimer = useStopWatchStore((state) => state.startTimer);
   const pauseTimer = useStopWatchStore((state) => state.pauseTimer);
-  const stopTimer = useStopWatchStore((state) => state.stopTimer);
 
   // Check if this specific ticket has an active timer (reactive selectors)
-  const isThisTicketActive = useStopWatchStore((state) =>
-    state.isTimerActive(ticket.id)
-  );
   const timerState = useStopWatchStore((state) =>
     state.getTimerState(ticket.id)
   );
-  const elapsedTime = useStopWatchStore((state) =>
-    state.getElapsedTime(ticket.id)
-  );
-
-  useEffect(() => {
-    if (ticket.status !== "in-progress" && isThisTicketActive) {
-      stopTimer();
-    }
-  }, [ticket.status, isThisTicketActive, stopTimer]);
 
   const ProjectTag = () => {
     if (!project) return null;
@@ -247,15 +234,6 @@ export function TicketCard({
                           }
                           className='size-3 min-w-3 text-icon-extra-light dark:text-neutral-500'
                         />
-
-                        {/* Timer Display */}
-                        {/* {(isThisTicketActive || ticket.duration) && (
-                          <span className='text-[11px] text-orange-400 font-mono mr-1'>
-                            {isThisTicketActive
-                              ? formatDuration(elapsedTime)
-                              : formatDuration(ticket.duration || 0)}
-                          </span>
-                        )} */}
                       </button>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -266,6 +244,17 @@ export function TicketCard({
                   </Tooltip>
                 </>
               )}
+              {ticket.status === "complete" &&
+                ticket.duration &&
+                ticket.duration > 0 && (
+                  <span className='inline-flex items-center gap-1 text-muted-foreground text-xs mr-1.5'>
+                    <Icon name='ClockFillIcon' className='size-3 min-w-3' />
+                    <span className='font-mono'>
+                      {formatDuration(ticket.duration)}
+                    </span>
+                  </span>
+                )}
+
               {ticket.title}
             </CardTitle>
           </div>
