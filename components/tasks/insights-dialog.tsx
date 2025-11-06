@@ -9,7 +9,6 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -150,12 +149,6 @@ export function InsightsDialog({
                 {/* Total Duration Card */}
                 <div className='rounded-lg border bg-accent/50 p-4'>
                   <div className='flex items-center gap-3'>
-                    <div className='rounded-full bg-primary/10 p-2'>
-                      <Icon
-                        name='ClockFillIcon'
-                        className='size-5 text-primary'
-                      />
-                    </div>
                     <div>
                       <p className='text-xs text-muted-foreground'>
                         Total Focus Time
@@ -169,7 +162,7 @@ export function InsightsDialog({
 
                 {/* Project Breakdown */}
                 {projectBreakdown.length > 0 && (
-                  <div className='space-y-2'>
+                  <div className='space-y-2 mb-8'>
                     <h4 className='text-xs font-medium text-muted-foreground'>
                       By Project
                     </h4>
@@ -177,29 +170,31 @@ export function InsightsDialog({
                       {projectBreakdown.map((project) => (
                         <div
                           key={project.projectId || "unassigned"}
-                          className='flex items-center justify-between rounded-md border p-2 text-sm'
+                          className='flex items-center justify-between px-0.5 text-sm'
                         >
-                          <div className='flex items-center gap-2'>
-                            <div
-                              className={cn(
-                                "size-2 rounded-full",
-                                `bg-${project.projectColor}-500`
-                              )}
-                              style={{
-                                backgroundColor: getProjectColor(
-                                  project.projectColor
-                                ),
-                              }}
-                            />
-                            <span className='font-medium'>
-                              {project.projectName}
-                            </span>
-                            <span className='text-xs text-muted-foreground'>
+                          <div className='flex items-center gap-1.5'>
+                            <div className='flex items-center gap-1.5'>
+                              <div
+                                className={cn(
+                                  "size-1.5 rounded-full",
+                                  `bg-${project.projectColor}-500`
+                                )}
+                                style={{
+                                  backgroundColor: getProjectColor(
+                                    project.projectColor
+                                  ),
+                                }}
+                              />
+                              <span className='font-medium text-xs text-muted-foreground'>
+                                {project.projectName}
+                              </span>
+                            </div>
+                            <span className='text-xs'>
                               ({project.taskCount}{" "}
                               {project.taskCount === 1 ? "task" : "tasks"})
                             </span>
                           </div>
-                          <span className='font-mono text-xs'>
+                          <span className='font-mono text-xs text-orange-400'>
                             {formatDuration(project.duration)}
                           </span>
                         </div>
@@ -229,7 +224,7 @@ export function InsightsDialog({
                       );
 
                       return (
-                        <div key={task.id} className='px-0 text-sm space-y-2'>
+                        <div key={task.id} className='px-0.5 text-sm space-y-2'>
                           <div className='flex items-center justify-between w-full'>
                             <div className='flex-1 space-y-1'>
                               <div className='flex items-center gap-2'>
