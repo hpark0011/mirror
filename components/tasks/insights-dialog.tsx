@@ -6,6 +6,7 @@ import { Calendar } from "@/components/ui/calendar";
 import {
   Dialog,
   DialogBody,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -74,12 +75,21 @@ export function InsightsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className='sm:max-w-2xl'>
-        <DialogHeader>
+      <DialogContent className='sm:max-w-2xl pb-4'>
+        <DialogHeader className='relative space-y-1 pr-12'>
           <DialogTitle>Insights</DialogTitle>
-          <DialogDescription>
+          <DialogDescription className='sr-only'>
             View your focus time and completed tasks
           </DialogDescription>
+          <DialogClose asChild>
+            <Button
+              variant='icon'
+              size='sm'
+              className='absolute right-1 top-1 h-7 w-7 p-0'
+            >
+              <Icon name='XmarkIcon' className='size-4' />
+            </Button>
+          </DialogClose>
         </DialogHeader>
         <DialogBody className='space-y-6'>
           {/* Stats Section */}
@@ -219,10 +229,7 @@ export function InsightsDialog({
                       );
 
                       return (
-                        <div
-                          key={task.id}
-                          className='rounded-sm border px-3 text-sm space-y-2'
-                        >
+                        <div key={task.id} className='px-0 text-sm space-y-2'>
                           <div className='flex items-center justify-between w-full'>
                             <div className='flex-1 space-y-1'>
                               <div className='flex items-center gap-2'>
@@ -274,10 +281,6 @@ export function InsightsDialog({
                                         key={`${start.getTime()}-${end.getTime()}`}
                                         className='flex items-center gap-2 text-xs text-muted-foreground'
                                       >
-                                        <Icon
-                                          name='ClockFillIcon'
-                                          className='size-3'
-                                        />
                                         <span>
                                           {startLabel} - {endLabel}
                                         </span>
@@ -295,7 +298,7 @@ export function InsightsDialog({
                                 </div>
                               )}
                             </div>
-                            <span className='font-mono text-xs text-orange-400 ml-2 shrink-0'>
+                            <span className='font-mono text-xs text-orange-400 ml-3 shrink-0'>
                               {formatDuration(dailyDuration)}
                             </span>
                           </div>
@@ -309,15 +312,6 @@ export function InsightsDialog({
             )}
           </div>
         </DialogBody>
-        <DialogFooter>
-          <Button
-            variant='outline'
-            onClick={() => onOpenChange(false)}
-            size='sm'
-          >
-            Close
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
