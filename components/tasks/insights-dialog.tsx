@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import {
@@ -13,16 +13,21 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Icon } from "@/components/ui/icon";
-import { formatDuration } from "@/lib/timer-utils";
 import {
-  getTasksCompletedOnDate,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
   calculateTotalDuration,
-  groupByProject,
-  getTimeEntriesForDate,
+  getTasksCompletedOnDate,
   getTicketDurationForDate,
+  getTimeEntriesForDate,
+  groupByProject,
 } from "@/lib/insights-utils";
-import type { Ticket, Project } from "@/types/board.types";
+import { formatDuration } from "@/lib/timer-utils";
 import { cn } from "@/lib/utils";
+import type { Project, Ticket } from "@/types/board.types";
 
 interface InsightsDialogProps {
   open: boolean;
@@ -38,6 +43,7 @@ export function InsightsDialog({
   projects,
 }: InsightsDialogProps) {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
 
   // Filter tasks completed on selected date
   const completedTasks = useMemo(
@@ -64,70 +70,87 @@ export function InsightsDialog({
     year: "numeric",
   });
 
-  const isToday =
-    selectedDate.toDateString() === new Date().toDateString();
+  const isToday = selectedDate.toDateString() === new Date().toDateString();
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl">
+      <DialogContent className='sm:max-w-2xl'>
         <DialogHeader>
           <DialogTitle>Insights</DialogTitle>
           <DialogDescription>
             View your focus time and completed tasks
           </DialogDescription>
         </DialogHeader>
-        <DialogBody className="space-y-6">
-          {/* Date Picker Section */}
-          <div className="flex justify-center">
-            <Calendar
-              mode="single"
-              selected={selectedDate}
-              onSelect={(date) => date && setSelectedDate(date)}
-              disabled={(date) => date > new Date()}
-              className="rounded-md border"
-            />
-          </div>
-
+        <DialogBody className='space-y-6'>
           {/* Stats Section */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-medium text-muted-foreground">
+          <div className='space-y-4'>
+            <div className='flex items-center justify-between gap-2'>
+              <h3 className='text-sm font-medium text-muted-foreground'>
                 {isToday ? "Today" : formattedDate}
               </h3>
-              {completedTasks.length > 0 && (
-                <span className="text-xs text-muted-foreground">
-                  {completedTasks.length}{" "}
-                  {completedTasks.length === 1 ? "task" : "tasks"} completed
-                </span>
-              )}
+              <div className='flex items-center gap-2'>
+                {completedTasks.length > 0 && (
+                  <span className='text-xs text-muted-foreground'>
+                    {completedTasks.length}{" "}
+                    {completedTasks.length === 1 ? "task" : "tasks"} completed
+                  </span>
+                )}
+                <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant='outline'
+                      size='sm'
+                      className='h-8 gap-2 rounded-md border-border-highlight px-2.5'
+                    >
+                      <Icon name='CalendarFillIcon' className='size-4' />
+                      <span className='text-xs font-medium'>
+                        {isToday ? "Today" : formattedDate}
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent align='end' className='w-auto p-0'>
+                    <Calendar
+                      mode='single'
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        setSelectedDate(date);
+                        setDatePickerOpen(false);
+                      }}
+                      disabled={(date) => date > new Date()}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
             {completedTasks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className='flex flex-col items-center justify-center py-8 text-center'>
                 <Icon
-                  name="CalendarFillIcon"
-                  className="size-12 text-muted-foreground/50 mb-3"
+                  name='CalendarFillIcon'
+                  className='size-12 text-muted-foreground/50 mb-3'
                 />
-                <p className="text-sm text-muted-foreground">
+                <p className='text-sm text-muted-foreground'>
                   No tasks completed on this day
                 </p>
               </div>
             ) : (
               <>
                 {/* Total Duration Card */}
-                <div className="rounded-lg border bg-accent/50 p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="rounded-full bg-primary/10 p-2">
+                <div className='rounded-lg border bg-accent/50 p-4'>
+                  <div className='flex items-center gap-3'>
+                    <div className='rounded-full bg-primary/10 p-2'>
                       <Icon
-                        name="ClockFillIcon"
-                        className="size-5 text-primary"
+                        name='ClockFillIcon'
+                        className='size-5 text-primary'
                       />
                     </div>
                     <div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className='text-xs text-muted-foreground'>
                         Total Focus Time
                       </p>
-                      <p className="text-2xl font-semibold">
+                      <p className='text-2xl font-semibold'>
                         {formatDuration(totalDuration)}
                       </p>
                     </div>
@@ -136,17 +159,17 @@ export function InsightsDialog({
 
                 {/* Project Breakdown */}
                 {projectBreakdown.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="text-xs font-medium text-muted-foreground">
+                  <div className='space-y-2'>
+                    <h4 className='text-xs font-medium text-muted-foreground'>
                       By Project
                     </h4>
-                    <div className="space-y-2">
+                    <div className='space-y-2'>
                       {projectBreakdown.map((project) => (
                         <div
                           key={project.projectId || "unassigned"}
-                          className="flex items-center justify-between rounded-md border p-2 text-sm"
+                          className='flex items-center justify-between rounded-md border p-2 text-sm'
                         >
-                          <div className="flex items-center gap-2">
+                          <div className='flex items-center gap-2'>
                             <div
                               className={cn(
                                 "size-2 rounded-full",
@@ -158,15 +181,15 @@ export function InsightsDialog({
                                 ),
                               }}
                             />
-                            <span className="font-medium">
+                            <span className='font-medium'>
                               {project.projectName}
                             </span>
-                            <span className="text-xs text-muted-foreground">
+                            <span className='text-xs text-muted-foreground'>
                               ({project.taskCount}{" "}
                               {project.taskCount === 1 ? "task" : "tasks"})
                             </span>
                           </div>
-                          <span className="font-mono text-xs">
+                          <span className='font-mono text-xs'>
                             {formatDuration(project.duration)}
                           </span>
                         </div>
@@ -176,11 +199,11 @@ export function InsightsDialog({
                 )}
 
                 {/* Task List */}
-                <div className="space-y-2">
-                  <h4 className="text-xs font-medium text-muted-foreground">
+                <div className='space-y-2'>
+                  <h4 className='text-xs font-medium text-muted-foreground'>
                     Completed Tasks
                   </h4>
-                  <div className="max-h-64 space-y-2 overflow-y-auto">
+                  <div className='max-h-64 space-y-2 overflow-y-auto'>
                     {completedTasks.map((task) => {
                       const project = task.projectId
                         ? projects.find((p) => p.id === task.projectId)
@@ -195,78 +218,86 @@ export function InsightsDialog({
                         selectedDate
                       );
 
-                      // Format time entries for display
-                      const timeRanges = timeEntries.map((entry) => {
-                        const start = new Date(entry.start);
-                        const end = new Date(entry.end);
-                        return {
-                          startTime: start.toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }),
-                          endTime: end.toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                            hour12: true,
-                          }),
-                        };
-                      });
-
                       return (
                         <div
                           key={task.id}
-                          className="rounded-md border p-3 text-sm space-y-2"
+                          className='rounded-md border p-3 text-sm space-y-2'
                         >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1 space-y-1">
-                              <div className="flex items-center gap-2">
+                          <div className='flex items-start justify-between'>
+                            <div className='flex-1 space-y-1'>
+                              <div className='flex items-center gap-2'>
                                 <Icon
-                                  name="CheckCircleIcon"
-                                  className="size-4 text-green-500 shrink-0"
+                                  name='CheckCircleIcon'
+                                  className='size-4 text-green-500 shrink-0'
                                 />
-                                <span className="font-medium line-clamp-1">
+                                <span className='font-medium line-clamp-1'>
                                   {task.title}
                                 </span>
                               </div>
                               {project && (
-                                <div className="flex items-center gap-1.5 ml-6">
+                                <div className='flex items-center gap-1.5 ml-6'>
                                   <div
-                                    className="size-1.5 rounded-full"
+                                    className='size-1.5 rounded-full'
                                     style={{
                                       backgroundColor: getProjectColor(
                                         project.color
                                       ),
                                     }}
                                   />
-                                  <span className="text-xs text-muted-foreground">
+                                  <span className='text-xs text-muted-foreground'>
                                     {project.name}
                                   </span>
                                 </div>
                               )}
                             </div>
-                            <span className="font-mono text-xs text-muted-foreground ml-2 shrink-0">
+                            <span className='font-mono text-xs text-muted-foreground ml-2 shrink-0'>
                               {formatDuration(dailyDuration)}
                             </span>
                           </div>
 
                           {/* Time entries for this date */}
-                          {timeRanges.length > 0 && (
-                            <div className="ml-6 space-y-1">
-                              {timeRanges.map((range, idx) => (
-                                <div
-                                  key={idx}
-                                  className="flex items-center gap-2 text-xs text-muted-foreground"
-                                >
-                                  <Icon
-                                    name="ClockFillIcon"
-                                    className="size-3"
-                                  />
-                                  <span>
-                                    {range.startTime} - {range.endTime}
-                                  </span>
-                                </div>
-                              ))}
+                          {timeEntries.length > 0 ? (
+                            <div className='ml-6 space-y-1'>
+                              {timeEntries.map((entry) => {
+                                const start = new Date(entry.start);
+                                const end = new Date(entry.end);
+                                const startLabel = start.toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  }
+                                );
+                                const endLabel = end.toLocaleTimeString(
+                                  "en-US",
+                                  {
+                                    hour: "numeric",
+                                    minute: "2-digit",
+                                    hour12: true,
+                                  }
+                                );
+
+                                return (
+                                  <div
+                                    key={`${start.getTime()}-${end.getTime()}`}
+                                    className='flex items-center gap-2 text-xs text-muted-foreground'
+                                  >
+                                    <Icon
+                                      name='ClockFillIcon'
+                                      className='size-3'
+                                    />
+                                    <span>
+                                      {startLabel} - {endLabel}
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <div className='ml-6 flex items-center gap-2 text-xs text-muted-foreground/60 italic'>
+                              <Icon name='InfoCircleIcon' className='size-3' />
+                              <span>No timer data recorded</span>
                             </div>
                           )}
                         </div>
@@ -280,9 +311,9 @@ export function InsightsDialog({
         </DialogBody>
         <DialogFooter>
           <Button
-            variant="outline"
+            variant='outline'
             onClick={() => onOpenChange(false)}
-            size="sm"
+            size='sm'
           >
             Close
           </Button>
