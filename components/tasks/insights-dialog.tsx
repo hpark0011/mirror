@@ -221,85 +221,85 @@ export function InsightsDialog({
                       return (
                         <div
                           key={task.id}
-                          className='rounded-md border p-3 text-sm space-y-2'
+                          className='rounded-sm border px-3 text-sm space-y-2'
                         >
-                          <div className='flex items-start justify-between'>
+                          <div className='flex items-center justify-between w-full'>
                             <div className='flex-1 space-y-1'>
                               <div className='flex items-center gap-2'>
-                                <Icon
-                                  name='CheckCircleIcon'
-                                  className='size-4 text-green-500 shrink-0'
-                                />
+                                {project && (
+                                  <div className='flex items-center gap-1.5'>
+                                    <div
+                                      className='size-1.5 rounded-full'
+                                      style={{
+                                        backgroundColor: getProjectColor(
+                                          project.color
+                                        ),
+                                      }}
+                                    />
+                                    <span className='text-xs text-muted-foreground'>
+                                      {project.name}
+                                    </span>
+                                  </div>
+                                )}
                                 <span className='font-medium line-clamp-1'>
                                   {task.title}
                                 </span>
                               </div>
-                              {project && (
-                                <div className='flex items-center gap-1.5 ml-6'>
-                                  <div
-                                    className='size-1.5 rounded-full'
-                                    style={{
-                                      backgroundColor: getProjectColor(
-                                        project.color
-                                      ),
-                                    }}
+                            </div>
+                            <div>
+                              {timeEntries.length > 0 ? (
+                                <div className='space-y-1'>
+                                  {timeEntries.map((entry) => {
+                                    const start = new Date(entry.start);
+                                    const end = new Date(entry.end);
+                                    const startLabel = start.toLocaleTimeString(
+                                      "en-US",
+                                      {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                      }
+                                    );
+                                    const endLabel = end.toLocaleTimeString(
+                                      "en-US",
+                                      {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                        hour12: true,
+                                      }
+                                    );
+
+                                    return (
+                                      <div
+                                        key={`${start.getTime()}-${end.getTime()}`}
+                                        className='flex items-center gap-2 text-xs text-muted-foreground'
+                                      >
+                                        <Icon
+                                          name='ClockFillIcon'
+                                          className='size-3'
+                                        />
+                                        <span>
+                                          {startLabel} - {endLabel}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className='ml-6 flex items-center gap-2 text-xs text-muted-foreground/60 italic'>
+                                  <Icon
+                                    name='InfoCircleIcon'
+                                    className='size-3'
                                   />
-                                  <span className='text-xs text-muted-foreground'>
-                                    {project.name}
-                                  </span>
+                                  <span>No timer data recorded</span>
                                 </div>
                               )}
                             </div>
-                            <span className='font-mono text-xs text-muted-foreground ml-2 shrink-0'>
+                            <span className='font-mono text-xs text-orange-400 ml-2 shrink-0'>
                               {formatDuration(dailyDuration)}
                             </span>
                           </div>
-
                           {/* Time entries for this date */}
-                          {timeEntries.length > 0 ? (
-                            <div className='ml-6 space-y-1'>
-                              {timeEntries.map((entry) => {
-                                const start = new Date(entry.start);
-                                const end = new Date(entry.end);
-                                const startLabel = start.toLocaleTimeString(
-                                  "en-US",
-                                  {
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  }
-                                );
-                                const endLabel = end.toLocaleTimeString(
-                                  "en-US",
-                                  {
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                    hour12: true,
-                                  }
-                                );
-
-                                return (
-                                  <div
-                                    key={`${start.getTime()}-${end.getTime()}`}
-                                    className='flex items-center gap-2 text-xs text-muted-foreground'
-                                  >
-                                    <Icon
-                                      name='ClockFillIcon'
-                                      className='size-3'
-                                    />
-                                    <span>
-                                      {startLabel} - {endLabel}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          ) : (
-                            <div className='ml-6 flex items-center gap-2 text-xs text-muted-foreground/60 italic'>
-                              <Icon name='InfoCircleIcon' className='size-3' />
-                              <span>No timer data recorded</span>
-                            </div>
-                          )}
                         </div>
                       );
                     })}
