@@ -1,5 +1,6 @@
 import type { BoardState, ColumnId } from "@/types/board.types";
 import type { StopWatchStore } from "@/store/stop-watch-store";
+import type { TimeEntry } from "@/types/board.types";
 
 /**
  * Formats duration in seconds to a readable time string
@@ -40,6 +41,31 @@ export function recordDuration(
   duration: number,
   setBoard: (updater: (board: BoardState) => BoardState) => void
 ): void {
+  if (duration <= 0) {
+    setBoard((currentBoard) => {
+      const updatedBoard = { ...currentBoard };
+
+      for (const [columnId, tickets] of Object.entries(updatedBoard)) {
+        const ticketIndex = tickets.findIndex((t) => t.id === ticketId);
+        if (ticketIndex !== -1) {
+          const updatedTickets = [...tickets];
+          const ticket = updatedTickets[ticketIndex];
+          const now = new Date();
+          updatedTickets[ticketIndex] = {
+            ...ticket,
+            completedAt: now,
+            updatedAt: now,
+          };
+          updatedBoard[columnId] = updatedTickets;
+          return updatedBoard;
+        }
+      }
+
+      return currentBoard;
+    });
+    return;
+  }
+
   setBoard((currentBoard) => {
     const updatedBoard = { ...currentBoard };
 
@@ -48,10 +74,26 @@ export function recordDuration(
       const ticketIndex = tickets.findIndex((t) => t.id === ticketId);
       if (ticketIndex !== -1) {
         const updatedTickets = [...tickets];
+        const ticket = updatedTickets[ticketIndex];
+        const now = new Date();
+        const normalizedDuration = Math.max(0, Math.round(duration));
+        const totalDuration = (ticket.duration || 0) + normalizedDuration;
+        const sessionStart = new Date(now.getTime() - normalizedDuration * 1000);
+        const nextTimeEntries: TimeEntry[] = [
+          ...(ticket.timeEntries ?? []),
+          {
+            start: sessionStart,
+            end: now,
+            duration: normalizedDuration,
+          },
+        ];
+
         updatedTickets[ticketIndex] = {
-          ...updatedTickets[ticketIndex],
-          duration: (updatedTickets[ticketIndex].duration || 0) + duration,
-          updatedAt: new Date(),
+          ...ticket,
+          duration: totalDuration,
+          timeEntries: nextTimeEntries,
+          completedAt: now,
+          updatedAt: now,
         };
         updatedBoard[columnId] = updatedTickets;
         return updatedBoard;
@@ -91,6 +133,8 @@ export function resetTimerForTicket(
         updatedTickets[ticketIndex] = {
           ...updatedTickets[ticketIndex],
           duration: 0,
+          timeEntries: [],
+          completedAt: null,
           updatedAt: new Date(),
         };
         updatedBoard[columnId] = updatedTickets;

@@ -1,4 +1,4 @@
-import { BoardState, Ticket, SubTask } from "@/types/board.types";
+import { BoardState, Ticket, SubTask, TimeEntry } from "@/types/board.types";
 
 export interface SerializedBoardData {
   version: number;
@@ -42,6 +42,14 @@ function serializeTickets(boardState: BoardState): BoardState {
       ...ticket,
       createdAt: ticket.createdAt.toISOString() as unknown as Date,
       updatedAt: ticket.updatedAt.toISOString() as unknown as Date,
+      completedAt: ticket.completedAt
+        ? (ticket.completedAt.toISOString() as unknown as Date)
+        : null,
+      timeEntries: ticket.timeEntries?.map((entry) => ({
+        ...entry,
+        start: entry.start.toISOString() as unknown as Date,
+        end: entry.end.toISOString() as unknown as Date,
+      })),
     }));
   }
 
@@ -56,6 +64,16 @@ function deserializeTickets(boardState: BoardState): BoardState {
       ...ticket,
       createdAt: new Date(ticket.createdAt as unknown as string),
       updatedAt: new Date(ticket.updatedAt as unknown as string),
+      completedAt: ticket.completedAt
+        ? new Date(ticket.completedAt as unknown as string)
+        : null,
+      timeEntries: Array.isArray(ticket.timeEntries)
+        ? (ticket.timeEntries as unknown as TimeEntry[]).map((entry) => ({
+            ...entry,
+            start: new Date(entry.start as unknown as string),
+            end: new Date(entry.end as unknown as string),
+          }))
+        : [],
     }));
   }
 
@@ -100,6 +118,20 @@ function isValidTicket(ticket: unknown): ticket is Ticket {
        );
      }));
 
+  const hasValidTimeEntries =
+    t.timeEntries === undefined ||
+    (Array.isArray(t.timeEntries) &&
+      t.timeEntries.every((entry: unknown) => {
+        if (!entry || typeof entry !== "object") return false;
+        const timeEntry = entry as Record<string, unknown>;
+        return (
+          typeof timeEntry.duration === "number" &&
+          (timeEntry.start instanceof Date ||
+            typeof timeEntry.start === "string") &&
+          (timeEntry.end instanceof Date || typeof timeEntry.end === "string")
+        );
+      }));
+
   return (
     typeof t.id === "string" &&
     typeof t.title === "string" &&
@@ -108,6 +140,11 @@ function isValidTicket(ticket: unknown): ticket is Ticket {
     (t.projectId === undefined || typeof t.projectId === "string") &&
     hasValidSubTasks &&
     (t.duration === undefined || typeof t.duration === "number") &&
+    (t.completedAt === undefined ||
+      t.completedAt === null ||
+      t.completedAt instanceof Date ||
+      typeof t.completedAt === "string") &&
+    hasValidTimeEntries &&
     (t.createdAt instanceof Date ||
       typeof t.createdAt === "string") &&
     (t.updatedAt instanceof Date || typeof t.updatedAt === "string")

@@ -56,10 +56,14 @@ import {
 import { PATHS } from "@/config/paths.config";
 // import { useNavigation } from "@/hooks/use-navigation";
 import { useTodayFocus } from "@/hooks/use-today-focus";
+import { useProjects } from "@/hooks/use-projects";
 import { formatDuration } from "@/lib/timer-utils";
+import { safelyDeserializeBoard, BOARD_STORAGE_KEY } from "@/lib/board-storage";
+import { useLocalStorage } from "@/hooks/use-local-storage";
 import { cn } from "@/lib/utils";
 import { StopWatchState, useStopWatchStore } from "@/store/stop-watch-store";
 import { FocusFormDialog } from "./focus-form-dialog";
+import { InsightsDialog } from "./insights-dialog";
 import { ProjectFilter } from "./project-filter";
 
 type HeaderProps = {
@@ -71,11 +75,18 @@ type HeaderProps = {
 export function TasksHeader({ onImport, onClear }: HeaderProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [focusDialogOpen, setFocusDialogOpen] = useState(false);
+  const [insightsDialogOpen, setInsightsDialogOpen] = useState(false);
   const [todayFocus, setTodayFocus] = useTodayFocus();
   // const { getCurrentValue, handleNavigate, navItems } = useNavigation();
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [isSigningOut, startSignOutTransition] = useTransition();
+
+  // Get board data and projects for insights
+  const [rawBoard] = useLocalStorage<string>(BOARD_STORAGE_KEY, "{}");
+  const board = safelyDeserializeBoard(rawBoard);
+  const allTickets = Object.values(board).flat();
+  const { projects } = useProjects();
   const activeTicketId = useStopWatchStore((state) => state.activeTicketId);
   const activeTicketTitle = useStopWatchStore(
     (state) => state.activeTicketTitle
@@ -249,15 +260,22 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
         </button>
       )}
       <HeaderMenu>
-        <Button
-          variant='icon'
-          className='h-6 w-6 cursor-pointer rounded-[6px] gap-0.5'
-        >
-          <Icon
-            name='WaveformPathEcgIcon'
-            className='size-5.5 text-icon-light'
-          />
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant='icon'
+              className='h-6 w-6 cursor-pointer rounded-[6px] gap-0.5'
+              aria-label='Insights'
+              onClick={() => setInsightsDialogOpen(true)}
+            >
+              <Icon
+                name='WaveformPathEcgIcon'
+                className='size-5.5 text-icon-light'
+              />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Total focus time</TooltipContent>
+        </Tooltip>
 
         <ProjectFilter />
 
@@ -315,6 +333,12 @@ export function TasksHeader({ onImport, onClear }: HeaderProps) {
           setFocusDialogOpen(false);
         }}
         defaultValue={todayFocus}
+      />
+      <InsightsDialog
+        open={insightsDialogOpen}
+        onOpenChange={setInsightsDialogOpen}
+        tickets={allTickets}
+        projects={projects}
       />
     </HeaderContainer>
   );

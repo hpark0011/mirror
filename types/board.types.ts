@@ -1,9 +1,15 @@
-import { IconName } from "@/components/ui/icon";
+import type { IconName } from "@/components/ui/icon";
 
 export interface SubTask {
   id: string;
   text: string;
   completed: boolean;
+}
+
+export interface TimeEntry {
+  start: Date;
+  end: Date;
+  duration: number; // Seconds recorded for this session
 }
 
 export interface Ticket {
@@ -14,6 +20,8 @@ export interface Ticket {
   projectId?: string;
   subTasks?: SubTask[];
   duration?: number; // Total accumulated time in seconds
+  timeEntries?: TimeEntry[]; // Recorded focus sessions for this ticket
+  completedAt?: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

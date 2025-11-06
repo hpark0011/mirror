@@ -31,13 +31,16 @@ import { useLastSelectedProject } from "@/hooks/use-last-selected-project";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { useProjectFilter } from "@/hooks/use-project-filter";
 import {
-  deserializeBoardData,
   downloadJsonFile,
   exportBoardAsJson,
   importBoardFromJson,
   serializeBoardData,
 } from "@/lib/storage";
-import { getStorageKey } from "@/lib/storage-keys";
+import {
+  safelyDeserializeBoard,
+  BOARD_STORAGE_KEY,
+  getInitialSerializedBoard,
+} from "@/lib/board-storage";
 import { handleTimerOnStatusChange } from "@/lib/timer-utils";
 import { useStopWatchStore } from "@/store/stop-watch-store";
 import type {
@@ -51,16 +54,6 @@ import { BoardColumn } from "./board-column";
 import { TicketCard } from "./ticket-card";
 import { TicketFormDialog } from "./ticket-form-dialog";
 
-const STORAGE_KEY = getStorageKey("TASKS", "BOARD_STATE");
-
-const safelyDeserializeBoard = (raw: string): BoardState => {
-  try {
-    return deserializeBoardData(raw);
-  } catch {
-    return INITIAL_BOARD_STATE;
-  }
-};
-
 export type BoardHandle = {
   importFromInput: (event: React.ChangeEvent<HTMLInputElement>) => void;
   exportBoard: () => void;
@@ -69,8 +62,8 @@ export type BoardHandle = {
 
 export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
   const [rawBoard, setRawBoard] = useLocalStorage<string>(
-    STORAGE_KEY,
-    serializeBoardData(INITIAL_BOARD_STATE)
+    BOARD_STORAGE_KEY,
+    getInitialSerializedBoard()
   );
 
   const board = safelyDeserializeBoard(rawBoard);
@@ -213,10 +206,13 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
 
       activeItems.splice(activeIndex, 1);
 
+      const now = new Date();
+      const targetColumn = overColumn as ColumnId;
       const updatedActiveItem = {
         ...activeItem,
-        status: overColumn as ColumnId,
-        updatedAt: new Date(),
+        status: targetColumn,
+        updatedAt: now,
+        completedAt: targetColumn === "complete" ? now : null,
       };
 
       // Calculate insertion position based on what we're hovering over
@@ -392,14 +388,19 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
       const newStatus = data.status;
 
       setBoard((board) => {
-        const updatedTicket: Ticket = {
+      const now = new Date();
+      const updatedTicket: Ticket = {
           ...editingTicket,
           title: data.title,
           description: data.description,
           status: data.status,
           projectId: data.projectId,
           subTasks: data.subTasks,
-          updatedAt: new Date(),
+        updatedAt: now,
+        completedAt:
+          data.status === "complete"
+            ? editingTicket.completedAt ?? now
+            : null,
         };
 
         if (oldColumn === data.status) {
@@ -440,6 +441,7 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
         );
       }
     } else {
+      const now = new Date();
       const newTicket: Ticket = {
         id: `ticket-${Date.now()}`,
         title: data.title,
@@ -447,8 +449,11 @@ export const Board = forwardRef<BoardHandle>(function Board(_props, ref) {
         status: data.status,
         projectId: data.projectId,
         subTasks: data.subTasks,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        duration: 0,
+        timeEntries: [],
+        completedAt: data.status === "complete" ? now : null,
+        createdAt: now,
+        updatedAt: now,
       };
 
       setBoard((board) => ({
