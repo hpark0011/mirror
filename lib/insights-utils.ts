@@ -179,3 +179,204 @@ export function groupByProject(
   // Sort by duration (highest first)
   return result.sort((a, b) => b.duration - a.duration);
 }
+
+/**
+ * Converts a timestamp to hours as a decimal (e.g., 9:30 AM = 9.5)
+ *
+ * @param date - Date to convert
+ * @returns Hours as decimal value (0-24)
+ *
+ * @example
+ * dateToHours(new Date('2024-01-15 09:30')) // 9.5
+ * dateToHours(new Date('2024-01-15 14:45')) // 14.75
+ */
+export function dateToHours(date: Date): number {
+  return date.getHours() + date.getMinutes() / 60;
+}
+
+/**
+ * Gets an array of the last N days starting from a given date
+ *
+ * @param endDate - The most recent date (usually today)
+ * @param days - Number of days to include
+ * @returns Array of dates in descending order (most recent first)
+ *
+ * @example
+ * getLastNDays(new Date(), 7) // [today, yesterday, ..., 6 days ago]
+ */
+export function getLastNDays(endDate: Date, days: number): Date[] {
+  const dates: Date[] = [];
+  for (let i = 0; i < days; i++) {
+    const date = new Date(endDate);
+    date.setDate(endDate.getDate() - i);
+    date.setHours(0, 0, 0, 0);
+    dates.push(date);
+  }
+  return dates;
+}
+
+/**
+ * Formats a date for timeline display
+ *
+ * @param date - Date to format
+ * @param referenceDate - Reference date (usually today) for relative labels
+ * @returns Formatted string like "Today", "Yesterday", or "Mon, Dec 4"
+ */
+export function formatTimelineDate(date: Date, referenceDate: Date): string {
+  if (isSameDay(date, referenceDate)) {
+    return "Today";
+  }
+
+  const yesterday = new Date(referenceDate);
+  yesterday.setDate(referenceDate.getDate() - 1);
+  if (isSameDay(date, yesterday)) {
+    return "Yesterday";
+  }
+
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/**
+ * Session data for timeline visualization
+ */
+export interface TimelineSession {
+  startHour: number;
+  endHour: number;
+  duration: number;
+  taskTitle: string;
+  projectColor: string;
+  taskId: string;
+}
+
+/**
+ * Daily data for timeline visualization
+ */
+export interface TimelineDay {
+  date: Date;
+  dayLabel: string;
+  sessions: TimelineSession[];
+  totalDuration: number;
+}
+
+/**
+ * Transforms tickets into timeline data for the last N days
+ *
+ * Creates a structure suitable for timeline/Gantt chart visualization,
+ * showing work sessions across hours of the day for multiple days.
+ *
+ * Handles sessions that span midnight by splitting them into separate
+ * entries for each day.
+ *
+ * @param tickets - All tickets (will be filtered for completed ones with time entries)
+ * @param projects - Available projects for color mapping
+ * @param endDate - Most recent date to include (usually today)
+ * @param days - Number of days to include (default 7)
+ * @returns Array of timeline data per day, sorted most recent first
+ *
+ * @example
+ * const timelineData = getTimelineData(allTickets, allProjects, new Date(), 7);
+ */
+export function getTimelineData(
+  tickets: Ticket[],
+  projects: Project[],
+  endDate: Date,
+  days: number = 7
+): TimelineDay[] {
+  const dates = getLastNDays(endDate, days);
+
+  // Create a map for efficient date lookups
+  const dateMap = new Map<string, TimelineDay>();
+
+  for (const date of dates) {
+    const dateKey = date.toDateString();
+    dateMap.set(dateKey, {
+      date,
+      dayLabel: formatTimelineDate(date, endDate),
+      sessions: [],
+      totalDuration: 0,
+    });
+  }
+
+  // Process all tickets and their time entries
+  for (const ticket of tickets) {
+    if (!ticket.timeEntries || ticket.timeEntries.length === 0) continue;
+
+    const project = ticket.projectId
+      ? projects.find((p) => p.id === ticket.projectId)
+      : null;
+
+    for (const entry of ticket.timeEntries) {
+      const startDate = new Date(entry.start);
+      const endDate = new Date(entry.end);
+
+      const startHour = dateToHours(startDate);
+      const endHour = dateToHours(endDate);
+
+      // Check if session spans midnight
+      if (!isSameDay(startDate, endDate)) {
+        // Split into two sessions
+
+        // First session: from start to end of day (midnight)
+        const firstDayKey = startDate.toDateString();
+        const firstDayData = dateMap.get(firstDayKey);
+        if (firstDayData) {
+          const firstDayDuration =
+            ((24 - startHour) / (24 - startHour + endHour)) * entry.duration;
+          firstDayData.sessions.push({
+            startHour,
+            endHour: 24,
+            duration: firstDayDuration,
+            taskTitle: ticket.title,
+            projectColor: project?.color || "gray",
+            taskId: ticket.id,
+          });
+          firstDayData.totalDuration += firstDayDuration;
+        }
+
+        // Second session: from midnight to end
+        const secondDayKey = endDate.toDateString();
+        const secondDayData = dateMap.get(secondDayKey);
+        if (secondDayData) {
+          const secondDayDuration =
+            (endHour / (24 - startHour + endHour)) * entry.duration;
+          secondDayData.sessions.push({
+            startHour: 0,
+            endHour,
+            duration: secondDayDuration,
+            taskTitle: ticket.title,
+            projectColor: project?.color || "gray",
+            taskId: ticket.id,
+          });
+          secondDayData.totalDuration += secondDayDuration;
+        }
+      } else {
+        // Normal case: session within same day
+        const dayKey = startDate.toDateString();
+        const dayData = dateMap.get(dayKey);
+        if (dayData) {
+          dayData.sessions.push({
+            startHour,
+            endHour,
+            duration: entry.duration,
+            taskTitle: ticket.title,
+            projectColor: project?.color || "gray",
+            taskId: ticket.id,
+          });
+          dayData.totalDuration += entry.duration;
+        }
+      }
+    }
+  }
+
+  // Convert map back to array and sort sessions
+  const result = Array.from(dateMap.values());
+  for (const day of result) {
+    day.sessions.sort((a, b) => a.startHour - b.startHour);
+  }
+
+  return result;
+}

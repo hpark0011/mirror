@@ -23,11 +23,13 @@ import {
   getTasksCompletedOnDate,
   getTicketDurationForDate,
   getTimeEntriesForDate,
+  getTimelineData,
   groupByProject,
 } from "@/lib/insights-utils";
 import { formatDuration } from "@/lib/timer-utils";
 import { cn } from "@/lib/utils";
 import type { Project, Ticket } from "@/types/board.types";
+import { FocusTimelineChart } from "./focus-timeline-chart";
 
 interface InsightsDialogProps {
   open: boolean;
@@ -61,6 +63,12 @@ export function InsightsDialog({
   const projectBreakdown = useMemo(
     () => groupByProject(completedTasks, projects, selectedDate),
     [completedTasks, projects, selectedDate]
+  );
+
+  // Get 7-day timeline data for visualization
+  const timelineData = useMemo(
+    () => getTimelineData(tickets, projects, selectedDate, 7),
+    [tickets, projects, selectedDate]
   );
 
   const formattedDate = selectedDate.toLocaleDateString("en-US", {
@@ -127,7 +135,6 @@ export function InsightsDialog({
                         setDatePickerOpen(false);
                       }}
                       disabled={(date) => date > new Date()}
-                      initialFocus
                     />
                   </PopoverContent>
                 </Popover>
@@ -159,6 +166,16 @@ export function InsightsDialog({
                     </div>
                   </div>
                 </div>
+
+                {/* <div className='border-b border-border mb-6' /> */}
+
+                {/* Timeline Chart */}
+                {/* <div className='mb-8 px-4'>
+                  <h4 className='text-xs font-medium text-muted-foreground mb-4'>
+                    7-Day Focus Timeline
+                  </h4>
+                  <FocusTimelineChart data={timelineData} />
+                </div> */}
 
                 <div className='border-b border-border mb-6' />
                 {/* Project Breakdown */}
