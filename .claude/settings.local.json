@@ -38,7 +38,9 @@
       "Bash(npx tsc:*)",
       "Bash(done)",
       "Bash(wc:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(git -C /Users/disquiet/Desktop/feel-good/greyboard log --oneline --since=\"2 weeks ago\")",
+      "Bash(git -C /Users/disquiet/Desktop/feel-good/greyboard log --all --name-only --format=\"\" --since=\"1 month ago\")"
     ],
     "deny": [],
     "ask": []

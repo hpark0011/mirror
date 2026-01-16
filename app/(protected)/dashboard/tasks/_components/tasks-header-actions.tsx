@@ -24,24 +24,46 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import type { ChangeEvent } from "react";
+import { customToast } from "@/components/custom-toast";
+import { useBoardActionsStore } from "@/store/board-actions-store";
+import { type ChangeEvent, useRef } from "react";
 import { ProjectFilter } from "./project-filter";
 
 interface TasksHeaderActionsProps {
-  onImport: (event: ChangeEvent<HTMLInputElement>) => void;
-  onExport: () => void;
-  onClear: () => void;
   onInsightsClick: () => void;
-  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }
 
 export function TasksHeaderActions({
-  onImport,
-  onExport,
-  onClear,
   onInsightsClick,
-  fileInputRef,
 }: TasksHeaderActionsProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const { importBoard, exportBoard, clearBoard } = useBoardActionsStore();
+
+  const handleFileChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        importBoard(content);
+      } catch (error) {
+        console.error("Failed to import board:", error);
+        customToast({
+          type: "error",
+          title: "Import failed",
+          description: "Please check the file format.",
+        });
+      }
+    };
+    reader.readAsText(file);
+
+    // Reset input so the same file can be selected again
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
   return (
     <>
       <Tooltip>
@@ -89,7 +111,7 @@ export function TasksHeaderActions({
           <DropdownMenuItem
             onSelect={(event) => {
               event.preventDefault();
-              onExport();
+              exportBoard();
             }}
           >
             <Icon
@@ -121,7 +143,7 @@ export function TasksHeaderActions({
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={onClear}>
+                <AlertDialogAction onClick={clearBoard}>
                   Clear Board
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -134,13 +156,8 @@ export function TasksHeaderActions({
         ref={fileInputRef}
         type='file'
         accept='.json'
-        onChange={(e: ChangeEvent<HTMLInputElement>) => {
-          onImport(e);
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
-        }}
-        style={{ display: "none" }}
+        onChange={handleFileChange}
+        className='hidden'
       />
     </>
   );

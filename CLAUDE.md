@@ -1,562 +1,346 @@
 # CLAUDE.md
 
-## Application Overview
-
-AI-powered document creation & task management application.
-
-### Core Features
-
-- **Task System**: Full-featured Kanban board with project management, sub-tasks, and time tracking
+AI-powered document creation & task management application with Kanban board, sub-tasks, and time tracking.
 
 ## Commands
 
-### Development
-
 ```bash
-pnpm dev        # Start development server with Turbopack (http://localhost:3000)
-pnpm build      # Build production application
-pnpm start      # Run production server
-pnpm lint       # Run ESLint - MUST pass before commits
-```
+# Development
+pnpm dev          # Start dev server (http://localhost:3000)
+pnpm build        # Production build
+pnpm start        # Run production server
+pnpm lint         # ESLint - MUST pass before commits
 
-### Supabase Database
-
-```bash
-pnpm supabase:types      # Generate TypeScript types from database schema
-pnpm supabase:migrate    # Create new migration
-pnpm supabase:migrate:up # Apply migrations
-pnpm supabase:reset      # Reset database to initial state
-pnpm supabase:deploy     # Deploy to production (links to project)
+# Supabase
+pnpm supabase:types       # Generate TS types from schema
+pnpm supabase:migrate     # Create migration
+pnpm supabase:migrate:up  # Apply migrations
+pnpm supabase:reset       # Reset database
+pnpm supabase:deploy      # Deploy to production
 ```
 
 ## Code Philosophy
 
-**Optimize for clarity.** We value craft and maintain a high signal-to-noise ratio in our codebase. This means:
+**Optimize for clarity.** Ask: "Will this be clear to someone reading it for the first time?"
 
-- Prefer self-documenting code over clever code
-- Use options objects over positional parameters when meaning isn't obvious
-- Continuously refactor to improve readability
-- Name things precisely - function names should reflect their full behavior
-- Keep APIs simple and intuitive at call sites
+- Self-documenting code over clever code
+- Options objects over positional parameters when meaning isn't obvious
+- Precise naming - function names reflect full behavior
+- Simple, intuitive APIs at call sites
 
-When in doubt, ask: "Will this be clear to someone reading it for the first time?"
+## Tech Stack
 
-## Architecture
+| Category  | Technology                                                    |
+| --------- | ------------------------------------------------------------- |
+| Framework | Next.js 15.4.10 (App Router, Turbopack), React 19, TypeScript |
+| Backend   | Supabase (auth, database)                                     |
+| Styling   | Tailwind CSS 4, CSS variables, shadcn/ui (New York)           |
+| State     | Zustand (global), localStorage (persistence), React Context   |
+| Forms     | React Hook Form + Zod                                         |
+| DnD       | @dnd-kit                                                      |
+| Charts    | Recharts, Framer Motion                                       |
 
-### Tech Stack
-
-- **Next.js 15.4.10** with App Router and Turbopack
-- **React 19** with strict TypeScript
-- **Supabase** for authentication and database
-- **Tailwind CSS 4** with CSS variables design system
-- **shadcn/ui** components (New York style) with Radix UI
-- **@dnd-kit** for drag-and-drop task management
-- **React Hook Form + Zod** for forms and validation
-- **Zustand** for global state management (timer/stopwatch)
-- **Framer Motion** for animations (insights page)
-- **Recharts** for data visualization (analytics charts)
-
-### Project Structure
+## Project Structure
 
 ```
 app/
-   (auth)/           # Authentication flow (sign-in, sign-up, callback)
-   (protected)/      # Protected dashboard routes
-      dashboard/
-          files/    # Document upload and management
-          tasks/    # Task board with Kanban functionality
-   insights/         # Analytics dashboard
-   _actions/         # Server actions for data mutations
+  (auth)/              # Auth flow (sign-in, sign-up, callback)
+  (protected)/dashboard/tasks/  # Kanban board page
+    _components/       # Route-specific components
+    _hooks/            # Route-specific hooks (ticket-form, today-focus)
+    _utils/            # Route-specific utils (board-io, serialization)
+    _view/             # Main view component
+  _actions/            # Server actions
 
 components/
-   ui/               # shadcn/ui components (pre-installed)
-   files/            # File management components
-   tasks/            # Task board and ticket components
-      sub-tasks/     # Sub-task inline editing components
-      project-select/# Project selection and CRUD dialogs
-   auth/             # Authentication forms
-   header/           # Header components
-   layout/           # Layout components
-   navigation/       # Navigation components
-   providers/        # React context providers
+  ui/                  # shadcn/ui components
+  auth/                # Authentication forms
+  header/              # Header UI
+  layout/              # Layout components
+  providers/           # Context providers
 
-config/              # Centralized configuration files
-   paths.config.ts   # Route path constants
-   routes.config.ts  # Protected/auth route definitions
-   board.config.ts   # Board columns, statuses, defaults
-   tasks.config.ts   # Task-related constants
-   navs.config.ts    # Navigation menu items
-   auth.config.ts    # Auth configuration
-   insight-variants.ts # Insight card variants
+features/              # Feature modules (primary code location)
+  kanban-board/        # Board, columns, drag-drop logic
+  ticket-card/         # Ticket display and actions
+  ticket-form/         # Ticket create/edit dialog
+  project-select/      # Project CRUD and selection
+  sub-task/            # Individual sub-task row
+  sub-task-list/       # Sub-task list container
+  insights/            # Analytics dialog
 
-hooks/               # Custom React hooks (18+)
-   use-local-storage.ts      # SSR-safe localStorage with sync
-   use-projects.ts           # Project CRUD operations
-   use-ticket-form.ts        # Task form state management
-   use-dialog-auto-save.ts   # Auto-save form drafts
-   use-focus-management.ts   # Dialog focus handling
-   __tests__/                # Hook tests
+config/                # *.config.ts files for constants
+  auth, board, insight-variants, navs, paths, routes, tasks
+
+hooks/                 # General-purpose hooks (9 hooks)
+  __tests__/           # Jest + React Testing Library
 
 lib/
-   services/         # Business logic (auth, file handling)
-   schema/           # Zod validation schemas
-   board-storage.ts  # Board persistence utilities
-   insights-utils.ts # Analytics utilities
-   storage-keys.ts   # Centralized localStorage keys
-   storage.ts        # Storage utilities
-   timer-utils.ts    # Timer/stopwatch utilities
-   utils.ts          # General utilities
+  services/            # Business logic (auth, file)
+  schema/              # Zod schemas (auth, file)
+  storage-keys.ts      # Centralized localStorage keys
+  utils.ts, insights-utils.ts
 
-store/               # Zustand state management
-   stop-watch-store.ts # Timer/stopwatch global state
+store/                 # Zustand stores
+  stop-watch-store.ts  # Timer/stopwatch state
+  board-actions-store.ts  # Board import/export/clear actions
 
-styles/              # CSS variable definitions
-   primitives.css    # Base design tokens
-   components.css    # Component-specific styles
-   globals.css       # Global styles
-   background-colors.css
-   text-colors.css
-   icon-colors.css
-   shadows.css
-
-supabase/
-   migrations/       # Database migrations
-   schema/           # Database schema definitions
-
-types/               # TypeScript type definitions
-   board.types.ts    # Task/ticket types
-   file.types.ts     # File types
-   database.types.ts # Generated from Supabase
-
-utils/supabase/      # Supabase utilities
-   client/           # Client-side utilities
-   get-current-client-user.ts
-   get-current-server-user.ts
-
-docs/                # Project documentation
-
-features/            # Shared features used across multiple pages
-   sub-task/         # Sub-task feature components
+styles/                # CSS variables (primitives, components, colors, shadows)
+supabase/              # Migrations, schema
+types/                 # board.types.ts, file.types.ts, database.types.ts
 ```
 
-### State Management Strategy
+## State Management
 
-The application uses different state management approaches based on use case:
+| Type                           | Use Case                                             |
+| ------------------------------ | ---------------------------------------------------- |
+| useState/useReducer            | Component-local state                                |
+| localStorage (useLocalStorage) | UI prefs, board state, projects (cross-tab sync)     |
+| Zustand                        | `useStopWatchStore` (timer), `useBoardActionsStore` (import/export/clear) |
+| React Context                  | Theme, auth                                          |
+| Supabase                       | User auth, files (Note: Tasks use localStorage only) |
 
-- **React useState/useReducer**: Component-local state
-- **localStorage** (via useLocalStorage hook):
-  - UI preferences (theme, layout)
-  - Board state persistence
-  - Projects data
-  - Cross-tab synchronization included
-- **Zustand** (store/):
-  - Timer/stopwatch global state
-  - Shared state across components
-- **React Context** (providers/):
-  - Theme provider
-  - Auth context (from Supabase)
-- **Supabase**:
-  - User authentication
-  - Database queries (files, user data)
-  - Note: Tasks use localStorage, not Supabase
+## Key Features
 
-## Key Features & Implementation
+### Tasks (`/dashboard/tasks`)
 
-### Tasks Module (`/dashboard/tasks`)
+Kanban board with drag-and-drop (4 columns: Backlog, To Do, In Progress, Complete), projects, sub-tasks, timer, localStorage persistence, import/export, auto-save, keyboard shortcuts (Cmd+Enter).
 
-Fully functional Kanban board with comprehensive task management features.
+**Features:** `kanban-board`, `ticket-card`, `ticket-form`, `sub-task`, `sub-task-list`
+**Route hooks:** `useTicketForm`, `useProjectFilter`, `useTodayFocus`
 
-**Core Components:**
-- `Board` - Main drag-and-drop board using @dnd-kit
-- `BoardColumn` - Column containers with drop zones
-- `TicketCard` - Draggable task cards with sub-tasks and timers
-- `TicketFormDialog` - Create/edit modal with auto-save
+### Insights (dialog)
 
-**Features:**
-- ✅ Drag-and-drop between 4 columns (Backlog, To Do, In Progress, Complete)
-- ✅ Project system with color-coded categories
-- ✅ Sub-tasks with inline editing
-- ✅ Timer/stopwatch for in-progress tasks
-- ✅ Time tracking and completion timestamps
-- ✅ localStorage persistence with versioning
-- ✅ Import/export board state (JSON)
-- ✅ Auto-save for form drafts
-- ✅ Keyboard shortcuts (Cmd/Ctrl+Enter to submit)
-- ✅ Focus management in dialogs
+Analytics with Recharts visualization, task stats, project breakdown, Framer Motion animations.
 
-**Persistence:**
-Tasks persist to browser localStorage only (no Supabase integration currently).
+**Feature:** `features/insights/` with `InsightsDialog`, date picker, task list, project breakdown
 
-**Key Hooks:**
-- `useTicketForm` - Form state management
-- `useProjects` - Project CRUD operations
-- `usePersistedSubTasks` - Sub-task draft persistence
-- `useDialogAutoSave` - Auto-save form changes
+### Projects
 
-### Insights & Analytics (`/insights`)
+Color-coded categorization (8 colors), CRUD via `useProjects`, localStorage persistence.
 
-Analytics dashboard for task completion tracking and time analysis.
+### Key Hooks
 
-**Features:**
-- Focus timeline visualization with Recharts
-- Task completion statistics
-- Project breakdown analysis
-- Animated UI with Framer Motion
-- Intersection observer for drawer triggers
+**General (`/hooks/`):** `use-local-storage` (SSR-safe, cross-tab), `use-dialog-auto-save`, `use-focus-management`, `use-keyboard-submit`, `use-persisted-sub-tasks`, `use-debounced-callback`, `use-keyboard-navigation`
 
-**Components:**
-- `insight-card.tsx` - Card container for metrics
-- `insights-header.tsx` - Page header with navigation
-- `ring-percentage.tsx` - Circular progress indicators
-- `insight-components.tsx` - Chart and visualization components
+**Feature-specific:** `use-board-state`, `use-board-dnd`, `use-board-form` (kanban-board), `use-projects`, `use-project-selection` (project-select)
 
-**Tech Stack:**
-- Recharts for data visualization
-- Framer Motion for enter/exit animations
-- Tabs interface for different views
-
-### Project Management
-
-Color-coded project categorization system for tasks.
-
-**Features:**
-- Create, edit, delete projects
-- 8 color options for visual categorization
-- Project filtering in task board
-- Persist via localStorage
-
-**Components:**
-- `ProjectSelect` - Dropdown selector in task forms
-- `project-select/` directory with CRUD dialogs
-
-**Hook:**
-- `useProjects` - Full CRUD operations with localStorage persistence
-
-### Configuration Pattern
-
-Centralized configuration files in `/config` directory:
-
-```typescript
-config/
-  paths.config.ts      # Route path constants
-  routes.config.ts     # Protected/auth route definitions
-  board.config.ts      # Board columns, statuses, defaults
-  tasks.config.ts      # Task-related constants
-  navs.config.ts       # Navigation menu items
-  auth.config.ts       # Auth configuration
-  insight-variants.ts  # Insight card variants
-```
-
-**Pattern:**
-- Use `.config.ts` suffix for constant files
-- Export typed constants
-- Import via path alias: `@/config/*`
-
-### Custom Hooks (`/hooks`)
-
-18+ specialized React hooks for common patterns:
-
-**Key Hooks:**
-- `use-local-storage.ts` - SSR-safe localStorage with cross-tab sync
-- `use-projects.ts` - Project CRUD operations
-- `use-ticket-form.ts` - Task form state management
-- `use-dialog-auto-save.ts` - Auto-save form drafts
-- `use-focus-management.ts` - Dialog focus handling
-- `use-keyboard-submit.ts` - Keyboard shortcut handling
-- `use-persisted-sub-tasks.ts` - Sub-task draft persistence
-- `use-stop-watch.ts` - Timer functionality
-- `use-debounced-callback.ts` - Debounced function calls
-- `use-keyboard-navigation.ts` - Keyboard navigation
-- `use-project-filter.ts` - Project filtering logic
-- `use-today-focus.ts` - Daily focus tracking
-
-**Testing:**
-- Test infrastructure with Jest + React Testing Library
-- Example: `hooks/__tests__/use-project-filter.test.tsx`
+**Route-specific (`_hooks/`):** `use-ticket-form`, `use-project-filter`, `use-today-focus`
 
 ## Development Patterns
 
-### Component Development
+### Components
 
 ```tsx
-// Use shadcn/ui components from /components/ui
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils"; // Class merging utility
-
-// Follow compound component patterns with data-slot
+import { cn } from "@/lib/utils";
 <Button data-slot='submit-button' className={cn("custom-class")} />;
 ```
 
-### Form Handling
+### Forms (React Hook Form + Zod)
 
 ```tsx
-// Always use React Hook Form + Zod
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 
-const schema = z.object({
-  title: z.string().min(1, "Required"),
-});
-
+const schema = z.object({ title: z.string().min(1, "Required") });
 type FormData = z.infer<typeof schema>;
 ```
 
-### Global State with Zustand
+### Zustand
 
 ```typescript
-// Create a store in /store directory
-import { create } from 'zustand';
+import { create } from "zustand";
 
-interface StopWatchStore {
+interface Store {
   isRunning: boolean;
   start: () => void;
-  stop: () => void;
 }
-
-export const useStopWatchStore = create<StopWatchStore>((set) => ({
+export const useStore = create<Store>((set) => ({
   isRunning: false,
   start: () => set({ isRunning: true }),
-  stop: () => set({ isRunning: false }),
 }));
-
-// Use in components
-const { isRunning, start } = useStopWatchStore();
 ```
 
 ### Data Fetching
 
 ```tsx
-// Use TanStack Query for data fetching
 import { useQuery } from "@tanstack/react-query";
-
-// Server components: Direct Supabase queries
 import { createClient } from "@/utils/supabase/client/supabase-server";
 ```
 
-### Authentication Flow
+### Auth
 
-- Middleware protects `/dashboard/*` and `/insights` routes
-- Auth handled via Supabase with magic links and OAuth
-- User context available via `getCurrentServerUser()` or `getCurrentClientUser()`
-- Protected routes redirect to `/sign-in` if unauthenticated
+Middleware protects `/dashboard/*` and `/insights`. Supabase handles auth (magic links, OAuth). Use `getCurrentServerUser()` or `getCurrentClientUser()`.
 
-## Code Quality Standards
+## Code Quality
 
-### React/TypeScript Imports
+### Imports
 
-- **Always use type imports** for TypeScript types to improve tree-shaking and clarity:
+```typescript
+// ✅ DO: Type imports
+import { useState, type KeyboardEvent } from "react";
 
-  ```typescript
-  // ✅ DO
-  import { useState, type KeyboardEvent } from "react";
+// ❌ DON'T
+import React from "react"; // then React.KeyboardEvent
+```
 
-  // ❌ DON'T
-  import React from "react";
-  // then use React.KeyboardEvent
-  ```
+### Hook Callbacks
 
-### React Hooks Best Practices
+Store callbacks in refs to avoid re-running effects:
 
-- **Stable callback dependencies**: When creating hooks that accept callbacks in useEffect/useCallback/useMemo:
+```typescript
+const callbackRef = useRef(onSubmit);
+useEffect(() => {
+  callbackRef.current = onSubmit;
+}, [onSubmit]);
+useEffect(() => {
+  /* use callbackRef.current */
+}, [enabled]);
+```
 
-  - Document if the callback should be memoized by the caller
-  - OR use `useCallback` with appropriate dependencies internally
-  - OR use `useRef` to store the latest callback without triggering re-renders
+### JSDoc Required
 
-  ```typescript
-  // Example: Store callback in ref to avoid re-running effect
-  const callbackRef = useRef(onSubmit);
-  useEffect(() => {
-    callbackRef.current = onSubmit;
-  }, [onSubmit]);
+All custom hooks MUST have JSDoc with purpose, params, returns, example:
 
-  useEffect(() => {
-    // Use callbackRef.current instead of onSubmit in dependency array
-  }, [enabled]); // onSubmit not needed in deps
-  ```
-
-### Documentation Requirements
-
-- **All custom hooks MUST have JSDoc comments** explaining:
-
-  - Purpose and use case
-  - Parameters and their types
-  - Return values
-  - Usage example (if not obvious)
-  - Any caveats or important implementation details
-
-  ```typescript
-  /**
-   * Manages focus behavior for form inputs in dialogs.
-   *
-   * Handles auto-focus on dialog open and navigation between fields.
-   *
-   * @returns Object containing refs and event handlers for form fields
-   *
-   * @example
-   * const { handleAutoFocus, setRefs } = useFocusManagement();
-   * <DialogContent onOpenAutoFocus={handleAutoFocus}>
-   *   <Input ref={(el) => setRefs(el, field.ref)} />
-   * </DialogContent>
-   */
-  export function useFocusManagement() { ... }
-  ```
-
-- **Utility functions and complex logic should have JSDoc comments**
+```typescript
+/**
+ * Manages focus for form inputs in dialogs.
+ * @returns Refs and handlers for form fields
+ * @example
+ * const { handleAutoFocus, setRefs } = useFocusManagement();
+ */
+```
 
 ### Pre-Implementation Checklist
 
-Before marking a task as complete, verify:
+1. Imports correct and minimal, type imports used
+2. Hooks follow best practices (deps, memoization)
+3. Custom hooks have JSDoc
+4. Explicit TypeScript types (no implicit any)
+5. Event handlers typed
+6. Edge cases handled (useEffect cleanup)
+7. Components under ~100 lines; logic extracted
 
-1. ✅ All imports are correct and minimal
-2. ✅ No missing type imports
-3. ✅ React hooks follow best practices (dependency arrays, memoization)
-4. ✅ Custom hooks have JSDoc documentation
-5. ✅ TypeScript types are explicit (no implicit any)
-6. ✅ Event handlers properly typed
-7. ✅ Consider edge cases (e.g., cleanup in useEffect)
+## Core Principles
 
-## Best Practices
+### YAGNI
 
-### Core Development Principles
+Build only what's requested. No "just in case" features, speculative infrastructure, or premature abstractions.
 
-This project strictly adheres to two fundamental principles:
+### KISS
 
-#### **YAGNI (You Aren't Gonna Need It)**
-
-Build only what is explicitly requested or currently needed. Do not add features, infrastructure, or code for potential future use.
-
-**DO:**
-
-- Implement exactly what is requested
-- Add features when they are being actively developed
-- Keep code minimal and focused on current requirements
-- Document how to extend the system when needed
-
-**DON'T:**
-
-- Add "just in case" functionality
-- Create infrastructure for planned but unimplemented features
-- Build abstractions before you have concrete use cases
-- Add speculative configuration or options
-
-#### **KISS (Keep It Simple, Stupid)**
-
-Favor simple, straightforward solutions over clever or complex ones. Complexity should only be added when there's a clear, demonstrable need.
-
-**DO:**
-
-- Choose the simplest solution that works
-- Use clear, descriptive names
-- Write straightforward code that's easy to understand
-- Refactor to add complexity only when requirements demand it
-
-**DON'T:**
-
-- Over-engineer solutions
-- Add unnecessary abstractions
-- Use complex patterns when simple ones suffice
-- Optimize prematurely
-
-**Example:**
+Simplest solution that works. No over-engineering, unnecessary abstractions, or premature optimization.
 
 ```typescript
-// ❌ DON'T - Over-engineered
+// ❌ Over-engineered
 class StorageManager<T> {
-  constructor(
-    private config: ComplexConfig,
-    private middleware: Middleware[],
-    private plugins: Plugin[]
-  ) {}
-  // ... 200 lines of unused functionality
+  constructor(config, middleware, plugins) {}
 }
 
-// ✅ DO - Simple, direct
+// ✅ Simple
 function getStorageKey(category: string, key: string): string {
   return `${PREFIX}.${category}.${key}`;
 }
 ```
 
+### Separation of Concerns
+
+| Layer | Location                                 | Responsibility                                      |
+| ----- | ---------------------------------------- | --------------------------------------------------- |
+| UI    | `components/`, `features/**/components/` | Rendering, props, minimal UI state (~100 lines max) |
+| Hooks | `hooks/`, `features/**/hooks/`           | Stateful logic, data fetching, side effects         |
+| Logic | `lib/`, `**/utils/`                      | Pure functions, no React deps, testable             |
+| Data  | `_actions/`, hooks with storage          | Isolated from presentation                          |
+
+**Extract when:** Component >100 lines, 3+ useMemo/useCallback for business logic, reusable logic, needs unit testing.
+
+**Before:**
+
+```tsx
+function InsightsDialog() {
+  const [rawBoard] = useLocalStorage(...);
+  const board = safelyDeserializeBoard(rawBoard);
+  const completedTasks = useMemo(() => getTasksCompletedOnDate(...), [...]);
+  // 300+ lines...
+}
+```
+
+**After:**
+
+```tsx
+// hooks/use-insights-data.ts
+function useInsightsData(date: Date) {
+  const [rawBoard] = useLocalStorage(...);
+  return { completedTasks: useMemo(...), totalDuration: useMemo(...) };
+}
+
+// Component: clean UI only
+function InsightsDialog() {
+  const data = useInsightsData(selectedDate);
+}
+```
+
 ### Implementation Guidelines
 
-1. **Always ask before adding infrastructure** - If tempted to create a "system" or "framework", stop and ask first
-2. **Start minimal, grow organically** - Implement the bare minimum, add complexity only when needed
-3. **Resist speculation** - Don't add code for "maybe later"
-4. **Question your additions** - Ask: "Is this explicitly required right now?"
+1. Ask before adding infrastructure
+2. Start minimal, grow organically
+3. Don't add "maybe later" code
+4. Extract early when >100 lines
 
-### localStorage Key Management
+### Features Pattern
 
-Reference implementation in `lib/storage-keys.ts`:
+Feature modules in `/features/` are self-contained units:
+
+```
+features/feature-name/
+  components/      # Feature-specific UI components
+  hooks/           # Feature-specific hooks
+  utils/           # Feature-specific utilities
+  types/           # Feature-specific types (if needed)
+  index.ts         # Public API exports
+```
+
+**Current features:** `kanban-board`, `ticket-card`, `ticket-form`, `project-select`, `sub-task`, `sub-task-list`, `insights`
+
+**When to create a feature:** Cohesive functionality with 3+ components, needs isolated hooks/utils, reusable across routes.
+
+### localStorage Keys
 
 ```typescript
+// lib/storage-keys.ts
 const STORAGE_KEYS = {
   TASKS: {
     BOARD_STATE: "docgen.v1.tasks.board-state",
     PROJECTS: "docgen.v1.tasks.projects",
   },
-  UI: {
-    TODAY_FOCUS: "docgen.v1.ui.today-focus",
-    THEME: "theme",
-  },
+  UI: { TODAY_FOCUS: "docgen.v1.ui.today-focus", THEME: "theme" },
 };
-
-// When implementing: add key to category, use getStorageKey(), don't add unused keys
 ```
 
-## Common Patterns
+## Naming & Organization
 
-### Path Aliases
+| Type        | Convention                    |
+| ----------- | ----------------------------- |
+| Pages       | `page.tsx`                    |
+| Loaders     | `{feature}-page.loader.ts`    |
+| Actions     | `{feature}-server-actions.ts` |
+| Schemas     | `{feature}.schema.ts`         |
+| Constants   | `{feature}.config.ts`         |
+| Components  | `kebab-case.tsx`              |
+| Route UI    | `_components/`                |
+| Route utils | `_lib/`, `_lib/server/`       |
 
-```typescript
-@/*  // Maps to project root
-// Common imports:
-@/components/ui/*
-@/lib/utils
-@/hooks/*
-@/types/*
-@/config/*
-```
+**Path aliases:** `@/*` maps to root (`@/components/ui/*`, `@/lib/utils`, `@/hooks/*`, `@/types/*`, `@/config/*`)
 
-### Icon System
+**Icons:** Lucide React (primary), custom SVGs in `/icons`, `@/components/ui/icon`
 
-- Primary: Lucide React icons
-- Custom: SVG icons in `/icons` directory
-- Icon component: `@/components/ui/icon`
+## Performance & Security
 
-## Project Structure & Naming
+**Performance:** Turbopack dev builds, standalone production, React 19 batching, optimistic DnD updates, Next.js Image optimization
 
-### Per-Route Organization
+**Security:** `NEXT_PUBLIC_` prefix for client env vars, Supabase RLS, server actions for mutations, Zod validation, React XSS escaping
 
-- UI components: put under \_components/
-- Client utilities: put under \_lib/
-- Server-only utilities: put under \_lib/server/
+---
 
-### Naming Conventions
-
-- Pages: page.tsx
-- Loaders: {feature}-page.loader.ts
-- Actions: {feature}-server-actions.ts
-- Schemas: {feature}.schema.ts
-- Constants: {feature}.config.ts
-- Components: kebab-case.tsx
-
-## Performance Considerations
-
-- Turbopack for fast dev builds
-- Standalone output for production
-- React 19 with automatic batching
-- Optimistic UI updates for drag-and-drop
-- Image optimization via Next.js Image
-
-## Security Notes
-
-- All client-exposed env vars use `NEXT_PUBLIC_` prefix
-- Row Level Security (RLS) configured in Supabase
-- Server actions for data mutations
-- Input validation with Zod schemas
-- XSS protection via React's built-in escaping
-
-# Respond format
-
-- Always give me a commit message that I could copy and paste at the end of your response.
+**Response format:** Always provide a copy-paste commit message at the end.

@@ -1,6 +1,6 @@
 :root {
   /* Text Colors */
-  --color-text-strong: var(--color-dq-gray-1000);
+  --color-text-strong: var(--color-dq-gray-975);
   --color-text-primary: var(--color-dq-gray-900);
   --color-text-secondary: var(--color-dq-gray-700);
   --color-text-tertiary: var(--color-dq-gray-600);

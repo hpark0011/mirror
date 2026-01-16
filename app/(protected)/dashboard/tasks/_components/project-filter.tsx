@@ -11,7 +11,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { useProjectFilter } from "../_hooks";
-import { useProjects } from "@/hooks/use-projects";
+import { useProjects } from "@/features/project-select";
 import { cn } from "@/lib/utils";
 import type { Project } from "@/types/board.types";
 

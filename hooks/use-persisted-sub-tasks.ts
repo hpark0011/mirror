@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import type { UseFormReturn } from "react-hook-form";
 import type { TicketFormInput } from "@/app/(protected)/dashboard/tasks/_hooks";
-import type { SubTask } from "@/components/tasks/sub-tasks/sub-tasks-list";
+import type { SubTask } from "@/features/sub-task-list/components/sub-tasks-list";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { getStorageKey } from "@/lib/storage-keys";
 

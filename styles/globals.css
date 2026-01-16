@@ -127,7 +127,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: #eee;
+  --background: var(--gray-3);
   --foreground: oklch(0.145 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);

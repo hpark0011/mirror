@@ -8,28 +8,15 @@ import { useTodayFocus } from "../_hooks";
 import { useStopWatchStore } from "@/store/stop-watch-store";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
-import {
-  type ChangeEvent,
-  useEffect,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useEffect, useState, useTransition } from "react";
 import { FocusFormDialog } from "./focus-form-dialog";
-import { InsightsDialog } from "./insights-dialog";
+import { InsightsDialog } from "../../../../../features/insights/insights-dialog";
 import { TasksHeaderActions } from "./tasks-header-actions";
 import { TasksHeaderFocusDisplay } from "./tasks-header-focus-display";
 import { TasksHeaderLogo } from "./tasks-header-logo";
 import { TasksHeaderTimerDisplay } from "./tasks-header-timer-display";
 
-type HeaderProps = {
-  onImport: (event: ChangeEvent<HTMLInputElement>) => void;
-  onExport: () => void;
-  onClear: () => void;
-};
-
-export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null);
+export function TasksHeader() {
   const [focusDialogOpen, setFocusDialogOpen] = useState(false);
   const [insightsDialogOpen, setInsightsDialogOpen] = useState(false);
   const [todayFocus, setTodayFocus] = useTodayFocus();
@@ -101,11 +88,7 @@ export function TasksHeader({ onImport, onExport, onClear }: HeaderProps) {
       )}
       <HeaderMenu>
         <TasksHeaderActions
-          onImport={onImport}
-          onExport={onExport}
-          onClear={onClear}
           onInsightsClick={() => setInsightsDialogOpen(true)}
-          fileInputRef={fileInputRef}
         />
       </HeaderMenu>
       <FocusFormDialog
