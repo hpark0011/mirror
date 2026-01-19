@@ -38,7 +38,7 @@ export function TasksHeaderLogo({
                 <button
                   type='button'
                   aria-label='Open navigation menu'
-                  className='bg-transparent p-0 m-0 border-none outline-none focus-visible:ring-2 focus-visible:ring-border-highlight rounded-full'
+                  className='bg-background/5 backdrop-blur-lg p-0 m-0 border-none outline-none focus-visible:ring-2 focus-visible:ring-border-highlight rounded-full'
                 >
                   <HeaderLogo />
                 </button>

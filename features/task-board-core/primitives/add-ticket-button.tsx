@@ -8,6 +8,10 @@ interface AddTicketButtonProps {
   onAddTicket: () => void;
 }
 
+/**
+ * Inline button for adding new tickets within a column.
+ * View-agnostic primitive used by both board and list views.
+ */
 export function AddTicketButton({ onAddTicket }: AddTicketButtonProps) {
   return (
     <button

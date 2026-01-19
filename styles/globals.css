@@ -100,6 +100,7 @@
   --color-border-highlight: var(--border-highlight);
   --color-border-light: var(--border-light);
   --color-border-medium: var(--border-medium);
+  --color-border-extra-light: var(--border-extra-light);
   --color-hover: var(--hover);
   --color-hover-subtle: var(--hover-subtle);
   --color-badge-background: var(--badge-background);
@@ -128,7 +129,7 @@
 
 :root {
   --radius: 0.625rem;
-  --background: var(--gray-3);
+  --background: var(--gray-4);
   --foreground: oklch(0.145 0 0);
   --popover-foreground: oklch(0.145 0 0);
   --primary: oklch(0.205 0 0);
@@ -141,12 +142,12 @@
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
   --border: oklch(0.922 0 0);
-  --border-medium: oklch(0.9 0 0);
-  --border-light: oklch(0.95 0 0);
+  --border-light: var(--gray-2);
+  --border-medium: var(--gray-6);
   --border-highlight: oklch(1 0 0 / 95%);
-  --input: var(--gray-5);
+  --input: var(--gray-6);
   --hover: var(--gray-2);
-  --hover-subtle: var(--color-dq-gray-50);
+  --hover-subtle: var(--gray-3);
   --badge-background: oklch(0.95 0 0);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.646 0.222 41.116);
@@ -178,8 +179,8 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
-  --border-light: oklch(1 0 0 / 5%);
-  --border-medium: oklch(1 0 0 / 5%);
+  --border-light: var(--gray-2);
+  --border-medium: var(--gray-3);
   --border-highlight: oklch(1 0 0 / 3%);
   --input: var(--gray-3);
   --hover: var(--gray-2);

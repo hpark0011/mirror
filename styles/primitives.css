@@ -60,20 +60,7 @@
   --color-dq-blue-800: #1e40af;
   --color-dq-blue-900: #1e3a8a;
   --color-dq-blue-950: #172554;
-
-  /* Green Colors */
-  --color-dq-green-50: #ecfdf5;
-  --color-dq-green-100: #d1fae5;
-  --color-dq-green-200: #a7f3d0;
-  --color-dq-green-300: #6ee7b7;
-  --color-dq-green-400: #34d399;
-  --color-dq-green-500: #10b981;
-  --color-dq-green-600: #059669;
-  --color-dq-green-700: #047857;
-  --color-dq-green-800: #065f46;
-  --color-dq-green-900: #064e3b;
-  --color-dq-green-950: #052e16;
-
+  
   /* Neon */
   --color-neon-yellow: rgb(225, 255, 156);
 

@@ -68,7 +68,9 @@
       "WebFetch(domain:www.w3.org)",
       "WebFetch(domain:base-ui.com)",
       "WebFetch(domain:ninjarockstar.dev)",
-      "Bash(head:*)"
+      "Bash(head:*)",
+      "Bash(pkill:*)",
+      "Bash(pnpm exec tsc:*)"
     ],
     "deny": [],
     "ask": []

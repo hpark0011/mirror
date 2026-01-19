@@ -12,7 +12,7 @@
   --color-text-tertiary-inverse: var(--color-dq-gray-400);
 
   /* Status Text Colors */
-  --color-text-success: var(--color-dq-green-500);
+  --color-text-success: var(--color-green-500);
   --color-text-error: var(--color-dq-red-500);
   --color-text-warning: var(--color-dq-yellow-500);
   --color-text-info: var(--color-dq-blue-500);
@@ -35,7 +35,7 @@
   --color-text-tertiary-inverse: var(--color-dq-gray-600);
 
   /* Status Text Colors */
-  --color-text-success: var(--color-dq-green-500);
+  --color-text-success: var(--color-green-500);
   --color-text-error: var(--color-dq-red-500);
   --color-text-warning: var(--color-dq-yellow-500);
   --color-text-info: var(--color-dq-blue-500);

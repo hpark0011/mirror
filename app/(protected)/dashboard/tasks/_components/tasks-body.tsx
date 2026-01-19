@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { closestCenter, DndContext } from "@dnd-kit/core";
 import { COLUMNS } from "@/config/board.config";
 import {
@@ -16,12 +16,12 @@ import {
   useBoardDnd,
   useBoardForm,
   type TicketFormValues,
-  BoardColumn,
   BoardDragOverlay,
-  BoardLayoutContainer,
+  BoardView,
   updateBoardWithTicket,
   syncTimerOnTicketUpdate,
 } from "@/features/kanban-board";
+import { ListView } from "@/features/task-list";
 
 export function TasksBody() {
   const { isListLayout } = useLayoutMode();
@@ -117,28 +117,27 @@ export function TasksBody() {
         onDragOver={handlers.onDragOver}
         onDragEnd={handlers.onDragEnd}
       >
-        <BoardLayoutContainer>
-          {COLUMNS.map((column) => (
-            <Fragment key={column.id}>
-              <BoardColumn
-                column={column}
-                tickets={filteredBoard[column.id] || []}
-                onAddTicket={() => openCreate(column.id)}
-                onEditTicket={openEdit}
-                onDeleteTicket={actions.deleteTicket}
-                onClearColumn={
-                  column.id === "complete"
-                    ? () => actions.clearColumn("complete")
-                    : undefined
-                }
-                onUpdateSubTasks={actions.updateSubTasks}
-              />
-              {!isListLayout && (
-                <div className='w-[1px] min-w-[1px] bg-neutral-200 dark:bg-neutral-900 last:hidden' />
-              )}
-            </Fragment>
-          ))}
-        </BoardLayoutContainer>
+        {isListLayout ? (
+          <ListView
+            columns={COLUMNS}
+            board={filteredBoard}
+            onAddTicket={openCreate}
+            onEditTicket={openEdit}
+            onDeleteTicket={actions.deleteTicket}
+            onClearColumn={actions.clearColumn}
+            onUpdateSubTasks={actions.updateSubTasks}
+          />
+        ) : (
+          <BoardView
+            columns={COLUMNS}
+            board={filteredBoard}
+            onAddTicket={openCreate}
+            onEditTicket={openEdit}
+            onDeleteTicket={actions.deleteTicket}
+            onClearColumn={actions.clearColumn}
+            onUpdateSubTasks={actions.updateSubTasks}
+          />
+        )}
         <BoardDragOverlay activeTicket={activeTicket} />
       </DndContext>
 

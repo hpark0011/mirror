@@ -11,9 +11,9 @@ import { cn } from "@/lib/utils";
 import { TicketCard } from "@/features/ticket-card";
 import { AddTicketButton } from "@/features/task-board-core";
 import type { Column, SubTask, Ticket } from "@/types/board.types";
-import { BoardColumnHeader } from "./board-column-header";
+import { ListSectionHeader } from "./list-section-header";
 
-interface BoardColumnProps {
+interface ListSectionProps {
   column: Column;
   tickets: Ticket[];
   onAddTicket: () => void;
@@ -21,13 +21,14 @@ interface BoardColumnProps {
   onDeleteTicket: (ticketId: string) => void;
   onClearColumn?: () => void;
   onUpdateSubTasks: (ticketId: string, subTasks: SubTask[]) => void;
+  isLastSection: boolean;
 }
 
 /**
- * Board view column with fixed width and vertical scrolling.
- * Displays tickets in a draggable, sortable list.
+ * Collapsible section for list view containing tickets from a single column.
+ * Manages expand/collapse state and renders ticket list.
  */
-export function BoardColumn({
+export function ListSection({
   column,
   tickets,
   onAddTicket,
@@ -35,8 +36,10 @@ export function BoardColumn({
   onDeleteTicket,
   onClearColumn,
   onUpdateSubTasks,
-}: BoardColumnProps) {
+  isLastSection,
+}: ListSectionProps) {
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isExpanded, setIsExpanded] = useState(true);
 
   useEffect(() => {
     const timer = setTimeout(() => setIsInitialLoad(false), 1000);
@@ -49,27 +52,32 @@ export function BoardColumn({
     <Card
       className={cn(
         "flex flex-col bg-transparent shadow-none py-0 gap-0",
-        "w-1/4 h-[calc(100vh-80px)] rounded-2xl border-none"
+        "w-full rounded-none border-x-0 border-none",
       )}
     >
-      <BoardColumnHeader
+      <ListSectionHeader
         column={column}
         ticketCount={tickets.length}
         onAddTicket={onAddTicket}
         onClearColumn={onClearColumn}
+        isExpanded={isExpanded}
+        isLastSection={isLastSection}
+        onToggleExpand={() => setIsExpanded(!isExpanded)}
       />
       <CardContent
         ref={setNodeRef}
-        className="flex-1 p-0 px-4 overflow-hidden relative max-h-none overflow-y-scroll"
+        className={cn(
+          "flex-1 px-4 overflow-hidden relative",
+          !isExpanded && "max-h-0",
+          isExpanded && "max-h-none py-4",
+        )}
       >
-        <div className='h-6 w-full bg-gradient-to-t from-transparent to-background sticky top-0 left-0 z-10' />
-
         <SortableContext
           id={column.id}
           items={tickets.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className='space-y-1.5 h-fit pb-4'>
+          <div className="space-y-1.5 h-fit pb-0.5">
             {tickets.map((ticket, index) => (
               <TicketCard
                 key={ticket.id}
@@ -80,17 +88,11 @@ export function BoardColumn({
                 onDelete={() => onDeleteTicket(ticket.id)}
                 onClick={() => onEditTicket(ticket)}
                 onSubTasksChange={(subTasks: SubTask[]) =>
-                  onUpdateSubTasks(ticket.id, subTasks)
-                }
+                  onUpdateSubTasks(ticket.id, subTasks)}
               />
             ))}
-            {column.id !== "complete" && (
-              <AddTicketButton onAddTicket={onAddTicket} />
-            )}
           </div>
         </SortableContext>
-
-        <div className='h-4 w-full bg-gradient-to-b from-transparent to-background fixed bottom-0 left-0' />
       </CardContent>
     </Card>
   );

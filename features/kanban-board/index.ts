@@ -1,17 +1,16 @@
-// Context
+// Components (Board-specific)
+export { BoardView } from "./components/board-view";
+export { BoardLayout } from "./components/board-layout";
+export { BoardColumn } from "./components/board-column";
+export { BoardColumnHeader } from "./components/board-column-header";
+
+// Re-export everything from task-board-core for backward compatibility
 export {
+  // Context
   LayoutModeProvider,
   useLayoutMode,
   type LayoutPreference,
-} from "./context";
-
-// Components
-export { BoardColumn } from "./components/board-column";
-export { BoardLayoutContainer } from "./components/board-layout-container";
-export { BoardDragOverlay } from "./components/board-drag-overlay";
-
-// Hooks
-export {
+  // Hooks
   useBoardState,
   useBoardDnd,
   useBoardForm,
@@ -21,13 +20,17 @@ export {
   type UseBoardFormOptions,
   type UseBoardFormReturn,
   type TicketFormValues,
-} from "./hooks";
-
-// Types
-export type { BoardState, Ticket, SubTask, Column, ColumnId } from "./types";
-
-// Utils
-export {
+  // Primitives
+  ColumnTitle,
+  AddTicketButton,
+  DragOverlayWrapper,
+  // Types
+  type BoardState,
+  type Ticket,
+  type SubTask,
+  type Column,
+  type ColumnId,
+  // Utils
   BOARD_STORAGE_KEY,
   serializeBoardData,
   deserializeBoardData,
@@ -39,4 +42,7 @@ export {
   handleTimerOnStatusChange,
   updateBoardWithTicket,
   syncTimerOnTicketUpdate,
-} from "./utils";
+} from "@/features/task-board-core";
+
+// Alias for backward compatibility
+export { DragOverlayWrapper as BoardDragOverlay } from "@/features/task-board-core";

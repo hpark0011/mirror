@@ -32,10 +32,10 @@ export function SubTasksListAddItem({
 }: SubTasksListAddItemProps) {
   return (
     <div
-      data-slot='subtasks-list-add-item'
+      data-slot="subtasks-list-add-item"
       className={cn(
         "flex gap-2 pl-2.5 pr-0 items-center hover:bg-hover",
-        className
+        className,
       )}
       {...props}
     >
@@ -50,17 +50,17 @@ export function SubTasksListAddItem({
             onSubmit();
           }
         }}
-        className='flex-1 border-none p-0 h-8 hover:bg-transparent'
+        className="flex-1 border-none p-0 h-8 hover:bg-transparent text-[13px]"
       />
       <Button
-        type='button'
-        variant='icon'
-        size='sm'
+        type="button"
+        variant="icon"
+        size="sm"
         onClick={onSubmit}
         disabled={disabled ?? !value.trim()}
-        className='text-[13px] font-regular h-8 rounded-l-none hover:text-blue-500 text-text-muted p-0'
+        className="text-[13px] font-regular h-8 rounded-l-none hover:text-blue-500 text-text-muted p-0"
       >
-        <Icon name='PlusCircleFillIcon' className='size-[22px]' />
+        <Icon name="PlusCircleFillIcon" className="size-[22px]" />
       </Button>
     </div>
   );

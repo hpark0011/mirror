@@ -1,35 +1,42 @@
 "use client";
 
-import type { MouseEvent } from "react";
-import { PlusIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CardHeader } from "@/components/ui/card";
+import { Icon } from "@/components/ui/icon";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { Icon } from "@/components/ui/icon";
 import { ColumnTitle } from "@/features/task-board-core";
+import { cn } from "@/lib/utils";
 import type { Column } from "@/types/board.types";
+import { PlusIcon } from "lucide-react";
+import type { MouseEvent } from "react";
 
-interface BoardColumnHeaderProps {
+interface ListSectionHeaderProps {
   column: Column;
   ticketCount: number;
   onAddTicket: () => void;
   onClearColumn?: () => void;
+  isExpanded: boolean;
+  isLastSection: boolean;
+  onToggleExpand: () => void;
 }
 
 /**
- * Header for board view columns showing title, count, and action buttons.
- * Always shows add button (no collapse functionality in board view).
+ * Clickable header for list sections with collapse/expand functionality.
+ * Shows column info and chevron indicator.
  */
-export function BoardColumnHeader({
+export function ListSectionHeader({
   column,
   ticketCount,
   onAddTicket,
   onClearColumn,
-}: BoardColumnHeaderProps) {
+  isExpanded,
+  isLastSection,
+  onToggleExpand,
+}: ListSectionHeaderProps) {
   const isCompleteColumn = column.id === "complete";
   const showClearButton = isCompleteColumn && onClearColumn && ticketCount > 0;
   const showAddButton = !isCompleteColumn;
@@ -45,15 +52,36 @@ export function BoardColumnHeader({
   };
 
   return (
-    <CardHeader className="pl-4.5 pb-2 gap-0 pr-4">
+    <CardHeader
+      className={cn(
+        "pl-4.5 pb-2 gap-0 pr-4",
+        "cursor-pointer py-2",
+        "hover:bg-hover-subtle",
+        "border-y border-border-medium",
+        !isExpanded && !isLastSection && "border-b-0",
+      )}
+      onClick={onToggleExpand}
+      role="button"
+      aria-expanded={isExpanded}
+      aria-label={`Toggle ${column.title} tickets`}
+    >
       <div className="flex items-center justify-between h-6">
-        <ColumnTitle
-          icon={column.icon}
-          iconSize={column.iconSize}
-          iconColor={column.iconColor}
-          title={column.title}
-          count={ticketCount}
-        />
+        <div className="flex items-center gap-1">
+          <Icon
+            name="TriangleFillDownIcon"
+            className={cn(
+              "size-2 text-icon-light transition-transform duration-200",
+              !isExpanded && "-rotate-90",
+            )}
+          />
+          <ColumnTitle
+            icon={column.icon}
+            iconSize={column.iconSize}
+            iconColor={column.iconColor}
+            title={column.title}
+            count={ticketCount}
+          />
+        </div>
         <div className="flex items-center gap-1">
           {showClearButton && (
             <Tooltip>

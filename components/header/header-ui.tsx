@@ -14,7 +14,7 @@ export const HeaderContainer = ({
   return (
     <div
       className={cn(
-        "flex justify-between items-center h-12 bg-transparent fixed top-0 w-full px-4 z-10",
+        "grid grid-cols-3 items-center h-12 fixed top-0 w-full px-4 z-10 bg-gradient-to-b from-background to-transparent",
         className
       )}
     >

@@ -28,7 +28,7 @@ function TabsList({
       className={cn(
         "inline-flex w-fit items-center justify-center",
         "h-9 rounded-md border border-input",
-        "bg-transparent text-muted-foreground",
+        "bg-background/5 backdrop-blur-lg",
         className
       )}
       {...props}
@@ -49,6 +49,7 @@ function TabsTrigger({
         "h-[calc(100%-1px)] px-2 py-1 text-[13px]",
         "whitespace-nowrap font-medium",
         "text-text-tertiary dark:text-muted-foreground",
+        "active:scale-95 transition-all duration-200 ease-out",
         "data-[state=active]:bg-tab-active-background data-[state=active]:shadow-xs dark:data-[state=active]:text-orange-500",
         "transition-[color,box-shadow]",
         "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring focus-visible:ring-[3px] focus-visible:outline-1",

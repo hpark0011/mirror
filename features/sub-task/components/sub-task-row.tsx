@@ -53,7 +53,7 @@ export const SubTaskRow = memo(function SubTaskRow({
         onChange={(e) => onTextChange(e.target.value)}
         readOnly={disabled}
         className={cn(
-          "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-5 hover:bg-transparent",
+          "flex-1 border-none bg-transparent p-0 focus-visible:ring-0 h-5 hover:bg-transparent text-[13px]",
           completed && "line-through text-text-muted",
           disabled && "cursor-default"
         )}
