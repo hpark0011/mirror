@@ -35,6 +35,7 @@ const STORAGE_KEYS = {
   // Dashboard/UI preferences
   UI: {
     TODAY_FOCUS: `${APP_PREFIX}.${KEY_VERSION}.ui.today-focus`,
+    LAYOUT_PREFERENCE: `${APP_PREFIX}.${KEY_VERSION}.ui.layout-preference`,
     THEME: "theme", // External library key (next-themes)
   },
 } as const;

@@ -44,8 +44,11 @@ export function TicketActionToolbar({
         // Border
         "border border-border-light",
         // Interactive States
-        "opacity-0 group-hover:opacity-100",
-        "pointer-events-none group-hover:pointer-events-auto",
+        // Mobile: always visible
+        "opacity-100",
+        // Desktop: hover reveal
+        "md:opacity-0 md:group-hover:opacity-100",
+        "pointer-events-auto md:pointer-events-none md:group-hover:pointer-events-auto",
         "transition-opacity"
       )}
     >

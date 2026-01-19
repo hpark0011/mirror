@@ -1,5 +1,6 @@
 "use client";
 
+import { customToast } from "@/components/custom-toast";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,10 +25,10 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { customToast } from "@/components/custom-toast";
 import { useBoardActionsStore } from "@/store/board-actions-store";
 import { type ChangeEvent, useRef } from "react";
-import { ProjectFilter } from "./project-filter";
+import { LayoutToggle } from "./layout-toggle";
+import { TasksHeaderProjectFilter } from "./tasks-header-project-filter";
 
 interface TasksHeaderActionsProps {
   onInsightsClick: () => void;
@@ -66,30 +67,34 @@ export function TasksHeaderActions({
   };
   return (
     <>
+      <div className="hidden lg:block mr-2">
+        <LayoutToggle />
+      </div>
+
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
             variant='icon'
-            className='h-6 w-6 cursor-pointer rounded-[6px] gap-0.5'
+            size='icon-sm'
             aria-label='Insights'
             onClick={onInsightsClick}
           >
             <Icon
               name='WaveformPathEcgIcon'
-              className='size-5.5 text-icon-light'
+              className='size-4.5 text-icon-light'
             />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Total focus time</TooltipContent>
       </Tooltip>
 
-      <ProjectFilter />
+      <TasksHeaderProjectFilter />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant='icon'
-            className='h-6 w-6 cursor-pointer rounded-[6px]'
+            size='icon-sm'
             aria-label='Board actions'
           >
             <Icon name='EllipsisIcon' className='size-4.5 text-icon-light' />

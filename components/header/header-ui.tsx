@@ -1,8 +1,8 @@
 "use client";
 
+import { cn } from "@/lib/utils";
 import Image from "next/image";
 import type React from "react";
-import { cn } from "@/lib/utils";
 
 export const HeaderContainer = ({
   children,
@@ -14,7 +14,7 @@ export const HeaderContainer = ({
   return (
     <div
       className={cn(
-        "flex justify-between items-center h-12 bg-transparent fixed top-0 w-full px-4",
+        "flex justify-between items-center h-12 bg-transparent fixed top-0 w-full px-4 z-10",
         className
       )}
     >
@@ -60,6 +60,3 @@ export const HeaderLogo = () => {
   );
 };
 
-export const HeaderMenu = ({ children }: { children: React.ReactNode }) => {
-  return <div className='flex gap-0'>{children}</div>;
-};

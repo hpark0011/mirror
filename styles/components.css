@@ -6,6 +6,9 @@
 
   --popover: oklch(0.98 0 0 / 100%);
   --popover-border: oklch(1 0 0 / 70%);
+
+  /* Tabs */
+  --tab-active-background: var(--gray-1);
 }
 
 .dark {
@@ -16,6 +19,9 @@
 
   --popover: oklch(0.18 0 0 / 100%);
   --popover-border: oklch(1 0 0 / 2%);
+
+  /* Tabs */
+  --tab-active-background: var(--gray-3);
 }
 
 /* Pulse shadow animation for task item index button*/

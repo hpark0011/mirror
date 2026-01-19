@@ -26,7 +26,9 @@ function TabsList({
     <TabsPrimitive.List
       data-slot='tabs-list'
       className={cn(
-        "bg-transparent border border-extra-light text-muted-foreground inline-flex h-9 w-fit items-center justify-center rounded-lg p-[3px]",
+        "inline-flex w-fit items-center justify-center",
+        "h-9 rounded-md border border-input",
+        "bg-transparent text-muted-foreground",
         className
       )}
       {...props}
@@ -42,7 +44,18 @@ function TabsTrigger({
     <TabsPrimitive.Trigger
       data-slot='tabs-trigger'
       className={cn(
-        "data-[state=active]:bg-[#FFEED6] data-[state=active]:text-[#F66B15]  focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring dark:data-[state=active]:border-input dark:data-[state=active]:bg-input/30 text-text-tertiary dark:text-muted-foreground inline-flex h-[calc(100%-1px)] flex-1 items-center justify-center gap-1.5 rounded-sm border border-transparent px-2 py-1 font-medium whitespace-nowrap transition-[color,box-shadow] focus-visible:ring-[3px] focus-visible:outline-1 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 text-[13px] hover:bg-neutral-200 cursor-pointer",
+        "inline-flex flex-1 items-center justify-center gap-1.5",
+        "rounded-[5px] border border-transparent",
+        "h-[calc(100%-1px)] px-2 py-1 text-[13px]",
+        "whitespace-nowrap font-medium",
+        "text-text-tertiary dark:text-muted-foreground",
+        "data-[state=active]:bg-tab-active-background data-[state=active]:shadow-xs dark:data-[state=active]:text-orange-500",
+        "transition-[color,box-shadow]",
+        "focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:outline-ring focus-visible:ring-[3px] focus-visible:outline-1",
+        "disabled:pointer-events-none disabled:opacity-50",
+        "hover:bg-hover cursor-pointer",
+        "[&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+        "[&_svg]:text-icon-light data-[state=active]:[&_svg]:text-icon-medium",
         className
       )}
       {...props}

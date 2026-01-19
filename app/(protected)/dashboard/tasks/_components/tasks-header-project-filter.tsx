@@ -3,6 +3,7 @@
 import { XIcon } from "lucide-react";
 import { type KeyboardEvent, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Icon } from "@/components/ui/icon";
 import { Input } from "@/components/ui/input";
 import {
@@ -50,7 +51,7 @@ function ClearFilterButton({ onClick, className }: ClearFilterButtonProps) {
   );
 }
 
-export function ProjectFilter() {
+export function TasksHeaderProjectFilter() {
   const { projects } = useProjects();
   const { selectedProjectIds, toggleProject, clearFilter } = useProjectFilter();
   const [open, setOpen] = useState(false);
@@ -123,18 +124,25 @@ export function ProjectFilter() {
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
       <PopoverTrigger asChild>
-        <div
+        <Button
+          variant='icon'
+          size='icon-sm'
+          aria-label='Filter by project'
           className={cn(
-            "flex items-center h-6 w-fit bg-transparent cursor-pointer relative",
             hasActiveFilters &&
-              "bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] transition-all duration-200 ease-out cursor-pointer scale-100 flex items-center translate-y-[0px] overflow-hidden text-[13px] mx-1.5"
+              "bg-card shadow-xs border-border-highlight dark:border-white/2 border h-[24px] w-auto rounded-sm transition-all duration-200 ease-out scale-100 translate-y-[0px] overflow-hidden text-[13px] mx-1.5 hover:bg-card"
           )}
         >
-          <div className='flex items-center justify-center hover:bg-hover h-6 w-6 rounded-sm relative'>
+          <div
+            className={cn(
+              "flex items-center justify-center size-7 relative",
+              hasActiveFilters && "hover:bg-hover rounded-sm"
+            )}
+          >
             <Icon
               name='Line3Icon'
               className={cn(
-                "size-4.5 text-icon-light",
+                "size-4.5",
                 hasActiveFilters ? "text-blue-400" : "text-icon-light"
               )}
             />
@@ -184,7 +192,7 @@ export function ProjectFilter() {
               </div>
             </>
           )}
-        </div>
+        </Button>
       </PopoverTrigger>
 
       <PopoverContent align='end' className='w-[240px] p-0'>

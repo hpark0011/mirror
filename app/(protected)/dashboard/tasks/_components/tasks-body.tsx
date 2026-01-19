@@ -3,7 +3,6 @@
 import { Fragment, useCallback, useEffect } from "react";
 import { closestCenter, DndContext } from "@dnd-kit/core";
 import { COLUMNS } from "@/config/board.config";
-import { BodyContainer } from "@/components/layout/layout-ui";
 import {
   TicketFormDialog,
   createTicketFromFormData,
@@ -11,14 +10,21 @@ import {
 } from "@/features/ticket-form";
 import type { ColumnId } from "@/types/board.types";
 import { useBoardActionsStore } from "@/store/board-actions-store";
-import { useBoardState } from "../hooks/use-board-state";
-import { useBoardDnd } from "../hooks/use-board-dnd";
-import { useBoardForm, type TicketFormValues } from "../hooks/use-board-form";
-import { BoardColumn } from "./board-column";
-import { BoardDragOverlay } from "./board-drag-overlay";
-import { updateBoardWithTicket, syncTimerOnTicketUpdate } from "../utils";
+import {
+  useLayoutMode,
+  useBoardState,
+  useBoardDnd,
+  useBoardForm,
+  type TicketFormValues,
+  BoardColumn,
+  BoardDragOverlay,
+  BoardLayoutContainer,
+  updateBoardWithTicket,
+  syncTimerOnTicketUpdate,
+} from "@/features/kanban-board";
 
-export function Board() {
+export function TasksBody() {
+  const { isListLayout } = useLayoutMode();
   const {
     board,
     filteredBoard,
@@ -111,7 +117,7 @@ export function Board() {
         onDragOver={handlers.onDragOver}
         onDragEnd={handlers.onDragEnd}
       >
-        <BodyContainer>
+        <BoardLayoutContainer>
           {COLUMNS.map((column) => (
             <Fragment key={column.id}>
               <BoardColumn
@@ -127,10 +133,12 @@ export function Board() {
                 }
                 onUpdateSubTasks={actions.updateSubTasks}
               />
-              <div className='w-[1px] min-w-[1px] bg-neutral-200 dark:bg-neutral-900 last:hidden' />
+              {!isListLayout && (
+                <div className='w-[1px] min-w-[1px] bg-neutral-200 dark:bg-neutral-900 last:hidden' />
+              )}
             </Fragment>
           ))}
-        </BodyContainer>
+        </BoardLayoutContainer>
         <BoardDragOverlay activeTicket={activeTicket} />
       </DndContext>
 

@@ -13,7 +13,7 @@ export function TasksHeaderFocusDisplay({
     <button
       type='button'
       onClick={onClick}
-      className='bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] hover:bg-base  transition-all duration-200 ease-out cursor-pointer scale-100 absolute left-1/2 -translate-x-1/2 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden text-[14px]'
+      className='bg-card shadow-xs border-border-highlight dark:border-white/2 border rounded-sm h-[24px] hover:bg-base transition-all duration-200 ease-out cursor-pointer scale-100 flex items-center translate-y-[0px] hover:translate-y-[-1px] hover:shadow-lg overflow-hidden text-[14px]'
     >
       <div className='text-text-muted font-medium px-2 h-full flex items-center'>
         {new Date().toLocaleDateString(undefined, {
