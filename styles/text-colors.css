@@ -13,9 +13,9 @@
 
   /* Status Text Colors */
   --color-text-success: var(--color-green-500);
-  --color-text-error: var(--color-dq-red-500);
-  --color-text-warning: var(--color-dq-yellow-500);
-  --color-text-info: var(--color-dq-blue-500);
+  --color-text-error: var(--color-red-500);
+  --color-text-warning: var(--color-yellow-500);
+  --color-text-info: var(--color-blue-500);
 
   /* Text Highlight Colors */
   --color-text-highlight: rgba(234, 255, 170, 0.9);
@@ -36,9 +36,9 @@
 
   /* Status Text Colors */
   --color-text-success: var(--color-green-500);
-  --color-text-error: var(--color-dq-red-500);
-  --color-text-warning: var(--color-dq-yellow-500);
-  --color-text-info: var(--color-dq-blue-500);
+  --color-text-error: var(--color-red-500);
+  --color-text-warning: var(--color-yellow-500);
+  --color-text-info: var(--color-blue-500);
 
   /* Text Highlight Colors */
   --color-text-highlight: rgba(234, 255, 170, 0.2);
