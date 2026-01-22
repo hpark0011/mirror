@@ -74,7 +74,13 @@
       "Bash(git -C /Users/disquiet/Desktop/feel-good/greyboard log --stat --since=\"1 month ago\" --pretty=format:\"%h %s\")",
       "Bash(git -C /Users/disquiet/Desktop/feel-good/greyboard log --oneline --since=\"2 months ago\")",
       "Bash(git -C /Users/disquiet/Desktop/feel-good/greyboard log --stat --since=\"2 months ago\" --name-only --pretty=format:\"\")",
-      "Bash(pnpm install)"
+      "Bash(pnpm install)",
+      "Bash(vercel pull:*)",
+      "Bash(vercel deploy:*)",
+      "Bash(vercel logs:*)",
+      "Bash(vercel inspect:*)",
+      "Bash(git push:*)",
+      "Bash(vercel project:*)"
     ],
     "deny": [],
     "ask": []
