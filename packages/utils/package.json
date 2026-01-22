@@ -1,0 +1,17 @@
+{
+  "name": "@feel-good/utils",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./cn": "./src/cn.ts"
+  },
+  "devDependencies": {
+    "@feel-good/typescript-config": "workspace:*",
+    "typescript": "^5.3.0"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^3.3.1"
+  }
+}

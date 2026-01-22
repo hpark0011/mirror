@@ -1,0 +1,6 @@
+{
+  "buildCommand": "pnpm turbo build --filter=@feel-good/greyboard",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "outputDirectory": "apps/greyboard/.next"
+}

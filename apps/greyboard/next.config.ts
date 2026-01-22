@@ -4,6 +4,8 @@ import type { RuleSetRule } from "webpack";
 const nextConfig: NextConfig = {
   // Enable standalone output for production Electron builds
   output: process.env.ELECTRON_BUILD === "true" ? "standalone" : undefined,
+  // Transpile workspace packages
+  transpilePackages: ["@feel-good/ui", "@feel-good/utils"],
   webpack(config) {
     // Grab the existing rule that handles SVG imports
     const fileLoaderRule = config.module.rules.find((rule: RuleSetRule) => {
