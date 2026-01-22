@@ -82,7 +82,8 @@
       "Bash(git push:*)",
       "Bash(vercel project:*)",
       "Bash(vercel ls:*)",
-      "Bash(vercel list:*)"
+      "Bash(vercel list:*)",
+      "Bash(pnpm turbo build:*)"
     ],
     "deny": [],
     "ask": []
