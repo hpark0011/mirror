@@ -80,7 +80,9 @@
       "Bash(vercel logs:*)",
       "Bash(vercel inspect:*)",
       "Bash(git push:*)",
-      "Bash(vercel project:*)"
+      "Bash(vercel project:*)",
+      "Bash(vercel ls:*)",
+      "Bash(vercel list:*)"
     ],
     "deny": [],
     "ask": []
