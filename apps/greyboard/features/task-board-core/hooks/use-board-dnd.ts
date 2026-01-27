@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type {
   DragEndEvent,
   DragOverEvent,
@@ -57,11 +57,10 @@ export function useBoardDnd({
   const [activeId, setActiveId] = useState<string | null>(null);
   const dragSourceColumnRef = useRef<ColumnId | null>(null);
 
-  // Track latest board in ref to avoid recreating callbacks on every board change
+  // Using a ref to access board state for column existence checks.
+  // Synchronous assignment ensures no timing gap where the ref holds stale data.
   const boardRef = useRef(board);
-  useEffect(() => {
-    boardRef.current = board;
-  }, [board]);
+  boardRef.current = board;
 
   const sensors = useSensors(
     useSensor(MouseSensor, {

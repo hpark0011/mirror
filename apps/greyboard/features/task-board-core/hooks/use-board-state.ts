@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import {
   useProjectFilter,
@@ -90,8 +90,40 @@ export function useBoardState(): UseBoardStateReturn {
     return filtered;
   }, [board, selectedProjectIds]);
 
+  // Refs allow callbacks to access current board state without being recreated on every
+  // board change. This prevents infinite re-renders in dnd-kit's drag handlers.
+  const boardRef = useRef(board);
+  boardRef.current = board;
+
+  // Build O(1) lookup indexes for drag operations. Single pass builds both indexes.
+  const { ticketColumnIndex, ticketIndex } = useMemo(() => {
+    const columnIndex = new Map<string, string>();
+    const ticketMap = new Map<string, Ticket>();
+
+    for (const [columnId, tickets] of Object.entries(board)) {
+      for (const ticket of tickets) {
+        columnIndex.set(ticket.id, columnId);
+        ticketMap.set(ticket.id, ticket);
+      }
+    }
+
+    return { ticketColumnIndex: columnIndex, ticketIndex: ticketMap };
+  }, [board]);
+
+  // Refs for stable callback references
+  const ticketColumnIndexRef = useRef(ticketColumnIndex);
+  const ticketIndexRef = useRef(ticketIndex);
+  ticketColumnIndexRef.current = ticketColumnIndex;
+  ticketIndexRef.current = ticketIndex;
+
   const findColumn = useCallback(
-    (id: string, sourceBoard: BoardState = board): string | null => {
+    (id: string, sourceBoard?: BoardState): string | null => {
+      // O(1) lookup via index for external callers (drag handlers)
+      // O(n) search when sourceBoard provided (inside setBoard updaters for fresh state)
+      if (!sourceBoard) {
+        return ticketColumnIndexRef.current.get(id) ?? null;
+      }
+
       for (const [columnId, tickets] of Object.entries(sourceBoard)) {
         if (tickets.some((t) => t.id === id)) {
           return columnId;
@@ -99,35 +131,34 @@ export function useBoardState(): UseBoardStateReturn {
       }
       return null;
     },
-    [board]
+    []
   );
 
   const findTicket = useCallback(
     (id: string): Ticket | null => {
-      for (const tickets of Object.values(board)) {
-        const ticket = tickets.find((t) => t.id === id);
-        if (ticket) return ticket;
-      }
-      return null;
+      return ticketIndexRef.current.get(id) ?? null;
     },
-    [board]
+    []
   );
 
   const deleteTicket = useCallback(
     (ticketId: string) => {
-      const column = findColumn(ticketId);
-      if (!column) return;
-
       // Stop timer if this ticket has an active timer
       const stopWatchStore = useStopWatchStore.getState();
       if (stopWatchStore.isTimerActive(ticketId)) {
         stopWatchStore.stopTimer();
       }
 
-      setBoard((board) => ({
-        ...board,
-        [column]: board[column].filter((t) => t.id !== ticketId),
-      }));
+      // Column lookup inside updater ensures we use fresh board state
+      setBoard((currentBoard) => {
+        const column = findColumn(ticketId, currentBoard);
+        if (!column) return currentBoard;
+
+        return {
+          ...currentBoard,
+          [column]: currentBoard[column].filter((t) => t.id !== ticketId),
+        };
+      });
     },
     [findColumn, setBoard]
   );
@@ -192,8 +223,9 @@ export function useBoardState(): UseBoardStateReturn {
   const clearColumn = useCallback(
     (columnId: ColumnId) => {
       // Stop timer if any ticket in this column has an active timer
+      // Uses boardRef to avoid recreating callback on board changes
       const stopWatchStore = useStopWatchStore.getState();
-      const ticketsInColumn = board[columnId] || [];
+      const ticketsInColumn = boardRef.current[columnId] || [];
       for (const ticket of ticketsInColumn) {
         if (stopWatchStore.isTimerActive(ticket.id)) {
           stopWatchStore.stopTimer();
@@ -201,12 +233,12 @@ export function useBoardState(): UseBoardStateReturn {
         }
       }
 
-      setBoard((board) => ({
-        ...board,
+      setBoard((currentBoard) => ({
+        ...currentBoard,
         [columnId]: [],
       }));
     },
-    [setBoard, board]
+    [setBoard]
   );
 
   const handleStatusChange = useCallback(
