@@ -43,7 +43,7 @@ export function ResetPasswordForm({
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(getAuthErrorMessage("PASSWORDS_DONT_MATCH"));
       return;
     }
 

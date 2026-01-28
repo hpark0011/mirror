@@ -44,6 +44,7 @@ export const AUTH_ERROR_MESSAGES: Record<string, string> = {
   INVALID_TOKEN: "This link is invalid or has expired",
   RATE_LIMITED: "Too many attempts. Please try again later.",
   PASSWORD_TOO_SHORT: "Password must be at least 8 characters",
+  PASSWORDS_DONT_MATCH: "Passwords do not match",
   INVALID_EMAIL: "Please enter a valid email address",
   NETWORK_ERROR: "Unable to connect. Please check your internet connection.",
   UNKNOWN: "Something went wrong. Please try again.",
