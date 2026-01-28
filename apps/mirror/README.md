@@ -1,5 +1,28 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Environment Variables
+
+Create a `.env.local` file in the root of this app with the following required variables:
+
+```bash
+# Site URL for authentication
+NEXT_PUBLIC_SITE_URL="https://yourapp.com"
+
+# Convex configuration
+NEXT_PUBLIC_CONVEX_URL="https://your-deployment.convex.cloud"
+NEXT_PUBLIC_CONVEX_SITE_URL="https://yourapp.com"
+```
+
+### Required Variables
+
+| Variable | Description |
+|----------|-------------|
+| `NEXT_PUBLIC_SITE_URL` | Base URL for the application (used by auth client) |
+| `NEXT_PUBLIC_CONVEX_URL` | URL of your Convex deployment |
+| `NEXT_PUBLIC_CONVEX_SITE_URL` | Site URL for Convex auth integration |
+
+Environment variables are validated at startup. Missing or invalid variables will cause clear error messages.
+
 ## Getting Started
 
 First, run the development server:

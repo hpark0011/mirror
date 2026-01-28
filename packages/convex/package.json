@@ -16,7 +16,8 @@
     "convex": "^1.25.0",
     "@convex-dev/better-auth": "^0.10.10",
     "@convex-dev/resend": "^0.2.3",
-    "better-auth": "1.4.9"
+    "better-auth": "1.4.9",
+    "zod": "^4.0.0"
   },
   "devDependencies": {
     "@feel-good/tsconfig": "workspace:*",

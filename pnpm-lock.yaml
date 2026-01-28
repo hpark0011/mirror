@@ -276,6 +276,9 @@ importers:
       react-dom:
         specifier: 19.2.3
         version: 19.2.3(react@19.2.3)
+      zod:
+        specifier: ^4.0.0
+        version: 4.3.5
     devDependencies:
       '@feel-good/eslint-config':
         specifier: workspace:*
@@ -319,6 +322,9 @@ importers:
       convex:
         specifier: ^1.25.0
         version: 1.31.6(react@19.2.3)
+      zod:
+        specifier: ^4.0.0
+        version: 4.3.5
     devDependencies:
       '@feel-good/tsconfig':
         specifier: workspace:*
