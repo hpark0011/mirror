@@ -1,11 +1,13 @@
 "use client";
 
-import { createAppAuthClient, createUseSession } from "@feel-good/features/auth";
+import { createAppAuthClient, createSessionProvider } from "@feel-good/features/auth";
 
 export const authClient = createAppAuthClient(
   process.env.NEXT_PUBLIC_SITE_URL!
 );
 
-export const useSession = createUseSession(authClient);
+const { SessionProvider, useSession } = createSessionProvider(authClient);
+
+export { SessionProvider, useSession };
 
 export const { signIn, signUp, signOut } = authClient;
