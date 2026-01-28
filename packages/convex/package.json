@@ -1,0 +1,26 @@
+{
+  "name": "@feel-good/convex",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./convex/*": "./convex/*"
+  },
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "generate": "convex codegen"
+  },
+  "dependencies": {
+    "convex": "^1.25.0",
+    "@convex-dev/better-auth": "^0.10.10",
+    "@convex-dev/resend": "^0.2.3",
+    "better-auth": "1.4.9"
+  },
+  "devDependencies": {
+    "@feel-good/tsconfig": "workspace:*",
+    "@types/node": "^20",
+    "typescript": "^5.3.0"
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "@feel-good/features",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    "./auth": "./auth/index.ts",
+    "./auth/client": "./auth/client.ts",
+    "./auth/server": "./auth/server.ts",
+    "./auth/types": "./auth/types.ts",
+    "./auth/hooks": "./auth/hooks/index.ts",
+    "./auth/components": "./auth/components/index.ts"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0",
+    "next": "^16.0.0"
+  },
+  "dependencies": {
+    "better-auth": "1.4.9",
+    "@convex-dev/better-auth": "^0.10.10",
+    "@feel-good/ui": "workspace:*",
+    "convex": "^1.25.0",
+    "convex-helpers": "^0.1.111"
+  },
+  "devDependencies": {
+    "@feel-good/tsconfig": "workspace:*",
+    "@types/react": "^19",
+    "typescript": "^5.3.0"
+  }
+}

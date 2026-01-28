@@ -1,5 +1,5 @@
 {
-  "name": "mirror",
+  "name": "@feel-good/mirror",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,13 @@
   "dependencies": {
     "next": "16.1.4",
     "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "react-dom": "19.2.3",
+    "@feel-good/features": "workspace:*",
+    "@feel-good/ui": "workspace:*",
+    "@feel-good/convex": "workspace:*",
+    "@convex-dev/better-auth": "^0.10.10",
+    "better-auth": "1.4.9",
+    "convex": "^1.25.0"
   },
   "devDependencies": {
     "@feel-good/eslint-config": "workspace:*",
