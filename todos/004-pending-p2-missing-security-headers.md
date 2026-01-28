@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "004"
 tags: [code-review, security, nextjs]
@@ -65,10 +65,10 @@ Add security headers to `next.config.ts`.
 
 ## Acceptance Criteria
 
-- [ ] Add X-Frame-Options: DENY
-- [ ] Add X-Content-Type-Options: nosniff
-- [ ] Add Referrer-Policy
-- [ ] Add HSTS header
+- [x] Add X-Frame-Options: DENY
+- [x] Add X-Content-Type-Options: nosniff
+- [x] Add Referrer-Policy
+- [x] Add HSTS header
 - [ ] Test headers with security scanner
 
 ## Work Log
@@ -76,6 +76,7 @@ Add security headers to `next.config.ts`.
 | Date | Action | Outcome |
 |------|--------|---------|
 | 2026-01-28 | Created from code review | Identified P2 security issue |
+| 2026-01-28 | Implemented security headers | Added all 4 headers to next.config.ts |
 
 ## Resources
 
