@@ -24,6 +24,7 @@ out
 
 # Claude
 .claude/settings.local.json
+CLAUDE.local.md
 
 # Cursor
 .cursor/debug.log

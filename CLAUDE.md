@@ -93,3 +93,23 @@ Shared Prettier configuration.
 2. Add `package.json` with name `@feel-good/package-name`
 3. Add to consuming apps' dependencies
 4. Run `pnpm install` from root
+
+## Claude Code Configuration
+
+```
+.claude/
+├── rules/                    # Path-specific rules (auto-loaded by context)
+│   ├── monorepo.md          # Workspace conventions
+│   ├── typescript.md        # TypeScript rules
+│   ├── react-components.md  # Component patterns
+│   ├── forms.md             # Form handling
+│   ├── state-management.md  # State patterns
+│   └── apps/greyboard/      # App-specific rules
+├── skills/                   # Detailed documentation
+├── commands/                 # Custom commands
+└── agents/                   # AI agents
+```
+
+### Personal Preferences
+
+Copy `CLAUDE.local.md.example` to `CLAUDE.local.md` for personal preferences (gitignored).

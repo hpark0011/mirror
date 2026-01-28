@@ -1,0 +1,71 @@
+# Personal Claude Preferences
+
+This file is for your personal Claude Code preferences. Copy this file to `CLAUDE.local.md` and customize as needed.
+
+**Note:** `CLAUDE.local.md` is gitignored and won't be committed.
+
+## My Environment
+
+```
+# Uncomment and customize as needed
+# Editor: VS Code with Vim keybindings
+# Terminal: iTerm2 / Windows Terminal / etc.
+# Node version: 20.x
+```
+
+## Current Focus
+
+```
+# What I'm currently working on
+# - Feature: [describe current feature]
+# - Bug fix: [describe current bug]
+# - Refactor: [describe refactor goal]
+```
+
+## My Preferences
+
+### Response Style
+
+```
+# Uncomment preferences that apply to you
+# - Prefer verbose explanations with examples
+# - Prefer concise, code-focused responses
+# - Always show file paths in responses
+# - Include performance considerations
+```
+
+### Code Style
+
+```
+# Personal code style preferences (beyond project standards)
+# - Prefer explicit returns over implicit
+# - Prefer named exports over default exports
+# - Prefer verbose variable names
+```
+
+### Testing
+
+```
+# Testing preferences
+# - Always suggest test cases for new code
+# - Prefer integration tests over unit tests
+# - Include edge case examples
+```
+
+## Reminders
+
+```
+# Personal reminders for this project
+# - Remember to run `pnpm lint` before commits
+# - Check Supabase migrations after schema changes
+# - Run `pnpm build` to catch type errors
+```
+
+## Custom Aliases
+
+```
+# Shortcuts I use
+# - "fix types" → Run build and fix TypeScript errors
+# - "clean up" → Run lint with --fix
+# - "new feature" → Create feature directory structure
+```
