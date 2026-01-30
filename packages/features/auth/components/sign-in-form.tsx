@@ -7,6 +7,7 @@ import { Input } from "@feel-good/ui/primitives/input";
 import { Label } from "@feel-good/ui/primitives/label";
 import type { AuthClient } from "../client";
 import { getAuthErrorMessage, type AuthStatus } from "../types";
+import { FormError } from "./form-error";
 import { getSafeRedirectUrl } from "../utils/validate-redirect";
 
 interface SignInFormProps {
@@ -49,11 +50,7 @@ export function SignInForm({ authClient, redirectTo }: SignInFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      <FormError message={error} />
 
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>

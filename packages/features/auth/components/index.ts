@@ -5,3 +5,5 @@ export { OAuthButtons } from "./oauth-buttons";
 export { ForgotPasswordForm } from "./forgot-password-form";
 export { ResetPasswordForm } from "./reset-password-form";
 export { createSessionProvider } from "./session-provider";
+export { FormError } from "./form-error";
+export { FormSuccess } from "./form-success";

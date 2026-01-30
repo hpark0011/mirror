@@ -11,6 +11,8 @@ import {
   validatePassword,
   type AuthStatus,
 } from "../types";
+import { FormError } from "./form-error";
+import { FormSuccess } from "./form-success";
 
 interface SignUpFormProps {
   authClient: AuthClient;
@@ -57,26 +59,17 @@ export function SignUpForm({ authClient, onSuccess }: SignUpFormProps) {
   if (isSuccess) {
     return (
       <div className="space-y-4 text-center">
-        <div className="rounded-md bg-green-50 p-4 dark:bg-green-900/20">
-          <h3 className="font-medium text-green-800 dark:text-green-200">
-            Check your email
-          </h3>
-          <p className="mt-1 text-sm text-green-700 dark:text-green-300">
-            We sent a verification link to {email}. Please verify your email to
-            continue.
-          </p>
-        </div>
+        <FormSuccess
+          title="Check your email"
+          message={`We sent a verification link to ${email}. Please verify your email to continue.`}
+        />
       </div>
     );
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && (
-        <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+      <FormError message={error} />
 
       <div className="space-y-2">
         <Label htmlFor="name">Name</Label>
