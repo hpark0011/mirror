@@ -1,0 +1,80 @@
+/*
+* global.css
+*
+* Global styles for the entire application
+ */
+
+/* import tailwindcss */
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* import radix colors */
+@import "@radix-ui/colors/gray.css";
+@import "@radix-ui/colors/gray-dark.css";
+
+/* local styles - update the below if you add a new style */
+@import "./fonts.css";
+
+/* content sources - update the below if you add a new path */
+@source "../node_modules/@feel-good/ui";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: var(--gray-1);
+  --foreground: var(--gray-12);
+
+  /* Button */
+  --primary: var(--gray-12);
+  --primary-foreground: var(--gray-1);
+
+  --secondary: var(--gray-10);
+  --secondary-foreground: var(--gray-12);
+}
+
+.dark {
+  --background: var(--gray-1);
+  --foreground: var(--gray-12);
+
+  /* Button */
+  --primary: var(--gray-12);
+  --primary-foreground: var(--gray-1);
+
+  --secondary: var(--gray-10);
+  --secondary-foreground: var(--gray-12);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  /* Radix Gray Scale */
+  --color-gray-1: var(--gray-1);
+  --color-gray-2: var(--gray-2);
+  --color-gray-3: var(--gray-3);
+  --color-gray-4: var(--gray-4);
+  --color-gray-5: var(--gray-5);
+  --color-gray-6: var(--gray-6);
+  --color-gray-7: var(--gray-7);
+  --color-gray-8: var(--gray-8);
+  --color-gray-9: var(--gray-9);
+  --color-gray-10: var(--gray-10);
+  --color-gray-11: var(--gray-11);
+  --color-gray-12: var(--gray-12);
+
+  /* Button */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+}
+
+@layer base {
+  body {
+    background: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    letter-spacing: -0.04em;
+  }
+}

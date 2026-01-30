@@ -11,13 +11,17 @@
   "dependencies": {
     "@convex-dev/better-auth": "catalog:",
     "@feel-good/convex": "workspace:*",
+    "@radix-ui/colors": "catalog:",
     "@feel-good/features": "workspace:*",
     "@feel-good/ui": "workspace:*",
     "better-auth": "catalog:",
     "convex": "catalog:",
+    "lucide-react": "catalog:",
     "next": "catalog:",
+    "next-themes": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
+    "tw-animate-css": "catalog:",
     "zod": "catalog:"
   },
   "devDependencies": {

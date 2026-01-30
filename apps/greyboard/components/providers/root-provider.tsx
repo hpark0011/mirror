@@ -2,7 +2,7 @@
 
 import { Toaster } from "sonner";
 // all the providers go here
-import { ThemeProvider } from "@/components/providers/theme-provider";
+import { ThemeProvider } from "@feel-good/ui/providers/theme-provider";
 import { useThemeToggle } from "@/hooks/use-theme-toggle";
 import { ReactQueryProvider } from "./react-query-provider";
 

@@ -6,6 +6,7 @@
   "exports": {
     "./primitives/*": "./src/primitives/*.tsx",
     "./components/*": "./src/components/*.tsx",
+    "./providers/*": "./src/providers/*.tsx",
     "./hooks/*": "./src/hooks/*.tsx",
     "./lib/utils": "./src/lib/utils.ts",
     "./styles.css": "./src/styles/globals.css"

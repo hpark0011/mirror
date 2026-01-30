@@ -40,6 +40,7 @@ catalog:
   recharts: "2.15.4"
   embla-carousel-react: "^8.6.0"
   react-resizable-panels: "^3.0.4"
+  tw-animate-css: "^1.3.7"
 
   # Styling
   tailwindcss: "^4"

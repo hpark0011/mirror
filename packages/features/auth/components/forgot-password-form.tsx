@@ -30,7 +30,7 @@ export function ForgotPasswordForm({
 
     const safeRedirectTo = getSafeRedirectUrl(redirectTo, "/reset-password");
 
-    await authClient.forgetPassword(
+    await authClient.requestPasswordReset(
       { email, redirectTo: safeRedirectTo },
       {
         onSuccess: () => {
@@ -40,7 +40,7 @@ export function ForgotPasswordForm({
           setStatus("error");
           setError(getAuthErrorMessage(ctx.error.code ?? "UNKNOWN"));
         },
-      }
+      },
     );
   }
 

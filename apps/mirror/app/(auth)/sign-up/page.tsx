@@ -1,10 +1,11 @@
 "use client";
 
+import { Suspense } from "react";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
 import { SignUpForm, OAuthButtons } from "@feel-good/features/auth/components";
 
-export default function SignUpPage() {
+function SignUpContent() {
   return (
     <div className="space-y-6">
       <div className="space-y-2 text-center">
@@ -41,5 +42,13 @@ export default function SignUpPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense fallback={<div className="h-96 animate-pulse rounded-lg bg-zinc-100 dark:bg-zinc-800" />}>
+      <SignUpContent />
+    </Suspense>
   );
 }

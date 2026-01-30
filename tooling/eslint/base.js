@@ -12,6 +12,9 @@ export default tseslint.config(
         "error",
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
+      // Prevent non-null assertions (!) which can hide missing env var errors
+      // Use explicit validation instead: if (!value) throw new Error(...)
+      "@typescript-eslint/no-non-null-assertion": "warn",
     },
   }
 );

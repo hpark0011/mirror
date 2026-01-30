@@ -8,11 +8,15 @@ import { z } from "zod";
 
 const clientEnvSchema = z.object({
   NEXT_PUBLIC_SITE_URL: z.string().url("NEXT_PUBLIC_SITE_URL must be a valid URL"),
+  NEXT_PUBLIC_CONVEX_URL: z
+    .string()
+    .url("NEXT_PUBLIC_CONVEX_URL must be a valid URL"),
 });
 
 function validateClientEnv() {
   const result = clientEnvSchema.safeParse({
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_CONVEX_URL: process.env.NEXT_PUBLIC_CONVEX_URL,
   });
 
   if (!result.success) {
@@ -23,7 +27,8 @@ function validateClientEnv() {
     throw new Error(
       `❌ Missing or invalid client environment variables:\n${errors}\n\n` +
         `Set these in your .env.local file:\n` +
-        `  NEXT_PUBLIC_SITE_URL="https://yourapp.com"`
+        `  NEXT_PUBLIC_SITE_URL="https://yourapp.com"\n` +
+        `  NEXT_PUBLIC_CONVEX_URL="https://your-deployment.convex.cloud"`
     );
   }
 
