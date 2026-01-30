@@ -1,5 +1,5 @@
 ---
-status: pending
+status: done
 priority: p2
 issue_id: "011"
 tags: [code-review, consistency, auth]
@@ -61,15 +61,16 @@ Add `PASSWORDS_DONT_MATCH` to `AUTH_ERROR_MESSAGES`.
 
 ## Acceptance Criteria
 
-- [ ] Add PASSWORDS_DONT_MATCH to AUTH_ERROR_MESSAGES
-- [ ] Update reset-password-form to use getAuthErrorMessage
-- [ ] Verify error displays correctly
+- [x] Add PASSWORDS_DONT_MATCH to AUTH_ERROR_MESSAGES
+- [x] Update reset-password-form to use getAuthErrorMessage
+- [x] Verify error displays correctly
 
 ## Work Log
 
 | Date | Action | Outcome |
 |------|--------|---------|
 | 2026-01-28 | Created from code review | Identified P2 consistency issue |
+| 2026-01-28 | Fixed in PR #77 | Centralized error message now used |
 
 ## Resources
 
