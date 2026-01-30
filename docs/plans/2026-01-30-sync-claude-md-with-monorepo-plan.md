@@ -260,13 +260,13 @@ pnpm dev --filter=@feel-good/ui-factory
 
 ## Files to Modify
 
-- [ ] `/CLAUDE.md` - Add missing apps/packages sections
-- [ ] `/.claude/rules/monorepo.md` - Add new package imports
-- [ ] `/.claude/health.md` - Update status and checklist
+- [x] `/CLAUDE.md` - Add missing apps/packages sections
+- [x] `/.claude/rules/monorepo.md` - Add new package imports
+- [x] `/.claude/health.md` - Update status and checklist
 
 ## Files to Create
 
-- [ ] `apps/mirror/CLAUDE.md`
-- [ ] `apps/ui-factory/CLAUDE.md`
-- [ ] `packages/ui/CLAUDE.md`
-- [ ] `packages/features/CLAUDE.md`
+- [x] `apps/mirror/CLAUDE.md`
+- [x] `apps/ui-factory/CLAUDE.md`
+- [x] `packages/ui/CLAUDE.md`
+- [x] `packages/features/CLAUDE.md`

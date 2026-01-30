@@ -10,12 +10,19 @@ paths:
 
 - Import workspace packages via `@feel-good/*` aliases
 - Never use relative paths across package boundaries
-- Workspace packages: `@feel-good/utils`, `@feel-good/icons`
+- Workspace packages:
+  - `@feel-good/utils` - Shared utilities (cn, formatting)
+  - `@feel-good/icons` - SVG icon components
+  - `@feel-good/ui` - Shared UI components (shadcn/ui primitives)
+  - `@feel-good/features` - Auth features
+  - `@feel-good/convex` - Convex backend
 
 ```typescript
 // ✅ Correct
 import { cn } from "@feel-good/utils/cn";
 import { CheckIcon } from "@feel-good/icons";
+import { Button } from "@feel-good/ui/primitives/button";
+import { SignInForm } from "@feel-good/features/auth/components";
 
 // ❌ Wrong - relative import across packages
 import { cn } from "../../../packages/utils/cn";

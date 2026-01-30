@@ -25,10 +25,13 @@ pnpm lint --filter=@feel-good/greyboard   # Lint single app
 feel-good/
 ├── apps/
 │   ├── greyboard/              # Task management app (Next.js 15)
-│   ├── mirror/                 # Main Feel Good app (Next.js 15)
-│   └── ui-factory/             # Component design & preview tool
+│   ├── mirror/                 # Auth app (Convex + Better Auth)
+│   └── ui-factory/             # Design system showcase
 ├── packages/
+│   ├── convex/                 # Shared Convex backend (@feel-good/convex)
+│   ├── features/               # Shared feature components (@feel-good/features)
 │   ├── icons/                  # SVG icon components (@feel-good/icons)
+│   ├── ui/                     # Shared UI components (@feel-good/ui)
 │   └── utils/                  # Shared utilities (@feel-good/utils)
 ├── tooling/
 │   ├── eslint/                 # @feel-good/eslint-config
@@ -48,13 +51,13 @@ See `apps/greyboard/CLAUDE.md` for detailed documentation.
 
 ### Mirror (`apps/mirror`)
 
-Main Feel Good application with Convex backend and better-auth.
-Runs on port 3001.
+Authentication dashboard with Convex real-time backend and Better Auth.
+Runs on port 3001. See `apps/mirror/CLAUDE.md` for detailed documentation.
 
 ### UI Factory (`apps/ui-factory`)
 
-Component design and preview tool for Feel Good apps.
-Runs on port 3002.
+Design system showcase and component playground for Feel Good apps.
+Runs on port 3002. See `apps/ui-factory/CLAUDE.md` for detailed documentation.
 
 ## Packages
 
@@ -72,6 +75,33 @@ SVG icon components as React components.
 
 ```typescript
 import { CheckIcon, CloseIcon } from "@feel-good/icons";
+```
+
+### @feel-good/ui
+
+Shared UI component library based on shadcn/ui primitives.
+
+```typescript
+import { Button } from "@feel-good/ui/primitives/button";
+import { Card } from "@feel-good/ui/primitives/card";
+import { Dialog } from "@feel-good/ui/primitives/dialog";
+```
+
+### @feel-good/features
+
+Shared feature components (authentication).
+
+```typescript
+import { SignInForm, SignUpForm } from "@feel-good/features/auth/components";
+import { useSession } from "@feel-good/features/auth/hooks";
+```
+
+### @feel-good/convex
+
+Shared Convex backend configuration and functions.
+
+```typescript
+import { api } from "@feel-good/convex";
 ```
 
 ### @feel-good/tsconfig
