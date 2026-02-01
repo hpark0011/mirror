@@ -8,14 +8,14 @@
     "./components/*": "./src/components/*.tsx",
     "./providers/*": "./src/providers/*.tsx",
     "./hooks/*": "./src/hooks/*.tsx",
-    "./lib/utils": "./src/lib/utils.ts",
-    "./styles.css": "./src/styles/globals.css"
+    "./lib/utils": "./src/lib/utils.ts"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0",
     "react-dom": "^18.0.0 || ^19.0.0"
   },
   "dependencies": {
+    "@feel-good/icons": "workspace:*",
     "@feel-good/utils": "workspace:*",
     "@hookform/resolvers": "catalog:",
     "@radix-ui/react-accordion": "catalog:",

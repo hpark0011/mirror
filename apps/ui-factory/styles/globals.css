@@ -11,9 +11,13 @@
 /* import radix colors */
 @import "@radix-ui/colors/gray.css";
 @import "@radix-ui/colors/gray-dark.css";
+@import "@radix-ui/colors/red.css";
+@import "@radix-ui/colors/red-dark.css";
 
 /* local styles - update the below if you add a new style */
 @import "./fonts.css";
+@import "./radix-color-scale.css";
+@import "./shadows.css";
 
 /* content sources - update the below if you add a new path */
 @source "../node_modules/@feel-good/ui";
@@ -21,18 +25,37 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: var(--gray-1);
+  /* Base */
+  --background: var(--gray-4);
   --foreground: var(--gray-12);
 
   /* Button */
-  --primary: var(--gray-12);
-  --primary-foreground: var(--gray-1);
+  --primary: #2d2d2d;
+  --primary-foreground: var(--gray-3);
 
-  --secondary: var(--gray-10);
+  --secondary: var(--gray-1);
   --secondary-foreground: var(--gray-12);
+
+  --destructive: var(--red-9);
+  --destructive-foreground: var(--red-1);
+
+  --accent: var(--gray-1);
+  --accent-foreground: var(--gray-12);
+
+  --ghost: transparent;
+  --ghost-foreground: var(--gray-11);
+
+  /* Input */
+  --input: var(--gray-1);
+  --input-foreground: var(--gray-12);
+
+  /* Border */
+  --border: var(--gray-6);
+  --ring: var(--gray-8);
 }
 
 .dark {
+  /* Base */
   --background: var(--gray-1);
   --foreground: var(--gray-12);
 
@@ -40,27 +63,31 @@
   --primary: var(--gray-12);
   --primary-foreground: var(--gray-1);
 
-  --secondary: var(--gray-10);
+  --secondary: var(--gray-3);
   --secondary-foreground: var(--gray-12);
+
+  --destructive: var(--red-9);
+  --destructive-foreground: var(--red-1);
+
+  --accent: var(--gray-3);
+  --accent-foreground: var(--gray-12);
+
+  --ghost: transparent;
+  --ghost-foreground: var(--gray-12);
+
+  /* Input */
+  --input: var(--gray-3);
+  --input-foreground: var(--gray-12);
+
+  /* Border */
+  --border: var(--gray-3);
+  --ring: var(--gray-3);
 }
 
 @theme inline {
+  /* Base */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-
-  /* Radix Gray Scale */
-  --color-gray-1: var(--gray-1);
-  --color-gray-2: var(--gray-2);
-  --color-gray-3: var(--gray-3);
-  --color-gray-4: var(--gray-4);
-  --color-gray-5: var(--gray-5);
-  --color-gray-6: var(--gray-6);
-  --color-gray-7: var(--gray-7);
-  --color-gray-8: var(--gray-8);
-  --color-gray-9: var(--gray-9);
-  --color-gray-10: var(--gray-10);
-  --color-gray-11: var(--gray-11);
-  --color-gray-12: var(--gray-12);
 
   /* Button */
   --color-primary: var(--primary);
@@ -68,13 +95,38 @@
 
   --color-secondary: var(--secondary);
   --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-ghost: var(--ghost);
+  --color-ghost-foreground: var(--ghost-foreground);
+
+  /* Border */
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+
+  /* Icon */
+  --color-icon: var(--gray-9);
+
+  /* Input */
+  --color-input: var(--input);
+  --color-input-foreground: var(--input-foreground);
 }
 
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
   body {
     background: var(--color-background);
     color: var(--color-foreground);
     font-family: var(--font-sans);
     letter-spacing: -0.04em;
+    font-weight: 480;
   }
 }

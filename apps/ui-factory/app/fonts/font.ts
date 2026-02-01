@@ -12,7 +12,7 @@ export const Inter = localFont({
     },
   ],
   display: "swap",
-  variable: "--font-inter",
+  variable: "--font-inter-variable",
 });
 
 export const InstrumentSerif = localFont({

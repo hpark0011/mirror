@@ -79,14 +79,14 @@ export function TicketFormDialog({
         clearSubTasks();
       }
     },
-    [handleSubmit, clearSubTasks, mode]
+    [handleSubmit, clearSubTasks, mode],
   );
 
   // Show sub-tasks section when there are sub-tasks (manual toggle still works)
   // CREATE mode: Always start collapsed
   // EDIT mode: Start expanded if ticket has sub-tasks
   const [showSubTasks, setShowSubTasks] = useState(
-    mode === "edit" && (defaultValues?.subTasks?.length ?? 0) > 0
+    mode === "edit" && (defaultValues?.subTasks?.length ?? 0) > 0,
   );
 
   // Track previous count to distinguish between user toggle and user removing items
@@ -118,8 +118,7 @@ export function TicketFormDialog({
 
       if (shouldAutoShow && !isInitialLoad) {
         setShowSubTasks(true);
-      }
-      // Hide only when user REMOVED last sub-task (went from 1+ to 0)
+      } // Hide only when user REMOVED last sub-task (went from 1+ to 0)
       // Don't hide if count was already 0 (user just toggled manually)
       else if (subTasksCount === 0 && prevCount > 0 && currentShowSubTasks) {
         setShowSubTasks(false);
@@ -145,7 +144,7 @@ export function TicketFormDialog({
         clearSubTasks();
       }
     },
-    [autoSaveOpenChange, clearSubTasks, mode]
+    [autoSaveOpenChange, clearSubTasks, mode],
   );
 
   const handleCancel = useCallback(() => {
@@ -167,8 +166,8 @@ export function TicketFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className='sm:max-w-xl' onOpenAutoFocus={handleAutoFocus}>
-        <DialogHeader className='sr-only'>
+      <DialogContent className="sm:max-w-xl" onOpenAutoFocus={handleAutoFocus}>
+        <DialogHeader className="sr-only">
           <VisuallyHidden asChild>
             <DialogTitle>
               {mode === "create" ? "Create New Ticket" : "Edit Ticket"}
@@ -185,21 +184,21 @@ export function TicketFormDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(handleSubmitWithCleanup)}>
-            <DialogBody className='mt-3 gap-0'>
-              <div className='flex items-center w-[calc(100%+12px)] ml-[-6px]'>
+            <DialogBody className="mt-3 gap-0">
+              <div className="flex items-center w-[calc(100%+12px)] ml-[-6px]">
                 <FormField
                   control={form.control}
-                  name='title'
+                  name="title"
                   render={({ field }) => (
-                    <FormItem className='w-full'>
+                    <FormItem className="w-full">
                       <FormControl>
                         <Input
-                          placeholder='Enter ticket title…'
+                          placeholder="Enter ticket title…"
                           {...field}
                           ref={(el) => setRefs(el, field.ref)}
                           onKeyDown={handleTitleKeyDown}
                           className={cn(
-                            "md:text-text-primary h-auto py-0 px-2 rounded-[8px] placeholder:text-text-muted transition-all md:text-[18px] border-none w-full leading-[1.8]"
+                            "md:text-text-primary h-auto py-0 px-2 rounded-[8px] placeholder:text-text-muted transition-all md:text-[18px] border-none w-full leading-[1.8]",
                           )}
                         />
                       </FormControl>
@@ -210,19 +209,19 @@ export function TicketFormDialog({
               </div>
               <FormField
                 control={form.control}
-                name='description'
+                name="description"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel className='sr-only'>Description</FormLabel>
+                    <FormLabel className="sr-only">Description</FormLabel>
                     <FormControl>
-                      <div className='relative w-[calc(100%+12px)] ml-[-6px]'>
+                      <div className="relative w-[calc(100%+12px)] ml-[-6px]">
                         <AutoResizingTextarea
-                          placeholder='Enter ticket description...'
+                          placeholder="Enter ticket description..."
                           maxHeight={400}
                           {...field}
                           ref={(el) => setDescriptionRef(el, field.ref)}
                           className={cn(
-                            "resize-none h-full rounded-md min-h-[160px] flex-1 transition-all  border-none px-2 pb-4"
+                            "resize-none h-full rounded-md min-h-[160px] flex-1 transition-all  border-none px-2 pb-4",
                           )}
                         />
                         <GradientFade />
@@ -235,12 +234,12 @@ export function TicketFormDialog({
               {showSubTasks && (
                 <FormField
                   control={form.control}
-                  name='subTasks'
+                  name="subTasks"
                   render={() => (
                     <FormItem>
-                      <FormLabel className='sr-only'>Sub-tasks</FormLabel>
+                      <FormLabel className="sr-only">Sub-tasks</FormLabel>
                       <FormControl>
-                        <div className='relative z-1 w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg overflow-hidden'>
+                        <div className="relative z-1 w-[calc(100%+12px)] ml-[-6px] border border-border-medium rounded-lg overflow-hidden">
                           <SubTasksListForm
                             control={form.control}
                             name={"subTasks"}
@@ -254,14 +253,14 @@ export function TicketFormDialog({
               )}
             </DialogBody>
 
-            <DialogFooter className='gap-1 w-full flex justify-between items-center'>
-              <div className='flex flex-1'>
+            <DialogFooter className="gap-1 w-full flex justify-between items-center">
+              <div className="flex flex-1">
                 <FormField
                   control={form.control}
-                  name='status'
+                  name="status"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className='sr-only'>Status</FormLabel>
+                      <FormLabel className="sr-only">Status</FormLabel>
                       <FormControl>
                         <StatusSelect
                           value={field.value}
@@ -274,11 +273,11 @@ export function TicketFormDialog({
                 />
                 <FormField
                   control={form.control}
-                  name='projectId'
+                  name="projectId"
                   render={({ field }) => {
                     return (
                       <FormItem>
-                        <FormLabel className='sr-only'>Project</FormLabel>
+                        <FormLabel className="sr-only">Project</FormLabel>
                         <FormControl>
                           <ProjectSelect
                             value={field.value}
@@ -293,15 +292,15 @@ export function TicketFormDialog({
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      type='button'
-                      variant='icon'
+                      type="button"
+                      variant="ghost"
                       onClick={toggleSubTasks}
                     >
                       <Icon
-                        name='ChecklistIcon'
+                        name="ChecklistIcon"
                         className={cn(
                           "size-4.5",
-                          showSubTasks ? "text-blue-500" : "text-icon-light"
+                          showSubTasks ? "text-blue-500" : "text-icon-light",
                         )}
                       />
                     </Button>
@@ -311,14 +310,14 @@ export function TicketFormDialog({
               </div>
 
               <Button
-                type='button'
-                variant='ghost'
+                type="button"
+                variant="ghost"
                 onClick={handleCancel}
-                size='sm'
+                size="sm"
               >
                 Cancel
               </Button>
-              <Button type='submit' variant='primary' size='sm'>
+              <Button type="submit" variant="primary" size="sm">
                 {mode === "create" ? "Create Ticket" : "Save Changes"}
               </Button>
             </DialogFooter>

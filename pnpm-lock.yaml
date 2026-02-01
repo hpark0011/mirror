@@ -656,6 +656,9 @@ importers:
 
   packages/ui:
     dependencies:
+      '@feel-good/icons':
+        specifier: workspace:*
+        version: link:../icons
       '@feel-good/utils':
         specifier: workspace:*
         version: link:../utils
