@@ -24,6 +24,20 @@ pnpm dev --filter=@feel-good/ui-factory
 | Styling   | Tailwind CSS, @feel-good/ui                     |
 | Theming   | next-themes                                     |
 
+## Atomic Structure
+
+UI Factory uses atomic design with two levels:
+
+| Level      | Path             | Purpose                                   | Examples             |
+| ---------- | ---------------- | ----------------------------------------- | -------------------- |
+| Components | `app/components` | Base primitives                           | buttons, input, switch |
+| Blocks     | `app/blocks`     | Feature blocks composed from components   | login, sign-up       |
+
+Each component/block folder uses:
+- `_components/` - Implementation files
+- `_views/` - Display views
+- `_utils/` - Optional utilities
+
 ## Purpose
 
 - Component playground for testing @feel-good/ui primitives

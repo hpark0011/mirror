@@ -10,17 +10,13 @@ export function SignUpView() {
       <Divider />
       <PageSection>
         <PageSectionHeader>Password</PageSectionHeader>
-        <div className="flex flex-col w-full items-center">
-          <PasswordSignUpForm />
-        </div>
+        <PasswordSignUpForm />
       </PageSection>
 
       <Divider />
       <PageSection>
         <PageSectionHeader>Magic Link</PageSectionHeader>
-        <div className="flex flex-col w-full items-center">
-          <MagicLinkSignUpForm />
-        </div>
+        <MagicLinkSignUpForm />
       </PageSection>
     </div>
   );
