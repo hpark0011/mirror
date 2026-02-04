@@ -29,14 +29,25 @@ export function createUseSession(authClient: AuthClient) {
   return function useSession() {
     const [session, setSession] = useState<Session | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
 
     useEffect(() => {
-      authClient.getSession().then(({ data }) => {
-        if (data) {
-          setSession({ user: data.user });
-        }
-        setIsLoading(false);
-      });
+      authClient
+        .getSession()
+        .then(({ data }) => {
+          if (data) {
+            setSession({ user: data.user });
+          }
+        })
+        .catch((err: unknown) => {
+          const error =
+            err instanceof Error ? err : new Error("Failed to fetch session");
+          setError(error);
+          console.error("Failed to fetch session:", error);
+        })
+        .finally(() => {
+          setIsLoading(false);
+        });
     }, []);
 
     const signOut = useCallback(async () => {
@@ -49,6 +60,7 @@ export function createUseSession(authClient: AuthClient) {
       user: session?.user ?? null,
       isLoading,
       isAuthenticated: !!session,
+      error,
       signOut,
     };
   };
