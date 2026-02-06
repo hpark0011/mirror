@@ -1,8 +1,8 @@
 import { createClient, type GenericCtx } from "@convex-dev/better-auth";
 import { convex } from "@convex-dev/better-auth/plugins";
 import { betterAuth } from "better-auth";
-import { magicLink } from "better-auth/plugins";
-import { api, components } from "./_generated/api";
+import { emailOTP, magicLink } from "better-auth/plugins";
+import { internal, components } from "./_generated/api";
 import { type DataModel } from "./_generated/dataModel";
 import { query } from "./_generated/server";
 import authConfig from "./auth.config";
@@ -20,7 +20,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     emailVerification: {
       sendVerificationEmail: ({ user, url }) => {
         // Fire-and-forget: don't block auth response waiting for email
-        void ctx.runAction(api.email.sendVerificationEmail, {
+        void ctx.runAction(internal.email.sendVerificationEmail, {
           to: user.email,
           link: url,
         });
@@ -53,6 +53,8 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       max: 10,
       customRules: {
         "/sign-in/magic-link": { window: 60, max: 3 },
+        "/email-otp/send-verification-otp": { window: 60, max: 3 },
+        "/sign-in/email-otp": { window: 300, max: 5 },
       },
     },
 
@@ -61,12 +63,21 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
       magicLink({
         sendMagicLink: ({ email, url }) => {
           // Fire-and-forget: don't block auth response waiting for email
-          void ctx.runAction(api.email.sendMagicLink, {
+          void ctx.runAction(internal.email.sendMagicLink, {
             to: email,
             link: url,
           });
         },
         expiresIn: 900, // 15 minutes
+      }),
+      emailOTP({
+        otpLength: 6,
+        expiresIn: 300, // 5 minutes
+        allowedAttempts: 5,
+        sendVerificationOTP: ({ email, otp, type }) => {
+          // Fire-and-forget: don't block auth response waiting for email
+          void ctx.runAction(internal.email.sendOTP, { to: email, otp, type });
+        },
       }),
     ],
   });

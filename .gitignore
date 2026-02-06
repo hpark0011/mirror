@@ -28,3 +28,7 @@ CLAUDE.local.md
 
 # Cursor
 .cursor/debug.log
+
+# Playwright
+playwright-report
+test-results

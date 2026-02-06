@@ -6,16 +6,18 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start --port 3001",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@convex-dev/better-auth": "catalog:",
     "@feel-good/convex": "workspace:*",
-    "@radix-ui/colors": "catalog:",
     "@feel-good/features": "workspace:*",
     "@feel-good/ui": "workspace:*",
+    "@radix-ui/colors": "catalog:",
     "better-auth": "catalog:",
-    "convex": "catalog:",
+    "convex": "^1.31.7",
     "lucide-react": "catalog:",
     "next": "catalog:",
     "next-themes": "catalog:",
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@feel-good/eslint-config": "workspace:*",
+    "@playwright/test": "^1.40.0",
     "@tailwindcss/postcss": "catalog:",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

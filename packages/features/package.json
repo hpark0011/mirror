@@ -16,6 +16,7 @@
     "./auth/client": "./auth/client.ts",
     "./auth/server": "./auth/server.ts",
     "./auth/types": "./auth/types.ts",
+    "./auth/utils": "./auth/utils/index.ts",
     "./dock": "./dock/index.ts",
     "./dock/blocks": "./dock/blocks/index.ts",
     "./dock/components": "./dock/components/index.ts",
@@ -25,8 +26,8 @@
     "./dock/lib/types": "./dock/lib/types.ts"
   },
   "peerDependencies": {
-    "react": "^19.0.0",
-    "next": "^16.0.0"
+    "next": "^16.0.0",
+    "react": "^19.0.0"
   },
   "dependencies": {
     "@convex-dev/better-auth": "catalog:",
@@ -34,7 +35,7 @@
     "@feel-good/ui": "workspace:*",
     "@feel-good/utils": "workspace:*",
     "better-auth": "catalog:",
-    "convex": "catalog:",
+    "convex": "^1.31.7",
     "convex-helpers": "catalog:",
     "zod": "catalog:"
   },

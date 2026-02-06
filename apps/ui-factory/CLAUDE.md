@@ -5,7 +5,9 @@ Design system showcase and component playground for Feel Good apps.
 ## Commands
 
 ```bash
-pnpm dev          # Start dev server (http://localhost:3002)
+pnpm dev          # Start dev server with webpack (stable fallback)
+pnpm dev:turbo    # Start dev server with Turbopack
+pnpm dev:turbo:reset-cache  # Remove .next cache then start Turbopack
 pnpm build        # Production build
 pnpm lint         # ESLint - MUST pass before commits
 ```

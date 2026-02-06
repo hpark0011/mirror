@@ -22,7 +22,8 @@ paths:
 import { cn } from "@feel-good/utils/cn";
 import { CheckIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
-import { SignInForm } from "@feel-good/features/auth/components";
+import { MagicLinkLoginForm } from "@feel-good/features/auth/components/forms";
+import { LoginBlock } from "@feel-good/features/auth/blocks";
 
 // ❌ Wrong - relative import across packages
 import { cn } from "../../../packages/utils/cn";

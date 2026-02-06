@@ -44,6 +44,7 @@ export default function LoginPage() {
 ```typescript
 import {
   useMagicLinkRequest,
+  useOTPAuth,
   useAuthClient,
   createUseSession,
 } from "@feel-good/features/auth/hooks";

@@ -2,7 +2,7 @@
 
 import { createAuthClient } from "better-auth/react";
 import { convexClient } from "@convex-dev/better-auth/client/plugins";
-import { magicLinkClient } from "better-auth/client/plugins";
+import { magicLinkClient, emailOTPClient } from "better-auth/client/plugins";
 
 /**
  * Create an auth client with all plugins.
@@ -11,7 +11,7 @@ import { magicLinkClient } from "better-auth/client/plugins";
 function createFullAuthClient(baseURL: string) {
   return createAuthClient({
     baseURL,
-    plugins: [convexClient(), magicLinkClient()],
+    plugins: [convexClient(), magicLinkClient(), emailOTPClient()],
   });
 }
 

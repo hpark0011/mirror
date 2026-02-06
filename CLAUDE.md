@@ -93,9 +93,17 @@ import { Dialog } from "@feel-good/ui/primitives/dialog";
 Shared feature components (auth, dock).
 
 ```typescript
-import { SignInForm, SignUpForm } from "@feel-good/features/auth/components";
-import { useSession } from "@feel-good/features/auth/hooks";
-import { Dock } from "@feel-good/features/dock";
+// Auth forms
+import { MagicLinkLoginForm, MagicLinkSignUpForm, OTPLoginForm, OTPSignUpForm } from "@feel-good/features/auth/components/forms";
+
+// Auth hooks
+import { useMagicLinkRequest, useOTPAuth, createUseSession } from "@feel-good/features/auth/hooks";
+
+// Auth blocks (drop-in page sections)
+import { LoginBlock, SignUpBlock } from "@feel-good/features/auth/blocks";
+
+// Dock
+import { AppDock } from "@feel-good/features/dock/blocks";
 ```
 
 ### @feel-good/convex

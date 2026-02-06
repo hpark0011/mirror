@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { AuthClient } from "../client";
-import { MagicLinkLoginForm } from "../components/forms/magic-link-login-form";
+import { OTPLoginForm } from "../components/forms/otp-login-form";
 import { OAuthButtons } from "../components/shared/oauth-buttons";
 import type { AuthError } from "../types";
 import { AuthDivider } from "./shared/auth-divider";
@@ -24,8 +24,8 @@ export function LoginBlock({
 }: LoginBlockProps) {
   return (
     <div className="mx-auto w-full max-w-sm px-8 relative space-y-6 pb-10">
-      {/* Magic Link Login */}
-      <MagicLinkLoginForm
+      {/* OTP Login */}
+      <OTPLoginForm
         authClient={authClient}
         redirectTo={redirectTo}
         onSuccess={onSuccess}

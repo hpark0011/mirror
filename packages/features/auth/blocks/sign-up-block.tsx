@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import type { AuthClient } from "../client";
-import { MagicLinkSignUpForm } from "../components/forms/magic-link-sign-up-form";
+import { OTPSignUpForm } from "../components/forms/otp-sign-up-form";
 import { OAuthButtons } from "../components/shared/oauth-buttons";
 import type { AuthError } from "../types";
 import { AuthDivider } from "./shared/auth-divider";
@@ -24,8 +24,8 @@ export function SignUpBlock({
 }: SignUpBlockProps) {
   return (
     <div className="mx-auto w-full max-w-sm px-8 relative space-y-6 pb-10">
-      {/* Magic Link Sign Up */}
-      <MagicLinkSignUpForm
+      {/* OTP Sign Up */}
+      <OTPSignUpForm
         authClient={authClient}
         redirectTo={redirectTo}
         onSuccess={onSuccess}
