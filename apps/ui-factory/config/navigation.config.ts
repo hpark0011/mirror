@@ -7,6 +7,7 @@ export const COMPONENT_NAV_ITEMS: NavItem[] = [
   { label: "Button", href: "/components/buttons" },
   { label: "Input", href: "/components/input" },
   { label: "Switch", href: "/components/switch" },
+  { label: "Drawer", href: "/components/drawer" },
 ];
 
 export const BLOCK_NAV_ITEMS: NavItem[] = [

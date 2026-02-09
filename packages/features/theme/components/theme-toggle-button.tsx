@@ -25,7 +25,9 @@ export function ThemeToggleButton() {
 
   return (
     <div className="flex items-center gap-1">
-      <Icon name="SunMaxFillIcon" className="size-5 text-icon" />
+      <div className="-mr-0.5">
+        <Icon name="SunMaxFillIcon" className="size-5 text-icon" />
+      </div>
       <Switch
         checked={resolvedTheme === "dark"}
         onCheckedChange={handleToggle}

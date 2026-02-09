@@ -1,3 +1,29 @@
+# 2026-02-09 Mirror Mobile Article Drawer Refactor
+
+- [x] Inspect current mobile sheet implementation and extract style/behavior specs
+- [x] Refactor `MobileProfileLayout` to use `@feel-good/ui/primitives/drawer` instead of custom sheet hook/container
+- [x] Preserve visual specs from current UI (top fade, custom handle style, rounded superellipse corners, top offset)
+- [x] Preserve interaction specs (initial peek snap and expanded snap, drag-to-expand/collapse behavior while content scrolls)
+- [x] Verify with lint/typecheck for `@feel-good/mirror`
+- [x] Add review notes with verification results
+
+## Review
+
+- Replaced custom bottom-sheet integration in `apps/mirror/features/profile/views/mobile-profile-layout.tsx` with `Drawer` + `DrawerContent` from `@feel-good/ui/primitives/drawer`.
+- Preserved sheet visuals from the previous implementation:
+  - top offset at `48px`
+  - `rounded-t-4xl` and `[corner-shape:superellipse(1.1)]`
+  - top gradient fade strip (`top-[32px]`, `h-6`, `from-background to-transparent`)
+  - custom drag handle styling (`h-1 w-10`, `bg-muted-foreground/20`, `pt-3 pb-4`)
+- Preserved behavior:
+  - always-open non-modal drawer for mobile layout
+  - snap points for peek/full (`0.1585` and `1`)
+  - drag + scroll handoff via Vaul (`scrollLockTimeout={100}`)
+  - article list `scrollRoot` still wired using the drawer scroll container ref
+- Verification:
+  - `pnpm --filter @feel-good/mirror lint` (pass)
+  - `pnpm --filter @feel-good/mirror exec tsc --noEmit` (pass)
+
 # 2026-02-09 Monorepo File Organization Convention
 
 - [x] Run best-practice research for Next.js and feature-folder architecture
