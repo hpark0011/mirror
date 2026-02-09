@@ -2,15 +2,15 @@
 
 import { Icon } from "@feel-good/ui/components/icon";
 import { useTheme } from "next-themes";
-import * as React from "react";
+import { useEffect, useState } from "react";
 
 import { Switch } from "@feel-good/ui/primitives/switch";
 
 export function ThemeToggleButton() {
-  const [mounted, setMounted] = React.useState(false);
+  const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
 
-  React.useEffect(() => {
+  useEffect(() => {
     setMounted(true);
   }, []);
 
