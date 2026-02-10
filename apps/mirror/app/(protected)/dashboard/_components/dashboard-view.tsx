@@ -38,9 +38,12 @@ export function DashboardView(
 
   return (
     <main className="flex h-screen">
+      {/* Left column: Profile Info */}
       <div className="relative z-20 h-screen flex w-1/2 flex-col justify-center items-center border-r border-border-subtle">
         <ProfileInfoView profile={profile} />
       </div>
+
+      {/* Right column: Article List */}
       <div className="relative flex-1 min-w-0 overflow-y-auto px-0 py-10 pb-[64px]">
         <DashboardHeader />
         <div className="px-4">
