@@ -1,48 +1,64 @@
+"use client";
+
+import { Divider } from "@/components/divider";
 import { PageSection } from "@/components/page-section";
 import { PageSectionHeader } from "@/components/page-section-header";
-import { Divider } from "@/components/divider";
-import { PeekingDrawerDemo } from "./peeking-drawer-demo";
+import { Button } from "@feel-good/ui/primitives/button";
 import {
   Drawer,
-  DrawerTrigger,
+  DrawerClose,
   DrawerContent,
-  DrawerHeader,
-  DrawerTitle,
   DrawerDescription,
   DrawerFooter,
-  DrawerClose,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
 } from "@feel-good/ui/primitives/drawer";
-import { Button } from "@feel-good/ui/primitives/button";
+import { useState } from "react";
+import { PeekingBottomDrawer } from "./peeking-bottom-drawer";
 
 export function DrawerVariants() {
+  const [bottomDrawerSnapPoints, setBottomDrawerSnapPoints] = useState<
+    number | string | null
+  >(0.25);
+  const [topDrawerSnapPoints, setTopDrawerSnapPoints] = useState<
+    number | string | null
+  >(0.25);
+
   return (
     <div className="flex flex-col w-full pb-24">
       <Divider />
 
       <PageSection>
         <PageSectionHeader>Direction: Bottom</PageSectionHeader>
-        <Drawer>
+        <Drawer
+          snapPoints={[0.25, 0.5, 1]}
+          activeSnapPoint={bottomDrawerSnapPoints}
+          setActiveSnapPoint={setBottomDrawerSnapPoints}
+        >
           <DrawerTrigger asChild>
             <Button variant="outline">Open Bottom Drawer</Button>
           </DrawerTrigger>
           <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Bottom Drawer</DrawerTitle>
-              <DrawerDescription>
-                This drawer slides up from the bottom with a drag handle.
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="p-4">
-              <p className="text-muted-foreground text-sm">
-                The default direction. Ideal for mobile action sheets and
-                confirmations.
-              </p>
+            <div className="max-w-md mx-auto mt-6">
+              <DrawerHeader>
+                <DrawerTitle>Bottom Drawer</DrawerTitle>
+                <DrawerDescription>
+                  This drawer slides up from the bottom with a drag handle.
+                </DrawerDescription>
+              </DrawerHeader>
+              <DrawerFooter className="flex justify-center items-center">
+                <DrawerClose asChild>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    className="w-[160px]"
+                  >
+                    Close
+                  </Button>
+                </DrawerClose>
+              </DrawerFooter>
             </div>
-            <DrawerFooter>
-              <DrawerClose asChild>
-                <Button variant="outline">Close</Button>
-              </DrawerClose>
-            </DrawerFooter>
           </DrawerContent>
         </Drawer>
       </PageSection>
@@ -51,27 +67,35 @@ export function DrawerVariants() {
 
       <PageSection>
         <PageSectionHeader>Direction: Top</PageSectionHeader>
-        <Drawer direction="top">
+        <Drawer
+          direction="top"
+          snapPoints={[0.25, 0.5, 1]}
+          activeSnapPoint={topDrawerSnapPoints}
+          setActiveSnapPoint={setTopDrawerSnapPoints}
+        >
           <DrawerTrigger asChild>
             <Button variant="outline">Open Top Drawer</Button>
           </DrawerTrigger>
           <DrawerContent>
-            <DrawerHeader>
-              <DrawerTitle>Top Drawer</DrawerTitle>
-              <DrawerDescription>
-                This drawer slides down from the top of the screen.
-              </DrawerDescription>
-            </DrawerHeader>
-            <div className="p-4">
-              <p className="text-muted-foreground text-sm">
-                Useful for notifications or top-anchored panels.
-              </p>
+            <div className="max-w-md mx-auto mt-0">
+              <DrawerHeader>
+                <DrawerTitle>Top Drawer</DrawerTitle>
+                <DrawerDescription>
+                  This drawer slides down from the top of the screen.
+                </DrawerDescription>
+              </DrawerHeader>
+              <DrawerFooter className="flex justify-center items-center pb-13">
+                <DrawerClose asChild>
+                  <Button
+                    variant="outline"
+                    size="default"
+                    className="w-[160px]"
+                  >
+                    Close
+                  </Button>
+                </DrawerClose>
+              </DrawerFooter>
             </div>
-            <DrawerFooter>
-              <DrawerClose asChild>
-                <Button variant="outline">Close</Button>
-              </DrawerClose>
-            </DrawerFooter>
           </DrawerContent>
         </Drawer>
       </PageSection>
@@ -85,20 +109,18 @@ export function DrawerVariants() {
             <Button variant="outline">Open Right Drawer</Button>
           </DrawerTrigger>
           <DrawerContent>
-            <DrawerHeader>
+            <DrawerHeader className="px-5">
               <DrawerTitle>Right Drawer</DrawerTitle>
               <DrawerDescription>
                 A side panel that slides in from the right.
               </DrawerDescription>
             </DrawerHeader>
-            <div className="p-4">
-              <p className="text-muted-foreground text-sm">
-                Great for detail panels, settings, or supplementary content.
-              </p>
-            </div>
+
             <DrawerFooter>
               <DrawerClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline" size="lg">
+                  Close
+                </Button>
               </DrawerClose>
             </DrawerFooter>
           </DrawerContent>
@@ -114,20 +136,18 @@ export function DrawerVariants() {
             <Button variant="outline">Open Left Drawer</Button>
           </DrawerTrigger>
           <DrawerContent>
-            <DrawerHeader>
+            <DrawerHeader className="px-5">
               <DrawerTitle>Left Drawer</DrawerTitle>
               <DrawerDescription>
                 A side panel that slides in from the left.
               </DrawerDescription>
             </DrawerHeader>
-            <div className="p-4">
-              <p className="text-muted-foreground text-sm">
-                Commonly used for navigation menus or sidebar content.
-              </p>
-            </div>
+
             <DrawerFooter>
               <DrawerClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="outline" size="lg">
+                  Close
+                </Button>
               </DrawerClose>
             </DrawerFooter>
           </DrawerContent>
@@ -138,7 +158,7 @@ export function DrawerVariants() {
 
       <PageSection>
         <PageSectionHeader>Snap Points: Peek</PageSectionHeader>
-        <PeekingDrawerDemo />
+        <PeekingBottomDrawer />
       </PageSection>
     </div>
   );

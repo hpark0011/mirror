@@ -9,12 +9,12 @@ import {
   DrawerTitle,
 } from "@feel-good/ui/primitives/drawer";
 
-export function PeekingDrawerDemo() {
+export function PeekingBottomDrawer() {
   const [snap, setSnap] = React.useState<number | string | null>("48px");
 
   return (
     <Drawer
-      snapPoints={["48px", 0.5, 1]}
+      snapPoints={["48px", 0.5, 0.94]}
       activeSnapPoint={snap}
       setActiveSnapPoint={setSnap}
       fadeFromIndex={1}
