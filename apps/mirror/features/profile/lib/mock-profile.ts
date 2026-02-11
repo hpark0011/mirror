@@ -1,4 +1,5 @@
 export type Profile = {
+  username: string;
   name: string;
   bio: string;
   media: {
@@ -8,6 +9,7 @@ export type Profile = {
 };
 
 export const MOCK_PROFILE: Profile = {
+  username: "rick-rubin",
   name: "Rick Rubin",
   bio: "Rick Rubin has been a singular, transformative creative muse for artists across genres and generations — from the Beastie Boys to Johnny Cash, from Public Enemy to the Red Hot Chili Peppers, from Adele to Jay-Z.",
   media: {

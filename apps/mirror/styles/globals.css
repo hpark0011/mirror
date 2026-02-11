@@ -31,26 +31,24 @@
 .dark {
 }
 
-/* View transition animations for dashboard content.
-   When data-nav-direction is unset (e.g. lateral navigation, first load),
-   the browser's default crossfade applies — this is intentional. */
+/* Profile content view transitions (public profile routes) */
 
 /* Forward (list → detail): new slides over old from right */
-html[data-nav-direction="forward"]::view-transition-old(dashboard-content) {
+html[data-nav-direction="forward"]::view-transition-old(profile-content) {
   animation: none;
   z-index: 0;
 }
-html[data-nav-direction="forward"]::view-transition-new(dashboard-content) {
+html[data-nav-direction="forward"]::view-transition-new(profile-content) {
   animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-from-right;
   z-index: 1;
 }
 
 /* Back (detail → list): old slides away to right, revealing new */
-html[data-nav-direction="back"]::view-transition-old(dashboard-content) {
+html[data-nav-direction="back"]::view-transition-old(profile-content) {
   animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both slide-to-right;
   z-index: 1;
 }
-html[data-nav-direction="back"]::view-transition-new(dashboard-content) {
+html[data-nav-direction="back"]::view-transition-new(profile-content) {
   animation: none;
   z-index: 0;
 }

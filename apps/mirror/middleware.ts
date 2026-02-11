@@ -21,7 +21,8 @@ export function middleware(request: NextRequest) {
   }
 
   // Redirect unauthenticated users from protected routes
-  if (!isAuthenticated && !PUBLIC_ROUTES.includes(pathname)) {
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname) || pathname.startsWith("/@");
+  if (!isAuthenticated && !isPublicRoute) {
     const signInUrl = new URL("/sign-in", request.url);
     signInUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(signInUrl);

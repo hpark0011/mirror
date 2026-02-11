@@ -4,7 +4,7 @@ import { ArticleDetailView, findArticleBySlug } from "@/features/articles";
 export default async function ArticlePage({
   params,
 }: {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ username: string; slug: string }>;
 }) {
   const { slug } = await params;
   const article = findArticleBySlug(slug);

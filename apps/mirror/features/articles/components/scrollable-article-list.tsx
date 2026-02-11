@@ -7,10 +7,12 @@ import { useScrollRoot } from "../context/scroll-root-context";
 
 type ScrollableArticleListProps = {
   articles: Article[];
+  username: string;
 };
 
 export function ScrollableArticleList({
   articles: allArticles,
+  username,
 }: ScrollableArticleListProps) {
   const { articles, hasMore, loadMore } = useArticleList(allArticles);
   const scrollRoot = useScrollRoot();
@@ -21,6 +23,7 @@ export function ScrollableArticleList({
       hasMore={hasMore}
       onLoadMore={loadMore}
       scrollRoot={scrollRoot}
+      username={username}
     />
   );
 }

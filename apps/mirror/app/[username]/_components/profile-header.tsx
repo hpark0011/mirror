@@ -5,15 +5,17 @@ import { Icon } from "@feel-good/ui/components/icon";
 import { cn } from "@feel-good/utils/cn";
 import Link from "next/link";
 
-type DashboardHeaderProps = {
+type ProfileHeaderProps = {
+  username: string;
   isArticleDetail: boolean;
   className?: string;
 };
 
-export function DashboardHeader({
+export function ProfileHeader({
+  username,
   isArticleDetail,
   className,
-}: DashboardHeaderProps) {
+}: ProfileHeaderProps) {
   return (
     <header
       className={cn(
@@ -24,7 +26,7 @@ export function DashboardHeader({
     >
       {isArticleDetail && (
         <Link
-          href="/dashboard"
+          href={`/@${username}`}
           className="flex items-center gap-0.5 text-[14px] text-muted-foreground hover:text-foreground  group"
         >
           <Icon

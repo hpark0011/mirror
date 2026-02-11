@@ -18,6 +18,10 @@ const nextConfig: NextConfig = {
       ],
     },
   ],
+  rewrites: async () => [
+    { source: "/@:username", destination: "/:username" },
+    { source: "/@:username/:slug", destination: "/:username/:slug" },
+  ],
 };
 
 export default nextConfig;

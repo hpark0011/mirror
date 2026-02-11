@@ -16,6 +16,7 @@ type ArticleListViewProps = {
   hasMore: boolean;
   onLoadMore: () => void;
   scrollRoot?: HTMLElement | null;
+  username: string;
 };
 
 export function ArticleListView({
@@ -23,6 +24,7 @@ export function ArticleListView({
   hasMore,
   onLoadMore,
   scrollRoot,
+  username,
 }: ArticleListViewProps) {
   return (
     <section className="w-full mx-auto **:data-[slot=table-container]:overflow-visible">
@@ -42,7 +44,7 @@ export function ArticleListView({
         </TableHeader>
         <TableBody className="group/list">
           {articles.map((article) => (
-            <ArticleListItem key={article.slug} article={article} />
+            <ArticleListItem key={article.slug} article={article} username={username} />
           ))}
         </TableBody>
       </Table>

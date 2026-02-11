@@ -40,16 +40,15 @@ features/
   articles/           # Article list, pagination, mock data
 
 app/
-  (auth)/             # Auth flow (sign-in, sign-up, callback)
+  [username]/          # Public profile routes (/@username via rewrites)
+    _components/       # Profile shell and header
+    [slug]/            # Article detail page
+  (auth)/              # Auth flow (sign-in, sign-up, callback)
   (protected)/
-    _components/      # Route composition (header)
-    dashboard/
-      _components/    # Route-level client boundary (dashboard-content)
-      articles/
-        [slug]/       # Article detail page
+    dashboard/         # Insights (auth required)
 
-lib/                  # Auth client, env, services
-providers/            # React context providers
+lib/                   # Auth client, env, services
+providers/             # React context providers
 ```
 
 **Path aliases:** `@/*` maps to `apps/mirror/` root
@@ -60,6 +59,18 @@ providers/            # React context providers
 - Better Auth for session management
 - Convex for real-time data synchronization
 - Uses shared auth components from @feel-good/features
+
+## URL Routing
+
+| URL | Route | Auth | Content |
+|-----|-------|------|---------|
+| `/@username` | `app/[username]/page.tsx` | Public | Profile + article list |
+| `/@username/slug` | `app/[username]/[slug]/page.tsx` | Public | Article detail |
+| `/dashboard` | `app/(protected)/dashboard/page.tsx` | Required | Insights |
+| `/sign-in` | `app/(auth)/sign-in/page.tsx` | Public | Login |
+| `/sign-up` | `app/(auth)/sign-up/page.tsx` | Public | Sign up |
+
+`/@username` URLs are mapped to `/[username]` via Next.js rewrites in `next.config.ts`.
 
 ## Auth Flow
 

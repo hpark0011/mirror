@@ -4,7 +4,7 @@ import { useLayoutEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 
 const isArticleDetailRoute = (path: string) =>
-  path.startsWith("/dashboard/articles/");
+  /^\/@[^/]+\/.+/.test(path);
 
 export function useNavDirection() {
   const pathname = usePathname();

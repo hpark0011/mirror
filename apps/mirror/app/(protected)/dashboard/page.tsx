@@ -1,5 +1,7 @@
-import { ScrollableArticleList, MOCK_ARTICLES } from "@/features/articles";
-
 export default function DashboardPage() {
-  return <ScrollableArticleList articles={MOCK_ARTICLES} />;
+  return (
+    <div className="flex items-center justify-center h-full">
+      <h1 className="text-2xl text-muted-foreground">Insights</h1>
+    </div>
+  );
 }

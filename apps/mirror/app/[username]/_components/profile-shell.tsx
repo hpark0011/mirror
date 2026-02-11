@@ -10,15 +10,16 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@feel-good/ui/primitives/resizable";
-import { DashboardHeader } from "./dashboard-header";
+import { ProfileHeader } from "./profile-header";
 import { useNavDirection } from "@/hooks/use-nav-direction";
 
-type DashboardShellProps = {
+type ProfileShellProps = {
   profile: Profile;
   children: React.ReactNode;
 };
 
-export function DashboardShell({ profile, children }: DashboardShellProps) {
+export function ProfileShell({ profile, children }: ProfileShellProps) {
+  const { username } = profile;
   const isMobile = useIsMobile();
   const { isArticleDetail } = useNavDirection();
 
@@ -29,14 +30,15 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
   if (isMobile) {
     return (
       <main className="h-screen">
-        <DashboardHeader
+        <ProfileHeader
+          username={username}
           isArticleDetail={isArticleDetail}
           className="fixed top-0 inset-x-0"
         />
         <MobileProfileLayout
           profile={<ProfileInfoView profile={profile} />}
           content={() => (
-            <ViewTransition name="dashboard-content">
+            <ViewTransition name="profile-content">
               <div
                 ref={setMobileScrollRoot}
                 className="overflow-y-auto overscroll-y-contain h-full px-3"
@@ -65,9 +67,9 @@ export function DashboardShell({ profile, children }: DashboardShellProps) {
 
         <ResizablePanel defaultSize={50} minSize={40} maxSize={80}>
           <div className="relative h-full min-w-0 flex flex-col">
-            <DashboardHeader isArticleDetail={isArticleDetail} />
+            <ProfileHeader username={username} isArticleDetail={isArticleDetail} />
             <div className="flex-1 min-h-0 *:h-full">
-              <ViewTransition name="dashboard-content">
+              <ViewTransition name="profile-content">
                 <div className="overflow-y-auto h-full px-4 pb-[64px]">
                   {children}
                 </div>
