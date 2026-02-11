@@ -49,6 +49,9 @@
   --ghost: transparent;
   --ghost-foreground: var(--gray-11);
 
+  /* Dialog */
+  --dialog: var(--gray-1);
+
   /* Border */
   --border: var(--gray-7);
   --border-subtle: var(--gray-6);
@@ -80,6 +83,9 @@
   --ghost: transparent;
   --ghost-foreground: var(--gray-12);
 
+  /* Dialog */
+  --dialog: var(--gray-1);
+
   /* Border */
   --border: var(--gray-3);
   --border-subtle: var(--gray-2);
@@ -110,6 +116,9 @@
 
   --color-ghost: var(--ghost);
   --color-ghost-foreground: var(--ghost-foreground);
+
+  /* Dialog */
+  --color-dialog: var(--dialog);
 
   /* Border */
   --color-border: var(--border);

@@ -2,7 +2,7 @@ import { cn } from "../lib/utils";
 import { cva, type VariantProps } from "class-variance-authority";
 
 const buttonVariants = cva(
-  "relative py-2 px-3 bg-[rgba(255,255,255,0.6)] dark:bg-[rgba(255,255,255,0.05)] border-[1px] border-white/5 flex overflow-hidden cursor-pointer group transition-all duration-300 ease-in-out active:scale-[0.95] active:transition-transform active:duration-150 dark:border-[rgba(255,255,255,0.02)] backdrop-blur-xl text-center justify-center font-[480]",
+  "relative py-2 px-3 bg-[rgba(255,255,255,0.4)] dark:bg-[rgba(255,255,255,0.05)] border-[1px] border-white/5 flex overflow-hidden cursor-pointer group transition-all duration-300 ease-in-out active:scale-[0.95] active:transition-transform active:duration-150 dark:border-[rgba(255,255,255,0.02)] backdrop-blur-xl text-center justify-center font-[480]",
   {
     variants: {
       size: {

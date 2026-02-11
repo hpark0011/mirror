@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { MOCK_PROFILE } from "@/features/profile";
 import { isReservedUsername } from "@/lib/reserved-usernames";
+import { isAuthenticated } from "@/lib/auth-server";
 import { ProfileShell } from "./_components/profile-shell";
 
 export default async function ProfileLayout({
@@ -13,8 +14,15 @@ export default async function ProfileLayout({
   const { username } = await params;
   if (isReservedUsername(username)) notFound();
   if (username !== MOCK_PROFILE.username) notFound();
+
+  // TODO: SECURITY — isAuthenticated() only checks session presence, not profile ownership.
+  // When real profiles replace MOCK_PROFILE, change to:
+  //   const currentUser = await fetchAuthQuery(api.auth.getCurrentUser);
+  //   const isOwner = currentUser?._id === profile.userId;
+  const isOwner = await isAuthenticated();
+
   return (
-    <ProfileShell profile={MOCK_PROFILE}>
+    <ProfileShell profile={MOCK_PROFILE} isOwner={isOwner}>
       {children}
     </ProfileShell>
   );
