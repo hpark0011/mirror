@@ -21,9 +21,7 @@ const SHEET_SNAP_POINTS: Array<number | string> = [
 
 type MobileProfileLayoutProps = {
   profile: React.ReactNode;
-  content:
-    | React.ReactNode
-    | ((scrollRoot: HTMLDivElement | null) => React.ReactNode);
+  content: React.ReactNode | (() => React.ReactNode);
 };
 
 export function MobileProfileLayout({
@@ -35,15 +33,12 @@ export function MobileProfileLayout({
   >(
     PEEK_SNAP_POINT,
   );
-  const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(
-    null,
-  );
   const [drawerContainer, setDrawerContainer] = useState<HTMLDivElement | null>(
     null,
   );
 
   const resolvedContent = typeof content === "function"
-    ? content(scrollRoot)
+    ? content()
     : content;
   const isExpanded = activeSnapPoint === EXPANDED_SNAP_POINT;
 
@@ -89,10 +84,7 @@ export function MobileProfileLayout({
                 <div className="h-1 w-10 rounded-full bg-muted-foreground/20" />
               </div>
 
-              <div
-                ref={setScrollRoot}
-                className="overflow-y-auto overscroll-y-contain h-[calc(100%-36px)] pt-2"
-              >
+              <div className="h-[calc(100%-36px)] pt-2 *:h-full">
                 {resolvedContent}
               </div>
             </div>

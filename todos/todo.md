@@ -86,3 +86,7 @@
   - `pnpm --filter @feel-good/mirror lint` (passes).
   - `pnpm --filter @feel-good/mirror exec tsc --noEmit` (passes).
   - `pnpm --filter @feel-good/mirror build` (fails in sandbox due blocked Google Fonts fetch for Geist Mono).
+
+## Review
+
+- Planning only. Waiting for implementation approval.
