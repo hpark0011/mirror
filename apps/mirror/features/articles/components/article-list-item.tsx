@@ -52,9 +52,13 @@ export const ArticleListItem = memo(function ArticleListItem({
         {article.category}
       </TableCell>
       <TableCell className="text-right py-0 font-medium rounded-r-md">
-        <time dateTime={article.published_at}>
-          {formatShortDate(article.published_at)}
-        </time>
+        {article.status === "draft" ? (
+          <span className="text-muted-foreground">Draft</span>
+        ) : (
+          <time dateTime={article.published_at}>
+            {formatShortDate(article.published_at)}
+          </time>
+        )}
       </TableCell>
     </AnimatedArticleRow>
   );

@@ -14,7 +14,7 @@ export function ArticleDetailView({ article }: ArticleDetailViewProps) {
         <div className="mb-[56px]">
           <div className="flex flex-col items-start gap-0.5">
             <span className="text-[15px] text-muted-foreground leading-[1.2]">
-              {formatLongDate(article.published_at)}
+              {article.status === "draft" ? "Draft" : formatLongDate(article.published_at)}
             </span>
 
             <span className="text-[15px] font-medium text-muted-foreground leading-[1.2]">
