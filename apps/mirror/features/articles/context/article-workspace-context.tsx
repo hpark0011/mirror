@@ -1,9 +1,7 @@
 "use client";
 
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -11,48 +9,16 @@ import {
   type ReactNode,
 } from "react";
 import type { SortOrder } from "../hooks/use-article-sort";
-import type { UseArticleSearchReturn } from "../hooks/use-article-search";
-import type { UseArticleFilterReturn } from "../hooks/use-article-filter";
 import type { Article } from "../lib/mock-articles";
-import { useArticleList } from "../hooks/use-article-list";
+import { useArticlePagination } from "../hooks/use-article-pagination";
 import { useArticleSearch } from "../hooks/use-article-search";
 import { useArticleSelection } from "../hooks/use-article-selection";
 import { useArticleSort } from "../hooks/use-article-sort";
 import { useArticleFilter } from "../hooks/use-article-filter";
 import { filterArticles, getUniqueCategories } from "../utils/article-filter";
 import { useIsProfileOwner } from "@/features/profile";
-
-type ArticleWorkspaceContextValue = {
-  // Toolbar state
-  isOwner: boolean;
-  sortOrder: SortOrder;
-  onSortChange: (order: SortOrder) => void;
-  search: UseArticleSearchReturn;
-  filter: UseArticleFilterReturn;
-  categories: { name: string; count: number }[];
-  selectedCount: number;
-  onDelete: () => void;
-
-  // List state
-  articles: Article[];
-  hasMore: boolean;
-  onLoadMore: () => void;
-  username: string;
-  isAllSelected: boolean;
-  isIndeterminate: boolean;
-  onToggleAll: () => void;
-  isSelected: (slug: string) => boolean;
-  onToggle: (slug: string) => void;
-  shouldAnimate: boolean;
-
-  // Empty state
-  hasNoArticles: boolean;
-  showEmpty: boolean;
-  emptyMessage: string;
-};
-
-const ArticleWorkspaceContext =
-  createContext<ArticleWorkspaceContextValue | null>(null);
+import { ArticleToolbarContext } from "./article-toolbar-context";
+import { ArticleListContext } from "./article-list-context";
 
 type ArticleWorkspaceProviderProps = {
   articles: Article[];
@@ -74,11 +40,11 @@ export function ArticleWorkspaceProvider({
     () => filterArticles(search.filteredArticles, filter.filterState, isOwner),
     [search.filteredArticles, filter.filterState, isOwner],
   );
-  const { articles: paginatedArticles, hasMore, loadMore } = useArticleList(
-    filteredByFilter,
-    sortOrder,
-    search.isFiltered,
-  );
+  const {
+    articles: paginatedArticles,
+    hasMore,
+    loadMore,
+  } = useArticlePagination(filteredByFilter, sortOrder, search.isFiltered);
 
   // Animation trigger on sort change
   const [shouldAnimate, setShouldAnimate] = useState(false);
@@ -163,9 +129,8 @@ export function ArticleWorkspaceProvider({
         ? "No articles match the current filters"
         : "No articles found";
 
-  const value = useMemo<ArticleWorkspaceContextValue>(
+  const toolbarValue = useMemo(
     () => ({
-      // Toolbar state
       isOwner,
       sortOrder,
       onSortChange: handleSortChange,
@@ -174,23 +139,6 @@ export function ArticleWorkspaceProvider({
       categories: uniqueCategories,
       selectedCount: selectedSlugs.size,
       onDelete: handleDelete,
-
-      // List state
-      articles: paginatedArticles,
-      hasMore,
-      onLoadMore: loadMore,
-      username,
-      isAllSelected: selection.isAllSelected,
-      isIndeterminate: selection.isIndeterminate,
-      onToggleAll: selection.toggleAll,
-      isSelected: selection.isSelected,
-      onToggle: selection.toggle,
-      shouldAnimate,
-
-      // Empty state
-      hasNoArticles,
-      showEmpty,
-      emptyMessage,
     }),
     [
       isOwner,
@@ -200,16 +148,38 @@ export function ArticleWorkspaceProvider({
       filter,
       uniqueCategories,
       selectedSlugs.size,
+      handleDelete,
+    ],
+  );
+
+  const listValue = useMemo(
+    () => ({
+      articles: paginatedArticles,
+      hasMore,
+      onLoadMore: loadMore,
+      username,
+      isOwner,
+      isAllSelected: selection.isAllSelected,
+      isIndeterminate: selection.isIndeterminate,
+      onToggleAll: selection.toggleAll,
+      isSelected: selection.isSelected,
+      onToggle: selection.toggle,
+      shouldAnimate,
+      hasNoArticles,
+      showEmpty,
+      emptyMessage,
+    }),
+    [
+      paginatedArticles,
+      hasMore,
+      loadMore,
+      username,
+      isOwner,
       selection.isAllSelected,
       selection.isIndeterminate,
       selection.toggleAll,
       selection.isSelected,
       selection.toggle,
-      handleDelete,
-      paginatedArticles,
-      hasMore,
-      loadMore,
-      username,
       shouldAnimate,
       hasNoArticles,
       showEmpty,
@@ -218,18 +188,10 @@ export function ArticleWorkspaceProvider({
   );
 
   return (
-    <ArticleWorkspaceContext.Provider value={value}>
-      {children}
-    </ArticleWorkspaceContext.Provider>
+    <ArticleToolbarContext.Provider value={toolbarValue}>
+      <ArticleListContext.Provider value={listValue}>
+        {children}
+      </ArticleListContext.Provider>
+    </ArticleToolbarContext.Provider>
   );
-}
-
-export function useArticleWorkspace() {
-  const context = useContext(ArticleWorkspaceContext);
-  if (!context) {
-    throw new Error(
-      "useArticleWorkspace must be used within ArticleWorkspaceProvider",
-    );
-  }
-  return context;
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useArticleWorkspace } from "../context/article-workspace-context";
+import { useArticleList } from "../context/article-list-context";
 import { useScrollRoot } from "../context/scroll-root-context";
 import { ArticleListView } from "../views/article-list-view";
 
@@ -13,7 +13,7 @@ function EmptyMessage({ message }: { message: string }) {
 }
 
 export function ScrollableArticleList() {
-  const ctx = useArticleWorkspace();
+  const ctx = useArticleList();
   const scrollRoot = useScrollRoot();
 
   if (ctx.hasNoArticles) {

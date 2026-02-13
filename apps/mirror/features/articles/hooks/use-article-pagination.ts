@@ -6,7 +6,7 @@ import type { SortOrder } from "./use-article-sort";
 
 const PAGE_SIZE = 30;
 
-export function useArticleList(
+export function useArticlePagination(
   allArticles: Article[],
   sortOrder: SortOrder,
   preserveOrder = false,

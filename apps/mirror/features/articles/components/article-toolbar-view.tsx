@@ -1,10 +1,10 @@
 "use client";
 
-import { useArticleWorkspace } from "../context/article-workspace-context";
+import { useArticleToolbar } from "../context/article-toolbar-context";
 import { ArticleToolbar } from "../components/article-toolbar";
 
 export function ArticleToolbarView() {
-  const ctx = useArticleWorkspace();
+  const ctx = useArticleToolbar();
   return (
     <ArticleToolbar
       isOwner={ctx.isOwner}
