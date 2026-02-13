@@ -230,6 +230,9 @@ importers:
       '@feel-good/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      '@feel-good/utils':
+        specifier: workspace:*
+        version: link:../../packages/utils
       '@hookform/resolvers':
         specifier: 'catalog:'
         version: 5.2.2(react-hook-form@7.71.1(react@19.2.3))
@@ -846,6 +849,9 @@ importers:
       clsx:
         specifier: 'catalog:'
         version: 2.1.1
+      react:
+        specifier: ^18.0.0 || ^19.0.0
+        version: 19.2.3
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.4.0
@@ -853,6 +859,9 @@ importers:
       '@feel-good/tsconfig':
         specifier: workspace:*
         version: link:../../tooling/typescript
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.9
       typescript:
         specifier: 'catalog:'
         version: 5.9.3

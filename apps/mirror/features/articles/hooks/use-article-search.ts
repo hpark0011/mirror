@@ -3,7 +3,7 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
 import type { Article } from "../lib/mock-articles";
 
-type UseArticleSearchReturn = {
+export type UseArticleSearchReturn = {
   filteredArticles: Article[];
   query: string;
   setQuery: (q: string) => void;
@@ -32,21 +32,37 @@ export function useArticleSearch(
 
     const q = debouncedQuery.toLowerCase();
 
-    return articles
-      .filter(
-        (a) =>
-          a.title.toLowerCase().includes(q) ||
-          a.body.toLowerCase().includes(q) ||
-          a.category.toLowerCase().includes(q),
-      )
-      .sort((a, b) => {
-        const score = (article: Article) => {
-          if (article.title.toLowerCase().includes(q)) return 0;
-          if (article.body.toLowerCase().includes(q)) return 1;
-          return 2;
-        };
-        return score(a) - score(b);
-      });
+    // Single-pass: compute scores while filtering, avoiding repeated toLowerCase() calls
+    const scored = articles
+      .map((article) => {
+        const titleLower = article.title.toLowerCase();
+        const bodyLower = article.body.toLowerCase();
+        const categoryLower = article.category.toLowerCase();
+
+        if (
+          titleLower.includes(q) ||
+          bodyLower.includes(q) ||
+          categoryLower.includes(q)
+        ) {
+          // Compute score based on match location (title > body > category)
+          let score: number;
+          if (titleLower.includes(q)) {
+            score = 0;
+          } else if (bodyLower.includes(q)) {
+            score = 1;
+          } else {
+            score = 2;
+          }
+          return { article, score };
+        }
+        return null;
+      })
+      .filter((item) => item !== null);
+
+    // Sort by precomputed scores
+    scored.sort((a, b) => a.score - b.score);
+
+    return scored.map((item) => item.article);
   }, [articles, debouncedQuery]);
 
   const open = useCallback(() => setIsOpen(true), []);

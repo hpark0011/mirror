@@ -9,6 +9,7 @@
   --input: var(--gray-7);
   --input-foreground: var(--gray-12);
   --input-destructive: var(--red-8);
+  --caret: var(--color-blue-500);
 }
 
 .dark {
@@ -16,6 +17,7 @@
   --input: var(--gray-3);
   --input-foreground: var(--gray-12);
   --input-destructive: var(--red-6);
+  --caret: var(--color-blue-400);
 }
 
 @theme inline {
@@ -23,4 +25,5 @@
   --color-input: var(--input);
   --color-input-foreground: var(--input-foreground);
   --color-input-destructive: var(--input-destructive);
+  --color-caret: var(--caret);
 }

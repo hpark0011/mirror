@@ -31,7 +31,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
           // Selection
           "selection:bg-primary selection:text-primary-foreground",
           // Caret
-          "caret-blue-300",
+          "caret-caret",
           className,
         )}
         {...props}

@@ -7,6 +7,8 @@ import { useArticleList } from "../hooks/use-article-list";
 import { useArticleSearch } from "../hooks/use-article-search";
 import { useArticleSelection } from "../hooks/use-article-selection";
 import { useArticleSort } from "../hooks/use-article-sort";
+import { useArticleFilter } from "../hooks/use-article-filter";
+import { filterArticles, getUniqueCategories } from "../utils/article-filter";
 import { useIsProfileOwner } from "@/features/profile";
 import { ArticleListView } from "../views/article-list-view";
 import { ArticleToolbar } from "./article-toolbar";
@@ -22,14 +24,19 @@ export function ScrollableArticleList({
   username,
 }: ScrollableArticleListProps) {
   const [articles, setArticles] = useState(initialArticles);
+  const isOwner = useIsProfileOwner();
   const search = useArticleSearch(articles);
   const { sortOrder, setSortOrder } = useArticleSort();
+  const filter = useArticleFilter();
+  const filteredByFilter = useMemo(
+    () => filterArticles(search.filteredArticles, filter.filterState, isOwner),
+    [search.filteredArticles, filter.filterState, isOwner],
+  );
   const { articles: paginatedArticles, hasMore, loadMore } = useArticleList(
-    search.filteredArticles,
+    filteredByFilter,
     sortOrder,
     search.isFiltered,
   );
-  const isOwner = useIsProfileOwner();
   const scrollRoot = useScrollRoot();
 
   // Animation trigger on sort change — driven from event handler, not effect
@@ -49,14 +56,26 @@ export function ScrollableArticleList({
 
   const selection = useArticleSelection(allSlugs);
 
-  // Clear selection when search opens
+  // Compute unique categories once and pass down instead of full articles array
+  const uniqueCategories = useMemo(
+    () => getUniqueCategories(articles),
+    [articles],
+  );
+
+  // Clear selection when search opens or filter changes
   const prevSearchOpen = useRef(search.isOpen);
+  const prevFilterState = useRef(filter.filterState);
   useEffect(() => {
     if (search.isOpen && !prevSearchOpen.current) {
       selection.clear();
     }
     prevSearchOpen.current = search.isOpen;
-  }, [search.isOpen, selection]);
+
+    if (prevFilterState.current !== filter.filterState) {
+      selection.clear();
+    }
+    prevFilterState.current = filter.filterState;
+  }, [search.isOpen, filter.filterState, selection]);
 
   const handleSortChange = useCallback(
     (order: SortOrder) => {
@@ -91,8 +110,16 @@ export function ScrollableArticleList({
     );
   }
 
-  const showEmptySearch =
-    search.query.trim() !== "" && paginatedArticles.length === 0;
+  const showEmpty =
+    paginatedArticles.length === 0 &&
+    (search.query.trim() !== "" || filter.hasActiveFilters);
+
+  const emptyMessage =
+    search.query.trim() !== "" && filter.hasActiveFilters
+      ? "No articles match your search and filters"
+      : filter.hasActiveFilters
+        ? "No articles match the current filters"
+        : "No articles found";
 
   return (
     <>
@@ -102,15 +129,13 @@ export function ScrollableArticleList({
         onDelete={handleDelete}
         sortOrder={sortOrder}
         onSortChange={handleSortChange}
-        searchQuery={search.query}
-        onSearchQueryChange={search.setQuery}
-        isSearchOpen={search.isOpen}
-        onSearchOpen={search.open}
-        onSearchClose={search.close}
+        search={search}
+        categories={uniqueCategories}
+        filter={filter}
       />
-      {showEmptySearch ? (
+      {showEmpty ? (
         <div className="flex items-center justify-center py-16 text-muted-foreground">
-          No articles found
+          {emptyMessage}
         </div>
       ) : (
         <ArticleListView

@@ -26,6 +26,7 @@
     "@dnd-kit/utilities": "^3.2.2",
     "@feel-good/icons": "workspace:*",
     "@feel-good/ui": "workspace:*",
+    "@feel-good/utils": "workspace:*",
     "@hookform/resolvers": "catalog:",
     "@radix-ui/colors": "catalog:",
     "@radix-ui/react-accordion": "catalog:",

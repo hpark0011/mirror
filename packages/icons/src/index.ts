@@ -140,6 +140,7 @@ export { StopFillIcon } from "./components/stop-fill";
 export { StopWatchFillIcon } from "./components/stop-watch-fill";
 export { StrikethroughIcon } from "./components/strikethrough";
 export { SunMaxFillIcon } from "./components/sun-max-fill";
+export { TagFillIcon } from "./components/tag-fill";
 export { TargetIcon } from "./components/target";
 export { TextBubbleFillIcon } from "./components/text-bubble-fill";
 export { TextFormatIcon } from "./components/text-format";

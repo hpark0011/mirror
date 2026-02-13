@@ -31,7 +31,7 @@ export function ProjectFilterSearch({
         className="h-8 border-none"
         autoFocus={false}
       />
-      <div className="h-[1px] bg-border-light w-full" />
+      <div className="h-px bg-border-light w-full" />
     </>
   );
 }

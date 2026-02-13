@@ -8,6 +8,7 @@ export const COMPONENT_NAV_ITEMS: NavItem[] = [
   { label: "Input", href: "/components/input" },
   { label: "Switch", href: "/components/switch" },
   { label: "Drawer", href: "/components/drawer" },
+  { label: "Dropdown Menu", href: "/components/dropdown-menu" },
   { label: "Resizable", href: "/components/resizable" },
 ];
 

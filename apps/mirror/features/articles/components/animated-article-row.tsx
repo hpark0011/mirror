@@ -14,7 +14,7 @@ type AnimatedArticleRowProps = {
 };
 
 const tableRowClassName =
-  "hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors";
+  "hover:bg-muted/50 data-[state=selected]:bg-muted dark:data-[state=selected]:bg-muted/50 border-b transition-colors";
 
 export function AnimatedArticleRow({
   children,

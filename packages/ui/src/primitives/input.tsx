@@ -22,6 +22,8 @@ const inputVariants = cva(
     "focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-[3px]",
     // Invalid States
     "aria-invalid:border-input-destructive aria-invalid:ring-input-destructive aria-invalid:ring-[3px] dark:aria-invalid:ring-input-destructive dark:aria-invalid:border-input-destructive",
+    // Caret
+    "caret-caret",
   ),
   {
     variants: {

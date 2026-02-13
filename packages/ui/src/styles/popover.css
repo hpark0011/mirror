@@ -9,15 +9,15 @@
   --popover: var(--gray-2);
   --popover-foreground: var(--gray-12);
   --popover-border: var(--gray-1);
-  --popover-focus: var(--gray-3);
+  --popover-focus: var(--gray-4);
 }
 
 .dark {
   /* Popover Default */
-  --popover: var(--gray-3);
+  --popover: var(--gray-2);
   --popover-foreground: var(--gray-12);
   --popover-border: var(--gray-1);
-  --popover-focus: var(--gray-3);
+  --popover-focus: var(--gray-5);
 }
 
 @theme inline {

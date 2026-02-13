@@ -1,6 +1,8 @@
 import type { SVGProps } from "react";
 
-export function ArrowTriangleRightFillIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
+export function ArrowTriangleRightFillIcon(
+  { className, ...props }: SVGProps<SVGSVGElement>,
+) {
   return (
     <svg
       viewBox="0 0 28 28"
@@ -9,7 +11,10 @@ export function ArrowTriangleRightFillIcon({ className, ...props }: SVGProps<SVG
       className={className}
       {...props}
     >
-      <path d="M7.21164 21.7623C7.60227 21.7623 7.91477 21.5963 8.32492 21.3912L20.8738 15.3073C21.7038 14.8971 21.9675 14.5162 21.9675 13.9987C21.9675 13.4811 21.7038 13.11 20.8738 12.6998L8.32492 6.60608C7.905 6.401 7.5925 6.23499 7.20188 6.23499C6.47922 6.23499 6.03 6.78186 6.03 7.63147L6.03976 20.3658C6.03976 21.2154 6.48898 21.7623 7.21164 21.7623Z" fill="currentColor"/>
+      <path
+        d="M7.21164 21.7623C7.60227 21.7623 7.91477 21.5963 8.32492 21.3912L20.8738 15.3073C21.7038 14.8971 21.9675 14.5162 21.9675 13.9987C21.9675 13.4811 21.7038 13.11 20.8738 12.6998L8.32492 6.60608C7.905 6.401 7.5925 6.23499 7.20188 6.23499C6.47922 6.23499 6.03 6.78186 6.03 7.63147L6.03976 20.3658C6.03976 21.2154 6.48898 21.7623 7.21164 21.7623Z"
+        fill="currentColor"
+      />
     </svg>
   );
 }

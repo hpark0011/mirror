@@ -37,53 +37,53 @@ export function ProjectFilterBadges({
 
   return (
     <>
-      <div className='flex items-center gap-1 p-1 flex-wrap'>
+      <div className="flex items-center gap-1 p-1 flex-wrap">
         {selectedProjectIds.map((projectId) => {
           const project = projects.find((p) => p.id === projectId);
           if (!project) return null;
 
           return (
             <Badge key={projectId}>
-              <div className='flex items-center gap-1.5'>
+              <div className="flex items-center gap-1.5">
                 <span
                   className={cn(
-                    "size-1.5 rounded-full flex-shrink-0 ml-0.5",
-                    getProjectColorBgClass(project.color)
+                    "size-1.5 rounded-full shrink-0 ml-0.5",
+                    getProjectColorBgClass(project.color),
                   )}
                 />
-                <span className='truncate'>{project.name}</span>
+                <span className="truncate">{project.name}</span>
               </div>
               <button
-                type='button'
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   toggleProject(projectId);
                 }}
-                className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5 outline-none'
+                className="flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light ml-0.5 outline-none"
                 aria-label={`Remove ${project.name} filter`}
               >
-                <XIcon className='size-3' />
+                <XIcon className="size-3" />
               </button>
             </Badge>
           );
         })}
         <button
-          type='button'
+          type="button"
           onClick={onClearFilter}
-          className='flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light border border-border-light rounded-sm px-1.5 pl-[1px] py-0.5 h-[22px] gap-[1px] group'
-          aria-label='Clear filters'
+          className="flex items-center justify-center transition-colors [&_svg]:hover:text-blue-500 [&_svg]:text-icon-light border border-border-light rounded-sm px-1.5 pl-px py-0.5 h-[22px] gap-px group"
+          aria-label="Clear filters"
         >
           <Icon
-            name='XmarkCircleFillIcon'
-            className='size-4.5 text-icon-light group-hover:text-blue-500'
+            name="XmarkCircleFillIcon"
+            className="size-4.5 text-icon-light group-hover:text-blue-500"
           />
-          <span className='text-xs group-hover:text-blue-500 text-text-muted'>
+          <span className="text-xs group-hover:text-blue-500 text-text-muted">
             {" "}
             Clear{" "}
           </span>
         </button>
       </div>
-      <div className='h-[1px] bg-border-light w-full' />
+      <div className="h-px bg-border-light w-full" />
     </>
   );
 }

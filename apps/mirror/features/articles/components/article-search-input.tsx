@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { Button } from "@feel-good/ui/primitives/button";
+import { Input } from "@feel-good/ui/primitives/input";
 import { Icon } from "@feel-good/ui/components/icon";
 import {
   Tooltip,
@@ -59,6 +60,7 @@ export function ArticleSearchInput({
             onClick={isOpen ? onClose : onOpen}
             aria-label="Search articles"
             aria-expanded={isOpen}
+            className={cn(isOpen && "[&_svg]:text-information")}
           >
             <Icon name="MagnifyingGlassIcon" />
           </Button>
@@ -69,34 +71,40 @@ export function ArticleSearchInput({
       {/* Expandable input wrapper */}
       <div
         className={cn(
-          "overflow-hidden transition-all duration-200 ease-out",
+          "relative overflow-hidden transition-all duration-200 ease-out",
           isOpen ? "w-[160px] opacity-100" : "w-0 opacity-0",
         )}
       >
-        <input
+        <Input
           ref={inputRef}
           type="search"
+          variant="underline"
           value={query}
           onChange={(e) => onQueryChange(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Search..."
           aria-label="Search articles"
           tabIndex={isOpen ? 0 : -1}
-          className="h-7 w-full min-w-0 rounded-md bg-transparent px-2 text-sm outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+          className={cn(
+            "h-7 [&::-webkit-search-cancel-button]:hidden",
+            query.length > 0 && "pr-7",
+          )}
         />
-      </div>
 
-      {/* Clear button — only when input has text */}
-      {isOpen && query.length > 0 && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={() => onQueryChange("")}
-          aria-label="Clear search"
-        >
-          <Icon name="XmarkCircleFillIcon" />
-        </Button>
-      )}
+        {/* Clear button — only when input has text */}
+        {query.length > 0 && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onQueryChange("")}
+            aria-label="Clear search"
+            className="absolute right-0 top-0"
+            tabIndex={isOpen ? 0 : -1}
+          >
+            <Icon name="XmarkCircleFillIcon" />
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

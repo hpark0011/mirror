@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Button } from "@feel-good/ui/primitives/button";
 import {
   DropdownMenu,
@@ -14,6 +15,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
+import { cn } from "@feel-good/utils/cn";
 import type { SortOrder } from "../hooks/use-article-sort";
 
 type ArticleSortDropdownProps = {
@@ -29,19 +31,24 @@ export function ArticleSortDropdown({
   value,
   onChange,
 }: ArticleSortDropdownProps) {
+  const [open, setOpen] = useState(false);
+
   return (
-    <DropdownMenu>
-      <Tooltip>
+    <Tooltip>
+      <DropdownMenu open={open} onOpenChange={setOpen}>
         <TooltipTrigger asChild>
           <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon-sm">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(open && "[&_svg]:text-information")}
+            >
               <Icon name="ArrowUpAndDownIcon" className="size-4.5" />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
-        <TooltipContent>Sort</TooltipContent>
-      </Tooltip>
-      <DropdownMenuContent align="end">
+        <TooltipContent>{open ? undefined : "Sort"}</TooltipContent>
+        <DropdownMenuContent align="end">
         <DropdownMenuRadioGroup
           value={value}
           onValueChange={(v) => {
@@ -54,6 +61,7 @@ export function ArticleSortDropdown({
           <DropdownMenuRadioItem value="oldest">Oldest</DropdownMenuRadioItem>
         </DropdownMenuRadioGroup>
       </DropdownMenuContent>
-    </DropdownMenu>
+      </DropdownMenu>
+    </Tooltip>
   );
 }
