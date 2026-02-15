@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { MOCK_PROFILE } from "@/features/profile";
+import { MOCK_ARTICLES } from "@/features/articles";
 import { isReservedUsername } from "@/lib/reserved-usernames";
 import { isAuthenticated } from "@/lib/auth-server";
 import { ProfileShell } from "./_components/profile-shell";
@@ -20,9 +21,12 @@ export default async function ProfileLayout({
   //   const currentUser = await fetchAuthQuery(api.auth.getCurrentUser);
   //   const isOwner = currentUser?._id === profile.userId;
   const isOwner = await isAuthenticated();
+  const articles = isOwner
+    ? MOCK_ARTICLES
+    : MOCK_ARTICLES.filter((a) => a.status === "published");
 
   return (
-    <ProfileShell profile={MOCK_PROFILE} isOwner={isOwner}>
+    <ProfileShell profile={MOCK_PROFILE} isOwner={isOwner} articles={articles}>
       {children}
     </ProfileShell>
   );

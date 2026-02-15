@@ -32,7 +32,7 @@ export function ToolbarSlotTarget() {
     return () => setPortalTarget(null);
   }, [setPortalTarget]);
 
-  return <div ref={divRef} className="shrink-0" />;
+  return <div ref={divRef} className="shrink-0 h-10 bg-background" />;
 }
 
 /** Portals children into the ToolbarSlotTarget. Children stay in their original React tree (preserving context). */

@@ -1,13 +1,27 @@
+"use client";
+
+import dynamic from "next/dynamic";
 import { formatLongDate } from "../lib/format-date";
 import type { Article } from "../lib/mock-articles";
+
+const RichTextViewer = dynamic(
+  () =>
+    import("@feel-good/features/editor/components").then(
+      (m) => m.RichTextViewer,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="prose dark:prose-invert max-w-none min-h-[200px]" />
+    ),
+  },
+);
 
 type ArticleDetailViewProps = {
   article: Article;
 };
 
 export function ArticleDetailView({ article }: ArticleDetailViewProps) {
-  const paragraphs = article.body.split("\n\n");
-
   return (
     <div className="py-22 px-4 bg-background min-h-[calc(100vh-40px)]">
       <article className="max-w-xl mx-auto">
@@ -26,9 +40,7 @@ export function ArticleDetailView({ article }: ArticleDetailViewProps) {
           </h1>
         </div>
 
-        <div className="space-y-5 text-[19px] leading-[1.4] font-[480] text-secondary-foreground [&>p:not(:first-child)]:indent-14">
-          {paragraphs.map((paragraph, index) => <p key={index}>{paragraph}</p>)}
-        </div>
+        <RichTextViewer content={article.body} />
       </article>
     </div>
   );

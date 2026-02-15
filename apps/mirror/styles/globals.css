@@ -7,6 +7,7 @@
 /* import tailwindcss */
 @import "tailwindcss";
 @import "tw-animate-css";
+@plugin "@tailwindcss/typography";
 
 /* import radix colors */
 @import "@radix-ui/colors/gray.css";
@@ -19,6 +20,9 @@
 
 /* import shared styles from @feel-good/ui */
 @import "@feel-good/ui/styles.css";
+
+/* import tiptap content styles */
+@import "@feel-good/features/editor/styles/tiptap-content.css";
 
 /* content sources */
 @source "../node_modules/@feel-good/ui";
@@ -58,6 +62,31 @@ html[data-nav-direction="back"]::view-transition-new(profile-content) {
 }
 @keyframes slide-to-right {
   to { transform: translateX(100%); }
+}
+
+/* Prevent default root cross-fade from affecting toolbar/navbar during directional nav */
+html[data-nav-direction="forward"]::view-transition-old(root),
+html[data-nav-direction="forward"]::view-transition-new(root),
+html[data-nav-direction="back"]::view-transition-old(root),
+html[data-nav-direction="back"]::view-transition-new(root) {
+  animation: none;
+}
+
+/* Toolbar cross-fade during navigation transitions */
+html[data-nav-direction="forward"]::view-transition-old(profile-toolbar),
+html[data-nav-direction="back"]::view-transition-old(profile-toolbar) {
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-out;
+}
+html[data-nav-direction="forward"]::view-transition-new(profile-toolbar),
+html[data-nav-direction="back"]::view-transition-new(profile-toolbar) {
+  animation: 300ms cubic-bezier(0.4, 0, 0.2, 1) both fade-in;
+}
+
+@keyframes fade-out {
+  to { opacity: 0; }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

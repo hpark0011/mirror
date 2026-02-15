@@ -33,7 +33,7 @@ Each app has its own `CLAUDE.md` with app-specific documentation.
 | App | Description | Port |
 |-----|-------------|------|
 | greyboard | AI-powered task management | 3000 |
-| mirror | Interactive blogging platform (Convex + Better Auth) | 3001 |
+| mirror | Interactive blogging platform | 3001 |
 | ui-factory | Design system showcase | 3002 |
 
 ## Packages

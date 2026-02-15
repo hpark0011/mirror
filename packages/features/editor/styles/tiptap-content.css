@@ -1,0 +1,73 @@
+/*
+ * tiptap-content.css
+ *
+ * Styles for Tiptap editor and read-only viewer.
+ * Maps @tailwindcss/typography prose variables to @feel-good/ui design tokens.
+ *
+ * Organization:
+ *   1. Token mapping (--tw-prose-*)
+ *   2. Typography overrides
+ *   3. Block elements (blockquote, code blocks, hr)
+ *   4. Inline elements (links, inline code)
+ *   5. Lists
+ *   6. Media (images)
+ */
+
+/* --- 1. Token mapping --- */
+.tiptap-content {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-links: var(--information);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--muted-foreground);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--muted-foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--accent);
+}
+
+/* --- 2. Typography overrides --- */
+.tiptap-content .tiptap {
+  font-weight: 480;
+  letter-spacing: -0.04em;
+  font-size: 19px;
+  line-height: 1.4;
+}
+
+/* --- 3. Block elements --- */
+.tiptap-content .tiptap {
+  pre {
+    overflow-x: auto;
+  }
+
+  blockquote {
+    font-style: italic;
+  }
+}
+
+/* --- 4. Inline elements --- */
+.tiptap-content .tiptap {
+  a {
+    text-underline-offset: 2px;
+  }
+
+  code {
+    border-radius: 0.25rem;
+    padding: 0.125rem 0.375rem;
+  }
+}
+
+/* --- 5. Lists --- */
+/* Prose defaults handle list styling well — no overrides needed */
+
+/* --- 6. Media --- */
+.tiptap-content .tiptap {
+  img {
+    border-radius: 0.5rem;
+    max-width: 100%;
+    height: auto;
+  }
+}

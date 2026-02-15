@@ -17,6 +17,7 @@
     "@feel-good/ui": "workspace:*",
     "@feel-good/utils": "workspace:*",
     "@radix-ui/colors": "catalog:",
+    "@tailwindcss/typography": "^0.5.19",
     "better-auth": "catalog:",
     "convex": "^1.31.7",
     "framer-motion": "^12.23.12",

@@ -87,6 +87,17 @@ import { Check, X, Loader2 } from "lucide-react";
 import { CustomIcon } from "@feel-good/icons";
 ```
 
+## Anti-Patterns
+
+### Never use setTimeout for rendering timing
+- If content appears at the wrong time, the root cause is a missing Suspense boundary, wrong view-transition scope, or architectural issue
+- Fix the synchronization mechanism (Suspense, view-transition-name isolation, startTransition) rather than racing a timer
+
+### Lazy loading inside ViewTransition
+- `next/dynamic` chunk resolution triggers a React transition — any ancestor `<ViewTransition>` will re-animate
+- Give lazy-loaded content its own `view-transition-name` to isolate it from parent transition groups
+- Suppress animation on the isolated group so content swaps are silent
+
 ## Event Handlers
 
 Type handlers explicitly:

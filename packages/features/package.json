@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "sideEffects": false,
+  "sideEffects": ["**/*.css"],
   "exports": {
     "./auth": "./auth/index.ts",
     "./auth/blocks": "./auth/blocks/index.ts",
@@ -24,9 +24,15 @@
     "./dock/lib": "./dock/lib/index.ts",
     "./dock/lib/types": "./dock/lib/types.ts",
     "./theme": "./theme/index.ts",
-    "./theme/components": "./theme/components/index.ts"
+    "./theme/components": "./theme/components/index.ts",
+    "./editor": "./editor/index.ts",
+    "./editor/components": "./editor/components/index.ts",
+    "./editor/lib": "./editor/lib/index.ts",
+    "./editor/types": "./editor/types.ts",
+    "./editor/styles/tiptap-content.css": "./editor/styles/tiptap-content.css"
   },
   "peerDependencies": {
+    "@tailwindcss/typography": "^0.5.19",
     "next": "^16.0.0",
     "react": "^19.0.0"
   },
@@ -35,6 +41,12 @@
     "@feel-good/icons": "workspace:*",
     "@feel-good/ui": "workspace:*",
     "@feel-good/utils": "workspace:*",
+    "@tiptap/core": "^3.19.0",
+    "@tiptap/extension-image": "^3.19.0",
+    "@tiptap/extension-link": "^3.19.0",
+    "@tiptap/pm": "^3.19.0",
+    "@tiptap/react": "^3.19.0",
+    "@tiptap/starter-kit": "^3.19.0",
     "better-auth": "catalog:",
     "convex": "^1.31.7",
     "convex-helpers": "catalog:",

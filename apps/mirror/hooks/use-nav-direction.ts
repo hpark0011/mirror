@@ -1,31 +1,16 @@
 "use client";
 
-import { useLayoutEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
-
-const isArticleDetailRoute = (path: string) =>
-  /^\/@[^/]+\/.+/.test(path);
+import { useLayoutEffect } from "react";
+import { usePathnameTransition } from "./use-pathname-transition";
 
 export function useNavDirection() {
-  const pathname = usePathname();
-  const prevPathname = useRef(pathname);
+  const transition = usePathnameTransition();
 
   useLayoutEffect(() => {
-    if (pathname === prevPathname.current) return;
-
-    const wasArticleDetail = isArticleDetailRoute(prevPathname.current);
-    const isNowArticleDetail = isArticleDetailRoute(pathname);
-
-    if (isNowArticleDetail && !wasArticleDetail) {
-      document.documentElement.dataset.navDirection = "forward";
-    } else if (!isNowArticleDetail && wasArticleDetail) {
-      document.documentElement.dataset.navDirection = "back";
-    }
-
-    prevPathname.current = pathname;
-
+    if (transition === "none") return;
+    document.documentElement.dataset.navDirection = transition;
     return () => {
       delete document.documentElement.dataset.navDirection;
     };
-  }, [pathname]);
+  }, [transition]);
 }

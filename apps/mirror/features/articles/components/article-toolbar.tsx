@@ -46,7 +46,7 @@ export function ArticleToolbar({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   return (
-    <div className="flex items-center gap-2 px-4.5 justify-end mb-3 mt-2">
+    <div className="flex h-10 items-center gap-2 px-4.5 justify-end bg-background">
       <div
         className={cn(
           "flex items-center justify-end w-full gap-3",

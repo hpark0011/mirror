@@ -3,6 +3,6 @@
   "compilerOptions": {
     "outDir": "dist"
   },
-  "include": ["auth/**/*.ts", "auth/**/*.tsx"],
+  "include": ["**/*.ts", "**/*.tsx"],
   "exclude": ["node_modules", "dist"]
 }

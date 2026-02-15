@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
+import { getPlainText } from "@feel-good/features/editor/lib";
 import type { Article } from "../lib/mock-articles";
 
 export type UseArticleSearchReturn = {
@@ -26,19 +27,27 @@ export function useArticleSearch(
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Precompute plain text once per articles change, avoiding re-parsing on each keystroke
+  const searchableArticles = useMemo(
+    () =>
+      articles.map((article) => ({
+        article,
+        titleLower: article.title.toLowerCase(),
+        bodyLower: getPlainText(article.body).toLowerCase(),
+        categoryLower: article.category.toLowerCase(),
+      })),
+    [articles],
+  );
+
   // Filter + sort by match priority (title > body > category)
   const filteredArticles = useMemo(() => {
     if (!debouncedQuery.trim()) return articles;
 
     const q = debouncedQuery.toLowerCase();
 
-    // Single-pass: compute scores while filtering, avoiding repeated toLowerCase() calls
-    const scored = articles
-      .map((article) => {
-        const titleLower = article.title.toLowerCase();
-        const bodyLower = article.body.toLowerCase();
-        const categoryLower = article.category.toLowerCase();
-
+    // Single-pass: compute scores while filtering
+    const scored = searchableArticles
+      .map(({ article, titleLower, bodyLower, categoryLower }) => {
         if (
           titleLower.includes(q) ||
           bodyLower.includes(q) ||
@@ -63,7 +72,7 @@ export function useArticleSearch(
     scored.sort((a, b) => a.score - b.score);
 
     return scored.map((item) => item.article);
-  }, [articles, debouncedQuery]);
+  }, [articles, searchableArticles, debouncedQuery]);
 
   const open = useCallback(() => setIsOpen(true), []);
   const close = useCallback(() => {
