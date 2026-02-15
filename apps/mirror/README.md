@@ -21,6 +21,37 @@ NEXT_PUBLIC_CONVEX_SITE_URL="https://yourapp.com"
 | `NEXT_PUBLIC_CONVEX_URL` | URL of your Convex deployment |
 | `NEXT_PUBLIC_CONVEX_SITE_URL` | Site URL for Convex auth integration |
 
+### Sentry Variables (Optional)
+
+Add these variables to enable Sentry error and tracing telemetry:
+
+```bash
+# Runtime SDK config (client + server + edge)
+NEXT_PUBLIC_SENTRY_DSN="https://<public-key>@o0.ingest.sentry.io/<project-id>"
+NEXT_PUBLIC_SENTRY_ENVIRONMENT="development"
+NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE="0.1"
+SENTRY_RELEASE="mirror-local"
+```
+
+Optional build-time source map upload variables (usually set in CI/deployment):
+
+```bash
+SENTRY_AUTH_TOKEN="<sentry-auth-token>"
+SENTRY_ORG="<sentry-org-slug>"
+SENTRY_PROJECT="<sentry-project-slug>"
+```
+
+If `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, or `SENTRY_PROJECT` are missing, Mirror builds still succeed and source map upload is skipped.
+
+### Sentry Verification Checklist
+
+1. Run `pnpm dev --filter=@feel-good/mirror` with `NEXT_PUBLIC_SENTRY_DSN` set.
+2. Trigger a client-side exception (for example, throw from a test button handler) and confirm issue ingestion in Sentry.
+3. Trigger a server/request exception (for example, throw from a route handler) and confirm ingestion.
+4. Run `pnpm build --filter=@feel-good/mirror`:
+   - without upload vars to confirm non-failing skip behavior
+   - with upload vars to confirm source map upload is enabled
+
 Environment variables are validated at startup. Missing or invalid variables will cause clear error messages.
 
 ## Getting Started

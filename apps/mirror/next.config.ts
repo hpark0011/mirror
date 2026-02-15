@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { withSentryConfig } from "@sentry/nextjs";
 
 const cspDirectives = [
   "default-src 'self'",
@@ -6,7 +7,7 @@ const cspDirectives = [
   "style-src 'self' 'unsafe-inline'", // Tailwind and runtime style injection
   "img-src 'self' https://images.unsplash.com data:", // data: for Tiptap/ProseMirror inline images
   "font-src 'self'", // next/font self-hosts all fonts
-  "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud", // Convex real-time backend
+  "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.ingest.sentry.io", // Convex real-time backend + Sentry telemetry
   "frame-ancestors 'none'", // mirrors X-Frame-Options: DENY
 ].join("; ");
 
@@ -50,4 +51,22 @@ const nextConfig: NextConfig = {
   ],
 };
 
-export default nextConfig;
+const hasSentryUploadConfig = Boolean(
+  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+);
+
+export default withSentryConfig(nextConfig, {
+  authToken: process.env.SENTRY_AUTH_TOKEN,
+  org: process.env.SENTRY_ORG,
+  project: process.env.SENTRY_PROJECT,
+  silent: true,
+  webpack: {
+    treeshake: {
+      removeDebugLogging: true,
+    },
+  },
+  sourcemaps: {
+    disable: !hasSentryUploadConfig,
+  },
+  widenClientFileUpload: hasSentryUploadConfig,
+});

@@ -1,3 +1,32 @@
+# 2026-02-15 Mirror + Convex Sentry Integration
+
+- [x] Finalize implementation plan and integration scope
+- [x] Create shared `tooling/sentry` package (`@feel-good/sentry-config`) with Next.js option builders
+- [x] Wire `apps/mirror` runtime Sentry initialization files and global error boundary
+- [x] Integrate `withSentryConfig` into `apps/mirror/next.config.ts` with conditional source map upload
+- [x] Update monorepo env caching contract in `turbo.json`
+- [x] Document Mirror and Convex Sentry setup and verification steps
+- [x] Run verification commands (`pnpm install`, mirror lint/build) and capture outcomes
+- [x] Add review notes for completed integration
+
+## Review
+
+- Added shared Sentry config package at `tooling/sentry` with reusable Next.js runtime option builders and safe sample-rate parsing.
+- Integrated Mirror Sentry runtime files: `instrumentation-client.ts`, `instrumentation.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`, and `app/global-error.tsx`.
+- Updated `apps/mirror/next.config.ts` to use `withSentryConfig` and conditionally disable sourcemap upload when upload credentials are missing.
+- Added Sentry env keys to monorepo `turbo.json` `globalEnv`.
+- Updated docs:
+  - `apps/mirror/README.md` with runtime/build env setup and verification checklist
+  - `packages/convex/README.md` with Convex dashboard-driven Sentry integration instructions
+- Verification:
+  - `pnpm install` (pass)
+  - `pnpm lint --filter=@feel-good/mirror` (pass)
+  - `pnpm build --filter=@feel-good/mirror` with temporary required Mirror env vars (pass)
+  - Build without required Mirror env vars still fails due pre-existing Mirror env validation, unrelated to Sentry.
+- Remaining manual verification:
+  - Real Sentry event ingestion (client/server/request) requires a valid DSN and runtime trigger in your environment.
+  - Convex-side Sentry ingestion requires enabling integration in Convex dashboard with real Convex env settings.
+
 # 2026-02-12 Mirror Article List Filter
 
 - [x] Confirm filter behavior contract (date presets, root filter-search behavior, default states)

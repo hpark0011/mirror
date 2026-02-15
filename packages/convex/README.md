@@ -36,6 +36,32 @@ npx convex env set GOOGLE_CLIENT_ID "your-google-client-id"
 npx convex env set GOOGLE_CLIENT_SECRET "your-google-client-secret"
 ```
 
+## Convex Sentry Integration
+
+Convex exception reporting to Sentry is configured in the Convex dashboard integration settings (not via custom Sentry SDK code in Convex handlers).
+
+### Setup
+
+1. Open your Convex deployment in the Convex dashboard.
+2. Enable the Sentry exception reporting integration.
+3. Set required Convex environment variables:
+
+```bash
+npx convex env set SENTRY_DSN "https://<public-key>@o0.ingest.sentry.io/<project-id>"
+```
+
+Optional variables:
+
+```bash
+npx convex env set SENTRY_ENVIRONMENT "production"
+npx convex env set SENTRY_RELEASE "mirror-<git-sha>"
+```
+
+### Notes
+
+- Convex Sentry integration availability may depend on your Convex plan.
+- This package intentionally does not add direct `@sentry/*` calls inside `packages/convex/convex/*` handlers for this rollout.
+
 ### Email Sender Format
 
 Emails are sent from: `{APP_NAME} <auth@{EMAIL_DOMAIN}>`
