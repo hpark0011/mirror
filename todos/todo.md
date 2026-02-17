@@ -1,3 +1,14 @@
+# 2026-02-17 Greyboard Desktop AGENTS.md
+
+- [x] Confirm working branch is not `main`
+- [x] Create `apps/greyboard-desktop/AGENTS.md`
+- [x] Verify file and record review notes
+
+## Review
+
+- Created `apps/greyboard-desktop/AGENTS.md` with `@CLAUDE.md` indirection to follow repository convention.
+- Verified active branch is `codex/021726-greyboard-desktop-agents` (not `main`).
+
 # 2026-02-15 Mirror + Convex Sentry Integration
 
 - [x] Finalize implementation plan and integration scope
