@@ -20,6 +20,7 @@ curl -X POST https://tavusapi.com/v2/conversations \
 ```
 
 Response:
+
 ```json
 {
   "conversation_id": "c123456",
@@ -33,10 +34,12 @@ Open `conversation_url` in browser to join the call.
 ## Stock Resources
 
 **Replicas** (the visual avatar):
+
 - `rfe12d8b9597` - Default
 - `re8e740a42` - Nathan
 
 **Personas** (behavior/personality):
+
 - `pdced222244b` - Default
 - `p24293d6` - Celebrity DJ
 
@@ -58,6 +61,7 @@ curl -X POST https://tavusapi.com/v2/personas \
 ```
 
 Response:
+
 ```json
 {
   "persona_id": "p123456",
@@ -103,10 +107,10 @@ curl -X POST https://tavusapi.com/v2/conversations/{conversation_id}/end \
 
 ## Key Concepts
 
-| Concept | What it is |
-|---------|------------|
-| **Replica** | The visual avatar (face, appearance) |
-| **Persona** | Behavior, voice, LLM config, system prompt |
+| Concept          | What it is                                        |
+| ---------------- | ------------------------------------------------- |
+| **Replica**      | The visual avatar (face, appearance)              |
+| **Persona**      | Behavior, voice, LLM config, system prompt        |
 | **Conversation** | A live WebRTC session combining replica + persona |
 
 ## Pipeline Modes
