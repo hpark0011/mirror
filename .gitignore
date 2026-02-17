@@ -34,3 +34,4 @@ CLAUDE.local.md
 # Playwright
 playwright-report
 test-results.worktrees
+.playwright-cli
