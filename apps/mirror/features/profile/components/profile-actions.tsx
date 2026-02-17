@@ -1,7 +1,14 @@
 import { ShinyButton } from "@feel-good/ui/components/shiny-button";
 import { Icon, type IconName } from "@feel-good/ui/components/icon";
+import { toast } from "sonner";
 
-const PROFILE_ACTIONS: { label: string; icon: IconName; iconClassName?: string }[] = [
+type ProfileAction = {
+  label: string;
+  icon: IconName;
+  iconClassName?: string;
+};
+
+const PROFILE_ACTIONS: ProfileAction[] = [
   { label: "Text", icon: "BubbleLeftFillIcon", iconClassName: "size-5.5" },
   { label: "Video", icon: "VideoFillIcon", iconClassName: "size-5.5" },
   { label: "Voice", icon: "WaveformIcon", iconClassName: "size-6" },
@@ -12,7 +19,19 @@ const shinyButtonClass =
 const shinyButtonShadowClass =
   "rounded-[20px] [corner-shape:superellipse(1.3)]";
 
-export function ProfileActions() {
+type ProfileActionsProps = {
+  onVideoClick?: () => void;
+};
+
+export function ProfileActions({ onVideoClick }: ProfileActionsProps) {
+  const handleClick = (label: string) => {
+    if (label === "Video") {
+      onVideoClick?.();
+    } else {
+      toast("Coming soon", { description: `${label} conversations are not yet available.` });
+    }
+  };
+
   return (
     <div className="flex gap-2.5 items-center">
       {PROFILE_ACTIONS.map(({ label, icon, iconClassName }) => (
@@ -20,6 +39,7 @@ export function ProfileActions() {
           <ShinyButton
             className={shinyButtonClass}
             shadowClassName={shinyButtonShadowClass}
+            onClick={() => handleClick(label)}
           >
             <Icon name={icon} className={iconClassName} />
           </ShinyButton>

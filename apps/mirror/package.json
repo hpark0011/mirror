@@ -12,9 +12,12 @@
   },
   "dependencies": {
     "@convex-dev/better-auth": "catalog:",
+    "@daily-co/daily-js": "^0.87.0",
+    "@daily-co/daily-react": "^0.24.0",
     "@feel-good/convex": "workspace:*",
     "@feel-good/features": "workspace:*",
     "@feel-good/sentry-config": "workspace:*",
+    "@feel-good/tavus": "workspace:*",
     "@feel-good/ui": "workspace:*",
     "@feel-good/utils": "workspace:*",
     "@radix-ui/colors": "catalog:",
@@ -29,6 +32,8 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-i18next": "catalog:",
+    "server-only": "^0.0.1",
+    "sonner": "catalog:",
     "tw-animate-css": "catalog:",
     "zod": "catalog:"
   },

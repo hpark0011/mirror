@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
 import type { Profile } from "@/features/profile";
 import {
   MobileProfileLayout,
@@ -13,6 +14,7 @@ import {
 } from "@/features/articles";
 import type { Article } from "@/features/articles";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
+
 import {
   ResizableHandle,
   ResizablePanel,
@@ -25,6 +27,11 @@ import {
 } from "@/components/workspace-toolbar-slot";
 import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
 
+const VideoCallModal = dynamic(
+  () => import("@/features/video-call").then((m) => m.VideoCallModal),
+  { ssr: false },
+);
+
 type ProfileShellProps = {
   profile: Profile;
   isOwner: boolean;
@@ -36,6 +43,7 @@ export function ProfileShell(
   { profile, isOwner, articles, children }: ProfileShellProps,
 ) {
   const isMobile = useIsMobile();
+  const [videoCallOpen, setVideoCallOpen] = useState(false);
 
   const [mobileScrollRoot, setMobileScrollRoot] = useState<
     HTMLDivElement | null
@@ -63,7 +71,7 @@ export function ProfileShell(
               <ToolbarSlotProvider>
                 <WorkspaceNavbar className="fixed top-0 inset-x-0" />
                 <MobileProfileLayout
-                  profile={<ProfileInfoView profile={profile} />}
+                  profile={<ProfileInfoView profile={profile} onVideoClick={() => setVideoCallOpen(true)} />}
                   content={() => (
                     <div className="flex h-full min-h-0 flex-col">
                       <ToolbarSlotTarget />
@@ -88,7 +96,7 @@ export function ProfileShell(
               <ResizablePanelGroup direction="horizontal" className="h-full">
                 <ResizablePanel defaultSize={50} minSize={25} maxSize={80}>
                   <div className="relative z-20 h-full flex flex-col justify-center items-center px-6">
-                    <ProfileInfoView profile={profile} />
+                    <ProfileInfoView profile={profile} onVideoClick={() => setVideoCallOpen(true)} />
                   </div>
                 </ResizablePanel>
 
@@ -114,6 +122,12 @@ export function ProfileShell(
             </main>
           )}
       </ArticleWorkspaceProvider>
+      {videoCallOpen && (
+        <VideoCallModal
+          articles={articles}
+          onClose={() => setVideoCallOpen(false)}
+        />
+      )}
     </ProfileProvider>
   );
 }

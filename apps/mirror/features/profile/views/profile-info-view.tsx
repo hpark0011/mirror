@@ -5,9 +5,10 @@ import { ProfileActions } from "../components/profile-actions";
 
 type ProfileInfoViewProps = {
   profile: Profile;
+  onVideoClick?: () => void;
 };
 
-export const ProfileInfoView = memo(function ProfileInfoView({ profile }: ProfileInfoViewProps) {
+export const ProfileInfoView = memo(function ProfileInfoView({ profile, onVideoClick }: ProfileInfoViewProps) {
   return (
     <div className="flex flex-col items-center justify-center pb-[40px]">
       {/* Profile Name */}
@@ -23,7 +24,7 @@ export const ProfileInfoView = memo(function ProfileInfoView({ profile }: Profil
 
       {/* Profile Actions */}
       <div className="mt-[20px]">
-        <ProfileActions />
+        <ProfileActions onVideoClick={onVideoClick} />
       </div>
 
       {/* Profile Bio */}
