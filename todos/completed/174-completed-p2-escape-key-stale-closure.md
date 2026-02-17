@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 priority: p2
 issue_id: "174"
 tags: [code-review, bug, video-call, mirror]
@@ -52,3 +52,4 @@ useEffect(() => {
 | Date | Action | Learnings |
 |------|--------|-----------|
 | 2026-02-17 | Created from PR #133 code review | Empty deps array with non-stable closure reference |
+| 2026-02-17 | Fixed in 7d3743dd | Used handleCloseRef pattern, stabilized handlers with useCallback |
