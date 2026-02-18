@@ -29,11 +29,12 @@ Use consistent prefixes: `feature-*`, `fix-*`, `refactor-*`.
 
 ## Core Rules
 
-1. **Never parallelize overlapping files.** Two features touching the same files creates merge pain that negates speed gains. Pick orthogonal work.
-2. **One agent per worktree.** Never let two agents share a working directory.
-3. **Run `pnpm install` in each worktree.** Every worktree is a separate working directory — dependencies are not shared.
-4. **Use different ports per worktree.** Dev servers will collide if multiple worktrees run the same app.
-5. **Commit often.** Frequent commits within each worktree prevent lost work.
+1. **One worktree = one dedicated branch off main.** Every worktree must be tied to its own branch created from main. Never share a branch across worktrees, and never point a worktree at main itself.
+2. **Never parallelize overlapping files.** Two features touching the same files creates merge pain that negates speed gains. Pick orthogonal work.
+3. **One agent per worktree.** Never let two agents share a working directory.
+4. **Run `pnpm install` in each worktree.** Every worktree is a separate working directory — dependencies are not shared.
+5. **Use different ports per worktree.** Dev servers will collide if multiple worktrees run the same app.
+6. **Commit often.** Frequent commits within each worktree prevent lost work.
 
 ## Cleanup
 
