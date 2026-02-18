@@ -4,11 +4,11 @@ Rules for parallel feature development using git worktrees.
 
 ## Directory Structure
 
-Use `.trees/` inside the repo root (already in `.gitignore`):
+Use `.worktrees/` inside the repo root (already in `.gitignore`):
 
 ```
-project/
-├── .trees/
+feel-good/
+├── .worktrees/
 │   ├── feature-auth/
 │   └── fix-payment-bug/
 ├── apps/
@@ -19,10 +19,10 @@ project/
 
 ```bash
 # From existing branch
-git worktree add .trees/feature-x feature-x
+git worktree add .worktrees/feature-x feature-x
 
 # New branch from main
-git worktree add -b feature-y .trees/feature-y main
+git worktree add -b feature-y .worktrees/feature-y main
 ```
 
 Use consistent prefixes: `feature-*`, `fix-*`, `refactor-*`.
@@ -38,7 +38,7 @@ Use consistent prefixes: `feature-*`, `fix-*`, `refactor-*`.
 
 ## Cleanup
 
-- Remove merged worktrees: `git worktree remove .trees/feature-x`
+- Remove merged worktrees: `git worktree remove .worktrees/feature-x`
 - Prune stale metadata: `git worktree prune`
 - Don't let finished worktrees accumulate.
 
@@ -46,9 +46,3 @@ Use consistent prefixes: `feature-*`, `fix-*`, `refactor-*`.
 
 Allowed: commits, local branches, fetch/pull, push to remote.
 Prohibited: force-push, deleting other worktrees, modifying other branches.
-
-## When NOT to Use Worktrees
-
-- Quick context switches (minutes) — use `git stash`
-- Features with heavy file overlap — work sequentially
-- Expensive per-directory setup (large native builds)
