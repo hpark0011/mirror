@@ -111,8 +111,7 @@ For each opportunity, provide:
 ## Update Tracking
 
 1. Update `.claude/health.md` (if status changed)
-2. Write to `.claude/opportunities.md` (add to Active, move implemented to Changelog)
-3. Log in health.md: `[timestamp] Context guardian found {count} opportunities`
+2. Log in health.md: `[timestamp] Context guardian found {count} opportunities`
 
 ## Output Format
 

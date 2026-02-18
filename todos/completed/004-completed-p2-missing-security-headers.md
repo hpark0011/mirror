@@ -1,5 +1,5 @@
 ---
-status: done
+status: completed
 priority: p2
 issue_id: "004"
 tags: [code-review, security, nextjs]

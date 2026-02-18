@@ -1,60 +1,160 @@
-@CLAUDE.md
+# Feel Good Monorepo
 
-## Workflow Orchestration
+Turborepo monorepo with 3 Next.js applications and shared packages.
 
-### 1. Plan Mode Default
+## Quick Start
 
-- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions)
-- If something goes sideways, STOP and re-plan immediately — don't keep pushing
-- Use plan mode for verification steps, not just building
-- Write detailed specs upfront to reduce ambiguity
+```bash
+pnpm install           # Install all dependencies
+pnpm dev               # Run all apps in dev mode
+pnpm build             # Build all packages
+pnpm lint              # Lint all packages
+pnpm format            # Format all files
+```
 
-### 2. Subagent Strategy
+### Filtered Commands
 
-- Use subagents liberally to keep main context window clean
-- Offload research, exploration, and parallel analysis to subagents
-- For complex problems, throw more compute at it via subagents
-- One task per subagent for focused execution
+```bash
+pnpm dev --filter=@feel-good/greyboard    # Run single app
+pnpm build --filter=@feel-good/greyboard  # Build single app
+pnpm lint --filter=@feel-good/greyboard   # Lint single app
+```
 
-### 3. Self-Improvement Loop
+## Monorepo Structure
 
-- After ANY correction from the user: update `todos/lessons.md` with the pattern
-- Write rules for yourself that prevent the same mistake
-- Ruthlessly iterate on these lessons until mistake rate drops
-- Review lessons at session start for relevant project
+```
+apps/           Next.js applications (greyboard, mirror, ui-factory)
+packages/       Shared libraries (ui, features, icons, utils, convex)
+tooling/        Shared configs (eslint, prettier, typescript)
+```
 
-### 4. Verification Before Done
+## Apps
 
-- Never mark a task complete without proving it works
-- Diff behavior between main and your changes when relevant
-- Ask yourself: "Would a staff engineer approve this?"
-- Run tests, check logs, demonstrate correctness
+| App | Description | Port |
+|-----|-------------|------|
+| greyboard | AI-powered task management | 3000 |
+| mirror | Interactive blogging platform | 3001 |
+| ui-factory | Design system showcase | 3002 |
 
-### 5. Demand Elegance (Balanced)
+## Packages
 
-- For non-trivial changes: pause and ask "is there a more elegant way?"
-- If a fix feels hacky: "Knowing everything I know now, implement the elegant solution"
-- Skip this for simple, obvious fixes — don't over-engineer
-- Challenge your own work before presenting it
+| Package | Purpose | Example Import |
+|---------|---------|----------------|
+| @feel-good/ui | shadcn/ui primitives | `@feel-good/ui/primitives/button` |
+| @feel-good/features | Feature components (auth, dock) | `@feel-good/features/auth/blocks` |
+| @feel-good/icons | SVG icon components | `@feel-good/icons` |
+| @feel-good/utils | Utilities (cn, etc.) | `@feel-good/utils/cn` |
+| @feel-good/convex | Convex backend | `@feel-good/convex` |
 
-### 6. Autonomous Bug Fixing
+### @feel-good/utils
 
-- When given a bug report: just fix it. Don't ask for hand-holding
-- Point at logs, errors, failing tests — then resolve them
-- Zero context switching required from the user
-- Go fix failing CI tests without being told how
+Shared utility functions.
 
-## Task Management
+```typescript
+import { cn } from "@feel-good/utils/cn";
+```
 
-1. **Plan First**: Write plan to `todos/todo.md` with checkable items
-2. **Verify Plan**: Check in before starting implementation
-3. **Track Progress**: Mark items complete as you go
-4. **Explain Changes**: High-level summary at each step
-5. **Document Results**: Add review section to `todos/todo.md`
-6. **Capture Lessons**: Update `todos/lessons.md` after corrections
+### @feel-good/icons
+
+SVG icon components as React components.
+
+```typescript
+import { CheckIcon, CloseIcon } from "@feel-good/icons";
+```
+
+### @feel-good/ui
+
+Shared UI component library based on shadcn/ui primitives.
+
+```typescript
+import { Button } from "@feel-good/ui/primitives/button";
+import { Card } from "@feel-good/ui/primitives/card";
+import { Dialog } from "@feel-good/ui/primitives/dialog";
+```
+
+### @feel-good/features
+
+Shared feature components (auth, dock).
+
+```typescript
+// Auth forms
+import { MagicLinkLoginForm, MagicLinkSignUpForm, OTPLoginForm, OTPSignUpForm } from "@feel-good/features/auth/components/forms";
+
+// Auth hooks
+import { useMagicLinkRequest, useOTPAuth, createUseSession } from "@feel-good/features/auth/hooks";
+
+// Auth blocks (drop-in page sections)
+import { LoginBlock, SignUpBlock } from "@feel-good/features/auth/blocks";
+
+// Dock
+import { AppDock } from "@feel-good/features/dock/blocks";
+```
+
+#### Auth Package Layers
+
+| Layer | Import | Purpose |
+|-------|--------|---------|
+| Blocks | `@feel-good/features/auth/blocks` | Drop-in page sections |
+| Forms | `@feel-good/features/auth/components/forms` | Complete forms with logic |
+| Views | `@feel-good/features/auth/views` | Pure UI components |
+| Hooks | `@feel-good/features/auth/hooks` | Headless auth logic |
+
+### @feel-good/convex
+
+Shared Convex backend configuration and functions.
+
+```typescript
+import { api } from "@feel-good/convex";
+```
+
+### @feel-good/tsconfig
+
+Shared TypeScript configurations. Choose based on package type:
+
+| Config               | Use Case                                           |
+|----------------------|----------------------------------------------------|
+| `base.json`          | Backend/non-browser packages (e.g., Convex)        |
+| `react-library.json` | React component libraries (ui, icons, features)   |
+| `nextjs.json`        | Next.js applications (greyboard, mirror)           |
+
+```json
+{
+  "extends": "@feel-good/tsconfig/react-library.json"
+}
+```
+
+Available configs in `tooling/typescript/`:
+
+```
+├── base.json             # ES2022, strict mode, bundler resolution
+├── react-library.json    # Extends base + DOM libs + react-jsx
+└── nextjs.json           # Extends base + Next.js plugin + jsx preserve
+```
+
+### @feel-good/eslint-config
+
+Shared ESLint configurations.
+
+### @feel-good/prettier-config
+
+Shared Prettier configuration.
 
 ## Core Principles
 
-- **Simplicity First**: Make every change as simple as possible. Impact minimal code.
-- **No Laziness**: Find root causes. No temporary fixes. Senior developer standards.
-- **Minimal Impact**: Changes should only touch what's necessary. Avoid introducing bugs.
+- **Simplicity First** — Make every change as simple as possible. Impact minimal code.
+- **No Laziness** — Find root causes. No temporary fixes. Senior developer standards.
+- **Minimal Impact** — Changes should only touch what is necessary. Avoid introducing bugs.
+
+## Adding a New App
+
+1. Create directory in `apps/`
+2. Add `package.json` with name `@feel-good/app-name`
+3. Reference workspace packages: `"@feel-good/utils": "workspace:*"`
+4. Run `pnpm install` from root
+
+## Adding a New Package
+
+1. Create directory in `packages/`
+2. Add `package.json` with name `@feel-good/package-name`
+3. Add to consuming apps' dependencies
+4. Run `pnpm install` from root

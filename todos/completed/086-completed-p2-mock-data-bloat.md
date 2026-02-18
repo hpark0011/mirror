@@ -1,5 +1,5 @@
 ---
-status: pending
+status: completed
 priority: p2
 issue_id: "086"
 tags: [code-review, performance, bundle-size, mirror]

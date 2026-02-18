@@ -1,5 +1,5 @@
 ---
-status: done
+status: completed
 priority: p2
 issue_id: "036"
 tags: [code-review, dock, validation, types]
