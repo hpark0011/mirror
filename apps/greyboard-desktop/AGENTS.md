@@ -1,6 +1,6 @@
 # Greyboard Desktop
 
-Electron + Vite + React desktop application for Greyboard task management.
+Electron + Vite + React desktop application for reading markdown documents from a user-selected folder.
 
 ## Commands
 
@@ -15,15 +15,15 @@ pnpm clean         # Remove build artifacts and node_modules
 
 ## Tech Stack
 
-| Category  | Technology                                    |
-| --------- | --------------------------------------------- |
-| Desktop   | Electron 35, Vite 6.3, electron-updater      |
-| Frontend  | React 19, TypeScript                          |
-| Routing   | react-router-dom 7                            |
-| Styling   | Tailwind CSS 4, shadcn/ui (via @feel-good/ui) |
-| State     | Zustand 5 (persist middleware)                |
+| Category   | Technology                                    |
+| ---------- | --------------------------------------------- |
+| Desktop    | Electron 35, Vite 6.3, electron-updater      |
+| Frontend   | React 19, TypeScript                          |
+| Routing    | react-router-dom 7                            |
+| Styling    | Tailwind CSS 4, shadcn/ui (via @feel-good/ui) |
+| State      | Zustand 5                                     |
 | Validation | Zod                                           |
-| Icons     | @feel-good/icons, Lucide React                |
+| Icons      | @feel-good/icons                              |
 
 ## Project Structure
 
@@ -37,7 +37,7 @@ electron/
     validators.ts        # Zod validation schemas
   ipc/
     app.ts               # App info handlers (version, platform)
-    files.ts             # File import/export handlers
+    docs.ts              # Document folder & file handlers
     notifications.ts     # System notifications
     updates.ts           # Auto-update handlers
 
@@ -45,15 +45,14 @@ src/
   main.tsx               # React entry point
   App.tsx                # Root component
   router.tsx             # react-router-dom setup
-  routes/                # Page components
-  components/            # App components
-  state/                 # Zustand stores
-    board-store.ts       # Board CRUD + import/export
+  routes/
+    document-list.tsx    # Folder selection + file listing page
+    document-view.tsx    # Single markdown file viewer
+  state/
+    document-store.ts    # Document state (folder path, file list)
   lib/
     ipc/
       client.ts          # IPC client wrapper
-    persistence/
-      schema.ts          # Board schema + types (Zod)
   types/                 # App-wide types
 ```
 
@@ -73,10 +72,19 @@ src/
 // electron/lib/channels.ts
 export const CHANNELS = {
   APP_GET_VERSION: 'greyboard:app:getVersion',
-  FILES_IMPORT_BOARD: 'greyboard:files:importBoard',
+  DOCS_SELECT_FOLDER: 'greyboard:docs:selectFolder',
+  DOCS_GET_FOLDER: 'greyboard:docs:getFolder',
+  DOCS_LIST_FILES: 'greyboard:docs:listFiles',
+  DOCS_READ_FILE: 'greyboard:docs:readFile',
   // ...
 }
 ```
+
+**Channel responsibilities:**
+- `DOCS_SELECT_FOLDER` — Opens native folder picker, persists selection to main process
+- `DOCS_GET_FOLDER` — Returns current folder path (verifies it still exists on disk)
+- `DOCS_LIST_FILES` — Lists `.md` files in the folder with metadata (name, size, lastModified)
+- `DOCS_READ_FILE` — Reads a single `.md` file with security validation (path traversal, symlink, size check)
 
 **Type-safe API**:
 ```typescript
@@ -92,58 +100,44 @@ export const desktopAPI = { /* wrapper with fallbacks */ }
 
 **Renderer usage**:
 ```typescript
-const json = await desktopAPI.files.importBoard()
+const folder = await desktopAPI.docs.getFolder()
+const files = await desktopAPI.docs.listFiles()
+const doc = await desktopAPI.docs.readFile('my-doc.md')
 ```
 
 ### State Management
 
-Zustand with **persist middleware**:
+Zustand without persist middleware:
 
 ```typescript
-// src/state/board-store.ts
-const boardStorage: StateStorage = {
-  getItem: (key) => {
-    // Parse localStorage, validate with Zod, return zustand envelope
-  },
-  setItem: (key, value) => {
-    // Debounced write to localStorage with version wrapper
-  },
-}
-
-export const useBoardStore = create<BoardState & BoardActions>()(
-  persist((set, get) => ({ /* ... */ }), {
-    name: STORAGE_KEY,
-    storage: boardStorage,
-    partialize: (state) => ({ boards: state.boards }),
+// src/state/document-store.ts
+export const useDocumentStore = create<DocumentState & DocumentActions>()(
+  (set, get) => ({
+    folderPath: null,
+    files: [],
+    isLoading: false,
+    error: null,
+    loadFolder: async () => { /* ... */ },
+    selectFolder: async () => { /* ... */ },
   })
 )
 ```
 
-**Why custom storage:**
-- localStorage format: `{ version: 1, boards: [...] }`
-- Zustand persist format: `{ state: { boards: [...] }, version: 0 }`
-- Custom adapter bridges both, validates on read with Zod, debounces writes
-
 **Actions:**
-- `addBoard(board)` — Add new board
-- `removeBoard(id)` — Delete board
-- `updateBoard(id, updates)` — Patch board (auto-updates `updatedAt`)
-- `importBoard(json)` — Parse JSON, validate, assign new UUID, persist
-- `exportBoard(id)` — Serialize board to JSON string
+- `loadFolder()` — Loads persisted folder from main process, verifies existence, lists files
+- `selectFolder()` — Opens native folder picker, lists files after selection
 
-### Board Schema
+**Note:** Folder persistence is handled by the main process (`userData/docs-settings.json`), not renderer localStorage. The renderer store is ephemeral — it rehydrates from the main process on startup.
 
-```typescript
-// src/lib/persistence/schema.ts
-export const persistedBoardV1Schema = z.object({
-  version: z.literal(1),
-  id: z.string(),
-  title: z.string(),
-  createdAt: z.string(),    // ISO 8601
-  updatedAt: z.string(),
-  data: z.record(z.string(), z.unknown()),  // Flexible payload
-})
-```
+### Security
+
+File access in the main process is hardened at multiple layers:
+
+- File names validated with Zod (no path separators, no `..`, no null bytes, must end in `.md`)
+- `realpath()` used to resolve symlinks before checking the path is within the selected folder
+- `lstat()` rejects symlinks explicitly — only regular files are served
+- 10MB file size limit enforced before reading
+- Errors sanitized before sending to renderer — stack traces and system paths are never exposed
 
 ## Path Aliases
 

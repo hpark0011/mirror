@@ -1,6 +1,7 @@
 import { createHashRouter } from 'react-router-dom'
 import { App } from './App'
-import { Dashboard } from './routes/dashboard'
+import { DocumentList } from './routes/document-list'
+import { DocumentView } from './routes/document-view'
 
 export const router = createHashRouter([
   {
@@ -9,7 +10,11 @@ export const router = createHashRouter([
     children: [
       {
         index: true,
-        element: <Dashboard />,
+        element: <DocumentList />,
+      },
+      {
+        path: 'document/:name',
+        element: <DocumentView />,
       },
     ],
   },

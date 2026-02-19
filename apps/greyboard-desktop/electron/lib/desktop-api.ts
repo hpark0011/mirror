@@ -1,11 +1,19 @@
+export interface DocumentFile {
+  name: string
+  lastModified: string
+  sizeBytes: number
+}
+
 export interface DesktopAPI {
   app: {
     getVersion: () => Promise<string>
     getPlatform: () => Promise<string>
   }
-  files: {
-    importBoard: () => Promise<string | null>
-    exportBoard: (data: string) => Promise<boolean>
+  docs: {
+    selectFolder: () => Promise<{ path: string } | null>
+    getFolder: () => Promise<{ path: string } | null>
+    listFiles: () => Promise<DocumentFile[]>
+    readFile: (name: string) => Promise<{ name: string; content: string } | null>
   }
   notifications: {
     show: (title: string, body: string) => Promise<void>

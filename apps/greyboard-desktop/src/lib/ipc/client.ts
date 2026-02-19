@@ -1,4 +1,7 @@
-import { type DesktopAPI } from '../../../electron/lib/desktop-api'
+import {
+  type DesktopAPI,
+  type DocumentFile,
+} from '@/electron/lib/desktop-api'
 
 function getDesktopAPI(): DesktopAPI | null {
   if (typeof window !== 'undefined' && window.greyboardDesktop) {
@@ -18,14 +21,24 @@ export const desktopAPI = {
       return api?.app.getPlatform() ?? 'unknown'
     },
   },
-  files: {
-    importBoard: async () => {
+  docs: {
+    selectFolder: async (): Promise<{ path: string } | null> => {
       const api = getDesktopAPI()
-      return api?.files.importBoard() ?? null
+      return api?.docs.selectFolder() ?? null
     },
-    exportBoard: async (data: string) => {
+    getFolder: async (): Promise<{ path: string } | null> => {
       const api = getDesktopAPI()
-      return api?.files.exportBoard(data) ?? false
+      return api?.docs.getFolder() ?? null
+    },
+    listFiles: async (): Promise<DocumentFile[]> => {
+      const api = getDesktopAPI()
+      return api?.docs.listFiles() ?? []
+    },
+    readFile: async (
+      name: string
+    ): Promise<{ name: string; content: string } | null> => {
+      const api = getDesktopAPI()
+      return api?.docs.readFile(name) ?? null
     },
   },
   notifications: {

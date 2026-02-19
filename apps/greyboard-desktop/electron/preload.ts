@@ -7,10 +7,12 @@ contextBridge.exposeInMainWorld('greyboardDesktop', {
     getVersion: () => ipcRenderer.invoke(CHANNELS.APP_GET_VERSION),
     getPlatform: () => ipcRenderer.invoke(CHANNELS.APP_GET_PLATFORM),
   },
-  files: {
-    importBoard: () => ipcRenderer.invoke(CHANNELS.FILES_IMPORT_BOARD),
-    exportBoard: (data: string) =>
-      ipcRenderer.invoke(CHANNELS.FILES_EXPORT_BOARD, data),
+  docs: {
+    selectFolder: () => ipcRenderer.invoke(CHANNELS.DOCS_SELECT_FOLDER),
+    getFolder: () => ipcRenderer.invoke(CHANNELS.DOCS_GET_FOLDER),
+    listFiles: () => ipcRenderer.invoke(CHANNELS.DOCS_LIST_FILES),
+    readFile: (name: string) =>
+      ipcRenderer.invoke(CHANNELS.DOCS_READ_FILE, { name }),
   },
   notifications: {
     show: (title: string, body: string) =>

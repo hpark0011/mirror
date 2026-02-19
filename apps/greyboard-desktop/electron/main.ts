@@ -50,10 +50,10 @@ function createWindow() {
   }
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   setupContentSecurityPolicy()
   createWindow()
-  registerAllHandlers(mainWindow!)
+  await registerAllHandlers(mainWindow!)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
