@@ -3,7 +3,7 @@ id: FG_021
 title: "Add desktop main-process JSON state IPC store"
 date: 2026-02-24
 type: feat
-status: to-do
+status: done
 priority: p1
 description: "Implement desktop local persistence in Electron main process using a versioned JSON file under userData and expose it through new IPC channels."
 dependencies: ["FG_014", "FG_016"]
@@ -52,4 +52,3 @@ Use userData JSON as source-of-truth and atomic writes for deterministic persist
 - `apps/greyboard-desktop/electron/ipc/index.ts`
 - `apps/greyboard-desktop/electron/lib/channels.ts`
 - `apps/greyboard-desktop/electron/lib/validators.ts`
-

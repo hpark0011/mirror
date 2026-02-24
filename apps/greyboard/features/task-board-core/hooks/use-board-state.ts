@@ -16,8 +16,9 @@ import {
   safelyDeserializeBoard,
 } from "../utils/board-storage.utils";
 import {
-  downloadJsonFile,
-  importBoardFromJson,
+  downloadSnapshotFile,
+  exportBoardSnapshot,
+  importBoardSnapshot,
 } from "../utils/board-io.utils";
 
 export interface UseBoardStateReturn {
@@ -253,12 +254,12 @@ export function useBoardState(): UseBoardStateReturn {
   const exportBoard = useCallback(() => {
     const timestamp = new Date().toISOString().split("T")[0];
     const filename = `task-board-${timestamp}.json`;
-    downloadJsonFile(serializeBoardData(board), filename);
+    downloadSnapshotFile(exportBoardSnapshot(board), filename);
   }, [board]);
 
   const importBoard = useCallback(
     (jsonContent: string) => {
-      const importedBoard = importBoardFromJson(jsonContent);
+      const importedBoard = importBoardSnapshot(jsonContent);
       setBoard(importedBoard);
     },
     [setBoard]

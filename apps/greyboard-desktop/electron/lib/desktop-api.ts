@@ -1,8 +1,4 @@
-export interface DocumentFile {
-  name: string
-  lastModified: string
-  sizeBytes: number
-}
+import { type GreyboardSnapshotV2 } from '@feel-good/utils/greyboard-snapshot'
 
 export interface DesktopAPI {
   platform: NodeJS.Platform
@@ -10,11 +6,11 @@ export interface DesktopAPI {
     getVersion: () => Promise<string>
     getPlatform: () => Promise<string>
   }
-  docs: {
-    selectFolder: () => Promise<{ path: string } | null>
-    getFolder: () => Promise<{ path: string } | null>
-    listFiles: () => Promise<DocumentFile[]>
-    readFile: (name: string) => Promise<{ name: string; content: string } | null>
+  state: {
+    load: () => Promise<GreyboardSnapshotV2>
+    save: (snapshot: GreyboardSnapshotV2) => Promise<GreyboardSnapshotV2>
+    importSnapshot: (json: string) => Promise<GreyboardSnapshotV2>
+    exportSnapshot: () => Promise<string>
   }
   notifications: {
     show: (title: string, body: string) => Promise<void>

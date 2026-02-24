@@ -3,7 +3,7 @@ id: FG_025
 title: "Wire shared snapshot import/export in web and desktop"
 date: 2026-02-24
 type: feat
-status: to-do
+status: done
 priority: p1
 description: "Use GreyboardSnapshotV2 serializer/deserializer in both apps so import/export is deterministic, portable, and backward compatible with legacy board exports."
 dependencies: ["FG_016", "FG_020", "FG_023"]
@@ -51,4 +51,3 @@ Route all import/export operations through core snapshot APIs and remove app-loc
 - `apps/greyboard/features/task-board-core/utils/board-io.utils.ts`
 - `apps/greyboard/app/(protected)/dashboard/tasks/_components/tasks-header-actions.tsx`
 - `apps/greyboard-desktop/src/lib/ipc/client.ts`
-

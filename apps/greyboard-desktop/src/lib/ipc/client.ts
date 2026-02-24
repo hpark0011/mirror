@@ -1,13 +1,20 @@
 import {
-  type DesktopAPI,
-  type DocumentFile,
-} from '@/electron/lib/desktop-api'
+  createEmptySnapshot,
+  deserializeSnapshot,
+  serializeSnapshot,
+  type GreyboardSnapshotV2,
+} from '@feel-good/utils/greyboard-snapshot'
+import { type DesktopAPI } from '@/electron/lib/desktop-api'
 
 function getDesktopAPI(): DesktopAPI | null {
   if (typeof window !== 'undefined' && window.greyboardDesktop) {
     return window.greyboardDesktop
   }
   return null
+}
+
+function getDefaultSnapshot(): GreyboardSnapshotV2 {
+  return createEmptySnapshot('desktop')
 }
 
 export const desktopAPI = {
@@ -21,24 +28,28 @@ export const desktopAPI = {
       return api?.app.getPlatform() ?? 'unknown'
     },
   },
-  docs: {
-    selectFolder: async (): Promise<{ path: string } | null> => {
+  state: {
+    load: async (): Promise<GreyboardSnapshotV2> => {
       const api = getDesktopAPI()
-      return api?.docs.selectFolder() ?? null
+      return api?.state.load() ?? getDefaultSnapshot()
     },
-    getFolder: async (): Promise<{ path: string } | null> => {
+    save: async (snapshot: GreyboardSnapshotV2): Promise<GreyboardSnapshotV2> => {
       const api = getDesktopAPI()
-      return api?.docs.getFolder() ?? null
+      return api?.state.save(snapshot) ?? snapshot
     },
-    listFiles: async (): Promise<DocumentFile[]> => {
+    importSnapshot: async (json: string): Promise<GreyboardSnapshotV2> => {
       const api = getDesktopAPI()
-      return api?.docs.listFiles() ?? []
+      if (api) {
+        return api.state.importSnapshot(json)
+      }
+      return deserializeSnapshot(json)
     },
-    readFile: async (
-      name: string
-    ): Promise<{ name: string; content: string } | null> => {
+    exportSnapshot: async (): Promise<string> => {
       const api = getDesktopAPI()
-      return api?.docs.readFile(name) ?? null
+      if (api) {
+        return api.state.exportSnapshot()
+      }
+      return serializeSnapshot(getDefaultSnapshot())
     },
   },
   notifications: {

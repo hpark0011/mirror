@@ -3,7 +3,7 @@ id: FG_024
 title: "Remove desktop markdown document-reader codepath"
 date: 2026-02-24
 type: refactor
-status: to-do
+status: done
 priority: p2
 description: "Delete obsolete markdown-reader routes/state/ipc channels from greyboard-desktop after task-workspace migration to reduce maintenance and prevent divergence."
 dependencies: ["FG_023"]
@@ -52,4 +52,3 @@ Do hard cleanup after route migration is stable to keep repository intent unambi
 - `apps/greyboard-desktop/src/routes/document-list.tsx`
 - `apps/greyboard-desktop/src/routes/document-view.tsx`
 - `apps/greyboard-desktop/electron/ipc/docs.ts`
-

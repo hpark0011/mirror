@@ -44,8 +44,9 @@ export {
   deserializeBoardData,
   getInitialSerializedBoard,
   safelyDeserializeBoard,
-  importBoardFromJson,
-  downloadJsonFile,
+  importBoardSnapshot,
+  exportBoardSnapshot,
+  downloadSnapshotFile,
   updateBoardWithTicket,
 } from "./utils";
 

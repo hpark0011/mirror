@@ -3,7 +3,7 @@ id: FG_023
 title: "Replace desktop router with shared task workspace route"
 date: 2026-02-24
 type: feat
-status: to-do
+status: done
 priority: p1
 description: "Swap desktop markdown-reader routes for a task-management route that renders the shared TaskWorkspace backed by desktop state APIs."
 dependencies: ["FG_019", "FG_022"]
@@ -51,4 +51,3 @@ Replace route graph first, then follow with cleanup ticket to remove dead docume
 - `apps/greyboard-desktop/src/router.tsx`
 - `apps/greyboard-desktop/src/App.tsx`
 - `apps/greyboard-desktop/src/features/header/main-header.tsx`
-

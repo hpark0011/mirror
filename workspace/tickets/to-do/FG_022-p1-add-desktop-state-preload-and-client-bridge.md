@@ -3,7 +3,7 @@ id: FG_022
 title: "Add desktop state preload and renderer client bridge"
 date: 2026-02-24
 type: feat
-status: to-do
+status: done
 priority: p1
 description: "Expose desktop state IPC methods through preload and typed renderer client wrappers so core workspace can consume desktop persistence safely."
 dependencies: ["FG_021"]
@@ -51,4 +51,3 @@ Mirror existing IPC client patterns and keep fallbacks deterministic when deskto
 - `apps/greyboard-desktop/electron/lib/desktop-api.ts`
 - `apps/greyboard-desktop/electron/preload.ts`
 - `apps/greyboard-desktop/src/lib/ipc/client.ts`
-

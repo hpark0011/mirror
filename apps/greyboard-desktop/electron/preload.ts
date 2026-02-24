@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import { type GreyboardSnapshotV2 } from '@feel-good/utils/greyboard-snapshot'
 import { CHANNELS } from './lib/channels'
 import { type DesktopAPI } from './lib/desktop-api'
 
@@ -8,12 +9,13 @@ contextBridge.exposeInMainWorld('greyboardDesktop', {
     getVersion: () => ipcRenderer.invoke(CHANNELS.APP_GET_VERSION),
     getPlatform: () => ipcRenderer.invoke(CHANNELS.APP_GET_PLATFORM),
   },
-  docs: {
-    selectFolder: () => ipcRenderer.invoke(CHANNELS.DOCS_SELECT_FOLDER),
-    getFolder: () => ipcRenderer.invoke(CHANNELS.DOCS_GET_FOLDER),
-    listFiles: () => ipcRenderer.invoke(CHANNELS.DOCS_LIST_FILES),
-    readFile: (name: string) =>
-      ipcRenderer.invoke(CHANNELS.DOCS_READ_FILE, { name }),
+  state: {
+    load: () => ipcRenderer.invoke(CHANNELS.STATE_LOAD),
+    save: (snapshot: GreyboardSnapshotV2) =>
+      ipcRenderer.invoke(CHANNELS.STATE_SAVE, { snapshot }),
+    importSnapshot: (json: string) =>
+      ipcRenderer.invoke(CHANNELS.STATE_IMPORT, { json }),
+    exportSnapshot: () => ipcRenderer.invoke(CHANNELS.STATE_EXPORT),
   },
   notifications: {
     show: (title: string, body: string) =>
