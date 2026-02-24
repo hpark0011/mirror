@@ -14,7 +14,9 @@ export const ProfileInfo = memo(function ProfileInfo({ profile, onAction }: Prof
     <div className="flex flex-col items-center justify-center pb-[40px]">
       <div className="text-3xl font-medium text-center">{profile.name}</div>
       <div className="flex flex-col gap-2 items-center pt-[64px]">
-        <ProfileMedia video={profile.media.video} poster={profile.media.poster} />
+        {profile.media && (
+          <ProfileMedia video={profile.media.video} poster={profile.media.poster} />
+        )}
       </div>
       <div className="mt-[20px]">
         <ProfileActions onAction={onAction} />

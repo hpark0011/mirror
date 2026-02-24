@@ -50,6 +50,26 @@ features/
     lib/
       mock-profile.ts
 
+  onboarding/           # New user onboarding wizard
+    components/
+      onboarding-wizard.tsx
+      profile-step.tsx
+      username-step.tsx
+    hooks/
+      use-username-availability.ts
+
+  video-call/           # Tavus CVI video calling
+    components/
+      call-controls.tsx
+      connection-status.tsx
+      video-call-modal.tsx
+      video-call.tsx
+      cvi/              # Tavus CVI provider and conversation
+    context/
+      video-call-context.tsx
+    hooks/
+    types.ts
+
   articles/             # Article list, pagination, filtering, search, sort
     components/
       animated-article-row.tsx
@@ -122,6 +142,7 @@ providers/             # React context providers
 |-----|-------|------|---------|
 | `/@username` | `app/[username]/page.tsx` | Public | Profile + article list |
 | `/@username/slug` | `app/[username]/[slug]/page.tsx` | Public | Article detail |
+| `/onboarding` | `app/(protected)/onboarding/page.tsx` | Required | New user onboarding wizard |
 | `/dashboard` | `app/(protected)/dashboard/page.tsx` | Required | Insights |
 | `/sign-in` | `app/(auth)/sign-in/page.tsx` | Public | Login |
 | `/sign-up` | `app/(auth)/sign-up/page.tsx` | Public | Sign up |

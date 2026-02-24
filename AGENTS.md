@@ -36,8 +36,10 @@ pnpm desktop:check-types # Typecheck desktop app
 
 ```
 apps/           Next.js and Electron applications (greyboard, mirror, ui-factory, greyboard-desktop)
-packages/       Shared libraries (ui, features, icons, utils, convex)
-tooling/        Shared configs (eslint, prettier, typescript)
+packages/       Shared libraries (ui, features, icons, utils, convex, tavus)
+tooling/        Shared configs (eslint, prettier, typescript, sentry)
+docs/           Conventions, plans, brainstorms, solutions
+workspace/      Ticket tracking system
 ```
 
 ## Apps
@@ -51,68 +53,20 @@ tooling/        Shared configs (eslint, prettier, typescript)
 
 ## Packages
 
-| Package             | Purpose                         | Example Import                    |
-| ------------------- | ------------------------------- | --------------------------------- |
-| @feel-good/ui       | shadcn/ui primitives            | `@feel-good/ui/primitives/button` |
-| @feel-good/features | Feature components (auth, dock) | `@feel-good/features/auth/blocks` |
-| @feel-good/icons    | SVG icon components             | `@feel-good/icons`                |
-| @feel-good/utils    | Utilities (cn, etc.)            | `@feel-good/utils/cn`             |
-| @feel-good/convex   | Convex backend                  | `@feel-good/convex`               |
+| Package             | Purpose                                          | Example Import                    |
+| ------------------- | ------------------------------------------------ | --------------------------------- |
+| @feel-good/ui       | shadcn/ui primitives                             | `@feel-good/ui/primitives/button` |
+| @feel-good/features | Feature components (auth, dock, editor, theme)   | `@feel-good/features/auth/blocks` |
+| @feel-good/icons    | SVG icon components                              | `@feel-good/icons`                |
+| @feel-good/utils    | Utilities (cn, etc.)                             | `@feel-good/utils/cn`             |
+| @feel-good/convex   | Convex backend                                   | `@feel-good/convex`               |
+| @feel-good/tavus    | Tavus CVI video calling                          | `@feel-good/tavus/client`         |
+| @feel-good/tsconfig | Shared TypeScript configs (base, react-library, nextjs) | — |
+| @feel-good/eslint-config | Shared ESLint configurations              | — |
+| @feel-good/prettier-config | Shared Prettier configuration            | — |
+| @feel-good/sentry-config | Shared Sentry configuration for Next.js    | `@feel-good/sentry-config/nextjs` |
 
-### @feel-good/utils
-
-Shared utility functions.
-
-```typescript
-import { cn } from "@feel-good/utils/cn";
-```
-
-### @feel-good/icons
-
-SVG icon components as React components.
-
-```typescript
-import { CheckIcon, CloseIcon } from "@feel-good/icons";
-```
-
-### @feel-good/ui
-
-Shared UI component library based on shadcn/ui primitives.
-
-```typescript
-import { Button } from "@feel-good/ui/primitives/button";
-import { Card } from "@feel-good/ui/primitives/card";
-import { Dialog } from "@feel-good/ui/primitives/dialog";
-```
-
-### @feel-good/features
-
-Shared feature components (auth, dock).
-
-```typescript
-// Auth forms
-import {
-  MagicLinkLoginForm,
-  MagicLinkSignUpForm,
-  OTPLoginForm,
-  OTPSignUpForm,
-} from "@feel-good/features/auth/components/forms";
-
-// Auth hooks
-import {
-  useMagicLinkRequest,
-  useOTPAuth,
-  createUseSession,
-} from "@feel-good/features/auth/hooks";
-
-// Auth blocks (drop-in page sections)
-import { LoginBlock, SignUpBlock } from "@feel-good/features/auth/blocks";
-
-// Dock
-import { AppDock } from "@feel-good/features/dock/blocks";
-```
-
-#### Auth Package Layers
+### Auth Package Layers
 
 | Layer  | Import                                      | Purpose                   |
 | ------ | ------------------------------------------- | ------------------------- |
@@ -120,46 +74,6 @@ import { AppDock } from "@feel-good/features/dock/blocks";
 | Forms  | `@feel-good/features/auth/components/forms` | Complete forms with logic |
 | Views  | `@feel-good/features/auth/views`            | Pure UI components        |
 | Hooks  | `@feel-good/features/auth/hooks`            | Headless auth logic       |
-
-### @feel-good/convex
-
-Shared Convex backend configuration and functions.
-
-```typescript
-import { api } from "@feel-good/convex";
-```
-
-### @feel-good/tsconfig
-
-Shared TypeScript configurations. Choose based on package type:
-
-| Config               | Use Case                                        |
-| -------------------- | ----------------------------------------------- |
-| `base.json`          | Backend/non-browser packages (e.g., Convex)     |
-| `react-library.json` | React component libraries (ui, icons, features) |
-| `nextjs.json`        | Next.js applications (greyboard, mirror)        |
-
-```json
-{
-  "extends": "@feel-good/tsconfig/react-library.json"
-}
-```
-
-Available configs in `tooling/typescript/`:
-
-```
-├── base.json             # ES2022, strict mode, bundler resolution
-├── react-library.json    # Extends base + DOM libs + react-jsx
-└── nextjs.json           # Extends base + Next.js plugin + jsx preserve
-```
-
-### @feel-good/eslint-config
-
-Shared ESLint configurations.
-
-### @feel-good/prettier-config
-
-Shared Prettier configuration.
 
 ## Testing
 
@@ -185,17 +99,3 @@ Do NOT skip to a theoretical fix.
 ## Git Workflow
 
 Never commit directly to main. Always use feature branches. When a merge conflict or branch divergence occurs, stop and ask the user before force-pushing or resetting.
-
-## Adding a New App
-
-1. Create directory in `apps/`
-2. Add `package.json` with name `@feel-good/app-name`
-3. Reference workspace packages: `"@feel-good/utils": "workspace:*"`
-4. Run `pnpm install` from root
-
-## Adding a New Package
-
-1. Create directory in `packages/`
-2. Add `package.json` with name `@feel-good/package-name`
-3. Add to consuming apps' dependencies
-4. Run `pnpm install` from root

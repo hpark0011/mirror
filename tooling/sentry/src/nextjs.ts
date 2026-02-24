@@ -1,4 +1,9 @@
-import type { BrowserOptions, EdgeOptions, NodeOptions } from "@sentry/nextjs";
+import {
+  consoleLoggingIntegration,
+  type BrowserOptions,
+  type EdgeOptions,
+  type NodeOptions,
+} from "@sentry/nextjs";
 
 const DEFAULT_TRACES_SAMPLE_RATE = 0.1;
 
@@ -52,6 +57,7 @@ export function createClientSentryOptions(appName: string): BrowserOptions {
   return {
     ...createSharedSentryOptions(appName),
     enableLogs: true,
+    integrations: [consoleLoggingIntegration({ levels: ["warn", "error"] })],
   };
 }
 

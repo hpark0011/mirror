@@ -1,29 +1,29 @@
 # Dev Process Guidelines
 
-Rules for how Claude and the developer work together. Derived from retrospective analysis.
+Rules for how Claude and the developer work together, and Claude's internal discipline.
 
 ## Session Discipline
 
-- **One focused outcome per session.** Define the single deliverable before starting. Commit progress and start fresh for the next piece.
+- **One focused outcome per session.** Commit progress and start fresh for the next piece.
 - **State the branch and plan file** at session start if they exist.
-- **Don't let sessions balloon.** If context is getting heavy, commit what's done and continue in a new session rather than losing context.
-- **Hard ceiling: ~150 turns.** Sessions approaching 150 turns should checkpoint-commit and continue fresh. The 700-turn Tavus session proved that quality degrades well before context limits.
+- **Hard ceiling: ~150 turns.** Checkpoint-commit and continue fresh before quality degrades.
 
 ## Tool Discipline
 
-- **Never use Bash for file reading or searching.** Use `Read` instead of `cat`/`head`/`tail`, `Grep` instead of `grep`/`rg`, `Glob` instead of `find`/`ls`. This was flagged in 5/9 recent sessions.
-- **Infrastructure sessions still need investigation.** Even for worktree/setup tasks, use Read/Grep to check existing state before running Bash commands.
+- **Never use Bash for file reading or searching.** Use `Read` instead of `cat`/`head`/`tail`, `Grep` instead of `grep`/`rg`, `Glob` instead of `find`/`ls`.
 
-## Debugging UI/Visual Bugs
+## Planning
 
-- **Observe before coding.** Use Chrome MCP to screenshot/inspect the live behavior before writing a fix. The developer reproducing in browser + Claude observing via MCP is the fastest path.
-- **State hypothesis before implementation.** Explain the root cause theory and let the developer validate before writing code.
-- **Never use setTimeout to fix visual timing issues.** It's always a bandaid. Find the architectural root cause (render lifecycle, transition conflicts, lazy loading interactions).
-- **Limit agent orchestration for UI bugs.** Multi-agent workflows help for code review and refactoring, not pixel-level debugging. Keep it to 1-2 focused agents max.
+- Enter plan mode for ANY non-trivial task (3+ steps or architectural decisions).
+- If something goes sideways, STOP and re-plan immediately.
+
+## Subagent Strategy
+
+- Use subagents liberally to keep main context window clean.
+- Offload research, exploration, and parallel analysis to subagents.
+- One task per subagent for focused execution.
 
 ## Problem-Solving Flow
-
-Follow this order — don't skip steps:
 
 1. **Developer describes the problem** (often with their own analysis)
 2. **Claude investigates and states hypothesis** — compare with developer's thinking
@@ -31,13 +31,31 @@ Follow this order — don't skip steps:
 4. **Implement from a plan** — not ad-hoc
 5. **Verify** — browser check, build, or test
 
+## Debugging UI/Visual Bugs
+
+- **Observe before coding.** Use Chrome MCP to screenshot/inspect live behavior before writing a fix.
+- **State hypothesis before implementation.**
+- **Never use setTimeout to fix visual timing issues.** Find the architectural root cause.
+- Limit agent orchestration for UI bugs — 1-2 focused agents max.
+
 ## Solution Quality
 
 - **Reject bandaid fixes.** If the fix doesn't address root cause, don't ship it.
-- **One revert = rethink.** If a solution needs reverting, step back and re-investigate rather than iterating on the same approach.
-- **Prefer the developer's architectural instinct.** When the developer provides a root cause analysis, weight it heavily — they know the codebase deeply.
+- **One revert = rethink.** Step back and re-investigate rather than iterating on the same approach.
+- **Prefer the developer's architectural instinct** — they know the codebase deeply.
+- Never mark a task complete without proving it works. Run tests, check logs, demonstrate correctness.
+
+## Self-Improvement
+
+- After ANY correction from the user: update `workspace/lessons.md` with the pattern.
+- Review lessons at session start for relevant project.
+
+## Autonomous Bug Fixing
+
+- When given a bug report: just fix it. Don't ask for hand-holding.
+- Point at logs, errors, failing tests — then resolve them.
 
 ## Task Management
 
-- Drive work through `workspace/tickets/` using the `generate-issue-tickets` skill. Reference tickets with `work on @workspace/tickets/...`.
-- Document learnings from debugging sessions early in `workspace/lessons.md` — don't wait for the fix to land before capturing "what we tried and why it failed."
+- Drive work through `workspace/tickets/` using the `generate-issue-tickets` skill.
+- Document learnings from debugging sessions early in `workspace/lessons.md`.

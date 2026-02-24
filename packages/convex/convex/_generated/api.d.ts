@@ -9,9 +9,11 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as authTriggers from "../authTriggers.js";
 import type * as email from "../email.js";
 import type * as env from "../env.js";
 import type * as http from "../http.js";
+import type * as users from "../users.js";
 
 import type {
   ApiFromModules,
@@ -21,9 +23,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  authTriggers: typeof authTriggers;
   email: typeof email;
   env: typeof env;
   http: typeof http;
+  users: typeof users;
 }>;
 
 /**

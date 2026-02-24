@@ -1,3 +1,9 @@
+---
+paths:
+  - "**/sentry*"
+  - "**/instrumentation*"
+---
+
 These examples should be used as guidance when configuring Sentry functionality within a project.
 
 # Exception Catching

@@ -1,9 +1,11 @@
 export type Profile = {
   userId?: string;
+  authId?: string;
   username: string;
   name: string;
   bio: string;
-  media: {
+  avatarUrl?: string | null;
+  media?: {
     video: string;
     poster: string;
   };

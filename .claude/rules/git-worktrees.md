@@ -1,48 +1,36 @@
+---
+paths:
+  - "**/.worktrees/**"
+---
+
 # Git Worktree Best Practices
 
-Rules for parallel feature development using git worktrees.
-
-## Directory Structure
-
-Use `.worktrees/` inside the repo root (already in `.gitignore`):
-
-```
-feel-good/
-├── .worktrees/
-│   ├── feature-auth/
-│   └── fix-payment-bug/
-├── apps/
-└── packages/
-```
+Use `.worktrees/` inside the repo root (already in `.gitignore`).
 
 ## Creating Worktrees
 
 ```bash
-# From existing branch
-git worktree add .worktrees/feature-x feature-x
-
-# New branch from main
-git worktree add -b feature-y .worktrees/feature-y main
+git worktree add .worktrees/feature-x feature-x          # From existing branch
+git worktree add -b feature-y .worktrees/feature-y main   # New branch from main
 ```
-
-Use consistent prefixes: `feature-*`, `fix-*`, `refactor-*`.
 
 ## Core Rules
 
-1. **One worktree = one dedicated branch off main.** Every worktree must be tied to its own branch created from main. Never share a branch across worktrees, and never point a worktree at main itself.
-2. **Never parallelize overlapping files.** Two features touching the same files creates merge pain that negates speed gains. Pick orthogonal work.
-3. **One agent per worktree.** Never let two agents share a working directory.
-4. **Run `pnpm install` in each worktree.** Every worktree is a separate working directory — dependencies are not shared.
-5. **Use different ports per worktree.** Dev servers will collide if multiple worktrees run the same app.
-6. **Commit often.** Frequent commits within each worktree prevent lost work.
+1. **One worktree = one dedicated branch off main.** Never share a branch across worktrees or point a worktree at main.
+2. **Never parallelize overlapping files.** Pick orthogonal work.
+3. **One agent per worktree.**
+4. **Run `pnpm install` in each worktree.** Dependencies are not shared.
+5. **Use different ports per worktree.**
+6. **Commit often.**
 
 ## Cleanup
 
-- Remove merged worktrees: `git worktree remove .worktrees/feature-x`
-- Prune stale metadata: `git worktree prune`
-- Don't let finished worktrees accumulate.
+```bash
+git worktree remove .worktrees/feature-x
+git worktree prune
+```
 
-## Agent Permissions in Worktrees
+## Agent Permissions
 
 Allowed: commits, local branches, fetch/pull, push to remote.
 Prohibited: force-push, deleting other worktrees, modifying other branches.
