@@ -17,6 +17,13 @@ import {
 import type { Article } from "@/features/articles";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
 
+import { Button } from "@feel-good/ui/primitives/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@feel-good/ui/primitives/tooltip";
+import { Icon } from "@feel-good/ui/components/icon";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -83,7 +90,23 @@ export function ProfileShell(
               <ToolbarSlotProvider>
                 <WorkspaceNavbar className="fixed top-0 inset-x-0" />
                 <MobileProfileLayout
-                  profile={<ProfileInfo profile={profile} onAction={handleProfileAction} />}
+                  profile={
+                    <div className="relative h-full">
+                      {isOwner && (
+                        <div className="absolute top-0 right-5 z-10">
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" size="default" aria-label="Edit Profile">
+                                <Icon name="SquareAndPencilIcon" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>Edit Profile</TooltipContent>
+                          </Tooltip>
+                        </div>
+                      )}
+                      <ProfileInfo profile={profile} onAction={handleProfileAction} />
+                    </div>
+                  }
                   content={() => (
                     <div className="flex h-full min-h-0 flex-col">
                       <ToolbarSlotTarget />
@@ -108,6 +131,18 @@ export function ProfileShell(
               <ResizablePanelGroup direction="horizontal" className="h-full">
                 <ResizablePanel defaultSize={50} minSize={25} maxSize={80}>
                   <div className="relative z-20 h-full flex flex-col justify-center items-center px-6">
+                    {isOwner && (
+                      <div className="absolute top-5 right-5">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button variant="outline" size="default" aria-label="Edit Profile">
+                              <Icon name="SquareAndPencilIcon" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit Profile</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    )}
                     <ProfileInfo profile={profile} onAction={handleProfileAction} />
                   </div>
                 </ResizablePanel>
