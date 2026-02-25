@@ -6,63 +6,18 @@
 
 :root {
   /* Button */
-  --primary: #2d2d2d;
-  --primary-foreground: var(--gray-3);
-
-  --secondary: var(--gray-1);
-  --secondary-foreground: var(--gray-12);
-
-  --destructive: var(--red-9);
-  --destructive-foreground: var(--red-1);
-
-  --accent: var(--gray-2);
-  --accent-foreground: var(--gray-12);
-
-  --muted: var(--gray-6);
-  --muted-foreground: var(--gray-9);
-
   --ghost: transparent;
   --ghost-foreground: var(--gray-11);
 }
 
 .dark {
   /* Button */
-  --primary: var(--gray-12);
-  --primary-foreground: var(--gray-1);
-
-  --secondary: var(--gray-3);
-  --secondary-foreground: var(--gray-12);
-
-  --destructive: var(--red-9);
-  --destructive-foreground: var(--red-1);
-
-  --accent: var(--gray-3);
-  --accent-foreground: var(--gray-12);
-
-  --muted: var(--gray-6);
-  --muted-foreground: var(--gray-9);
-
   --ghost: transparent;
   --ghost-foreground: var(--gray-12);
 }
 
 @theme inline {
   /* Button */
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-
   --color-ghost: var(--ghost);
   --color-ghost-foreground: var(--ghost-foreground);
 }

@@ -33,11 +33,16 @@ export function DialogVariants() {
                 A standard dialog with a close button in the top-right corner.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+            <DialogFooter className="gap-1">
               <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
               </DialogClose>
-              <Button>Confirm</Button>
+              <Button size="sm" variant="primary">Confirm</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -59,11 +64,16 @@ export function DialogVariants() {
                 footer actions to dismiss.
               </DialogDescription>
             </DialogHeader>
-            <DialogFooter>
+            <DialogFooter className="gap-1">
               <DialogClose asChild>
-                <Button variant="outline">Cancel</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                >
+                  Cancel
+                </Button>
               </DialogClose>
-              <Button>Save Changes</Button>
+              <Button size="sm" variant="primary">Confirm</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -86,7 +96,7 @@ export function DialogVariants() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter showCloseButton>
-              <Button>Submit</Button>
+              <Button size="sm" variant="primary">Submit</Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -108,14 +118,14 @@ export function DialogVariants() {
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
-              <div className="bg-muted rounded-md p-4 text-sm text-muted-foreground">
+              <div className="bg-muted rounded-xl p-4 text-sm text-muted-foreground leading-[1.2]">
                 This is a custom content area. You can place forms, lists, or
                 any other content here.
               </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
-                <Button variant="outline">Close</Button>
+                <Button variant="ghost">Close</Button>
               </DialogClose>
             </DialogFooter>
           </DialogContent>

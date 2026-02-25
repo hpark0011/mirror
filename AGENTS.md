@@ -44,27 +44,27 @@ workspace/      Ticket tracking system
 
 ## Apps
 
-| App                | Description                             | Port |
-| ------------------ | --------------------------------------- | ---- |
-| greyboard          | AI-powered task management              | 3000 |
-| mirror             | Interactive blogging platform           | 3001 |
-| ui-factory         | Design system showcase                  | 3002 |
-| greyboard-desktop  | Electron desktop app for Greyboard      | N/A  |
+| App               | Description                        | Port |
+| ----------------- | ---------------------------------- | ---- |
+| greyboard         | AI-powered task management         | 3000 |
+| mirror            | Interactive blogging platform      | 3001 |
+| ui-factory        | Design system showcase             | 3002 |
+| greyboard-desktop | Electron desktop app for Greyboard | N/A  |
 
 ## Packages
 
-| Package             | Purpose                                          | Example Import                    |
-| ------------------- | ------------------------------------------------ | --------------------------------- |
-| @feel-good/ui       | shadcn/ui primitives                             | `@feel-good/ui/primitives/button` |
-| @feel-good/features | Feature components (auth, dock, editor, theme)   | `@feel-good/features/auth/blocks` |
-| @feel-good/icons    | SVG icon components                              | `@feel-good/icons`                |
-| @feel-good/utils    | Utilities (cn, etc.)                             | `@feel-good/utils/cn`             |
-| @feel-good/convex   | Convex backend                                   | `@feel-good/convex`               |
-| @feel-good/tavus    | Tavus CVI video calling                          | `@feel-good/tavus/client`         |
-| @feel-good/tsconfig | Shared TypeScript configs (base, react-library, nextjs) | — |
-| @feel-good/eslint-config | Shared ESLint configurations              | — |
-| @feel-good/prettier-config | Shared Prettier configuration            | — |
-| @feel-good/sentry-config | Shared Sentry configuration for Next.js    | `@feel-good/sentry-config/nextjs` |
+| Package                    | Purpose                                                 | Example Import                    |
+| -------------------------- | ------------------------------------------------------- | --------------------------------- |
+| @feel-good/ui              | shadcn/ui primitives                                    | `@feel-good/ui/primitives/button` |
+| @feel-good/features        | Feature components (auth, dock, editor, theme)          | `@feel-good/features/auth/blocks` |
+| @feel-good/icons           | SVG icon components                                     | `@feel-good/icons`                |
+| @feel-good/utils           | Utilities (cn, etc.)                                    | `@feel-good/utils/cn`             |
+| @feel-good/convex          | Convex backend                                          | `@feel-good/convex`               |
+| @feel-good/tavus           | Tavus CVI video calling                                 | `@feel-good/tavus/client`         |
+| @feel-good/tsconfig        | Shared TypeScript configs (base, react-library, nextjs) | —                                 |
+| @feel-good/eslint-config   | Shared ESLint configurations                            | —                                 |
+| @feel-good/prettier-config | Shared Prettier configuration                           | —                                 |
+| @feel-good/sentry-config   | Shared Sentry configuration for Next.js                 | `@feel-good/sentry-config/nextjs` |
 
 ### Auth Package Layers
 
@@ -99,3 +99,12 @@ Do NOT skip to a theoretical fix.
 ## Git Workflow
 
 Never commit directly to main. Always use feature branches. When a merge conflict or branch divergence occurs, stop and ask the user before force-pushing or resetting.
+
+## Verification
+
+- **Always hard-verify fixes.** After editing a file, re-read it to confirm the change landed correctly, then run the relevant build/lint/test command and check the output. Never assume a fix worked — prove it.
+
+## Task Management
+
+- **Work items**: Tracked in `workspace/tickets/` using the `generate-issue-tickets` skill. See `.claude/skills/generate-issue-tickets/SKILL.md`.
+- **`compound-engineering:file-todos` plugin**: References a removed system. Use the local `generate-issue-tickets` skill instead.

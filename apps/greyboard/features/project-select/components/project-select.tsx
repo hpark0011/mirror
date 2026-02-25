@@ -205,7 +205,7 @@ export function ProjectSelect({ value, onValueChange }: ProjectSelectProps) {
       <DropdownMenu open={open} onOpenChange={handleOpenChange}>
         <DropdownMenuTrigger
           className={cn(
-            "focus-visible:ring-ring/50 flex items-center gap-1.5 rounded-md bg-transparent px-1.5 pl-2 py-0 text-[13px] transition-[color,box-shadow] outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-hover relative cursor-pointer",
+            "focus-visible:ring-ring/50 flex items-center gap-1.5 rounded-md bg-transparent px-1.5 pl-2 py-0 text-[13px] transition-[color,box-shadow] outline-none focus-visible:ring-2 disabled:cursor-not-allowed disabled:opacity-50 hover:bg-gray-1 relative cursor-pointer h-7 max-w-[120px]",
             !selectedProject && "text-text-muted",
           )}
         >

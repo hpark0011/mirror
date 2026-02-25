@@ -10,9 +10,9 @@ import {
 } from "@/components/ui/select";
 import { COLUMNS } from "@/config/board.config";
 import { cn } from "@/lib/utils";
+import { type ColumnId } from "@/types/board.types";
 import { ChevronDownIcon } from "lucide-react";
-import { Icon, IconName } from "../../../../../components/ui/icon";
-import { ColumnId } from "@/types/board.types";
+import { Icon, type IconName } from "../../../../../components/ui/icon";
 
 interface StatusSelectProps {
   value: ColumnId;
@@ -36,11 +36,14 @@ export function StatusSelect({
   return (
     <Select value={value} onValueChange={onValueChange}>
       <SelectTrigger
-        className={cn("pl-1 border-none gap-0 text-[13px] ", className)}
+        className={cn(
+          "pl-1 border-none gap-0 text-[13px] h-7 hover:bg-gray-1",
+          className,
+        )}
       >
-        <SelectValue placeholder='Select a status' />
+        <SelectValue placeholder="Select a status" />
         <SelectIcon asChild>
-          <ChevronDownIcon className='size-4 text-icon-light' />
+          <ChevronDownIcon className="size-4 text-icon-light" />
         </SelectIcon>
       </SelectTrigger>
       <SelectContent>
@@ -48,9 +51,9 @@ export function StatusSelect({
           <SelectItem
             key={option.value}
             value={option.value}
-            className='pl-1.5'
+            className="pl-1.5"
           >
-            <div className='flex items-center gap-1 px-1 pl-0'>
+            <div className="flex items-center gap-1 px-1 pl-0">
               <Icon
                 name={option.icon}
                 className={cn(option.iconColor, "min-h-5 min-w-5")}

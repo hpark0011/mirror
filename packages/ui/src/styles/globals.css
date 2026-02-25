@@ -25,7 +25,9 @@
 @import "./switch.css";
 @import "./field.css";
 @import "./popover.css";
+@import "./card.css";
 
+/* custom variant */
 @custom-variant dark (&:is(.dark *));
 
 :root {
@@ -34,7 +36,24 @@
   --foreground: var(--gray-12);
 
   /* Text */
+  --foreground-secondary: var(--gray-11);
   --information: var(--color-blue-500);
+
+  /* Paired Colors */
+  --primary: #2d2d2d;
+  --primary-foreground: var(--gray-3);
+
+  --secondary: var(--gray-1);
+  --secondary-foreground: var(--gray-12);
+
+  --destructive: var(--red-9);
+  --destructive-foreground: var(--red-1);
+
+  --accent: var(--gray-2);
+  --accent-foreground: var(--gray-12);
+
+  --muted: var(--gray-6);
+  --muted-foreground: var(--gray-9);
 
   /* Border */
   --border: var(--gray-7);
@@ -52,7 +71,24 @@
   --foreground: var(--gray-12);
 
   /* Text */
+  --foreground-secondary: var(--gray-11);
   --information: var(--color-blue-400);
+
+  /* Paired Colors */
+  --primary: var(--gray-12);
+  --primary-foreground: var(--gray-1);
+
+  --secondary: var(--gray-3);
+  --secondary-foreground: var(--gray-12);
+
+  --destructive: var(--red-9);
+  --destructive-foreground: var(--red-1);
+
+  --accent: var(--gray-3);
+  --accent-foreground: var(--gray-12);
+
+  --muted: var(--gray-6);
+  --muted-foreground: var(--gray-9);
 
   /* Border */
   --border: var(--gray-3);
@@ -70,7 +106,24 @@
   --color-foreground: var(--foreground);
 
   /* Text */
+  --color-foreground-secondary: var(--foreground-secondary);
   --color-information: var(--information);
+
+  /* Paired Colors */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
 
   /* Border */
   --color-border: var(--border);
@@ -92,6 +145,6 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     letter-spacing: -0.04em;
-    font-weight: 480;
+    font-weight: 460;
   }
 }

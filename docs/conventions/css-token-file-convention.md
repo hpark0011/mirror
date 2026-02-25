@@ -68,6 +68,22 @@ Exceptions (no `:root` / `.dark` needed):
 - System tokens used across many components have no prefix: `--background`, `--foreground`, `--border`, `--ring`
 - States append to the token name: `--switch-checked-hover`, `--shadow-button-primary-hover`
 
+#### Naming distinction: text scale vs paired foregrounds
+
+Two naming patterns exist for foreground tokens. They serve different purposes:
+
+- **`foreground-{modifier}`** = text color scale (standalone text tokens, no paired background):
+  - `foreground` (gray-12) — titles, headings, primary labels
+  - `foreground-secondary` (gray-11) — descriptions, body text, secondary labels
+  - `muted-foreground` (gray-9) — help text, placeholders, disabled text
+
+- **`{name}-foreground`** = paired with a background token (always used together):
+  - `primary` / `primary-foreground`
+  - `secondary` / `secondary-foreground`
+  - `destructive` / `destructive-foreground`
+  - `accent` / `accent-foreground`
+  - `card` / `card-foreground`
+
 ### Layer 3 (Tailwind registration)
 
 - Color tokens: `--color-{name}: var(--{name})`
@@ -93,9 +109,10 @@ When in doubt, grep. The answer is in the import graph, not in judgment.
 System-level tokens — consumed by `@layer base` or by multiple unrelated components:
 
 - **Base**: `--background`, `--foreground` (applied to `body` in `@layer base`)
+- **Text**: `--foreground-secondary`, `--information` (text scale + informational color)
+- **Paired Colors**: `--primary`/`--primary-foreground`, `--secondary`/`--secondary-foreground`, `--destructive`/`--destructive-foreground`, `--accent`/`--accent-foreground`, `--muted`/`--muted-foreground`, `--card`/`--card-foreground` (consumed by 40+ components across button, badge, alert, dialog, card, sidebar, etc.)
 - **Border**: `--border`, `--border-subtle`, `--ring` (applied to `*` in `@layer base`)
 - **Icon**: `--icon` (consumed by button, dropdown-menu, sidebar, dock-icon, and others)
-- **Text**: `--information` (consumed across mirror articles, editor, and toolbar components)
 
 Plus structural pieces: `@custom-variant dark`, `@layer base`, and all `@import` statements.
 
@@ -172,3 +189,4 @@ Run this as part of CI or as a pre-commit check. It catches direct values like `
 ## Change Log
 
 1. 2026-02-21: Initial convention. Established three-layer contract, grep-based file split rule, naming conventions, and `@theme inline` lint guard. Identified button and dialog tokens for extraction from globals.
+2. 2026-02-25: Moved paired color tokens (primary, secondary, destructive, accent, muted) from `button.css` to `globals.css` — they're consumed by 40+ components, not just buttons. Added `--foreground-secondary` (gray-11) text scale token. Added `--card`/`--card-foreground` tokens. Documented text scale naming distinction (`foreground-{modifier}` vs `{name}-foreground`).

@@ -38,6 +38,14 @@
   /* Shiny Button — label text shadow */
   --drop-shadow-shiny-label: 1px 3px 1px rgba(0, 0, 0, 0.3);
   --drop-shadow-shiny-label-hover: 1px 1px 0px rgba(0, 0, 0, 0.1);
+
+  /* Dialog Shadow */
+  --dialog-shadow: 0px 189px 129px 0px rgba(0, 0, 0, 0.07),
+    0px 78.96px 53.89px 0px rgba(0, 0, 0, 0.0975),
+    0px 42.22px 28.81px 0px rgba(0, 0, 0, 0.0677),
+    0px 23.67px 16.15px 0px rgba(0, 0, 0, 0.03),
+    0px 12.56px 5.85px 0px rgba(0, 0, 0, 0.0223),
+    0px 5.23px 3.57px 0px rgba(0, 0, 0, 0.0125);
 }
 
 .dark {
@@ -74,6 +82,14 @@
   /* Shiny Button — label text shadow */
   --drop-shadow-shiny-label: 1px 3px 1px rgba(0, 0, 0, 0.1);
   --drop-shadow-shiny-label-hover: 1px 1px 0px rgba(255, 255, 255, 0.1);
+
+  /* Dialog Shadow */
+  --dialog-shadow: 0px 189px 129px 0px rgba(0, 0, 0, 0.7),
+    0px 78.96px 53.89px 0px rgba(0, 0, 0, 0.975),
+    0px 42.22px 28.81px 0px rgba(0, 0, 0, 0.677),
+    0px 23.67px 16.15px 0px rgba(0, 0, 0, 0.3),
+    0px 12.56px 5.85px 0px rgba(0, 0, 0, 0.223),
+    0px 5.23px 3.57px 0px rgba(0, 0, 0, 0.125);
 }
 
 @theme inline {
@@ -94,4 +110,5 @@
   --inset-shadow-shiny-highlight: var(--inset-shadow-shiny-highlight);
   --drop-shadow-shiny-label: var(--drop-shadow-shiny-label);
   --drop-shadow-shiny-label-hover: var(--drop-shadow-shiny-label-hover);
+  --shadow-dialog-shadow: var(--dialog-shadow);
 }

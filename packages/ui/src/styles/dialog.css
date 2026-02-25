@@ -4,17 +4,11 @@
 * Dialog-specific styles and CSS variables
 */
 
-:root {
-  /* Dialog */
-  --dialog: var(--gray-1);
-}
-
-.dark {
-  /* Dialog */
-  --dialog: var(--gray-1);
-}
-
 @theme inline {
   /* Dialog */
-  --color-dialog: var(--dialog);
+  --color-dialog: var(--card);
+  --color-dialog-title: var(--card-title);
+  --color-dialog-description: var(--card-description);
+  --color-dialog-border: var(--card-border);
+  --color-dialog-shadow: var(--dialog-shadow);
 }

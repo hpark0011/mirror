@@ -1,16 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Button } from "@feel-good/ui/primitives/button";
 import {
-  Dialog,
-  DialogBody,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  type TicketFormInput,
+  type TicketFormOutput,
+  useTicketForm,
+} from "@/app/(protected)/dashboard/tasks/_hooks";
 import {
   Form,
   FormControl,
@@ -20,27 +14,33 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { GradientFade } from "@/components/ui/gradient-fade";
-import { Input } from "@/components/ui/input";
+import { Input } from "@feel-good/ui/primitives/input";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
+import { ProjectSelect } from "@/features/project-select";
 import { useDialogAutoSave } from "@/hooks/use-dialog-auto-save";
 import { useFocusManagement } from "@/hooks/use-focus-management";
 import { useKeyboardSubmit } from "@/hooks/use-keyboard-submit";
 import { usePersistedSubTasks } from "@/hooks/use-persisted-sub-tasks";
-import {
-  type TicketFormInput,
-  type TicketFormOutput,
-  useTicketForm,
-} from "@/app/(protected)/dashboard/tasks/_hooks";
 import { cn } from "@/lib/utils";
+import { Button } from "@feel-good/ui/primitives/button";
+import {
+  Dialog,
+  DialogBody,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@feel-good/ui/primitives/dialog";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { StatusSelect } from "../../../app/(protected)/dashboard/tasks/_components/status-select";
 import { AutoResizingTextarea } from "../../../components/ui/auto-resizing-textarea";
 import { Icon } from "../../../components/ui/icon";
-import { ProjectSelect } from "@/features/project-select";
-import { StatusSelect } from "../../../app/(protected)/dashboard/tasks/_components/status-select";
 import { SubTasksListForm } from "../../sub-task-list/components/sub-tasks-list";
 
 interface TicketFormProps {
@@ -72,6 +72,15 @@ export function TicketFormDialog({
   // Persist sub-tasks draft to localStorage (create mode only, never auto-clears)
   const { clearSubTasks } = usePersistedSubTasks(form, open, mode);
 
+  // Show sub-tasks section when there are sub-tasks (manual toggle still works)
+  // CREATE mode: Always start collapsed
+  // EDIT mode: Start expanded if ticket has sub-tasks
+  const [showSubTasks, setShowSubTasks] = useState(
+    mode === "edit" && (defaultValues?.subTasks?.length ?? 0) > 0,
+  );
+
+  const [isExpanded, setIsExpanded] = useState(false);
+
   const handleSubmitWithCleanup = useCallback(
     (data: TicketFormOutput) => {
       setIsExpanded(false);
@@ -82,15 +91,6 @@ export function TicketFormDialog({
     },
     [handleSubmit, clearSubTasks, mode],
   );
-
-  // Show sub-tasks section when there are sub-tasks (manual toggle still works)
-  // CREATE mode: Always start collapsed
-  // EDIT mode: Start expanded if ticket has sub-tasks
-  const [showSubTasks, setShowSubTasks] = useState(
-    mode === "edit" && (defaultValues?.subTasks?.length ?? 0) > 0,
-  );
-
-  const [isExpanded, setIsExpanded] = useState(false);
 
   // Track previous count to distinguish between user toggle and user removing items
   const prevCountRef = useRef<number>(defaultValues?.subTasks?.length ?? 0);
@@ -175,11 +175,12 @@ export function TicketFormDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
+        showCloseButton={false}
         className={cn(
           "transition-none",
           isExpanded
-            ? "h-[calc(100vh-32px)] sm:max-w-2xl translate-y-[-50%]"
-            : "translate-y-[-53%]",
+            ? "h-[calc(100vh-32px)] sm:max-w-2xl  translate-y-[-50%]"
+            : "translate-y-[-53%] sm:max-w-lg",
         )}
         onOpenAutoFocus={handleAutoFocus}
       >
@@ -207,11 +208,11 @@ export function TicketFormDialog({
           >
             <DialogBody
               className={cn(
-                "mt-3 gap-0",
-                isExpanded && "overflow-hidden min-h-0 flex flex-col",
+                "gap-0",
+                isExpanded && "min-h-0 flex flex-col",
               )}
             >
-              <div className="flex items-center w-[calc(100%+12px)] ml-[-6px] pr-1 gap-0.5">
+              <div className="flex items-center gap-1">
                 <FormField
                   control={form.control}
                   name="title"
@@ -223,8 +224,9 @@ export function TicketFormDialog({
                           {...field}
                           ref={(el) => setRefs(el, field.ref)}
                           onKeyDown={handleTitleKeyDown}
+                          variant="underline"
                           className={cn(
-                            "md:text-text-primary h-auto py-0 px-2 rounded-[8px] placeholder:text-text-muted transition-all md:text-[18px] border-none w-full leading-[1.8]",
+                            "md:text-text-primary h-auto px-2 rounded-md hover:bg-gray-1 placeholder:text-text-muted transition-all md:text-[18px] border-none w-full leading-[1.4] focus-visible:bg-gray-1",
                           )}
                         />
                       </FormControl>
@@ -263,7 +265,7 @@ export function TicketFormDialog({
                     <FormControl>
                       <div
                         className={cn(
-                          "relative w-[calc(100%+12px)] ml-[-6px]",
+                          "relative",
                           isExpanded && "h-full",
                         )}
                       >
@@ -275,7 +277,7 @@ export function TicketFormDialog({
                           ref={(el) =>
                             setDescriptionRef(el, field.ref)}
                           className={cn(
-                            "resize-none h-full rounded-md min-h-[160px] flex-1 transition-all border-none px-2 pb-4",
+                            "resize-none h-full rounded-md min-h-[160px] flex-1 border-none px-2 pb-4",
                             isExpanded && "h-full overflow-y-auto",
                           )}
                         />
@@ -308,8 +310,8 @@ export function TicketFormDialog({
               )}
             </DialogBody>
 
-            <DialogFooter className="gap-1 w-full flex justify-between items-center">
-              <div className="flex flex-1">
+            <DialogFooter>
+              <div className="flex flex-1 items-center">
                 <FormField
                   control={form.control}
                   name="status"
@@ -350,6 +352,8 @@ export function TicketFormDialog({
                       type="button"
                       variant="ghost"
                       onClick={toggleSubTasks}
+                      size="icon-sm"
+                      className="hover:bg-gray-1"
                     >
                       <Icon
                         name="CheckListIcon"
