@@ -10,3 +10,5 @@ export {
   type UseBoardFormReturn,
   type TicketFormValues,
 } from "./use-board-form";
+export { useProjectFilter } from "./use-project-filter";
+export { useLastSelectedProject } from "./use-last-selected-project";

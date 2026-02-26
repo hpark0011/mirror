@@ -2,13 +2,13 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { closestCenter, DndContext } from "@dnd-kit/core";
-import { COLUMNS } from "@/config/board.config";
+import { COLUMNS } from "@feel-good/greyboard-core/config";
 import {
   TicketFormDialog,
   createTicketFromFormData,
   updateTicketFromFormData,
 } from "@/features/ticket-form";
-import type { ColumnId } from "@/types/board.types";
+import type { ColumnId } from "@feel-good/greyboard-core/types";
 import { useBoardActionsStore } from "@/store/board-actions-store";
 import {
   useLayoutMode,

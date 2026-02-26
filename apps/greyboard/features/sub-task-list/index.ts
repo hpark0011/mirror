@@ -1,5 +1,5 @@
 // Types
-export type { SubTask } from "@/types/board.types";
+export type { SubTask } from "@feel-good/greyboard-core/types";
 
 // Primitive components
 export { SubTasksListContainer } from "./components/sub-tasks-list-container";

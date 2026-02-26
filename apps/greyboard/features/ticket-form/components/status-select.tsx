@@ -8,11 +8,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { COLUMNS } from "@/config/board.config";
+import { COLUMNS } from "@feel-good/greyboard-core/config";
 import { cn } from "@/lib/utils";
-import { type ColumnId } from "@/types/board.types";
+import { type ColumnId } from "@feel-good/greyboard-core/types";
 import { ChevronDownIcon } from "lucide-react";
-import { Icon, type IconName } from "../../../../../components/ui/icon";
+import { Icon, type IconName } from "@/components/ui/icon";
 
 interface StatusSelectProps {
   value: ColumnId;

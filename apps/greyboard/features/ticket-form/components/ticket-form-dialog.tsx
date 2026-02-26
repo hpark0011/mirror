@@ -4,7 +4,7 @@ import {
   type TicketFormInput,
   type TicketFormOutput,
   useTicketForm,
-} from "@/app/(protected)/dashboard/tasks/_hooks";
+} from "../hooks/use-ticket-form";
 import {
   Form,
   FormControl,
@@ -38,7 +38,7 @@ import {
   DialogTitle,
 } from "@feel-good/ui/primitives/dialog";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { StatusSelect } from "../../../app/(protected)/dashboard/tasks/_components/status-select";
+import { StatusSelect } from "./status-select";
 import { AutoResizingTextarea } from "../../../components/ui/auto-resizing-textarea";
 import { Icon } from "../../../components/ui/icon";
 import { SubTasksListForm } from "../../sub-task-list/components/sub-tasks-list";

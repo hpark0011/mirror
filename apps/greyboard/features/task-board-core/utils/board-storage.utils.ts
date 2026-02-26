@@ -1,5 +1,5 @@
-import type { BoardState, Ticket, TimeEntry } from "@/types/board.types";
-import { INITIAL_BOARD_STATE } from "@/config/board.config";
+import type { BoardState, Ticket, TimeEntry } from "@feel-good/greyboard-core/types";
+import { INITIAL_BOARD_STATE } from "@feel-good/greyboard-core/config";
 import { getStorageKey } from "@/lib/storage-keys";
 
 export const BOARD_STORAGE_KEY = getStorageKey("TASKS", "BOARD_STATE");

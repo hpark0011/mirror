@@ -1,6 +1,6 @@
 "use client";
 
-import type { Column, BoardState, ColumnId, SubTask, Ticket } from "@/types/board.types";
+import type { Column, BoardState, ColumnId, SubTask, Ticket } from "@feel-good/greyboard-core/types";
 import { ListLayout } from "./list-layout";
 import { ListSection } from "./list-section";
 

@@ -1,4 +1,4 @@
-import type { ColumnId, Ticket } from "@/types/board.types";
+import type { ColumnId, Ticket } from "@feel-good/greyboard-core/types";
 
 /**
  * Form data shape for ticket creation/editing.

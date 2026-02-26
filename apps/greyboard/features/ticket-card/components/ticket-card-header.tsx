@@ -3,7 +3,7 @@
 import { CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { StopWatchState } from "@/features/timer";
-import type { Ticket } from "@/types/board.types";
+import type { Ticket } from "@feel-good/greyboard-core/types";
 import { TicketActionToolbar } from "./ticket-action-toolbar";
 import { TicketDurationBadge } from "./ticket-duration-badge";
 import { TicketTimerButton } from "./ticket-timer-button";

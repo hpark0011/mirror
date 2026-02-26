@@ -10,7 +10,7 @@ import {
   serializeSnapshot,
   type SnapshotBoardState,
 } from "@feel-good/utils/greyboard-snapshot";
-import type { BoardState } from "@/types/board.types";
+import type { BoardState } from "@feel-good/greyboard-core/types";
 import {
   deserializeBoardData,
   serializeBoardData,

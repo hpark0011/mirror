@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { getStorageKey } from "@/lib/storage-keys";
-import type { Project, ProjectColor } from "@/types/board.types";
+import type { Project, ProjectColor } from "@feel-good/greyboard-core/types";
 
 const STORAGE_KEY = getStorageKey("TASKS", "PROJECTS");
 const MAX_PROJECT_NAME_LENGTH = 50;

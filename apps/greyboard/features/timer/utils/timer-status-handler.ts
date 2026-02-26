@@ -1,4 +1,4 @@
-import type { ColumnId } from "@/types/board.types";
+import type { ColumnId } from "@feel-good/greyboard-core/types";
 import type { StopWatchStore } from "../store/stop-watch-store";
 import { recordDuration, resetTimerForTicket, type BoardUpdater } from "./timer-recording";
 

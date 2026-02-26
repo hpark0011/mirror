@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { TicketCard } from "@/features/ticket-card";
 import { cn } from "@/lib/utils";
-import type { Column, SubTask, Ticket } from "@/types/board.types";
+import type { Column, SubTask, Ticket } from "@feel-good/greyboard-core/types";
 import { useDroppable } from "@dnd-kit/core";
 import {
   SortableContext,

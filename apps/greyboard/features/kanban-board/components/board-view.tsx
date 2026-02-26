@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment } from "react";
-import type { Column, BoardState, ColumnId, SubTask, Ticket } from "@/types/board.types";
+import type { Column, BoardState, ColumnId, SubTask, Ticket } from "@feel-good/greyboard-core/types";
 import { BoardLayout } from "./board-layout";
 import { BoardColumn } from "./board-column";
 

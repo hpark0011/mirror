@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/tooltip";
 import { ColumnTitle } from "@/features/task-board-core";
 import { cn } from "@/lib/utils";
-import type { Column } from "@/types/board.types";
+import type { Column } from "@feel-good/greyboard-core/types";
 import { PlusIcon } from "lucide-react";
 import type { MouseEvent } from "react";
 

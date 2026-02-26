@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/tooltip";
 import { Icon } from "@/components/ui/icon";
 import { ColumnTitle } from "@/features/task-board-core";
-import type { Column } from "@/types/board.types";
+import type { Column } from "@feel-good/greyboard-core/types";
 
 interface BoardColumnHeaderProps {
   column: Column;

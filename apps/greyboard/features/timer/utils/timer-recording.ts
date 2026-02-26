@@ -1,4 +1,4 @@
-import type { BoardState, Ticket } from "@/types/board.types";
+import type { BoardState, Ticket } from "@feel-good/greyboard-core/types";
 import type { StopWatchStore } from "../store/stop-watch-store";
 
 export type BoardUpdater = (updater: (board: BoardState) => BoardState) => void;

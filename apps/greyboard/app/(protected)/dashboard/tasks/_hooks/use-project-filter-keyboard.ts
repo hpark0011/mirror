@@ -1,7 +1,7 @@
 "use client";
 
 import { type KeyboardEvent, useEffect, useState } from "react";
-import type { Project } from "@/types/board.types";
+import type { Project } from "@feel-good/greyboard-core/types";
 
 interface UseProjectFilterKeyboardProps {
   filteredProjects: Project[];

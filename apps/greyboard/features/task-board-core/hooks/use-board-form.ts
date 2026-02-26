@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { ColumnId, Ticket } from "@/types/board.types";
+import type { ColumnId, Ticket } from "@feel-good/greyboard-core/types";
 import type { TicketFormData } from "@/features/ticket-form";
 
 /**

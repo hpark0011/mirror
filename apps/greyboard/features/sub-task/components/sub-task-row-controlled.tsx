@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { SubTask as SubTaskType } from "@/types/board.types";
+import type { SubTask as SubTaskType } from "@feel-good/greyboard-core/types";
 import { SubTaskRow } from "./sub-task-row";
 
 interface SubTaskRowControlledProps {

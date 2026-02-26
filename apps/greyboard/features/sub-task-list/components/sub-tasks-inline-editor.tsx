@@ -4,7 +4,7 @@ import { LoaderCircle } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useDebouncedCallback } from "@/hooks/use-debounced-callback";
 import { cn } from "@/lib/utils";
-import type { SubTask } from "@/types/board.types";
+import type { SubTask } from "@feel-good/greyboard-core/types";
 import { SubTasksListControlled } from "./sub-tasks-list-controlled";
 
 interface SubTasksInlineEditorProps {

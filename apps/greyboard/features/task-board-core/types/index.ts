@@ -8,4 +8,4 @@ export type {
   TimeEntry,
   Project,
   ProjectColor,
-} from "@/types/board.types";
+} from "@feel-good/greyboard-core/types";

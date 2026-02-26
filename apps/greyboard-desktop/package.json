@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@feel-good/features": "workspace:*",
+    "@feel-good/greyboard-core": "workspace:*",
     "@feel-good/icons": "workspace:*",
     "@feel-good/ui": "workspace:*",
     "@feel-good/utils": "workspace:*",

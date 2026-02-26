@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { PROJECT_COLORS } from "@/config/tasks.config";
 import { useKeyboardNavigation } from "@/hooks/use-keyboard-navigation";
 import { cn } from "@/lib/utils";
-import type { ProjectColor } from "@/types/board.types";
+import type { ProjectColor } from "@feel-good/greyboard-core/types";
 import { useProjectSelection } from "../hooks/use-project-selection";
 import { useProjects } from "../hooks/use-projects";
 import { useSearchState } from "../hooks/use-search-state";

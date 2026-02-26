@@ -3,7 +3,7 @@
 import type { SyntheticEvent } from "react";
 
 import { CardContent } from "@/components/ui/card";
-import type { SubTask, Ticket } from "@/types/board.types";
+import type { SubTask, Ticket } from "@feel-good/greyboard-core/types";
 import { SubTasksInlineEditor } from "../../sub-task-list/components/sub-tasks-inline-editor";
 import { subTaskContainerStyles } from "../utils/ticket-card.config";
 

@@ -5,7 +5,7 @@ import { SubTaskRowControlled } from "@/features/sub-task";
 import { SubTasksListAddItem } from "./sub-tasks-list-add-item";
 import { SubTasksListHeader } from "./sub-tasks-list-header";
 import { SubTasksListContainer } from "./sub-tasks-list-container";
-import type { SubTask } from "@/types/board.types";
+import type { SubTask } from "@feel-good/greyboard-core/types";
 
 interface SubTasksListControlledProps {
   subTasks: SubTask[];

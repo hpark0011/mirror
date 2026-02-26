@@ -8,7 +8,7 @@ import {
   useController,
   useWatch,
 } from "react-hook-form";
-import type { TicketFormInput } from "@/app/(protected)/dashboard/tasks/_hooks";
+import type { TicketFormInput } from "@/features/ticket-form";
 import { SubTaskRow } from "./sub-task-row";
 
 interface SubTaskRowFormProps {

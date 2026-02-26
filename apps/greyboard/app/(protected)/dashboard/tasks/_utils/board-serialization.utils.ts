@@ -1,4 +1,4 @@
-import type { BoardState, Ticket, TimeEntry } from "@/types/board.types";
+import type { BoardState, Ticket, TimeEntry } from "@feel-good/greyboard-core/types";
 
 // ============================================================================
 // Board Serialization Types

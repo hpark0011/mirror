@@ -1,4 +1,4 @@
-import type { BoardState, ColumnId, Ticket } from "@/types/board.types";
+import type { BoardState, ColumnId, Ticket } from "@feel-good/greyboard-core/types";
 
 /**
  * Updates board state with a ticket, handling column movement.

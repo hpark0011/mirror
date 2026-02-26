@@ -1,14 +1,8 @@
 "use client";
 
-import { LayoutModeProvider } from "@/features/kanban-board";
-import { TasksHeader } from "../_components/tasks-header";
-import { TasksBody } from "../_components/tasks-body";
+import { TaskWorkspace } from "@feel-good/greyboard-core/workspace";
+import { webStorageAdapter } from "@/lib/persistence/web-storage-adapter";
 
 export function TasksView() {
-  return (
-    <LayoutModeProvider>
-      <TasksHeader />
-      <TasksBody />
-    </LayoutModeProvider>
-  );
+  return <TaskWorkspace storage={webStorageAdapter} source="web" />;
 }

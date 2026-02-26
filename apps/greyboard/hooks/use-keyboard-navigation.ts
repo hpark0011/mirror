@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
-import { Project } from "@/types/board.types";
+import { Project } from "@feel-good/greyboard-core/types";
 
 interface UseKeyboardNavigationProps {
   items: Project[];

@@ -2,7 +2,7 @@
 
 import { DragOverlay } from "@dnd-kit/core";
 import { TicketCard } from "@/features/ticket-card";
-import type { Ticket } from "@/types/board.types";
+import type { Ticket } from "@feel-good/greyboard-core/types";
 
 interface DragOverlayWrapperProps {
   activeTicket: Ticket | null;

@@ -2,13 +2,11 @@
 
 import { useCallback, useMemo, useRef } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import {
-  useProjectFilter,
-  useLastSelectedProject,
-} from "@/app/(protected)/dashboard/tasks/_hooks";
+import { useProjectFilter } from "./use-project-filter";
+import { useLastSelectedProject } from "./use-last-selected-project";
 import { useStopWatchStore, handleTimerOnStatusChange } from "@/features/timer";
-import { INITIAL_BOARD_STATE } from "@/config/board.config";
-import type { BoardState, ColumnId, SubTask, Ticket } from "@/types/board.types";
+import { INITIAL_BOARD_STATE } from "@feel-good/greyboard-core/config";
+import type { BoardState, ColumnId, SubTask, Ticket } from "@feel-good/greyboard-core/types";
 import {
   BOARD_STORAGE_KEY,
   serializeBoardData,

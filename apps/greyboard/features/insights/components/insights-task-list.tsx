@@ -1,5 +1,5 @@
 import { InsightsTaskItem } from "./insights-task-item";
-import type { Ticket, Project } from "@/types/board.types";
+import type { Ticket, Project } from "@feel-good/greyboard-core/types";
 
 interface InsightsTaskListProps {
   completedTasks: Ticket[];

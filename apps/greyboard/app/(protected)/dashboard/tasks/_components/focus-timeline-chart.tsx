@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import type { TimelineDay } from "@/lib/insights-utils";
+import type { TimelineDay } from "@feel-good/greyboard-core/insights";
 import { formatDuration } from "@/features/timer";
 
 interface FocusTimelineChartProps {

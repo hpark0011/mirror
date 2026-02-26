@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { getProjectColorBgClass } from "@/config/tasks.config";
 import { ProjectFilterClearButton } from "./project-filter-clear-button";
 import { ProjectFilterDivider } from "./project-filter-divider";
-import type { Project } from "@/types/board.types";
+import type { Project } from "@feel-good/greyboard-core/types";
 
 interface ProjectFilterTriggerProps extends ComponentProps<typeof Button> {
   hasActiveFilters: boolean;

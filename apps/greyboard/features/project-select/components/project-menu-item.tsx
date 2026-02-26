@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { Icon } from "@/components/ui/icon";
 import { cn } from "@/lib/utils";
-import type { Project } from "@/types/board.types";
+import type { Project } from "@feel-good/greyboard-core/types";
 import { CheckIcon } from "lucide-react";
 import { memo, type MouseEvent, useState } from "react";
 import { ProjectColorIndicator } from "./project-color-indicator";

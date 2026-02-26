@@ -227,6 +227,9 @@ importers:
       '@dnd-kit/utilities':
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.3)
+      '@feel-good/greyboard-core':
+        specifier: workspace:*
+        version: link:../../packages/greyboard-core
       '@feel-good/icons':
         specifier: workspace:*
         version: link:../../packages/icons
@@ -450,6 +453,9 @@ importers:
       '@feel-good/features':
         specifier: workspace:*
         version: link:../../packages/features
+      '@feel-good/greyboard-core':
+        specifier: workspace:*
+        version: link:../../packages/greyboard-core
       '@feel-good/icons':
         specifier: workspace:*
         version: link:../../packages/icons
@@ -808,6 +814,40 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.3.5
+    devDependencies:
+      '@feel-good/tsconfig':
+        specifier: workspace:*
+        version: link:../../tooling/typescript
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.2.9
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.3
+
+  packages/greyboard-core:
+    dependencies:
+      '@dnd-kit/core':
+        specifier: ^6.3.1
+        version: 6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/sortable':
+        specifier: ^10.0.0
+        version: 10.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.3(react@19.2.3))(react@19.2.3))(react@19.2.3)
+      '@dnd-kit/utilities':
+        specifier: ^3.2.2
+        version: 3.2.2(react@19.2.3)
+      '@feel-good/icons':
+        specifier: workspace:*
+        version: link:../icons
+      '@feel-good/ui':
+        specifier: workspace:*
+        version: link:../ui
+      '@feel-good/utils':
+        specifier: workspace:*
+        version: link:../utils
+      react:
+        specifier: 'catalog:'
+        version: 19.2.3
     devDependencies:
       '@feel-good/tsconfig':
         specifier: workspace:*

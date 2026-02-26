@@ -14,7 +14,7 @@ import {
   useSensors,
 } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import type { BoardState, ColumnId, Ticket } from "@/types/board.types";
+import type { BoardState, ColumnId, Ticket } from "@feel-good/greyboard-core/types";
 
 export interface UseBoardDndOptions {
   board: BoardState;

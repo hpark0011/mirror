@@ -1,5 +1,5 @@
-import { INITIAL_BOARD_STATE } from "@/config/board.config";
-import type { BoardState } from "@/types/board.types";
+import { INITIAL_BOARD_STATE } from "@feel-good/greyboard-core/config";
+import type { BoardState } from "@feel-good/greyboard-core/types";
 import { getStorageKey } from "@/lib/storage-keys";
 import {
   serializeBoardData,

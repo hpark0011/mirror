@@ -23,7 +23,7 @@ import {
   calculateTotalDuration,
   getTasksCompletedOnDate,
   groupByProject,
-} from "@/lib/insights-utils";
+} from "@feel-good/greyboard-core/insights";
 import { InsightsDatePicker } from "./components/insights-date-picker";
 import { InsightsEmptyState } from "./components/insights-empty-state";
 import { InsightsTotalDuration } from "./components/insights-total-duration";

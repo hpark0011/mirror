@@ -7,12 +7,12 @@ import {
   useFieldArray,
   useWatch,
 } from "react-hook-form";
-import type { TicketFormInput } from "@/app/(protected)/dashboard/tasks/_hooks";
+import type { TicketFormInput } from "@/features/ticket-form";
 import { SubTasksListAddItem } from "./sub-tasks-list-add-item";
 import { SubTasksListHeader } from "./sub-tasks-list-header";
 import { SubTasksListContainer } from "./sub-tasks-list-container";
 import { SubTaskRowForm } from "@/features/sub-task";
-import type { SubTask as SubTaskType } from "@/types/board.types";
+import type { SubTask as SubTaskType } from "@feel-good/greyboard-core/types";
 
 interface SubTasksListFormProps {
   control: Control<TicketFormInput>;

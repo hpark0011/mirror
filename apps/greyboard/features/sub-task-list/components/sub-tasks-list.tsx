@@ -1,13 +1,13 @@
 "use client";
 
 import type { Control, FieldArrayPath } from "react-hook-form";
-import type { TicketFormInput } from "@/app/(protected)/dashboard/tasks/_hooks";
+import type { TicketFormInput } from "@/features/ticket-form";
 import { SubTasksListControlled } from "./sub-tasks-list-controlled";
 import { SubTasksListForm } from "./sub-tasks-list-form";
-import type { SubTask } from "@/types/board.types";
+import type { SubTask } from "@feel-good/greyboard-core/types";
 
 // Re-export types and components for backward compatibility
-export type { SubTask } from "@/types/board.types";
+export type { SubTask } from "@feel-good/greyboard-core/types";
 export { SubTasksListContainer } from "./sub-tasks-list-container";
 export { SubTasksListHeader } from "./sub-tasks-list-header";
 export { SubTasksListAddItem } from "./sub-tasks-list-add-item";

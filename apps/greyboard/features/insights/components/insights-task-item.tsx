@@ -3,9 +3,9 @@ import { formatDuration } from "@/features/timer";
 import {
   getTimeEntriesForDate,
   getTicketDurationForDate,
-} from "@/lib/insights-utils";
+} from "@feel-good/greyboard-core/insights";
 import { getProjectColor } from "../insights.utils";
-import type { Ticket, Project } from "@/types/board.types";
+import type { Ticket, Project } from "@feel-good/greyboard-core/types";
 
 interface InsightsTaskItemProps {
   task: Ticket;

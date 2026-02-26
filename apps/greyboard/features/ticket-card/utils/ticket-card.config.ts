@@ -1,5 +1,5 @@
 import type { Variants } from "framer-motion";
-import type { ColumnId } from "@/types/board.types";
+import type { ColumnId } from "@feel-good/greyboard-core/types";
 import { cn } from "@/lib/utils";
 
 /**

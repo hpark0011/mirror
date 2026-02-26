@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 import { getProjectColorBgClass } from "@/config/tasks.config";
-import type { Project } from "@/types/board.types";
+import type { Project } from "@feel-good/greyboard-core/types";
 
 interface TicketProjectTagProps {
   project: Project | undefined;

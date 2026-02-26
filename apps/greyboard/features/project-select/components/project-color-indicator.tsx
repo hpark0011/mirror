@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
 import { getProjectColorBgClass } from "@/config/tasks.config";
-import type { ProjectColor } from "@/types/board.types";
+import type { ProjectColor } from "@feel-good/greyboard-core/types";
 
 interface ProjectColorIndicatorProps {
   color: ProjectColor;
