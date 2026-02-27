@@ -51,7 +51,7 @@ export function BoardColumn({
     <Card
       className={cn(
         "flex flex-col bg-transparent shadow-none py-0 gap-0",
-        "w-1/4 h-[calc(100vh-80px)] rounded-2xl border-none"
+        "w-1/4 h-[calc(100vh-80px)] rounded-2xl border-none",
       )}
     >
       <BoardColumnHeader
@@ -64,14 +64,14 @@ export function BoardColumn({
         ref={setNodeRef}
         className="flex-1 p-0 px-4 overflow-hidden relative max-h-none overflow-y-scroll"
       >
-        <div className='h-6 w-full bg-gradient-to-t from-transparent to-background sticky top-0 left-0 z-10' />
+        <div className="h-6 w-full bg-linear-to-t from-transparent to-background sticky top-0 left-0 z-10" />
 
         <SortableContext
           id={column.id}
           items={tickets.map((t) => t.id)}
           strategy={verticalListSortingStrategy}
         >
-          <div className='space-y-1.5 h-fit pb-4'>
+          <div className="space-y-1.5 h-fit pb-4">
             {tickets.map((ticket, index) => (
               <TicketCard
                 key={ticket.id}
@@ -81,10 +81,11 @@ export function BoardColumn({
                 onEdit={() => onEditTicket(ticket)}
                 onDelete={() => onDeleteTicket(ticket.id)}
                 onClick={() => onEditTicket(ticket)}
-                onStartWork={onStartWork ? () => onStartWork(ticket.id) : undefined}
+                onStartWork={onStartWork
+                  ? () => onStartWork(ticket.id)
+                  : undefined}
                 onSubTasksChange={(subTasks: SubTask[]) =>
-                  onUpdateSubTasks(ticket.id, subTasks)
-                }
+                  onUpdateSubTasks(ticket.id, subTasks)}
               />
             ))}
             {column.id !== "complete" && (
@@ -93,7 +94,7 @@ export function BoardColumn({
           </div>
         </SortableContext>
 
-        <div className='h-4 w-full bg-gradient-to-b from-transparent to-background fixed bottom-0 left-0' />
+        <div className="h-4 w-full bg-linear-to-b from-transparent to-background fixed bottom-0 left-0" />
       </CardContent>
     </Card>
   );

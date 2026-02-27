@@ -4,21 +4,21 @@ import { useCallback, useEffect, useRef } from "react";
 import { closestCenter, DndContext } from "@dnd-kit/core";
 import { COLUMNS } from "@feel-good/greyboard-core/config";
 import {
-  TicketFormDialog,
   createTicketFromFormData,
+  TicketFormDialog,
   updateTicketFromFormData,
 } from "@/features/ticket-form";
 import type { ColumnId } from "@feel-good/greyboard-core/types";
 import { useBoardActionsStore } from "@/store/board-actions-store";
 import {
-  useLayoutMode,
-  useBoardState,
-  useBoardDnd,
-  useBoardForm,
-  type TicketFormValues,
   BoardDragOverlay,
   BoardView,
+  type TicketFormValues,
   updateBoardWithTicket,
+  useBoardDnd,
+  useBoardForm,
+  useBoardState,
+  useLayoutMode,
 } from "@/features/kanban-board";
 import { ListView } from "@/features/task-list";
 import { useStopWatchStore } from "@/features/timer";
@@ -71,7 +71,9 @@ export function TasksBody() {
       if (!ticket || ticket.status !== "to-do") return;
 
       isProcessingRef.current = true;
-      queueMicrotask(() => { isProcessingRef.current = false; });
+      queueMicrotask(() => {
+        isProcessingRef.current = false;
+      });
 
       const updatedTicket = { ...ticket, status: "in-progress" as const };
 
@@ -81,14 +83,16 @@ export function TasksBody() {
 
       useStopWatchStore.getState().startTimer(ticketId);
     },
-    [findTicket, actions]
+    [findTicket, actions],
   );
 
   const handleFormSubmit = useCallback(
     (data: TicketFormValues) => {
       if (isProcessingRef.current) return;
       isProcessingRef.current = true;
-      queueMicrotask(() => { isProcessingRef.current = false; });
+      queueMicrotask(() => {
+        isProcessingRef.current = false;
+      });
 
       // Save the selected project as the last selected
       actions.setLastSelectedProjectId(data.projectId);
@@ -125,7 +129,7 @@ export function TasksBody() {
 
       setIsFormOpen(false);
     },
-    [editingTicket, findColumn, actions, setIsFormOpen]
+    [editingTicket, findColumn, actions, setIsFormOpen],
   );
 
   return (
@@ -137,29 +141,31 @@ export function TasksBody() {
         onDragOver={handlers.onDragOver}
         onDragEnd={handlers.onDragEnd}
       >
-        {isListLayout ? (
-          <ListView
-            columns={COLUMNS}
-            board={filteredBoard}
-            onAddTicket={openCreate}
-            onEditTicket={openEdit}
-            onDeleteTicket={actions.deleteTicket}
-            onClearColumn={actions.clearColumn}
-            onUpdateSubTasks={actions.updateSubTasks}
-            onStartWork={handleStartWork}
-          />
-        ) : (
-          <BoardView
-            columns={COLUMNS}
-            board={filteredBoard}
-            onAddTicket={openCreate}
-            onEditTicket={openEdit}
-            onDeleteTicket={actions.deleteTicket}
-            onClearColumn={actions.clearColumn}
-            onUpdateSubTasks={actions.updateSubTasks}
-            onStartWork={handleStartWork}
-          />
-        )}
+        {isListLayout
+          ? (
+            <ListView
+              columns={COLUMNS}
+              board={filteredBoard}
+              onAddTicket={openCreate}
+              onEditTicket={openEdit}
+              onDeleteTicket={actions.deleteTicket}
+              onClearColumn={actions.clearColumn}
+              onUpdateSubTasks={actions.updateSubTasks}
+              onStartWork={handleStartWork}
+            />
+          )
+          : (
+            <BoardView
+              columns={COLUMNS}
+              board={filteredBoard}
+              onAddTicket={openCreate}
+              onEditTicket={openEdit}
+              onDeleteTicket={actions.deleteTicket}
+              onClearColumn={actions.clearColumn}
+              onUpdateSubTasks={actions.updateSubTasks}
+              onStartWork={handleStartWork}
+            />
+          )}
         <BoardDragOverlay activeTicket={activeTicket} />
       </DndContext>
 

@@ -1,7 +1,13 @@
 "use client";
 
 import { Fragment } from "react";
-import type { Column, BoardState, ColumnId, SubTask, Ticket } from "@feel-good/greyboard-core/types";
+import type {
+  BoardState,
+  Column,
+  ColumnId,
+  SubTask,
+  Ticket,
+} from "@feel-good/greyboard-core/types";
 import { BoardLayout } from "./board-layout";
 import { BoardColumn } from "./board-column";
 
@@ -40,15 +46,13 @@ export function BoardView({
             onAddTicket={() => onAddTicket(column.id)}
             onEditTicket={onEditTicket}
             onDeleteTicket={onDeleteTicket}
-            onClearColumn={
-              column.id === "complete" && onClearColumn
-                ? () => onClearColumn("complete")
-                : undefined
-            }
+            onClearColumn={column.id === "complete" && onClearColumn
+              ? () => onClearColumn("complete")
+              : undefined}
             onUpdateSubTasks={onUpdateSubTasks}
             onStartWork={onStartWork}
           />
-          <div className='w-[1px] min-w-[1px] bg-border-medium last:hidden' />
+          <div className="w-px min-w-px bg-border-medium last:hidden" />
         </Fragment>
       ))}
     </BoardLayout>
