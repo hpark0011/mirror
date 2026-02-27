@@ -1,9 +1,9 @@
 "use client";
 
 import { Fragment } from "react";
+import { COLUMNS } from "@feel-good/greyboard-core/config";
 import type {
   BoardState,
-  Column,
   ColumnId,
   SubTask,
   Ticket,
@@ -12,7 +12,6 @@ import { BoardLayout } from "./board-layout";
 import { BoardColumn } from "./board-column";
 
 interface BoardViewProps {
-  columns: Column[];
   board: BoardState;
   onAddTicket: (columnId: ColumnId) => void;
   onEditTicket: (ticket: Ticket) => void;
@@ -27,7 +26,6 @@ interface BoardViewProps {
  * Renders horizontal columns with vertical dividers.
  */
 export function BoardView({
-  columns,
   board,
   onAddTicket,
   onEditTicket,
@@ -38,7 +36,7 @@ export function BoardView({
 }: BoardViewProps) {
   return (
     <BoardLayout>
-      {columns.map((column) => (
+      {COLUMNS.map((column) => (
         <Fragment key={column.id}>
           <BoardColumn
             column={column}

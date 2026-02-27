@@ -1,11 +1,11 @@
 "use client";
 
-import type { Column, BoardState, ColumnId, SubTask, Ticket } from "@feel-good/greyboard-core/types";
+import { COLUMNS } from "@feel-good/greyboard-core/config";
+import type { BoardState, ColumnId, SubTask, Ticket } from "@feel-good/greyboard-core/types";
 import { ListLayout } from "./list-layout";
 import { ListSection } from "./list-section";
 
 interface ListViewProps {
-  columns: Column[];
   board: BoardState;
   onAddTicket: (columnId: ColumnId) => void;
   onEditTicket: (ticket: Ticket) => void;
@@ -20,7 +20,6 @@ interface ListViewProps {
  * Renders collapsible sections for each column in vertical layout.
  */
 export function ListView({
-  columns,
   board,
   onAddTicket,
   onEditTicket,
@@ -31,7 +30,7 @@ export function ListView({
 }: ListViewProps) {
   return (
     <ListLayout>
-      {columns.map((column, index) => (
+      {COLUMNS.map((column, index) => (
         <ListSection
           key={column.id}
           column={column}
@@ -46,7 +45,7 @@ export function ListView({
           }
           onUpdateSubTasks={onUpdateSubTasks}
           onStartWork={onStartWork}
-          isLastSection={index === columns.length - 1}
+          isLastSection={index === COLUMNS.length - 1}
         />
       ))}
     </ListLayout>

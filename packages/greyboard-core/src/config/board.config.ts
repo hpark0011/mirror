@@ -19,14 +19,14 @@ export const COLUMNS: Column[] = [
     id: "in-progress",
     title: "In Progress",
     icon: "CircleLeftHalfFilledIcon",
-    iconColor: "text-[var(--color-text-info)]",
+    iconColor: "text-text-info",
     iconSize: "h-[22px] w-[22px]",
   },
   {
     id: "complete",
     title: "Complete",
     icon: "CheckedCircleFillIcon",
-    iconColor: "text-[var(--color-text-success)]",
+    iconColor: "text-text-success",
     iconSize: "h-[22px] w-[22px]",
   },
 ] as const;

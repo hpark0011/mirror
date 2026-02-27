@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { closestCenter, DndContext } from "@dnd-kit/core";
-import { COLUMNS } from "@feel-good/greyboard-core/config";
 import {
   createTicketFromFormData,
   TicketFormDialog,
@@ -144,7 +143,6 @@ export function TasksBody() {
         {isListLayout
           ? (
             <ListView
-              columns={COLUMNS}
               board={filteredBoard}
               onAddTicket={openCreate}
               onEditTicket={openEdit}
@@ -156,7 +154,6 @@ export function TasksBody() {
           )
           : (
             <BoardView
-              columns={COLUMNS}
               board={filteredBoard}
               onAddTicket={openCreate}
               onEditTicket={openEdit}

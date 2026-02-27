@@ -55,6 +55,7 @@
   --color-text-secondary-inverse: var(--color-text-secondary-inverse);
   --color-text-tertiary-inverse: var(--color-text-tertiary-inverse);
 
+  --color-text-info: var(--color-text-info);
   --color-text-success: var(--color-text-success);
   --color-text-warning: var(--color-text-warning);
   --color-text-error: var(--color-text-error);

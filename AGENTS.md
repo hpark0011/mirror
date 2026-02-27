@@ -103,6 +103,7 @@ Never commit directly to main. Always use feature branches. When a merge conflic
 ## Verification
 
 - **Always hard-verify fixes.** After editing a file, re-read it to confirm the change landed correctly, then run the relevant build/lint/test command and check the output. Never assume a fix worked — prove it.
+- **Never ask the user to verify visually.** Do not tell the user to "go to localhost:3000 and check". Use `preview_*` tools (preview_start, preview_screenshot, preview_snapshot, preview_inspect, etc.) to start the dev server, take screenshots, inspect elements, and verify changes yourself. Share proof (screenshots, snapshots) directly in the conversation.
 
 ## Task Management
 
