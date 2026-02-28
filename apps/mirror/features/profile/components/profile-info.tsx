@@ -19,7 +19,6 @@ import {
 import { Form } from "@feel-good/ui/primitives/form";
 
 import type { Profile } from "../types";
-import type { ProfileActionId } from "./editable-profile-actions";
 import { EditableProfileActions } from "./editable-profile-actions";
 import { EditableName } from "./editable-name";
 import { EditableAvatar } from "./editable-avatar";
@@ -33,22 +32,31 @@ const editProfileSchema = z.object({
 type ProfileInfoProps = {
   profile: Profile;
   isEditing: boolean;
-  chatOpen?: boolean;
   onEditComplete: () => void;
   onSubmittingChange?: (submitting: boolean) => void;
-  onAction?: (id: ProfileActionId) => void;
+  onOpenChat?: () => void;
+  onOpenVideoCall?: () => void;
 };
 
 export function ProfileInfo({
   profile,
   isEditing,
-  chatOpen,
   onEditComplete,
   onSubmittingChange,
-  onAction,
+  onOpenChat,
+  onOpenVideoCall,
 }: ProfileInfoProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
+
+  const [prevIsEditing, setPrevIsEditing] = useState(isEditing);
+  if (isEditing !== prevIsEditing) {
+    setPrevIsEditing(isEditing);
+    if (!isEditing) {
+      setAvatarPreview(null);
+      setAvatarFile(null);
+    }
+  }
 
   const updateProfile = useMutation(api.users.mutations.updateProfile)
     .withOptimisticUpdate((localStore, args) => {
@@ -84,8 +92,6 @@ export function ProfileInfo({
   useEffect(() => {
     if (!isEditing) {
       form.reset({ name: profile.name ?? "", bio: profile.bio ?? "" });
-      setAvatarPreview(null);
-      setAvatarFile(null);
     }
   }, [isEditing, form, profile.name, profile.bio]);
 
@@ -157,10 +163,10 @@ export function ProfileInfo({
         onAvatarChange={handleAvatarChange}
       />
       <div className="w-full flex flex-col items-center justify-center">
-        <EditableProfileActions isEditing={isEditing} onAction={onAction} />
+        <EditableProfileActions isEditing={isEditing} onOpenChat={onOpenChat} onOpenVideoCall={onOpenVideoCall} />
       </div>
       <div className="mt-[16px] w-full">
-        <EditableBio isEditing={isEditing} bio={profile.bio} chatOpen={chatOpen} />
+        <EditableBio isEditing={isEditing} bio={profile.bio} />
       </div>
     </>
   );

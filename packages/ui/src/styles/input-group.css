@@ -1,0 +1,44 @@
+/*
+* input-group.css
+*
+* Input-group specific styles and CSS variables
+*/
+
+:root {
+  /* Input Default */
+  --input-group-shadow: 0px 189px 129px 0px rgba(0, 0, 0, 0.07),
+    0px 78.96px 53.89px 0px rgba(0, 0, 0, 0.0975),
+    0px 42.22px 28.81px 0px rgba(0, 0, 0, 0.0677),
+    0px 23.67px 16.15px 0px rgba(0, 0, 0, 0.03),
+    0px 12.56px 5.85px 0px rgba(0, 0, 0, 0.0223),
+    0px 5.23px 3.57px 0px rgba(0, 0, 0, 0.0125);
+
+  --input-foreground: var(--gray-12);
+  --input-destructive: var(--red-8);
+  --caret: var(--color-blue-400);
+}
+
+.dark {
+  /* Input Default */
+  --input-group-shadow: 0px 189px 129px 0px rgba(0, 0, 0, 0.07),
+    0px 78.96px 53.89px 0px rgba(0, 0, 0, 0.0975),
+    0px 42.22px 28.81px 0px rgba(0, 0, 0, 0.0677),
+    0px 23.67px 16.15px 0px rgba(0, 0, 0, 0.03),
+    0px 12.56px 5.85px 0px rgba(0, 0, 0, 0.0223),
+    0px 5.23px 3.57px 0px rgba(0, 0, 0, 0.0125);
+
+  --input-foreground: var(--gray-12);
+  --input-destructive: var(--red-6);
+  --caret: var(--color-blue-400);
+}
+
+@theme inline {
+  /* Input Default */
+  --color-input-group: var(--card);
+  --color-input-group-border: var(--card-border);
+  --color-input-foreground: var(--input-foreground);
+  --color-input-destructive: var(--input-destructive);
+
+  --shadow-input-group-shadow: var(--input-group-shadow);
+  --color-caret: var(--caret);
+}

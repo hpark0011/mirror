@@ -1,7 +1,7 @@
 "use client";
 
 import { useFormContext } from "react-hook-form";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useTheme } from "next-themes";
 
 import { cn } from "@feel-good/utils/cn";
@@ -31,10 +31,9 @@ const springTransition = {
 type EditableBioProps = {
   isEditing: boolean;
   bio: string;
-  chatOpen?: boolean;
 };
 
-export function EditableBio({ isEditing, bio, chatOpen }: EditableBioProps) {
+export function EditableBio({ isEditing, bio }: EditableBioProps) {
   const isOwner = useIsProfileOwner();
   const { control, watch } = useFormContext();
   const bioValue = watch("bio");
@@ -45,79 +44,66 @@ export function EditableBio({ isEditing, bio, chatOpen }: EditableBioProps) {
 
   if (!isEditing && !bio && !isOwner) return null;
 
-  const showBio = !chatOpen;
-
   return (
-    <AnimatePresence>
-      {showBio && (
-        <motion.div
-          initial={{ opacity: 1, height: "auto" }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          transition={springTransition}
-        >
-          <div className="text-lg text-center max-w-md mx-auto leading-[1.3] w-full flex">
-            <FormField
-              control={control}
-              name="bio"
-              render={({ field }) => (
-                <FormItem className="w-full">
-                  <FormLabel>
-                    <motion.div
-                      initial={{
-                        opacity: 0,
-                        backgroundColor: "rgba(255,255,255,0)",
-                      }}
-                      animate={{ opacity: isEditing ? "100%" : "0%" }}
-                      transition={springTransition}
-                      className="text-muted-foreground px-1"
-                    >
-                      Bio
-                    </motion.div>
-                  </FormLabel>
-                  <FormControl>
-                    <motion.div
-                      className="rounded-xl [corner-shape:superellipse(1.1)] w-full"
-                      initial={{ boxShadow: viewShadow }}
-                      animate={{
-                        boxShadow: isEditing ? editShadow : viewShadow,
-                        backgroundColor: isEditing
-                          ? isDark
-                            ? "rgba(255,255,255,0.06)"
-                            : "rgba(255,255,255,0.6)"
-                          : "rgba(255,255,255,0)",
-                      }}
-                      transition={springTransition}
-                    >
-                      <Textarea
-                        placeholder="Tell your story..."
-                        maxLength={300}
-                        readOnly={!isEditing}
-                        tabIndex={isEditing ? undefined : -1}
-                        className={cn(
-                          "text-lg md:text-lg text-center leading-[1.3] bg-transparent dark:bg-transparent min-h-[96px] resize-none border-transparent ring-0 shadow-transparent rounded-xl hover:bg-gray-1 focus-visible:bg-gray-1 focus-visible:border-transparent w-full [text-shadow:0px_1px_1px_rgba(0,0,0,0.1)] focus-visible:ring-0 placeholder:text-gray-11 py-3",
-                          !isEditing &&
-                            "border-transparent focus-visible:ring-0 pointer-events-none hover:bg-transparent hover:border-transparent [text-shadow:0px_0px_0px_rgba(0,0,0,0.2)]",
-                        )}
-                        data-test="edit-profile-bio-textarea"
-                        {...field}
-                      />
-                    </motion.div>
-                  </FormControl>
-                  {isEditing && (
-                    <div className="flex items-center justify-between px-1">
-                      <FormMessage />
-                      <p className="ml-auto text-[13px] text-green-11">
-                        {bioValue?.length ?? 0}/300
-                      </p>
-                    </div>
+    <div className="text-lg text-center max-w-md mx-auto leading-[1.3] w-full flex">
+      <FormField
+        control={control}
+        name="bio"
+        render={({ field }) => (
+          <FormItem className="w-full">
+            <FormLabel>
+              <motion.div
+                initial={{
+                  opacity: 0,
+                  backgroundColor: "rgba(255,255,255,0)",
+                }}
+                animate={{ opacity: isEditing ? "100%" : "0%" }}
+                transition={springTransition}
+                className="text-muted-foreground px-1"
+              >
+                Bio
+              </motion.div>
+            </FormLabel>
+            <FormControl>
+              <motion.div
+                className="rounded-2xl [corner-shape:superellipse(1.1)] w-full"
+                initial={{ boxShadow: viewShadow }}
+                animate={{
+                  boxShadow: isEditing ? editShadow : viewShadow,
+                  backgroundColor: isEditing
+                    ? isDark
+                      ? "rgba(255,255,255,0.06)"
+                      : "rgba(255,255,255,0.6)"
+                    : "rgba(255,255,255,0)",
+                }}
+                transition={springTransition}
+              >
+                <Textarea
+                  placeholder="Tell your story..."
+                  maxLength={300}
+                  readOnly={!isEditing}
+                  tabIndex={isEditing ? undefined : -1}
+                  className={cn(
+                    "text-lg md:text-lg text-center leading-[1.3] bg-transparent dark:bg-transparent min-h-[96px] resize-none border-transparent ring-0 shadow-transparent rounded-2xl hover:bg-gray-1 focus-visible:bg-gray-1 focus-visible:border-transparent w-full [text-shadow:0px_1px_1px_rgba(0,0,0,0.1)] focus-visible:ring-0 placeholder:text-gray-11 py-3",
+                    !isEditing &&
+                      "border-transparent focus-visible:ring-0 pointer-events-none hover:bg-transparent hover:border-transparent [text-shadow:0px_0px_0px_rgba(0,0,0,0.2)]",
                   )}
-                </FormItem>
-              )}
-            />
-          </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+                  data-test="edit-profile-bio-textarea"
+                  {...field}
+                />
+              </motion.div>
+            </FormControl>
+            {isEditing && (
+              <div className="flex items-center justify-between px-1">
+                <FormMessage />
+                <p className="ml-auto text-[13px] text-green-11">
+                  {bioValue?.length ?? 0}/300
+                </p>
+              </div>
+            )}
+          </FormItem>
+        )}
+      />
+    </div>
   );
 }

@@ -1,33 +1,38 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useState } from "react";
 
-import { cn } from "@feel-good/utils/cn";
-import { Textarea } from "@feel-good/ui/primitives/textarea";
-import { Button } from "@feel-good/ui/primitives/button";
+import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 import { Icon } from "@feel-good/ui/components/icon";
+import { cn } from "@feel-good/utils/cn";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupTextarea,
+} from "@feel-good/ui/primitives/input-group";
 
 type ChatInputProps = {
   isOpen: boolean;
   profileName: string;
-  onClose: () => void;
 };
 
-const springTransition = { type: "spring", stiffness: 300, damping: 40 } as const;
+const springTransition = {
+  type: "spring",
+  stiffness: 200,
+  damping: 15,
+} as const;
 
-export function ChatInput({ isOpen, profileName, onClose }: ChatInputProps) {
+export function ChatInput({ isOpen, profileName }: ChatInputProps) {
   const [message, setMessage] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { ref: textareaRef, resize, reset } = useAutoResizeTextarea();
 
   const handleSend = useCallback(() => {
     if (!message.trim()) return;
     setMessage("");
-    // Reset textarea height
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "auto";
-    }
-  }, [message]);
+    reset();
+  }, [message, reset]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -42,12 +47,9 @@ export function ChatInput({ isOpen, profileName, onClose }: ChatInputProps) {
   const handleInput = useCallback(
     (e: React.ChangeEvent<HTMLTextAreaElement>) => {
       setMessage(e.target.value);
-      // Auto-expand textarea
-      const el = e.target;
-      el.style.height = "auto";
-      el.style.height = `${Math.min(el.scrollHeight, 120)}px`;
+      resize();
     },
-    [],
+    [resize],
   );
 
   return (
@@ -56,46 +58,66 @@ export function ChatInput({ isOpen, profileName, onClose }: ChatInputProps) {
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 20, opacity: 0 }}
+          exit={{
+            y: 20,
+            scale: 0.95,
+            opacity: 0,
+            transition: { duration: 0.15, ease: "easeOut" },
+          }}
           transition={springTransition}
-          className="mt-auto w-full max-w-md px-2 pb-6"
+          className="w-full max-w-md relative"
         >
-          <div
+          <div className="w-full h-[40px] absolute left-0 -top-6 bg-linear-to-t from-background to-transparent" />
+          <InputGroup
             className={cn(
-              "flex items-end gap-2 rounded-2xl [corner-shape:superellipse(1.2)]",
-              "border bg-gray-2 p-2 shadow-lg",
+              "shadow-chat-input-shadow hover:bg-chat-input-bg-hover",
+              "p-0",
+              "has-[[data-slot=input-group-control]:focus-visible]:border-gray-1",
+              "dark:has-[[data-slot=input-group-control]:focus-visible]:border-gray-3",
+              "has-[[data-slot=input-group-control]:focus-visible]:ring-1",
+              "has-[[data-slot=input-group-control]:focus-visible]:ring-transparent",
+              "has-[[data-slot=input-group-control]:focus-visible]:bg-white",
+              "has-[[data-slot=input-group-control]:focus-visible]:bg-gray-2",
             )}
           >
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8 shrink-0 rounded-full"
-              onClick={onClose}
-            >
-              <Icon name="XmarkIcon" size="sm" />
-            </Button>
-
-            <Textarea
+            <InputGroupTextarea
               ref={textareaRef}
               value={message}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
               placeholder={`Message ${profileName}...`}
-              className="min-h-[40px] max-h-[120px] resize-none border-transparent bg-transparent shadow-none focus-visible:ring-0 focus-visible:border-transparent py-2 text-sm"
+              className={cn(
+                "min-h-[40px] max-h-[120px]",
+                "py-2.5 px-3.5",
+                "text-[20px] md:text-[16px]",
+                "leading-[1.3]",
+              )}
               rows={1}
             />
 
-            <Button
-              type="button"
-              size="icon"
-              className="size-8 shrink-0 rounded-full"
-              disabled={!message.trim()}
-              onClick={handleSend}
+            <InputGroupAddon
+              align="block-end"
+              className={cn(
+                "justify-end",
+                "[&>kbd]:rounded-full",
+                "px-2.5 pb-2.5",
+              )}
             >
-              <Icon name="ArrowUpIcon" size="sm" />
-            </Button>
-          </div>
+              <InputGroupButton
+                type="button"
+                size="icon-sm"
+                variant="primary"
+                className={cn(
+                  "size-8 shrink-0",
+                  "rounded-full [corner-shape:superellipse(1.0)]",
+                )}
+                disabled={!message.trim()}
+                onClick={handleSend}
+              >
+                <Icon name="ArrowUpIcon" className="size-6" />
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
         </motion.div>
       )}
     </AnimatePresence>

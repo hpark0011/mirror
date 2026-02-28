@@ -22,11 +22,13 @@
 @import "./dialog.css";
 @import "./sidebar.css";
 @import "./input.css";
+@import "./input-group.css";
 @import "./switch.css";
 @import "./field.css";
 @import "./popover.css";
 @import "./card.css";
 @import "./toast.css";
+@import "./chat-input.css";
 
 /* custom variant */
 @custom-variant dark (&:is(.dark *));

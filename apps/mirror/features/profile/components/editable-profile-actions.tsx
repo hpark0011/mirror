@@ -1,37 +1,15 @@
 import { ShinyButton } from "@feel-good/ui/components/shiny-button";
 import { Icon, type IconName } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
+import { cn } from "@feel-good/ui/lib/utils";
 import { motion } from "framer-motion";
 
-export type ProfileActionId = "text" | "video" | "voice";
-
 type ProfileAction = {
-  id: ProfileActionId;
   label: string;
   icon: IconName;
   iconClassName?: string;
+  handler?: () => void;
 };
-
-const PROFILE_ACTIONS: ProfileAction[] = [
-  {
-    id: "text",
-    label: "Text",
-    icon: "BubbleLeftFillIcon",
-    iconClassName: "size-5.5",
-  },
-  {
-    id: "video",
-    label: "Video",
-    icon: "VideoFillIcon",
-    iconClassName: "size-5.5",
-  },
-  {
-    id: "voice",
-    label: "Voice",
-    icon: "WaveformIcon",
-    iconClassName: "size-6",
-  },
-];
 
 const shinyButtonClass =
   "w-11 h-11 rounded-[20px] [corner-shape:superellipse(1.3)]";
@@ -40,15 +18,33 @@ const shinyButtonShadowClass =
 
 type ProfileActionsProps = {
   isEditing?: boolean;
-  onAction?: (id: ProfileActionId) => void;
+  onOpenChat?: () => void;
+  onOpenVideoCall?: () => void;
   onEdit?: () => void;
 };
 
 export function EditableProfileActions({
   isEditing,
-  onAction,
+  onOpenChat,
+  onOpenVideoCall,
   onEdit,
 }: ProfileActionsProps) {
+  const actions: ProfileAction[] = [
+    {
+      label: "Text",
+      icon: "BubbleLeftFillIcon",
+      iconClassName: "size-5.5",
+      handler: onOpenChat,
+    },
+    {
+      label: "Video",
+      icon: "VideoFillIcon",
+      iconClassName: "size-5.5",
+      handler: onOpenVideoCall,
+    },
+    { label: "Voice", icon: "WaveformIcon", iconClassName: "size-6" },
+  ];
+
   return (
     <div className="flex flex-col w-full justify-center items-center gap-1">
       <label className="w-full text-start px-0.5 text-sm text-muted-foreground">
@@ -78,13 +74,18 @@ export function EditableProfileActions({
             <Icon name="PencilIcon" />
           </Button>
         )}
-        {PROFILE_ACTIONS.map(({ id, label, icon, iconClassName }) => (
-          <div key={id} className="flex flex-col gap-2">
+        {actions.map(({ label, icon, iconClassName, handler }) => (
+          <div
+            key={label}
+            className={cn(
+              "flex flex-col gap-2",
+              !handler && "opacity-40 pointer-events-none",
+            )}
+          >
             <ShinyButton
               className={shinyButtonClass}
               shadowClassName={shinyButtonShadowClass}
-              onClick={() =>
-                onAction?.(id)}
+              onClick={() => handler?.()}
             >
               <Icon name={icon} className={iconClassName} />
             </ShinyButton>
