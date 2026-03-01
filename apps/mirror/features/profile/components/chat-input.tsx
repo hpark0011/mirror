@@ -16,6 +16,7 @@ import {
 type ChatInputProps = {
   isOpen: boolean;
   profileName: string;
+  onSend?: (message: string) => Promise<void> | void;
 };
 
 const springTransition = {
@@ -24,15 +25,25 @@ const springTransition = {
   damping: 15,
 } as const;
 
-export function ChatInput({ isOpen, profileName }: ChatInputProps) {
+export function ChatInput({ isOpen, profileName, onSend }: ChatInputProps) {
   const [message, setMessage] = useState("");
+  const [isSending, setIsSending] = useState(false);
   const { ref: textareaRef, resize, reset } = useAutoResizeTextarea();
 
-  const handleSend = useCallback(() => {
-    if (!message.trim()) return;
-    setMessage("");
-    reset();
-  }, [message, reset]);
+  const handleSend = useCallback(async () => {
+    const trimmed = message.trim();
+    if (!trimmed || isSending) return;
+    setIsSending(true);
+    try {
+      await onSend?.(trimmed);
+      setMessage("");
+      reset();
+    } catch {
+      // Message stays in textarea for retry
+    } finally {
+      setIsSending(false);
+    }
+  }, [message, reset, onSend, isSending]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -85,6 +96,7 @@ export function ChatInput({ isOpen, profileName }: ChatInputProps) {
               value={message}
               onChange={handleInput}
               onKeyDown={handleKeyDown}
+              disabled={isSending}
               placeholder={`Message ${profileName}...`}
               className={cn(
                 "min-h-[40px] max-h-[120px]",
@@ -111,7 +123,7 @@ export function ChatInput({ isOpen, profileName }: ChatInputProps) {
                   "size-8 shrink-0",
                   "rounded-full [corner-shape:superellipse(1.0)]",
                 )}
-                disabled={!message.trim()}
+                disabled={!message.trim() || isSending}
                 onClick={handleSend}
               >
                 <Icon name="ArrowUpIcon" className="size-6" />

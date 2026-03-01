@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import type { Preloaded } from "convex/react";
-import type { api } from "@feel-good/convex/convex/_generated/api";
+import { AnimatePresence, motion } from "framer-motion";
+import { useMutation, type Preloaded } from "convex/react";
+import { api } from "@feel-good/convex/convex/_generated/api";
+import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
 import type { Profile } from "@/features/profile";
 import {
   ChatInput,
@@ -13,6 +15,7 @@ import {
   ProfileInfo,
   ProfileProvider,
 } from "@/features/profile";
+import { ChatProvider, ChatThread } from "@/features/chat";
 import { useProfileData } from "@/features/profile/hooks/use-profile-data";
 import {
   ArticleWorkspaceProvider,
@@ -62,9 +65,38 @@ export function ProfileShell(
 
   const isMobile = useIsMobile();
   const [videoCallOpen, setVideoCallOpen] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [chatInputVisible, setChatInputVisible] = useState(false);
+  const [activeView, setActiveView] = useState<"profile" | "chat">("profile");
+  const [conversationId, setConversationId] = useState<
+    Id<"conversations"> | null
+  >(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const sendMessageMutation = useMutation(api.chat.mutations.sendMessage);
+  const isSendingFirstRef = useRef(false);
+
+  const handleFirstMessage = useCallback(
+    async (message: string) => {
+      if (isSendingFirstRef.current) return;
+      isSendingFirstRef.current = true;
+      try {
+        const result = await sendMessageMutation({
+          profileOwnerId: profile._id,
+          content: message,
+        });
+        setConversationId(result.conversationId);
+        setActiveView("chat");
+      } finally {
+        isSendingFirstRef.current = false;
+      }
+    },
+    [sendMessageMutation, profile._id],
+  );
+
+  const handleBack = useCallback(() => {
+    setActiveView("profile");
+  }, []);
 
   const [mobileScrollRoot, setMobileScrollRoot] = useState<
     HTMLDivElement | null
@@ -116,7 +148,7 @@ export function ProfileShell(
       isEditing={isEditing}
       onEditComplete={handleEditClose}
       onSubmittingChange={setIsSubmitting}
-      onOpenChat={() => setChatOpen((prev) => !prev)}
+      onOpenChat={() => setChatInputVisible((prev) => !prev)}
       onOpenVideoCall={() => setVideoCallOpen(true)}
     />
   );
@@ -126,50 +158,106 @@ export function ProfileShell(
       <ArticleWorkspaceProvider articles={articles} username={profile.username}>
         {isMobile
           ? (
-            <main className="h-screen">
-              <ToolbarSlotProvider>
-                <WorkspaceNavbar className="fixed top-0 inset-x-0" />
-                <MobileProfileLayout
-                  profile={
-                    <div className="relative h-full flex flex-col">
-                      {editButton}
-                      {profilePanel}
-                      <div className="absolute inset-x-0 bottom-0 flex justify-center px-2 pb-6 pointer-events-none [&>*]:pointer-events-auto">
-                        <ChatInput isOpen={chatOpen} profileName={profile.name} />
-                      </div>
-                    </div>
-                  }
-                  content={() => (
-                    <div className="flex h-full min-h-0 flex-col">
-                      <ToolbarSlotTarget />
-                      <div className="flex-1 min-h-0 *:h-full">
-                        <div
-                          ref={setMobileScrollRoot}
-                          className="overflow-y-auto overscroll-y-contain h-full px-3"
-                        >
-                          <ScrollRootProvider value={mobileScrollRoot}>
-                            {children}
-                          </ScrollRootProvider>
+            activeView === "chat"
+              ? (
+                <main className="h-screen">
+                  <ChatProvider
+                    profileOwnerId={profile._id}
+                    profileName={profile.name}
+                    avatarUrl={profile.avatarUrl ?? null}
+                    conversationId={conversationId}
+                    onConversationIdChange={setConversationId}
+                  >
+                    <ChatThread onBack={handleBack} />
+                  </ChatProvider>
+                </main>
+              )
+              : (
+                <main className="h-screen">
+                  <ToolbarSlotProvider>
+                    <WorkspaceNavbar className="fixed top-0 inset-x-0" />
+                    <MobileProfileLayout
+                      profile={
+                        <div className="relative h-full flex flex-col">
+                          {editButton}
+                          {profilePanel}
+                          <div className="absolute inset-x-0 bottom-0 flex justify-center px-2 pb-6 pointer-events-none [&>*]:pointer-events-auto">
+                            <ChatInput
+                              isOpen={chatInputVisible}
+                              profileName={profile.name}
+                              onSend={handleFirstMessage}
+                            />
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  )}
-                />
-              </ToolbarSlotProvider>
-            </main>
+                      }
+                      content={() => (
+                        <div className="flex h-full min-h-0 flex-col">
+                          <ToolbarSlotTarget />
+                          <div className="flex-1 min-h-0 *:h-full">
+                            <div
+                              ref={setMobileScrollRoot}
+                              className="overflow-y-auto overscroll-y-contain h-full px-3"
+                            >
+                              <ScrollRootProvider value={mobileScrollRoot}>
+                                {children}
+                              </ScrollRootProvider>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    />
+                  </ToolbarSlotProvider>
+                </main>
+              )
           )
           : (
             <main className="h-screen">
               {/* Profile interaction view */}
               <ResizablePanelGroup direction="horizontal" className="h-full">
                 <ResizablePanel defaultSize={50} minSize={25} maxSize={80}>
-                  <div className="relative z-20 h-full flex flex-col justify-start items-center px-6 pt-[88px]">
-                    {editButton}
-                    {profilePanel}
-                    <div className="absolute inset-x-0 bottom-0 flex justify-center px-6 pb-6 pointer-events-none [&>*]:pointer-events-auto">
-                      <ChatInput isOpen={chatOpen} profileName={profile.name} />
-                    </div>
-                  </div>
+                  <ChatProvider
+                    profileOwnerId={profile._id}
+                    profileName={profile.name}
+                    avatarUrl={profile.avatarUrl ?? null}
+                    conversationId={conversationId}
+                    onConversationIdChange={setConversationId}
+                  >
+                    <AnimatePresence mode="wait" initial={false}>
+                      {activeView === "profile"
+                        ? (
+                          <motion.div
+                            key="profile"
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="relative z-20 h-full flex flex-col justify-start items-center px-6 pt-[88px]"
+                          >
+                            {editButton}
+                            {profilePanel}
+                            <div className="absolute inset-x-0 bottom-0 flex justify-center px-6 pb-6 pointer-events-none [&>*]:pointer-events-auto">
+                              <ChatInput
+                                isOpen={chatInputVisible}
+                                profileName={profile.name}
+                                onSend={handleFirstMessage}
+                              />
+                            </div>
+                          </motion.div>
+                        )
+                        : (
+                          <motion.div
+                            key="chat"
+                            initial={{ opacity: 0, x: 20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ duration: 0.2, ease: "easeInOut" }}
+                            className="h-full"
+                          >
+                            <ChatThread onBack={handleBack} />
+                          </motion.div>
+                        )}
+                    </AnimatePresence>
+                  </ChatProvider>
                 </ResizablePanel>
 
                 <ResizableHandle className="bg-border-subtle data-[resize-handle-state=hover]:shadow-[0_0_0_1px_var(--color-resizable-handle-hover)] data-[resize-handle-state=drag]:shadow-[0_0_0_1px_var(--color-resizable-handle-hover)] z-30 relative" />

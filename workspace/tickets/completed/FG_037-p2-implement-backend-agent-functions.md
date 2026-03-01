@@ -3,7 +3,7 @@ id: FG_037
 title: "Implement Convex Backend Core Functions for Chat Agent"
 date: 2026-02-28
 type: feature
-status: to-do
+status: completed
 priority: p2
 description: "Implement Convex mutations, queries, and actions for the `@convex-dev/agent` to support the Chat Thread with Digital Clone."
 dependencies:
@@ -25,7 +25,7 @@ We are adding an LLM-powered digital clone chat to Mirror profiles. The database
 
 ## Goal
 
-Create backend functions `sendMessage`, `streamResponse`, and access queries that allow clients to securely communicate with the Convex Agent component using the profile's specified context. 
+Create backend functions `sendMessage`, `streamResponse`, and access queries that allow clients to securely communicate with the Convex Agent component using the profile's specified context.
 
 ## Scope
 

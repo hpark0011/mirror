@@ -14,6 +14,7 @@ const cspDirectives = [
 ].join("; ");
 
 const nextConfig: NextConfig = {
+  transpilePackages: ["@convex-dev/agent"],
   images: {
     remotePatterns: [
       {

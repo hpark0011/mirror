@@ -3,7 +3,7 @@ id: FG_038
 title: "Build Frontend Chat Feature Module Components"
 date: 2026-02-28
 type: feature
-status: to-do
+status: completed
 priority: p2
 description: "Create React components and hooks in `features/chat/` for the Chat Thread, completely independent of the Profile context."
 dependencies:
@@ -48,7 +48,7 @@ Use `@convex-dev/agent/react` hooks to establish local state bindings to Convex'
 ## Implementation Steps
 
 1. Scaffold out type exports in `apps/mirror/features/chat/types.ts`. Add `ChatMessage`, `Conversation` derived logic here.
-2. Form hooks: `apps/mirror/features/chat/hooks/use-chat.ts` tying the mutation and `useUIMessages`, plus `use-conversations.ts` resolving previous conversations. 
+2. Form hooks: `apps/mirror/features/chat/hooks/use-chat.ts` tying the mutation and `useUIMessages`, plus `use-conversations.ts` resolving previous conversations.
 3. Create `ChatProvider` wrapping conversation states in `apps/mirror/features/chat/context/chat-context.tsx`.
 4. Implement display models: `chat-header.tsx` with identity display, `chat-message.tsx` featuring standard alternating sides format depending on `role`.
 5. Connect scrolling bounds inside `chat-message-list.tsx`.

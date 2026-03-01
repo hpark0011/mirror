@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 type ChatContextValue = {
@@ -18,6 +18,8 @@ type ChatProviderProps = {
   profileOwnerId: Id<"users">;
   profileName: string;
   avatarUrl: string | null;
+  conversationId: Id<"conversations"> | null;
+  onConversationIdChange: (id: Id<"conversations"> | null) => void;
   children: React.ReactNode;
 };
 
@@ -25,15 +27,13 @@ export function ChatProvider({
   profileOwnerId,
   profileName,
   avatarUrl,
+  conversationId,
+  onConversationIdChange,
   children,
 }: ChatProviderProps) {
-  const [conversationId, setConversationId] = useState<
-    Id<"conversations"> | null
-  >(null);
-
   const startNewConversation = useCallback(() => {
-    setConversationId(null);
-  }, []);
+    onConversationIdChange(null);
+  }, [onConversationIdChange]);
 
   const value = useMemo(
     () => ({
@@ -41,10 +41,10 @@ export function ChatProvider({
       profileName,
       avatarUrl,
       conversationId,
-      setConversationId,
+      setConversationId: onConversationIdChange,
       startNewConversation,
     }),
-    [profileOwnerId, profileName, avatarUrl, conversationId, startNewConversation],
+    [profileOwnerId, profileName, avatarUrl, conversationId, onConversationIdChange, startNewConversation],
   );
 
   return <ChatContext value={value}>{children}</ChatContext>;
