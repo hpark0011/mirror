@@ -15,6 +15,7 @@ export const getConversation = query({
       _creationTime: v.number(),
       profileOwnerId: v.id("users"),
       viewerId: v.optional(v.id("users")),
+      threadId: v.string(),
       status: v.union(v.literal("active"), v.literal("archived")),
       title: v.string(),
       streamingInProgress: v.optional(v.boolean()),
@@ -34,43 +35,30 @@ export const getConversation = query({
         .unique();
     }
 
+    const conversationData = {
+      _id: conversation._id,
+      _creationTime: conversation._creationTime,
+      profileOwnerId: conversation.profileOwnerId,
+      viewerId: conversation.viewerId,
+      threadId: conversation.threadId,
+      status: conversation.status,
+      title: conversation.title,
+      streamingInProgress: conversation.streamingInProgress,
+    };
+
     // Owner can see all conversations on their profile
     if (appUser && appUser._id === conversation.profileOwnerId) {
-      return {
-        _id: conversation._id,
-        _creationTime: conversation._creationTime,
-        profileOwnerId: conversation.profileOwnerId,
-        viewerId: conversation.viewerId,
-        status: conversation.status,
-        title: conversation.title,
-        streamingInProgress: conversation.streamingInProgress,
-      };
+      return conversationData;
     }
 
     // Authenticated viewer sees only their own conversations
     if (appUser && conversation.viewerId === appUser._id) {
-      return {
-        _id: conversation._id,
-        _creationTime: conversation._creationTime,
-        profileOwnerId: conversation.profileOwnerId,
-        viewerId: conversation.viewerId,
-        status: conversation.status,
-        title: conversation.title,
-        streamingInProgress: conversation.streamingInProgress,
-      };
+      return conversationData;
     }
 
     // Anonymous: can see anonymous conversations they have the ID for
     if (!appUser && conversation.viewerId === undefined) {
-      return {
-        _id: conversation._id,
-        _creationTime: conversation._creationTime,
-        profileOwnerId: conversation.profileOwnerId,
-        viewerId: conversation.viewerId,
-        status: conversation.status,
-        title: conversation.title,
-        streamingInProgress: conversation.streamingInProgress,
-      };
+      return conversationData;
     }
 
     return null;
@@ -87,6 +75,7 @@ export const getConversations = query({
       _creationTime: v.number(),
       profileOwnerId: v.id("users"),
       viewerId: v.optional(v.id("users")),
+      threadId: v.string(),
       status: v.union(v.literal("active"), v.literal("archived")),
       title: v.string(),
       streamingInProgress: v.optional(v.boolean()),
@@ -129,6 +118,7 @@ export const getConversations = query({
       _creationTime: c._creationTime,
       profileOwnerId: c.profileOwnerId,
       viewerId: c.viewerId,
+      threadId: c.threadId,
       status: c.status,
       title: c.title,
       streamingInProgress: c.streamingInProgress,
@@ -138,6 +128,7 @@ export const getConversations = query({
 
 export const listThreadMessages = query({
   args: {
+    threadId: v.string(),
     conversationId: v.id("conversations"),
     paginationOpts: paginationOptsValidator,
     streamArgs: v.optional(vStreamArgs),
