@@ -31,6 +31,7 @@ export function useProfileData({
       name: reactiveProfile.name ?? "",
       bio: reactiveProfile.bio ?? "",
       avatarUrl: reactiveProfile.avatarUrl,
+      media: initialProfile.media,
     }
     : initialProfile;
 

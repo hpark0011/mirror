@@ -16,6 +16,7 @@
     "@convex-dev/better-auth": "catalog:",
     "@daily-co/daily-js": "^0.87.0",
     "@daily-co/daily-react": "^0.24.0",
+    "class-variance-authority": "catalog:",
     "@feel-good/convex": "workspace:*",
     "@feel-good/features": "workspace:*",
     "@feel-good/sentry-config": "workspace:*",

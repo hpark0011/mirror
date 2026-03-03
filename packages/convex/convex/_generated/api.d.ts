@@ -25,6 +25,7 @@ import type * as email_actions from "../email/actions.js";
 import type * as env from "../env.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as seed from "../seed.js";
 import type * as users_helpers from "../users/helpers.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  seed: typeof seed;
   "users/helpers": typeof users_helpers;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;

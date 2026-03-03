@@ -1,13 +1,14 @@
 "use client";
 
 import { Button } from "@feel-good/ui/primitives/button";
-import { Icon } from "@feel-good/ui/components/icon";
 import {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-} from "@feel-good/ui/primitives/avatar";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@feel-good/ui/primitives/tooltip";
+import { Icon } from "@feel-good/ui/components/icon";
 import { cn } from "@feel-good/utils/cn";
+import { MirrorAvatar } from "@/components/mirror-avatar";
 
 type ChatHeaderProps = {
   profileName: string;
@@ -22,48 +23,55 @@ export function ChatHeader({
   onBack,
   onNewConversation,
 }: ChatHeaderProps) {
-  const initials = profileName
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
-
   return (
     <div
       className={cn(
-        "flex items-center gap-3 px-4 py-3",
-        "border-b border-border-subtle",
+        "grid grid-cols-[auto_1fr_auto] items-start px-4 pt-2",
       )}
     >
-      <Button
-        variant="ghost"
-        size="icon-sm"
-        onClick={onBack}
-        className="shrink-0"
-      >
-        <Icon name="ArrowLeftLineIcon" className="size-5" />
-      </Button>
+      <div className="mt-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={onBack}
+              className="shrink-0 rounded-full"
+            >
+              <Icon name="ArrowBackwardIcon" className="size-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Profile</TooltipContent>
+        </Tooltip>
+      </div>
 
-      <Avatar className="size-8 shrink-0">
-        {avatarUrl && <AvatarImage src={avatarUrl} alt={profileName} />}
-        <AvatarFallback className="text-xs">{initials}</AvatarFallback>
-      </Avatar>
-
-      <span className="text-sm font-medium truncate flex-1">
-        {profileName}
-      </span>
-
-      {onNewConversation && (
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          onClick={onNewConversation}
+      <div className="flex flex-col items-center relative">
+        <MirrorAvatar
           className="shrink-0"
-        >
-          <Icon name="PlusIcon" className="size-5" />
-        </Button>
-      )}
+          avatarUrl={avatarUrl}
+          profileName={profileName}
+        />
+
+        <span className="text-[13px] font-medium truncate px-2.5 py-0.5 bg-card border border-gray-1 rounded-xl shadow-xl top-[-4px] relative min-w-[48px]">
+          {profileName}
+        </span>
+      </div>
+
+      <div className="mt-2">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="secondary"
+              size="icon"
+              onClick={onNewConversation}
+              className="shrink-0 rounded-full"
+            >
+              <Icon name="PlusIcon" className="size-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>New chat</TooltipContent>
+        </Tooltip>
+      </div>
     </div>
   );
 }

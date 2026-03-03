@@ -3,8 +3,9 @@ import Link from "next/link";
 import { TableCell } from "@feel-good/ui/primitives/table";
 import { Checkbox } from "@feel-good/ui/primitives/checkbox";
 import type { Article } from "../types";
-import { formatShortDate } from "../lib/format-date";
+import { formatShortDate } from "../utils/format-date";
 import { AnimatedArticleRow } from "./animated-article-row";
+import { cn } from "@feel-good/utils/cn";
 
 type ArticleListItemProps = {
   article: Article;
@@ -31,11 +32,11 @@ export const ArticleListItem = memo(function ArticleListItem({
     <AnimatedArticleRow
       shouldAnimate={shouldAnimate}
       index={index}
-      className="relative border-b-0 group-hover/list:text-muted-foreground hover:text-secondary-foreground hover:bg-transparent min-h-[44px]"
+      className="relative border-b-0 group-hover/list:text-muted-foreground hover:text-secondary-foreground min-h-[44px] hover:bg-muted"
       data-state={isSelected ? "selected" : undefined}
     >
       {isOwner && (
-        <TableCell className="relative z-10 w-12 py-0 pl-1.5 [&:has([role=checkbox])]:pr-2 rounded-l-md">
+        <TableCell className="relative z-10 w-12 py-0 [&:has([role=checkbox])]:pr-2 pl-4">
           <Checkbox
             checked={isSelected}
             onCheckedChange={() => onToggle?.(article.slug)}
@@ -43,7 +44,12 @@ export const ArticleListItem = memo(function ArticleListItem({
           />
         </TableCell>
       )}
-      <TableCell className="font-medium truncate max-w-0 py-0 text-lg">
+      <TableCell
+        className={cn(
+          "font-medium truncate max-w-0 py-0 text-lg pl-4",
+          isOwner && "pl-0",
+        )}
+      >
         <Link href={href} className="after:absolute after:inset-0">
           {article.title}
         </Link>
@@ -51,14 +57,16 @@ export const ArticleListItem = memo(function ArticleListItem({
       <TableCell className="hidden md:table-cell py-0 font-medium">
         {article.category}
       </TableCell>
-      <TableCell className="text-right py-0 font-medium rounded-r-md">
+      <TableCell className="text-right py-0 font-medium pr-4">
         {article.status === "draft"
           ? <span className="text-muted-foreground">Draft</span>
-          : article.publishedAt ? (
+          : article.publishedAt
+          ? (
             <time dateTime={new Date(article.publishedAt).toISOString()}>
               {formatShortDate(article.publishedAt)}
             </time>
-          ) : null}
+          )
+          : null}
       </TableCell>
     </AnimatedArticleRow>
   );

@@ -5,6 +5,7 @@
 export const RESERVED_USERNAMES = new Set([
   "api",
   "admin",
+  "chat",
   "dashboard",
   "settings",
   "sign-in",

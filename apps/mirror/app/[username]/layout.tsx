@@ -4,13 +4,17 @@ import type { Profile } from "@/features/profile";
 import { isReservedUsername } from "@/lib/reserved-usernames";
 import { fetchAuthQuery, preloadAuthQuery } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import { ProfileShell } from "./_components/profile-shell";
+import { ProfileRouteDataProvider } from "./_providers/profile-route-data-context";
+import { ChatRouteController } from "./_providers/chat-route-controller";
+import { WorkspaceShell } from "./_components/workspace-shell";
 
 export default async function ProfileLayout({
   children,
+  interaction,
   params,
 }: {
   children: React.ReactNode;
+  interaction: React.ReactNode;
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
@@ -39,6 +43,9 @@ export default async function ProfileLayout({
       name: convexProfile.name ?? "",
       bio: convexProfile.bio ?? "",
       avatarUrl: convexProfile.avatarUrl,
+      ...(convexProfile.username === "rick-rubin" && {
+        media: { video: "/portrait-video.mp4", poster: "/rr.webp" },
+      }),
     };
   }
 
@@ -52,13 +59,17 @@ export default async function ProfileLayout({
     currentAuthUser._id === profileData.authId;
 
   return (
-    <ProfileShell
+    <ProfileRouteDataProvider
       profile={profileData}
       preloadedProfile={preloadedProfile}
       preloadedArticles={preloadedArticles}
       isOwner={isOwner}
     >
-      {children}
-    </ProfileShell>
+      <ChatRouteController>
+        <WorkspaceShell interaction={interaction}>
+          {children}
+        </WorkspaceShell>
+      </ChatRouteController>
+    </ProfileRouteDataProvider>
   );
 }

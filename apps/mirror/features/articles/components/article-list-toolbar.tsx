@@ -64,27 +64,29 @@ export function ArticleListToolbar({
 
         <div className="flex items-center">
           {/* Delete */}
-          <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-            <DeleteArticlesDialog count={selectedCount} onConfirm={onDelete} />
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="icon-sm"
-                    disabled={!hasSelection}
-                    aria-label={hasSelection
-                      ? `Delete ${selectedCount} selected`
-                      : "Delete"}
-                    className={cn(isDeleteOpen && "[&_svg]:text-information")}
-                  >
-                    <Icon name="TrashFillIcon" />
-                  </Button>
-                </AlertDialogTrigger>
-              </TooltipTrigger>
-              <TooltipContent>Delete</TooltipContent>
-            </Tooltip>
-          </AlertDialog>
+          {isOwner && (
+            <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
+              <DeleteArticlesDialog count={selectedCount} onConfirm={onDelete} />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      disabled={!hasSelection}
+                      aria-label={hasSelection
+                        ? `Delete ${selectedCount} selected`
+                        : "Delete"}
+                      className={cn(isDeleteOpen && "[&_svg]:text-information")}
+                    >
+                      <Icon name="TrashFillIcon" />
+                    </Button>
+                  </AlertDialogTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Delete</TooltipContent>
+              </Tooltip>
+            </AlertDialog>
+          )}
 
           {/* Search */}
           <ArticleSearchInput

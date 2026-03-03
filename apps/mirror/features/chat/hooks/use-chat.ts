@@ -35,6 +35,8 @@ export function useChat({
     conversationId ? { conversationId } : "skip",
   );
 
+  const conversationNotFound = conversationId !== null && conversation === null;
+
   // useUIMessages requires threadId at runtime for streaming delta construction.
   // We get it from the conversation metadata query above.
   const { results, status, loadMore } = useUIMessages(
@@ -111,6 +113,7 @@ export function useChat({
     retryMessage,
     isStreaming,
     conversation,
+    conversationNotFound,
     status,
     loadMore,
     sendError,

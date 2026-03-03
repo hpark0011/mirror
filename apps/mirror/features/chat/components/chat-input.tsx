@@ -59,7 +59,7 @@ export function ChatInput({
   );
 
   return (
-    <div className="px-4 pb-4 pt-2">
+    <div className="px-4 pb-2.5 pt-2 mx-auto w-full max-w-lg">
       <InputGroup
         className={cn(
           "shadow-chat-input-shadow hover:bg-chat-input-bg-hover",
@@ -67,7 +67,7 @@ export function ChatInput({
           "has-[[data-slot=input-group-control]:focus-visible]:border-gray-1",
           "dark:has-[[data-slot=input-group-control]:focus-visible]:border-gray-3",
           "has-[[data-slot=input-group-control]:focus-visible]:ring-1",
-          "has-[[data-slot=input-group-control]:focus-visible]:ring-transparent",
+          "has-[[data-slot=input-grou p-control]:focus-visible]:ring-transparent",
           "has-[[data-slot=input-group-control]:focus-visible]:bg-white",
           "has-[[data-slot=input-group-control]:focus-visible]:bg-gray-2",
         )}
@@ -118,7 +118,7 @@ export function ChatInput({
         </p>
       )}
 
-      <p className="text-[11px] text-muted-foreground text-center mt-2 px-2">
+      <p className="text-[13px] text-muted-foreground text-center mt-2 px-2">
         Conversations may be visible to {profileName}
       </p>
     </div>

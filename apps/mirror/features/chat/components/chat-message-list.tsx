@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef } from "react";
 import type { UIMessage } from "@convex-dev/agent/react";
-import { ChatMessage } from "./chat-message";
+import { useEffect, useRef } from "react";
+import { ChatMessageItem } from "./chat-message-item";
 
 type ChatMessageListProps = {
   messages: UIMessage[];
@@ -52,10 +52,10 @@ export function ChatMessageList({
   if (status === "LoadingFirstPage") {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="flex gap-1.5">
-          <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse" />
-          <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
-          <span className="size-2 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
+        <div className="flex gap-1">
+          <span className="size-1 rounded-full bg-muted-foreground/40 animate-pulse" />
+          <span className="size-1 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
+          <span className="size-1 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
         </div>
       </div>
     );
@@ -79,14 +79,14 @@ export function ChatMessageList({
   return (
     <div
       ref={scrollContainerRef}
-      className="flex-1 overflow-y-auto overscroll-y-contain px-4 py-4"
+      className="flex-1 overflow-y-auto overscroll-y-contain px-4 pt-18 pb-[160px]"
     >
       {status === "LoadingMore" && (
         <div className="flex justify-center py-2">
-          <div className="flex gap-1.5">
-            <span className="size-1.5 rounded-full bg-muted-foreground/40 animate-pulse" />
-            <span className="size-1.5 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
-            <span className="size-1.5 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
+          <div className="flex gap-1">
+            <span className="size-1 rounded-full bg-muted-foreground/40 animate-pulse" />
+            <span className="size-1 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:150ms]" />
+            <span className="size-1 rounded-full bg-muted-foreground/40 animate-pulse [animation-delay:300ms]" />
           </div>
         </div>
       )}
@@ -98,16 +98,11 @@ export function ChatMessageList({
               m.role === "user" || m.role === "assistant",
           )
           .map((message) => (
-            <ChatMessage
+            <ChatMessageItem
               key={message.key}
-              role={message.role}
-              text={message.text}
-              isStreaming={message.status === "streaming"}
-              avatarUrl={message.role === "assistant" ? avatarUrl : undefined}
-              profileName={
-                message.role === "assistant" ? profileName : undefined
-              }
-              isFailed={message.status === "failed"}
+              message={message}
+              avatarUrl={message.role === "assistant" ? avatarUrl : null}
+              profileName={profileName}
               onRetry={message.status === "failed" ? onRetry : undefined}
             />
           ))}

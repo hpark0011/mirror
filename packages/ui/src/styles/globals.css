@@ -150,4 +150,8 @@
     letter-spacing: -0.04em;
     font-weight: 460;
   }
+
+  ::selection {
+    background-color: var(--grass-10);
+  }
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { formatLongDate } from "../lib/format-date";
+import { formatLongDate } from "../utils/format-date";
 import type { Article } from "../types";
 
 const RichTextViewer = dynamic(
@@ -31,8 +31,8 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
               {article.status === "draft"
                 ? "Draft"
                 : article.publishedAt
-                  ? formatLongDate(article.publishedAt)
-                  : "Draft"}
+                ? formatLongDate(article.publishedAt)
+                : "Draft"}
             </span>
 
             <span className="text-[15px] font-medium text-muted-foreground leading-[1.2]">

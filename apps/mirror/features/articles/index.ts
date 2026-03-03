@@ -6,6 +6,6 @@ export {
   ScrollRootProvider,
   useScrollRoot,
 } from "./context/scroll-root-context";
-export { formatShortDate, formatLongDate } from "./lib/format-date";
+export { formatShortDate, formatLongDate } from "./utils/format-date";
 export { ArticleListToolbarConnector } from "./components/article-list-toolbar-connector";
 export { ArticleDetailToolbar } from "./components/article-detail-toolbar";

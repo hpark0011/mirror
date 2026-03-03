@@ -46,6 +46,8 @@ const nextConfig: NextConfig = {
     },
   ],
   rewrites: async () => [
+    { source: "/@:username/chat", destination: "/:username/chat" },
+    { source: "/@:username/chat/:conversationId", destination: "/:username/chat/:conversationId" },
     { source: "/@:username", destination: "/:username" },
     { source: "/@:username/:slug", destination: "/:username/:slug" },
   ],

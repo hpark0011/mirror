@@ -1,34 +1,23 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import { usePathname } from "next/navigation";
 
-const isArticleDetailRoute = (path: string) => /^\/@[^/]+\/.+/.test(path);
+export type RouteMode = "list" | "detail" | "chat";
 
-type ScrollContainers = {
-  mobile: HTMLElement | null;
-  desktop: HTMLElement | null;
-};
-
-export function useProfileNavigationEffects(containers: ScrollContainers) {
-  const pathname = usePathname();
-  const prevPathname = useRef(pathname);
+export function useProfileNavigationEffects(
+  scrollContainer: HTMLElement | null,
+  routeMode: RouteMode,
+) {
+  const prevRouteMode = useRef(routeMode);
   const savedScrollTop = useRef(0);
-  const activeContainer = useRef<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
-    // Pick whichever container is currently mounted (mobile or desktop).
-    activeContainer.current = containers.mobile ?? containers.desktop;
-  }, [containers.mobile, containers.desktop]);
+    if (routeMode === prevRouteMode.current) return;
 
-  useLayoutEffect(() => {
-    if (pathname === prevPathname.current) return;
+    const wasDetail = prevRouteMode.current === "detail";
+    const isDetail = routeMode === "detail";
+    prevRouteMode.current = routeMode;
 
-    const wasDetail = isArticleDetailRoute(prevPathname.current);
-    const isDetail = isArticleDetailRoute(pathname);
-    prevPathname.current = pathname;
-
-    const scrollContainer = activeContainer.current;
     if (!scrollContainer) return;
 
     if (isDetail && !wasDetail) {
@@ -39,5 +28,5 @@ export function useProfileNavigationEffects(containers: ScrollContainers) {
       // Back: restore saved scroll position
       scrollContainer.scrollTo(0, savedScrollTop.current);
     }
-  }, [pathname]);
+  }, [routeMode, scrollContainer]);
 }

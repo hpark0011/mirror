@@ -8,6 +8,7 @@ type ChatContextValue = {
   profileName: string;
   avatarUrl: string | null;
   conversationId: Id<"conversations"> | null;
+  conversationInvalid: boolean;
   setConversationId: (id: Id<"conversations"> | null) => void;
   startNewConversation: () => void;
 };
@@ -19,6 +20,7 @@ type ChatProviderProps = {
   profileName: string;
   avatarUrl: string | null;
   conversationId: Id<"conversations"> | null;
+  conversationInvalid: boolean;
   onConversationIdChange: (id: Id<"conversations"> | null) => void;
   children: React.ReactNode;
 };
@@ -28,6 +30,7 @@ export function ChatProvider({
   profileName,
   avatarUrl,
   conversationId,
+  conversationInvalid,
   onConversationIdChange,
   children,
 }: ChatProviderProps) {
@@ -41,10 +44,11 @@ export function ChatProvider({
       profileName,
       avatarUrl,
       conversationId,
+      conversationInvalid,
       setConversationId: onConversationIdChange,
       startNewConversation,
     }),
-    [profileOwnerId, profileName, avatarUrl, conversationId, onConversationIdChange, startNewConversation],
+    [profileOwnerId, profileName, avatarUrl, conversationId, conversationInvalid, onConversationIdChange, startNewConversation],
   );
 
   return <ChatContext value={value}>{children}</ChatContext>;

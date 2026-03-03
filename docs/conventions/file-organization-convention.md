@@ -52,7 +52,7 @@ features/<feature>/
   store/         # Zustand or other state stores
   types/         # TypeScript types/interfaces
   utils/         # Utility functions
-  lib/           # Adapters, schemas, data sources, mock data
+  lib/           # Data access (queries, mutations, adapters), schemas, mock data
   index.ts       # Public exports
 ```
 
@@ -86,7 +86,7 @@ The `views/` directory is appropriate in `packages/features/<feature>/` where it
 
 Naming:
 
-1. Use `lib/` (singular) for adapters, schemas, data sources, mock data.
+1. Use `lib/` (singular) for data access (queries, mutations, adapters), schemas, mock data.
 1. Keep feature public exports in `index.ts`.
 
 ### 4) Cross-App Features (`packages/features/<feature>/**`)
@@ -130,7 +130,7 @@ Within a feature module, placement is mechanical — one answer per file type:
 | Context provider | `context/` |
 | Types/interfaces | `types/` or co-located |
 | Utility functions | `utils/` |
-| Adapters, schemas, mock data | `lib/` |
+| Data access, adapters, schemas, mock data | `lib/` |
 | State store | `store/` |
 
 ## Current Migration Direction
@@ -174,3 +174,4 @@ Existing `_view` / `_views` route directories are legacy and should be migrated 
 1. 2026-02-19: Added `-connector.tsx` naming convention for context-bridging components. Deprecated `-view` suffix for new files. Completed Mirror `views/` → `components/` migration.
 1. 2026-02-19: Removed `views/` from app-level feature module template. All React components go in `components/`. `views/` is reserved for cross-app packages where it defines a package API boundary. Added mechanical placement table for AI agents.
 1. 2026-02-09: Adopted repo-wide feature-first placement with `app/**/_components` as the only route-private folder pattern for new code.
+1. 2026-03-02: Clarified `lib/` purpose — data access (queries, mutations, adapters), not generic utilities.
