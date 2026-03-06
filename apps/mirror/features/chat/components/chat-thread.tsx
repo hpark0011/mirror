@@ -3,19 +3,65 @@
 import { useCallback } from "react";
 import { useChatContext } from "../context/chat-context";
 import { useChat } from "../hooks/use-chat";
+import { ArcSphere } from "./arc-sphere";
 import { ChatHeader } from "./chat-header";
 import { ChatMessageList } from "./chat-message-list";
 import { ChatInput } from "./chat-input";
 import { cn } from "@feel-good/utils/cn";
 
 export function ChatThread() {
+  const { routeResolution, profileName, avatarUrl, username, startNewConversation } =
+    useChatContext();
+
+  const profileHref = `/@${username}`;
+
+  if (routeResolution.status === "resolving") {
+    return (
+      <div className="flex flex-col h-full relative">
+        <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
+          <ChatHeader
+            profileName={profileName}
+            avatarUrl={avatarUrl}
+            profileHref={profileHref}
+            onNewConversation={startNewConversation}
+          />
+        </div>
+        <div className="flex-1 flex items-center justify-center pb-20">
+          <ArcSphere />
+        </div>
+      </div>
+    );
+  }
+
+  if (routeResolution.status === "invalid") {
+    return (
+      <div className="flex flex-col h-full relative">
+        <ChatHeader
+          profileName={profileName}
+          avatarUrl={avatarUrl}
+          profileHref={profileHref}
+          onNewConversation={startNewConversation}
+        />
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-muted-foreground">
+            This conversation is not available.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ready | new_conversation | empty — mount useChat
+  return <ChatActiveThread />;
+}
+
+function ChatActiveThread() {
   const {
     profileOwnerId,
     profileName,
     username,
     avatarUrl,
     conversationId,
-    conversationInvalid,
     setConversationId,
     startNewConversation,
   } = useChatContext();
@@ -45,7 +91,7 @@ export function ChatThread() {
     onConversationCreated: handleConversationCreated,
   });
 
-  if (conversationInvalid || conversationNotFound) {
+  if (conversationNotFound) {
     return (
       <div className="flex flex-col h-full relative">
         <ChatHeader

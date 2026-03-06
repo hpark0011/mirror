@@ -47,7 +47,11 @@ export function useChat({
     { initialNumItems: 20, stream: true },
   );
 
-  // When no conversation exists yet, there's nothing to load — treat as empty.
+  // When no conversation exists yet (new_conversation / empty), the query is
+  // skipped so `status` stays "LoadingFirstPage". Override to "Exhausted" so
+  // ChatActiveThread renders the empty greeting instead of a loading spinner.
+  // Safe because ChatThread's state machine already prevents mounting during
+  // the "resolving" phase.
   const resolvedStatus = conversationId === null ? "Exhausted" : status;
 
   const messages = (results ?? []) as UIMessage[];

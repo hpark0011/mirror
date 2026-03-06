@@ -6,11 +6,11 @@ import { useChatRouteController } from "../_providers/chat-route-controller";
 
 export function ChatPanel() {
   const { profile } = useProfileRouteData();
-  const {
-    conversationId,
-    conversationInvalid,
-    handleConversationIdChange,
-  } = useChatRouteController();
+  const { routeResolution, handleConversationIdChange } =
+    useChatRouteController();
+
+  const conversationId =
+    routeResolution.status === "ready" ? routeResolution.conversationId : null;
 
   return (
     <ChatProvider
@@ -19,7 +19,7 @@ export function ChatPanel() {
       username={profile.username}
       avatarUrl={profile.avatarUrl ?? null}
       conversationId={conversationId}
-      conversationInvalid={conversationInvalid}
+      routeResolution={routeResolution}
       onConversationIdChange={handleConversationIdChange}
     >
       <ChatThread />

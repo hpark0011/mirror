@@ -27,7 +27,6 @@ function ConversationListEmpty() {
       </div>
       <div className="absolute flex flex-col items-center justify-center">
         <WireframeSphere />
-        {/* <MirrorTunnel className="size-22" /> */}
       </div>
     </div>
   );
