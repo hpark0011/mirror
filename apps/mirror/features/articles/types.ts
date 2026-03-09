@@ -1,7 +1,7 @@
 import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
 import type { JSONContent } from "@feel-good/features/editor/types";
 
-export type Article = {
+export type ArticleSummary = {
   _id: Id<"articles">;
   _creationTime: number;
   userId: Id<"users">;
@@ -12,5 +12,8 @@ export type Article = {
   publishedAt?: number;
   status: "draft" | "published";
   category: string;
+};
+
+export type ArticleWithBody = ArticleSummary & {
   body: JSONContent;
 };

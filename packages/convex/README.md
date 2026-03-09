@@ -68,6 +68,16 @@ Emails are sent from: `{APP_NAME} <auth@{EMAIL_DOMAIN}>`
 
 Example: `MyApp <auth@myapp.com>`
 
+## Seeding
+
+Seed the Rick Rubin demo profile (user, articles, posts, conversations):
+
+```bash
+pnpm --filter=@feel-good/convex seed:rick-rubin
+```
+
+The command is idempotent — running it multiple times won't create duplicates.
+
 ## Exported Functions
 
 ### `sendMagicLink`

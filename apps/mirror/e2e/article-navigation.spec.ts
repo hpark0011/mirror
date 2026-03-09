@@ -1,0 +1,254 @@
+import { expect, test } from "@playwright/test";
+
+const username = "rick-rubin";
+const articleSlug = "the-art-of-listening";
+const articleTitle = "The Art of Listening";
+const articleExcerpt =
+  "Most people think producing music is about adding things.";
+const postTitle = "Listening Before Speaking";
+const postCategory = "Attention";
+const newestPostTitle = "The Source Is Everywhere";
+const oldestPostTitle = "Listening Before Speaking";
+const collaborationPostTitle = "Make the Room Safe";
+const filteredWeekPostTitle = "Doubt as Compass";
+const creativityArticleTitle = "Simplicity as a Superpower";
+
+test.describe("Article navigation", () => {
+  test("redirects the profile root to the typed article list", async ({
+    page,
+  }) => {
+    await page.goto(`/@${username}`);
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}/articles(\\?.*)?$`));
+    await expect(
+      page.getByRole("link", { name: articleTitle }),
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test("shows loading UI during list-to-detail navigation and returns to the typed list", async ({
+    page,
+  }) => {
+    let delayedNavigation = false;
+
+    await page.route(`**/${username}/articles/${articleSlug}*`, async (route) => {
+      const headers = route.request().headers();
+      const isPrefetch =
+        headers["next-router-prefetch"] !== undefined ||
+        headers.purpose === "prefetch";
+
+      if (!delayedNavigation && !isPrefetch) {
+        delayedNavigation = true;
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      }
+
+      await route.continue();
+    });
+
+    await page.goto(`/@${username}/articles`);
+
+    const articleLink = page.getByRole("link", { name: articleTitle });
+    await expect(articleLink).toBeVisible({ timeout: 10000 });
+
+    await articleLink.click();
+
+    await expect(page.getByTestId("article-detail-loading")).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(
+      page.getByRole("heading", { name: articleTitle }),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(articleExcerpt)).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole("link", { name: "Back" }).click();
+
+    await expect(page).toHaveURL(
+      new RegExp(`/@${username}/articles(\\?.*)?$`),
+    );
+    await expect(articleLink).toBeVisible({ timeout: 10000 });
+  });
+
+  test("renders article detail on direct entry", async ({ page }) => {
+    await page.goto(`/@${username}/articles/${articleSlug}`);
+
+    await expect(
+      page.getByRole("heading", { name: articleTitle }),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByText(articleExcerpt)).toBeVisible({ timeout: 10000 });
+  });
+
+  test("keeps article toolbar search and filter working", async ({ page }) => {
+    await page.goto(`/@${username}/articles`);
+
+    await page.getByRole("button", { name: "Search articles" }).click();
+
+    const articleSearch = page.getByRole("searchbox", {
+      name: "Search articles",
+    });
+    await articleSearch.fill("Creativity");
+
+    await expect(
+      page.getByRole("link", { name: creativityArticleTitle }),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByRole("link", { name: articleTitle }),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Filter" }).click();
+    await page.getByRole("menuitem", { name: /^Category/ }).click();
+    await page
+      .getByRole("menuitemcheckbox", { name: /Music & Sound/ })
+      .click();
+
+    await expect(
+      page.getByText("No articles match your search and filters"),
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test("navigates to the posts tab", async ({ page }) => {
+    await page.goto(`/@${username}/articles`);
+
+    await page.getByRole("tab", { name: "Posts" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
+
+    const emptyState = page.getByText("No posts yet");
+    const seededPostLink = page.getByRole("link", { name: postTitle });
+
+    await Promise.race([
+      emptyState.waitFor({ state: "visible", timeout: 10000 }),
+      seededPostLink.waitFor({ state: "visible", timeout: 10000 }),
+    ]);
+
+    if (await emptyState.isVisible().catch(() => false)) {
+      await expect(emptyState).toBeVisible();
+      return;
+    }
+
+    await expect(seededPostLink).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator("article").filter({ has: seededPostLink }).getByText(postCategory),
+    ).toBeVisible({ timeout: 10000 });
+    await seededPostLink.click();
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts/.+`));
+    await expect(
+      page.getByRole("heading", { name: postTitle }),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.locator("article").getByText(postCategory),
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test("searches, filters, sorts, and preserves post list state", async ({
+    page,
+  }) => {
+    await page.goto(`/@${username}/posts`);
+
+    await expect(
+      page.getByRole("link", { name: newestPostTitle }),
+    ).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole("button", { name: "Search posts" }).click();
+
+    const postSearch = page.getByRole("searchbox", {
+      name: "Search posts",
+    });
+    await postSearch.fill("Listening");
+
+    await expect(
+      page.getByRole("link", { name: oldestPostTitle }),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByRole("link", { name: collaborationPostTitle }),
+    ).toHaveCount(0);
+
+    await postSearch.fill("Collaboration");
+
+    await expect(
+      page.getByRole("link", { name: collaborationPostTitle }),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByRole("link", { name: oldestPostTitle }),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Search posts" }).click();
+
+    await expect(
+      page.locator("article h2").first(),
+    ).toHaveText(newestPostTitle, { timeout: 10000 });
+
+    await page.getByRole("button", { name: "Sort" }).click();
+    await page.getByRole("menuitemradio", { name: "Oldest" }).click();
+
+    await expect(
+      page.locator("article h2").first(),
+    ).toHaveText(oldestPostTitle, { timeout: 10000 });
+
+    await page.getByRole("button", { name: "Filter" }).click();
+    await expect(
+      page.getByRole("menuitem", { name: /^Created/ }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("menuitem", { name: /^Status/ }),
+    ).toHaveCount(0);
+    await page.getByRole("menuitem", { name: /^Category/ }).click();
+    await page
+      .getByRole("menuitemcheckbox", { name: /Attention/ })
+      .click();
+    await page.keyboard.press("Escape");
+    await page.keyboard.press("Escape");
+
+    await expect(
+      page.getByRole("link", { name: oldestPostTitle }),
+    ).toBeVisible({ timeout: 10000 });
+    await expect(
+      page.getByRole("link", { name: collaborationPostTitle }),
+    ).toHaveCount(0);
+
+    await page.getByRole("link", { name: oldestPostTitle }).click();
+    await expect(
+      page.getByRole("heading", { name: oldestPostTitle }),
+    ).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole("link", { name: "Back" }).click();
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
+    await expect(
+      page.locator("article h2").first(),
+    ).toHaveText(oldestPostTitle, { timeout: 10000 });
+    await expect(
+      page.getByRole("link", { name: collaborationPostTitle }),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Filter" }).click();
+    await page.getByRole("menuitem", { name: "Clear all filters" }).click();
+
+    await page.getByRole("button", { name: "Filter" }).click();
+    await page.getByRole("menuitem", { name: /^Published/ }).click();
+    await page.getByRole("menuitemradio", { name: "This week" }).click();
+
+    await expect(
+      page.locator("article h2").first(),
+    ).toHaveText(filteredWeekPostTitle, { timeout: 10000 });
+    await expect(
+      page.getByRole("link", { name: oldestPostTitle }),
+    ).toHaveCount(0);
+
+    await page.getByRole("button", { name: "Search posts" }).click();
+    await page
+      .getByRole("searchbox", { name: "Search posts" })
+      .fill("Listening");
+
+    await expect(
+      page.getByText("No posts match your search and filters"),
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test("legacy slug routes no longer resolve", async ({ page }) => {
+    await page.goto(`/@${username}/${articleSlug}`);
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}/${articleSlug}$`));
+    await expect(page.getByText("This page could not be found.")).toBeVisible({
+      timeout: 10000,
+    });
+  });
+});

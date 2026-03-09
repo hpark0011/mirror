@@ -2,11 +2,10 @@
 
 import { createContext, useContext } from "react";
 import type { CallState } from "../types";
-import type { Article } from "@feel-good/tavus";
 
 type VideoCallContextValue = {
   callState: CallState;
-  startCall: (articles: Article[]) => Promise<void>;
+  startCall: (username: string) => Promise<void>;
   endCall: () => void;
   resetCall: () => void;
 };

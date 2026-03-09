@@ -2,32 +2,29 @@
 
 import { useState, type ReactNode } from "react";
 import { MobileProfileLayout } from "@/features/profile";
-import { ScrollRootProvider } from "@/features/articles";
+import { ScrollRootProvider, type ContentRouteState } from "@/features/content";
 import { WorkspaceNavbar } from "@/components/workspace-navbar";
 import {
   ToolbarSlotProvider,
   ToolbarSlotTarget,
 } from "@/components/workspace-toolbar-slot";
-import {
-  useProfileNavigationEffects,
-  type RouteMode,
-} from "@/hooks/use-profile-navigation-effects";
+import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
 
 type MobileWorkspaceProps = {
-  routeMode: RouteMode;
+  routeState: ContentRouteState;
   isChatOpen: boolean;
   interaction: ReactNode;
   children: ReactNode;
 };
 
 export function MobileWorkspace({
-  routeMode,
+  routeState,
   isChatOpen,
   interaction,
   children,
 }: MobileWorkspaceProps) {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
-  useProfileNavigationEffects(scrollRoot, routeMode);
+  useProfileNavigationEffects(scrollRoot, routeState);
 
   if (isChatOpen) {
     return <main className="h-screen">{interaction}</main>;

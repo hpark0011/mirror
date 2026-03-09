@@ -56,7 +56,7 @@ function ChatHeaderProfileName({
     <span
       data-slot="chat-header-profile-name"
       className={cn(
-        "text-[13px] font-medium truncate px-2.5 py-0.5 bg-card border border-gray-1 rounded-xl shadow-xl top-[-4px] relative min-w-[48px]",
+        "text-[13px] font-medium truncate px-2.5 py-0.5 bg-card border border-gray-1 dark:border-gray-4 rounded-xl shadow-xl top-[-4px] relative min-w-[48px] group-hover:shadow-sm transition-all ease-in-out duration-200 group-hover:bg-gray-1",
         className,
       )}
       {...props}
@@ -81,17 +81,21 @@ function ChatHeaderProfile({
       type="button"
       data-slot="chat-header-profile"
       className={cn(
-        "flex flex-col items-center relative cursor-pointer",
+        "flex flex-col items-center relative",
         className,
       )}
-      onClick={onClick}
     >
-      <MirrorAvatar
-        className="shrink-0"
-        avatarUrl={avatarUrl}
-        profileName={profileName}
-      />
-      <ChatHeaderProfileName>{profileName}</ChatHeaderProfileName>
+      <div
+        className="flex flex-col items-center relative cursor-pointer group"
+        onClick={onClick}
+      >
+        <MirrorAvatar
+          className="shrink-0"
+          avatarUrl={avatarUrl}
+          profileName={profileName}
+        />
+        <ChatHeaderProfileName>{profileName}</ChatHeaderProfileName>
+      </div>
     </button>
   );
 }

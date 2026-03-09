@@ -1,7 +1,7 @@
 "use client";
 
+import { useScrollRoot } from "@/features/content";
 import { useArticleList } from "../context/article-list-context";
-import { useScrollRoot } from "../context/scroll-root-context";
 import { ArticleList } from "./article-list";
 
 function EmptyMessage({ message }: { message: string }) {

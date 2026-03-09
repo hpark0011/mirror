@@ -2,23 +2,14 @@ import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
-import { generateSlug } from "./helpers";
+import {
+  generateSlug,
+  isOwnedByUser,
+  validateContentStringLength,
+} from "../content/helpers";
+import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
 
-const MAX_TITLE_LENGTH = 500;
-const MAX_SLUG_LENGTH = 200;
 const MAX_CATEGORY_LENGTH = 100;
-
-function validateStringLength(
-  value: string,
-  field: string,
-  maxLength: number,
-): void {
-  if (value.length > maxLength) {
-    throw new Error(
-      `${field} exceeds maximum length of ${maxLength} (got ${value.length})`,
-    );
-  }
-}
 
 export const create = authMutation({
   args: {
@@ -33,11 +24,11 @@ export const create = authMutation({
   handler: async (ctx, args) => {
     const appUser = await getAppUser(ctx, ctx.user._id);
 
-    validateStringLength(args.title, "Title", MAX_TITLE_LENGTH);
-    validateStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
+    validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
+    validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
 
     const slug = args.slug || generateSlug(args.title);
-    validateStringLength(slug, "Slug", MAX_SLUG_LENGTH);
+    validateContentStringLength(slug, "Slug", MAX_SLUG_LENGTH);
 
     if (!slug) {
       throw new Error("Slug cannot be empty");
@@ -89,18 +80,18 @@ export const update = authMutation({
     if (!article) {
       throw new Error("Article not found");
     }
-    if (article.userId !== appUser._id) {
+    if (!isOwnedByUser(article, appUser._id)) {
       throw new Error("Not authorized to update this article");
     }
 
     if (args.title !== undefined) {
-      validateStringLength(args.title, "Title", MAX_TITLE_LENGTH);
+      validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
     }
     if (args.slug !== undefined) {
-      validateStringLength(args.slug, "Slug", MAX_SLUG_LENGTH);
+      validateContentStringLength(args.slug, "Slug", MAX_SLUG_LENGTH);
     }
     if (args.category !== undefined) {
-      validateStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
+      validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
     }
 
     if (args.slug && args.slug !== article.slug) {
@@ -154,7 +145,7 @@ export const remove = authMutation({
     const uniqueIds = [...new Set(args.ids)];
     const articles = await Promise.all(uniqueIds.map((id) => ctx.db.get(id)));
     const owned = articles.filter(
-      (a): a is Doc<"articles"> => a !== null && a.userId === appUser._id,
+      (a): a is Doc<"articles"> => a !== null && isOwnedByUser(a, appUser._id),
     );
 
     for (const article of owned) {

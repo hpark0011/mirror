@@ -14,7 +14,7 @@
 }
 
 .dark {
-  --card: var(--gray-2);
+  --card: var(--gray-3);
   --card-foreground: var(--gray-12);
   --card-title: var(--gray-12);
   --card-description: var(--gray-11);

@@ -5,14 +5,21 @@ import {
   TavusApiError,
   createConversation,
   serializeArticlesToContext,
-  type Article,
 } from "@feel-good/tavus";
+import { api } from "@feel-good/convex/convex/_generated/api";
+import { fetchAuthQuery } from "@/lib/auth-server";
 import { serverEnv } from "@/lib/env/server";
 
 export async function POST(request: Request) {
   try {
-    const body = (await request.json()) as { articles: Article[] };
-    const { articles } = body;
+    const body = (await request.json()) as { username: string };
+    const articles = await fetchAuthQuery(
+      api.articles.queries.getByUsernameForConversation,
+      { username: body.username },
+    );
+    if (!articles) {
+      return NextResponse.json({ error: "Profile not found" }, { status: 404 });
+    }
 
     const conversationalContext = serializeArticlesToContext(articles);
 

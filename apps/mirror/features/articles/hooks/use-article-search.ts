@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { getPlainText } from "@feel-good/features/editor/lib";
-import type { Article } from "../types";
+import type { ArticleSummary } from "../types";
 
 export type UseArticleSearchReturn = {
-  filteredArticles: Article[];
+  filteredArticles: ArticleSummary[];
   query: string;
   setQuery: (q: string) => void;
   isOpen: boolean;
@@ -15,7 +14,7 @@ export type UseArticleSearchReturn = {
 };
 
 export function useArticleSearch(
-  articles: Article[],
+  articles: ArticleSummary[],
 ): UseArticleSearchReturn {
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -27,48 +26,31 @@ export function useArticleSearch(
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Precompute plain text once per articles change, avoiding re-parsing on each keystroke
+  // Precompute lowercase fields once per articles change.
   const searchableArticles = useMemo(
     () =>
       articles.map((article) => ({
         article,
         titleLower: article.title.toLowerCase(),
-        bodyLower: getPlainText(article.body).toLowerCase(),
         categoryLower: article.category.toLowerCase(),
       })),
     [articles],
   );
 
-  // Filter + sort by match priority (title > body > category)
+  // Filter + sort by match priority (title > category)
   const filteredArticles = useMemo(() => {
     if (!debouncedQuery.trim()) return articles;
 
     const q = debouncedQuery.toLowerCase();
 
-    // Single-pass: compute scores while filtering
     const scored = searchableArticles
-      .map(({ article, titleLower, bodyLower, categoryLower }) => {
-        if (
-          titleLower.includes(q) ||
-          bodyLower.includes(q) ||
-          categoryLower.includes(q)
-        ) {
-          // Compute score based on match location (title > body > category)
-          let score: number;
-          if (titleLower.includes(q)) {
-            score = 0;
-          } else if (bodyLower.includes(q)) {
-            score = 1;
-          } else {
-            score = 2;
-          }
-          return { article, score };
-        }
+      .map(({ article, titleLower, categoryLower }) => {
+        if (titleLower.includes(q)) return { article, score: 0 };
+        if (categoryLower.includes(q)) return { article, score: 1 };
         return null;
       })
       .filter((item) => item !== null);
 
-    // Sort by precomputed scores
     scored.sort((a, b) => a.score - b.score);
 
     return scored.map((item) => item.article);

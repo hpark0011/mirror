@@ -1,21 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { contentBaseFields, contentStatusValidator } from "../content/schema";
 
-export const articleStatusValidator = v.union(
-  v.literal("draft"),
-  v.literal("published"),
-);
+export const articleStatusValidator = contentStatusValidator;
 
 export const articleFields = {
-  userId: v.id("users"),
-  slug: v.string(),
-  title: v.string(),
+  ...contentBaseFields,
   coverImageStorageId: v.optional(v.id("_storage")),
-  createdAt: v.number(),
-  publishedAt: v.optional(v.number()),
-  status: articleStatusValidator,
   category: v.string(),
-  body: v.any(),
 };
 
 export const articlesTable = defineTable(articleFields)

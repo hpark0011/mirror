@@ -2,7 +2,6 @@
 
 import { useRef, useEffect, useCallback } from "react";
 import { useDaily } from "@daily-co/daily-react";
-import type { Article } from "@feel-good/tavus";
 import { useCallState } from "./use-call-state";
 
 export function useVideoCall() {
@@ -11,7 +10,7 @@ export function useVideoCall() {
   const isStartingRef = useRef(false);
 
   const startCall = useCallback(
-    async (articles: Article[]) => {
+    async (username: string) => {
       if (isStartingRef.current) return;
       isStartingRef.current = true;
 
@@ -23,7 +22,7 @@ export function useVideoCall() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ articles }),
+          body: JSON.stringify({ username }),
         });
 
         if (!response.ok) {

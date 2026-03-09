@@ -27,7 +27,8 @@
     "dev": "convex dev",
     "deploy": "convex deploy",
     "generate": "convex codegen",
-    "check-types": "tsc --noEmit -p convex/tsconfig.json"
+    "check-types": "tsc --noEmit -p convex/tsconfig.json",
+    "seed:rick-rubin": "convex run seed:seedRickRubinDemo"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2",

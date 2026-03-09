@@ -1,25 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { Icon } from "@feel-good/ui/components/icon";
 import {
   AlertDialog,
   AlertDialogTrigger,
 } from "@feel-good/ui/primitives/alert-dialog";
 import { Button } from "@feel-good/ui/primitives/button";
-import { Icon } from "@feel-good/ui/components/icon";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
 import { cn } from "@feel-good/utils/cn";
-import { DeleteArticlesDialog } from "./delete-articles-dialog";
-import { ArticleSortDropdown } from "./article-sort-dropdown";
-import { ArticleSearchInput } from "./article-search-input";
-import { ArticleFilterDropdown } from "./article-filter-dropdown";
-import type { SortOrder } from "../hooks/use-article-sort";
+import { useState } from "react";
 import type { UseArticleFilterReturn } from "../hooks/use-article-filter";
 import type { UseArticleSearchReturn } from "../hooks/use-article-search";
+import type { SortOrder } from "../hooks/use-article-sort";
+import { ArticleFilterDropdown } from "./article-filter-dropdown";
+import { ArticleSearchInput } from "./article-search-input";
+import { ArticleSortDropdown } from "./article-sort-dropdown";
+import { DeleteArticlesDialog } from "./delete-articles-dialog";
 
 type ArticleListToolbarProps = {
   isOwner: boolean;
@@ -46,12 +46,8 @@ export function ArticleListToolbar({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   return (
-    <div className="flex h-10 items-center gap-2 px-4.5 justify-end bg-background">
-      <div
-        className={cn(
-          "flex items-center justify-end w-full gap-3",
-        )}
-      >
+    <div className="flex h-10 items-center gap-3 px-4.5 justify-end bg-background relative border-b border-border-subtle">
+      <div className="flex items-center justify-end w-full gap-3">
         {isOwner && (
           <div className="flex items-center">
             {hasSelection && (
@@ -66,7 +62,10 @@ export function ArticleListToolbar({
           {/* Delete */}
           {isOwner && (
             <AlertDialog open={isDeleteOpen} onOpenChange={setIsDeleteOpen}>
-              <DeleteArticlesDialog count={selectedCount} onConfirm={onDelete} />
+              <DeleteArticlesDialog
+                count={selectedCount}
+                onConfirm={onDelete}
+              />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <AlertDialogTrigger asChild>

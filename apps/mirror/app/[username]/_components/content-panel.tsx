@@ -1,26 +1,23 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { ScrollRootProvider } from "@/features/articles";
+import { type ReactNode, useState } from "react";
+import { ScrollRootProvider, type ContentRouteState } from "@/features/content";
 import { WorkspaceNavbar } from "@/components/workspace-navbar";
 import {
   ToolbarSlotProvider,
   ToolbarSlotTarget,
 } from "@/components/workspace-toolbar-slot";
-import {
-  useProfileNavigationEffects,
-  type RouteMode,
-} from "@/hooks/use-profile-navigation-effects";
+import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
 
 type ContentPanelProps = {
-  routeMode: RouteMode;
+  routeState: ContentRouteState;
   children: ReactNode;
 };
 
-export function ContentPanel({ routeMode, children }: ContentPanelProps) {
+export function ContentPanel({ routeState, children }: ContentPanelProps) {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
 
-  useProfileNavigationEffects(scrollRoot, routeMode);
+  useProfileNavigationEffects(scrollRoot, routeState);
 
   return (
     <ToolbarSlotProvider>
@@ -28,10 +25,10 @@ export function ContentPanel({ routeMode, children }: ContentPanelProps) {
         <WorkspaceNavbar />
         <ToolbarSlotTarget />
         <div className="flex-1 min-h-0 *:h-full relative">
-          <div className="w-full absolute top-0 bg-linear-to-b from-background to-transparent max-h-[24px] z-10" />
+          <div className="w-full absolute top-0 bg-linear-to-b to-transparent max-h-[40px] z-10 from-background" />
           <div
             ref={setScrollRoot}
-            className="overflow-y-auto h-full pb-[64px] pt-8"
+            className="overflow-y-auto h-full pb-[64px] pt-0"
           >
             <ScrollRootProvider value={scrollRoot}>
               {children}

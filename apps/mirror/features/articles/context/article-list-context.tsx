@@ -1,10 +1,10 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { Article } from "../types";
+import type { ArticleSummary } from "../types";
 
 export type ArticleListContextValue = {
-  articles: Article[];
+  articles: ArticleSummary[];
   hasMore: boolean;
   onLoadMore: () => void;
   username: string;

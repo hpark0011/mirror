@@ -94,8 +94,8 @@
   --muted-foreground: var(--gray-9);
 
   /* Border */
-  --border: var(--gray-3);
-  --border-subtle: var(--gray-2);
+  --border: var(--gray-4);
+  --border-subtle: var(--gray-3);
   --ring: var(--gray-3);
   --resizable-handle-hover: var(--border-subtle);
 

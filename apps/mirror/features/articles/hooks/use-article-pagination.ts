@@ -1,13 +1,13 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import type { Article } from "../types";
+import type { ArticleSummary } from "../types";
 import type { SortOrder } from "./use-article-sort";
 
 const PAGE_SIZE = 30;
 
 export function useArticlePagination(
-  allArticles: Article[],
+  allArticles: ArticleSummary[],
   sortOrder: SortOrder,
   preserveOrder = false,
 ) {

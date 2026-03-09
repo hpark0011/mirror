@@ -22,11 +22,11 @@ export default async function ProfileLayout({
   const { username } = await params;
   if (isReservedUsername(username)) notFound();
 
-  const [convexProfile, preloadedProfile, preloadedArticles] =
+  const [convexProfile, preloadedProfile, currentAuthUser] =
     await Promise.all([
       fetchAuthQuery(api.users.queries.getByUsername, { username }),
       preloadAuthQuery(api.users.queries.getByUsername, { username }),
-      preloadAuthQuery(api.articles.queries.getByUsername, { username }),
+      fetchAuthQuery(api.auth.queries.getCurrentUser, {}),
     ]);
 
   if (!convexProfile) notFound();
@@ -42,11 +42,6 @@ export default async function ProfileLayout({
       media: { video: "/portrait-video.mp4", poster: "/rr.webp" },
     }),
   };
-
-  const currentAuthUser = await fetchAuthQuery(
-    api.auth.queries.getCurrentUser,
-    {},
-  );
   const isOwner =
     !!currentAuthUser &&
     !!profileData.authId &&
@@ -56,7 +51,6 @@ export default async function ProfileLayout({
     <ProfileRouteDataProvider
       profile={profileData}
       preloadedProfile={preloadedProfile}
-      preloadedArticles={preloadedArticles}
       isOwner={isOwner}
     >
       <ChatRouteController>

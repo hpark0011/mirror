@@ -3,18 +3,17 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useEffect, useRef, useCallback } from "react";
-import type { Article } from "@feel-good/tavus";
 import { CVIProvider } from "./cvi/cvi-provider";
 import { Conversation } from "./cvi/conversation";
 import { VideoCall } from "./video-call";
 import { useVideoCall } from "../hooks/use-video-call";
 
 type VideoCallModalProps = {
-  articles: Article[];
+  username: string;
   onClose: () => void;
 };
 
-function VideoCallContent({ articles, onClose }: VideoCallModalProps) {
+function VideoCallContent({ username, onClose }: VideoCallModalProps) {
   const { callState, startCall, endCall, resetCall, markConnected, markError } =
     useVideoCall();
 
@@ -28,15 +27,15 @@ function VideoCallContent({ articles, onClose }: VideoCallModalProps) {
 
   const handleRetry = useCallback(() => {
     resetCall();
-    startCall(articles);
-  }, [resetCall, startCall, articles]);
+    startCall(username);
+  }, [resetCall, startCall, username]);
 
   const handleCloseRef = useRef(handleClose);
   handleCloseRef.current = handleClose;
 
   useEffect(() => {
-    startCall(articles);
-    // Intentionally run only on mount — startCall and articles are stable refs
+    startCall(username);
+    // Intentionally run only on mount — startCall and username are stable refs
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -80,11 +79,11 @@ function VideoCallContent({ articles, onClose }: VideoCallModalProps) {
   );
 }
 
-export function VideoCallModal({ articles, onClose }: VideoCallModalProps) {
+export function VideoCallModal({ username, onClose }: VideoCallModalProps) {
   return (
     <CVIProvider>
       <AnimatePresence>
-        <VideoCallContent articles={articles} onClose={onClose} />
+        <VideoCallContent username={username} onClose={onClose} />
       </AnimatePresence>
     </CVIProvider>
   );

@@ -11,9 +11,7 @@ import dynamic from "next/dynamic";
 import type { Preloaded } from "convex/react";
 import type { api } from "@feel-good/convex/convex/_generated/api";
 import type { Profile } from "@/features/profile";
-import type { Article } from "@/features/articles";
 import { ProfileProvider } from "@/features/profile";
-import { ArticleWorkspaceProvider } from "@/features/articles";
 import { useProfileData } from "@/features/profile/hooks/use-profile-data";
 
 const VideoCallModal = dynamic(
@@ -23,7 +21,6 @@ const VideoCallModal = dynamic(
 
 type ProfileRouteData = {
   profile: Profile;
-  articles: Article[];
   isOwner: boolean;
   videoCallOpen: boolean;
   setVideoCallOpen: (open: boolean) => void;
@@ -44,7 +41,6 @@ export function useProfileRouteData() {
 type ProfileRouteDataProviderProps = {
   profile: Profile;
   preloadedProfile: Preloaded<typeof api.users.queries.getByUsername>;
-  preloadedArticles: Preloaded<typeof api.articles.queries.getByUsername>;
   isOwner: boolean;
   children: ReactNode;
 };
@@ -52,14 +48,12 @@ type ProfileRouteDataProviderProps = {
 export function ProfileRouteDataProvider({
   profile: initialProfile,
   preloadedProfile,
-  preloadedArticles,
   isOwner,
   children,
 }: ProfileRouteDataProviderProps) {
-  const { profile, articles } = useProfileData({
+  const { profile } = useProfileData({
     initialProfile,
     preloadedProfile,
-    preloadedArticles,
   });
 
   const [videoCallOpen, setVideoCallOpen] = useState(false);
@@ -67,23 +61,16 @@ export function ProfileRouteDataProvider({
   const profileContextValue = useMemo(() => ({ isOwner }), [isOwner]);
 
   const routeDataValue = useMemo(
-    () => ({ profile, articles, isOwner, videoCallOpen, setVideoCallOpen }),
-    [profile, articles, isOwner, videoCallOpen],
+    () => ({ profile, isOwner, videoCallOpen, setVideoCallOpen }),
+    [profile, isOwner, videoCallOpen],
   );
 
   return (
     <ProfileRouteDataContext.Provider value={routeDataValue}>
-      <ProfileProvider value={profileContextValue}>
-        <ArticleWorkspaceProvider
-          articles={articles}
-          username={profile.username}
-        >
-          {children}
-        </ArticleWorkspaceProvider>
-      </ProfileProvider>
+      <ProfileProvider value={profileContextValue}>{children}</ProfileProvider>
       {videoCallOpen && (
         <VideoCallModal
-          articles={articles}
+          username={profile.username}
           onClose={() => setVideoCallOpen(false)}
         />
       )}

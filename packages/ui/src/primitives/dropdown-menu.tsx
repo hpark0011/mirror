@@ -96,7 +96,7 @@ function DropdownMenuItem({
         // layout
         "flex items-center gap-2 px-2 py-1.5",
         // shape
-        "h-6 rounded-[8px]",
+        "h-6.5 rounded-[8px]",
         // background & typography
         "text-[13px] focus:bg-popover-focus focus:text-popover-foreground",
         // sizing (child svg)
@@ -127,7 +127,7 @@ function DropdownMenuCheckboxItem({
         // positioning
         "relative",
         // layout
-        "flex items-center gap-2 py-1 pr-2 pl-7 h-6",
+        "flex items-center gap-2 py-1 pr-2 pl-7 h-6.5",
         // shape
         "rounded-[8px]",
         // background & typography
@@ -177,7 +177,7 @@ function DropdownMenuRadioItem({
         // positioning
         "relative",
         // layout
-        "flex items-center gap-2 py-1 pr-1 pl-2 h-6",
+        "flex items-center gap-2 py-1 pr-1 pl-2 h-6.5",
         // shape
         "rounded-[8px]",
         // background & typography
@@ -273,7 +273,7 @@ function DropdownMenuSubTrigger({
       data-slot="dropdown-menu-sub-trigger"
       data-inset={inset}
       className={cn(
-        "flex h-6 cursor-default items-center gap-2 px-2 text-[13px]",
+        "flex h-6.5 cursor-default items-center gap-2 px-2 text-[13px]",
         "rounded-[8px] select-none outline-hidden",
         "data-[inset]:pl-8 has-[>svg~svg]:pl-1.5 has-[>svg~svg]:gap-1",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",

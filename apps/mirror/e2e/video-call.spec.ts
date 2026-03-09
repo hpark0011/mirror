@@ -253,7 +253,7 @@ test.describe("Tavus CVI Video Calling", () => {
   test.describe("API Route", () => {
     test("API route /api/tavus/conversations exists", async ({ request }) => {
       const response = await request.post("/api/tavus/conversations", {
-        data: { articles: [] },
+        data: { username: "rick-rubin" },
       });
       // Should not return 404 (route exists)
       // May return 500 if TAVUS_API_KEY is not set, but should NOT be 404

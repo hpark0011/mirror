@@ -1,4 +1,4 @@
-import type { Article } from "../types";
+import type { ArticleSummary } from "../types";
 import type { DatePreset } from "./date-preset";
 import { getDateRange } from "./date-preset";
 
@@ -17,10 +17,10 @@ export const INITIAL_FILTER_STATE: ArticleFilterState = {
 };
 
 export function filterArticles(
-  articles: Article[],
+  articles: ArticleSummary[],
   filter: ArticleFilterState,
   isOwner: boolean
-): Article[] {
+): ArticleSummary[] {
   // Compute date ranges once outside the filter loop
   const publishedDateRange =
     filter.publishedDatePreset !== null
@@ -88,7 +88,7 @@ export function filterArticles(
 }
 
 export function getUniqueCategories(
-  articles: Article[]
+  articles: ArticleSummary[]
 ): { name: string; count: number }[] {
   if (articles.length === 0) {
     return [];

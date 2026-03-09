@@ -24,8 +24,8 @@ export function ThemeToggleButton() {
   }
 
   return (
-    <div className="flex items-center gap-1">
-      <div className="-mr-0.5">
+    <div className="flex items-center gap-0.5">
+      <div className="-mr-[1px]">
         <Icon name="SunMaxFillIcon" className="size-5 text-icon" />
       </div>
       <Switch
