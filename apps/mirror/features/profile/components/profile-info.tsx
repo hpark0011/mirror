@@ -162,22 +162,26 @@ export function ProfileInfo({
         avatarPreview={avatarPreview}
         onAvatarChange={handleAvatarChange}
       />
-      <div className="w-full flex flex-col items-center justify-center">
-        <EditableProfileActions isEditing={isEditing} onOpenChat={onOpenChat} onOpenVideoCall={onOpenVideoCall} />
+      <div className="w-full flex flex-col items-center justify-center mb-4 mt-2">
+        <EditableProfileActions
+          isEditing={isEditing}
+          onOpenChat={onOpenChat}
+          onOpenVideoCall={onOpenVideoCall}
+        />
       </div>
-      <div className="mt-[16px] w-full">
+      <div className="w-full">
         <EditableBio isEditing={isEditing} bio={profile.bio} />
       </div>
     </>
   );
 
   return (
-    <div className="flex flex-col items-center justify-center pb-[40px] w-full">
+    <div className="flex flex-col items-center justify-center w-full h-full">
       <Form {...form}>
         <form
           id="edit-profile-form"
           onSubmit={form.handleSubmit(onSubmit)}
-          className="flex flex-col items-center w-full max-w-md"
+          className="flex flex-col items-center w-full max-w-md h-full"
         >
           {content}
         </form>

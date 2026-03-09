@@ -23,8 +23,8 @@ type PostDetailProps = {
 
 export function PostDetail({ post }: PostDetailProps) {
   return (
-    <div className="h-full px-4 py-20 flex">
-      <article className="mx-auto max-w-3xl flex gap-20">
+    <div className="h-full px-4.5 py-8 flex">
+      <article className="mx-auto w-full flex gap-20">
         <div className="pt-1">
           <div className="flex flex-col items-start gap-0.5 text-nowrap">
             <span className="text-[13px] leading-[1.2] uppercase font-medium">
@@ -38,12 +38,14 @@ export function PostDetail({ post }: PostDetailProps) {
           </div>
         </div>
 
-        <div className="max-w-lg flex flex-col gap-2">
-          <h1 className="max-w-xl text-xl font-regular leading-tight tracking-[-0.02em] underline">
-            {post.title}
-          </h1>
+        <div className="w-full flex flex-col items-center">
+          <div className="max-w-lg flex flex-col gap-2">
+            <h1 className="max-w-xl text-xl font-regular leading-tight tracking-[-0.02em] underline">
+              {post.title}
+            </h1>
 
-          <RichTextViewer content={post.body} />
+            <RichTextViewer content={post.body} />
+          </div>
         </div>
       </article>
     </div>

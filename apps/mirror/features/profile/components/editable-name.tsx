@@ -43,11 +43,11 @@ export function EditableName({ isEditing, name }: EditableNameProps) {
         control={control}
         name="name"
         render={({ field }) => (
-          <FormItem className="gap-1.5">
-            <FormLabel>
+          <FormItem className="relative">
+            <FormLabel className="absolute left-0.5 top-0.5 rounded-xl text-xs">
               <motion.div
                 className={cn(
-                  "px-1 text-muted-foreground",
+                  "py-[3px] text-muted-foreground text-xs px-[6px] backdrop-blur-xs rounded-xl",
                 )}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: isEditing ? "100%" : "0%" }}

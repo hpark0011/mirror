@@ -1,7 +1,7 @@
 "use client";
 
 import { type ReactNode, useState } from "react";
-import { ScrollRootProvider, type ContentRouteState } from "@/features/content";
+import { type ContentRouteState, ScrollRootProvider } from "@/features/content";
 import { WorkspaceNavbar } from "@/components/workspace-navbar";
 import {
   ToolbarSlotProvider,
@@ -14,14 +14,17 @@ type ContentPanelProps = {
   children: ReactNode;
 };
 
-export function ContentPanel({ routeState, children }: ContentPanelProps) {
+export function ContentPanel({
+  routeState,
+  children,
+}: ContentPanelProps) {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
 
   useProfileNavigationEffects(scrollRoot, routeState);
 
   return (
     <ToolbarSlotProvider>
-      <div className="relative h-full min-w-0 flex flex-col">
+      <div className="relative flex h-full min-w-0 flex-col">
         <WorkspaceNavbar />
         <ToolbarSlotTarget />
         <div className="flex-1 min-h-0 *:h-full relative">

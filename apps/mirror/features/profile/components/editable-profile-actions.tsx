@@ -46,8 +46,8 @@ export function EditableProfileActions({
   ];
 
   return (
-    <div className="flex flex-col w-full justify-center items-center gap-1">
-      <label className="w-full text-start px-0.5 text-sm text-muted-foreground">
+    <div className="flex flex-col w-full justify-center items-center gap-1 relative">
+      <label className="absolute left-0.5 top-0.5 py-[3px] px-[3px] text-xs">
         <motion.div
           initial={{ opacity: 0, backgroundColor: "rgba(255,255,255,0)" }}
           animate={{ opacity: isEditing ? "100%" : "0%" }}
@@ -89,7 +89,7 @@ export function EditableProfileActions({
             >
               <Icon name={icon} className={iconClassName} />
             </ShinyButton>
-            <span className="text-sm text-center text-muted-foreground">
+            <span className="text-xs text-center text-muted-foreground">
               {label}
             </span>
           </div>

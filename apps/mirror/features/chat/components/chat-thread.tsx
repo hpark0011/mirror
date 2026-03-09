@@ -19,6 +19,7 @@ export function ChatThread() {
     setConversationId,
     startNewConversation,
     closeChat,
+    headerAddon,
   } = useChatContext();
 
   const [conversationListOpen, setConversationListOpen] = useState(false);
@@ -43,6 +44,7 @@ export function ChatThread() {
   if (routeResolution.status === "resolving") {
     return (
       <div className="flex flex-col h-full relative">
+        {headerAddon}
         {conversationListSheet}
         <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
           <ChatHeader
@@ -63,6 +65,7 @@ export function ChatThread() {
   if (routeResolution.status === "invalid") {
     return (
       <div className="flex flex-col h-full relative">
+        {headerAddon}
         {conversationListSheet}
         <ChatHeader
           profileName={profileName}
@@ -95,6 +98,7 @@ function ChatActiveThread() {
     setConversationId,
     startNewConversation,
     closeChat,
+    headerAddon,
   } = useChatContext();
 
   const [conversationListOpen, setConversationListOpen] = useState(false);
@@ -142,6 +146,7 @@ function ChatActiveThread() {
   if (conversationNotFound) {
     return (
       <div className="flex flex-col h-full relative">
+        {headerAddon}
         {conversationListSheet}
         <ChatHeader
           profileName={profileName}
@@ -161,6 +166,7 @@ function ChatActiveThread() {
 
   return (
     <div className="flex flex-col h-full relative">
+      {headerAddon}
       {conversationListSheet}
       <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
         <ChatHeader

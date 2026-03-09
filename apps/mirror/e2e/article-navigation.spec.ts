@@ -21,15 +21,108 @@ function isPrefetchRequest(headers: Record<string, string | undefined>) {
 }
 
 test.describe("Article navigation", () => {
-  test("redirects the profile root to the typed article list", async ({
+  test("keeps the desktop profile root hidden until artifacts are opened", async ({
     page,
   }) => {
+    await page.setViewportSize({ width: 1440, height: 960 });
     await page.goto(`/@${username}`);
 
-    await expect(page).toHaveURL(new RegExp(`/@${username}/articles(\\?.*)?$`));
+    await expect(
+      page,
+    ).toHaveURL(new RegExp(`/@${username}(\\?.*)?$`));
+    await expect(
+      page.getByRole("button", { name: "Show Artifacts" }),
+    ).toBeVisible({ timeout: 10000 });
     await expect(
       page.getByRole("link", { name: articleTitle }),
-    ).toBeVisible({ timeout: 10000 });
+    ).toHaveCount(0);
+  });
+
+  test("redirects the mobile profile root to posts", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/@${username}`);
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
+
+    const emptyState = page.getByText("No posts yet");
+    const seededPostLink = page.getByRole("link", { name: postTitle });
+
+    await Promise.race([
+      emptyState.waitFor({ state: "visible", timeout: 10000 }),
+      seededPostLink.waitFor({ state: "visible", timeout: 10000 }),
+    ]);
+  });
+
+  test("does not show desktop chrome during mobile client navigation to the profile root", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto("/");
+    await page.evaluate((rootHref) => {
+      const testWindow = window as typeof window & {
+        __desktopChromeSeen?: boolean;
+        __profileRootHarnessMounted?: boolean;
+        next: {
+          router: {
+            push: (href: string) => Promise<void> | void;
+          };
+        };
+      };
+
+      testWindow.__desktopChromeSeen = false;
+      testWindow.__profileRootHarnessMounted = true;
+
+      const recordDesktopChrome = () => {
+        const bodyText = document.body?.innerText || "";
+        const hasDesktopToggle =
+          bodyText.includes("Show Artifacts") || bodyText.includes("Hide Artifacts");
+        const hasDesktopPanel = !!document.querySelector(
+          '[data-testid="desktop-content-panel"]',
+        );
+
+        if (hasDesktopToggle || hasDesktopPanel) {
+          testWindow.__desktopChromeSeen = true;
+        }
+      };
+
+      recordDesktopChrome();
+
+      const observer = new MutationObserver(recordDesktopChrome);
+      observer.observe(document.documentElement, {
+        subtree: true,
+        childList: true,
+        characterData: true,
+        attributes: true,
+      });
+
+      const button = document.createElement("button");
+      button.id = "profile-root-test-link";
+      button.type = "button";
+      button.textContent = "Open profile root";
+      button.addEventListener("click", () => {
+        void Promise.resolve(testWindow.next.router.push(rootHref));
+      });
+      document.body.appendChild(button);
+    }, `/@${username}`);
+
+    await page.locator("#profile-root-test-link").click();
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
+
+    const navigationState = await page.evaluate(() => {
+      const testWindow = window as typeof window & {
+        __desktopChromeSeen?: boolean;
+        __profileRootHarnessMounted?: boolean;
+      };
+
+      return {
+        desktopChromeSeen: testWindow.__desktopChromeSeen === true,
+        sameDocumentNavigation: testWindow.__profileRootHarnessMounted === true,
+      };
+    });
+
+    expect(navigationState.sameDocumentNavigation).toBe(true);
+    expect(navigationState.desktopChromeSeen).toBe(false);
   });
 
   test("shows loading UI during list-to-detail navigation and returns to the typed list", async ({

@@ -2,6 +2,8 @@ export const CONTENT_KINDS = ["posts", "articles"] as const;
 
 export type ContentKind = (typeof CONTENT_KINDS)[number];
 
+export const DEFAULT_PROFILE_CONTENT_KIND: ContentKind = "posts";
+
 export type ContentRouteView = "list" | "detail";
 
 export type ContentRouteState = {
@@ -34,7 +36,9 @@ export function getContentRouteState(
   segments: readonly string[],
 ): ContentRouteState {
   const [kindSegment, slug] = segments;
-  const kind = isContentKind(kindSegment) ? kindSegment : CONTENT_KINDS[0];
+  const kind = isContentKind(kindSegment)
+    ? kindSegment
+    : DEFAULT_PROFILE_CONTENT_KIND;
 
   return {
     kind,

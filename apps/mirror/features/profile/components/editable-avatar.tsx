@@ -71,7 +71,7 @@ export function EditableAvatar({
 
   if (isOwner && !profile.media) {
     return (
-      <div className="flex flex-col items-center pt-[56px]">
+      <div className="flex flex-col items-center pt-[40px]">
         <AvatarWindow isEditing={isEditing}>
           <AnimatePresence>
             {isEditing && (
@@ -92,7 +92,9 @@ export function EditableAvatar({
                     <div className="flex size-full items-center justify-center bg-muted text-muted-foreground text-4xl">
                       {initial}
                     </div>
-                    {displayAvatar ? <ProfileMedia image={displayAvatar} /> : null}
+                    {displayAvatar
+                      ? <ProfileMedia image={displayAvatar} />
+                      : null}
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-12 opacity-0 transition-opacity group-hover:opacity-100">
                       <Icon
                         name="PersonFillIcon"
@@ -117,7 +119,7 @@ export function EditableAvatar({
   }
 
   return (
-    <div className="flex flex-col items-center pt-[56px]">
+    <div className="flex flex-col items-center pt-[40px]">
       <AnimatePresence mode="popLayout">
         {isEditing
           ? (
@@ -138,7 +140,9 @@ export function EditableAvatar({
                   <div className="flex size-full items-center justify-center bg-muted text-muted-foreground text-4xl">
                     {initial}
                   </div>
-                  {displayAvatar ? <ProfileMedia image={displayAvatar} /> : null}
+                  {displayAvatar
+                    ? <ProfileMedia image={displayAvatar} />
+                    : null}
                   <div className="absolute inset-0 flex items-center justify-center bg-gray-12 opacity-0 transition-opacity group-hover:opacity-100">
                     <Icon
                       name="PersonFillIcon"

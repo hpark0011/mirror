@@ -18,16 +18,18 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-8 items-center justify-between gap-2 px-4 relative mt-4",
+        "z-10 flex h-12 items-end justify-between gap-2 px-4 relative border-b border-border-subtle",
         className,
       )}
     >
-      <div className="bg-border-subtle w-full h-px absolute left-0 bottom-0" />
-      <ContentKindTabs
-        username={profile.username}
-        currentKind={routeState.kind}
-      />
-      <div className="mb-4.5">
+      <div className="flex gap-2 h-full items-end">
+        <ContentKindTabs
+          username={profile.username}
+          currentKind={routeState.kind}
+        />
+      </div>
+
+      <div className="h-full flex flex-col justify-center">
         <ThemeToggleButton />
       </div>
     </nav>

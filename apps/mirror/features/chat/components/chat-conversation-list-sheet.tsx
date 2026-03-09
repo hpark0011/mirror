@@ -30,7 +30,7 @@ export function ChatConversationListSheet({
       <SheetContent
         side="left"
         showCloseButton={false}
-        className="w-[80vw] md:w-72 md:max-w-72 p-0 max-h-[60vh] rounded-2xl inset-y-auto top-[56px] shadow-2xl left-4 border border-card-border bg-card gap-0 [corner-shape:superellipse(1.2)]"
+        className="w-[80vw] md:w-72 md:max-w-72 p-0 max-h-[60vh] rounded-2xl inset-y-auto top-[80px] shadow-2xl left-3 border border-card-border bg-card gap-0 [corner-shape:superellipse(1.2)]"
         overlayClassName="bg-transparent"
       >
         <SheetHeader className="px-3.5 py-2.5">
@@ -38,7 +38,7 @@ export function ChatConversationListSheet({
             Conversations
           </SheetTitle>
         </SheetHeader>
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto pb-4">
           <ConversationList
             conversations={conversations}
             activeConversationId={activeConversationId}

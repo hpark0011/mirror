@@ -59,7 +59,7 @@ export const ArticleListItem = memo(function ArticleListItem({
         <Link
           href={href}
           scroll={false}
-          className="after:absolute after:inset-0"
+          className="after:absolute after:inset-0 font-[440]"
         >
           {article.title}
         </Link>

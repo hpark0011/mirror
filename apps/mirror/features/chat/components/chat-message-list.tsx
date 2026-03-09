@@ -147,7 +147,7 @@ function ChatMessageList({
     <ChatMessageScrollArea ref={scrollContainerRef}>
       {status === "LoadingMore" && <ChatMessageLoadingMore />}
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 mx-auto max-w-5xl">
         {messages
           .filter(
             (m): m is typeof m & { role: "user" | "assistant" } =>

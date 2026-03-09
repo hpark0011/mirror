@@ -148,7 +148,7 @@
     color: var(--color-foreground);
     font-family: var(--font-sans);
     letter-spacing: -0.04em;
-    font-weight: 460;
+    font-weight: 440;
   }
 
   ::selection {

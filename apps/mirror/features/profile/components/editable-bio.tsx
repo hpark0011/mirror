@@ -50,8 +50,8 @@ export function EditableBio({ isEditing, bio }: EditableBioProps) {
         control={control}
         name="bio"
         render={({ field }) => (
-          <FormItem className="w-full">
-            <FormLabel>
+          <FormItem className="w-full relative">
+            <FormLabel className="absolute left-0.5 top-0.5 rounded-xl text-xs">
               <motion.div
                 initial={{
                   opacity: 0,
@@ -59,14 +59,14 @@ export function EditableBio({ isEditing, bio }: EditableBioProps) {
                 }}
                 animate={{ opacity: isEditing ? "100%" : "0%" }}
                 transition={springTransition}
-                className="text-muted-foreground px-1"
+                className="py-[3px] text-muted-foreground text-xs px-[6px] backdrop-blur-xs rounded-xl"
               >
                 Bio
               </motion.div>
             </FormLabel>
             <FormControl>
               <motion.div
-                className="rounded-2xl [corner-shape:superellipse(1.1)] w-full"
+                className="rounded-xl [corner-shape:superellipse(1.1)] w-full"
                 initial={{ boxShadow: viewShadow }}
                 animate={{
                   boxShadow: isEditing ? editShadow : viewShadow,
@@ -84,7 +84,7 @@ export function EditableBio({ isEditing, bio }: EditableBioProps) {
                   readOnly={!isEditing}
                   tabIndex={isEditing ? undefined : -1}
                   className={cn(
-                    "text-lg md:text-lg text-center leading-[1.3] bg-transparent dark:bg-transparent min-h-[96px] resize-none border-transparent ring-0 shadow-transparent rounded-2xl hover:bg-gray-1 focus-visible:bg-gray-1 focus-visible:border-transparent w-full [text-shadow:0px_1px_1px_rgba(0,0,0,0.1)] focus-visible:ring-0 placeholder:text-gray-11 py-3",
+                    "text-lg md:text-lg text-center leading-[1.3] bg-transparent dark:bg-transparent min-h-[96px] resize-none border-transparent ring-0 shadow-transparent rounded-xl hover:bg-gray-1 focus-visible:bg-gray-1 focus-visible:border-transparent w-full [text-shadow:0px_1px_1px_rgba(0,0,0,0.1)] focus-visible:ring-0 placeholder:text-gray-11 py-3",
                     !isEditing &&
                       "border-transparent focus-visible:ring-0 pointer-events-none hover:bg-transparent hover:border-transparent [text-shadow:0px_0px_0px_rgba(0,0,0,0.2)]",
                   )}

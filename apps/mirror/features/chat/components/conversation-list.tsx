@@ -103,7 +103,10 @@ function ConversationList({
   }
 
   return (
-    <div data-slot="conversation-list" className="flex flex-col group/list">
+    <div
+      data-slot="conversation-list"
+      className="flex flex-col group/list"
+    >
       {conversations.map((conversation) => (
         <ConversationListItem
           key={conversation._id}

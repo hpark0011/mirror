@@ -1,18 +1,23 @@
 "use client";
 
-import { useCallback, useState } from "react";
 import {
   EditActions,
   EditProfileButton,
   ProfileInfo,
 } from "@/features/profile";
-import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
+import { useCallback, useState } from "react";
+import { DesktopContentPanelToggle } from "./desktop-content-panel-toggle";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
+import {
+  useOptionalWorkspaceChrome,
+} from "../_providers/workspace-chrome-context";
 
 export function ProfilePanel() {
   const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
+  const workspaceChrome = useOptionalWorkspaceChrome();
   const isMobile = useIsMobile();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -25,15 +30,13 @@ export function ProfilePanel() {
 
   const editButtonClassName = isMobile
     ? "absolute top-0 right-5 z-10"
-    : "absolute top-4 right-4";
+    : "absolute top-3 right-3";
 
   return (
     <div
-      className={
-        isMobile
-          ? "relative h-full"
-          : "relative z-20 h-full flex flex-col justify-start items-center px-6 pt-[88px]"
-      }
+      className={isMobile
+        ? "relative h-full"
+        : "relative z-20 h-full flex flex-col justify-start items-center px-6 py-[132px]"}
     >
       {isOwner && (
         <div className={editButtonClassName}>
@@ -45,11 +48,18 @@ export function ProfilePanel() {
                 onCancel={handleEditClose}
               />
             )
-            : (
-              <EditProfileButton onClick={() => setIsEditing(true)} />
-            )}
+            : <EditProfileButton onClick={() => setIsEditing(true)} />}
         </div>
       )}
+
+      {workspaceChrome && (
+        <DesktopContentPanelToggle
+          contentPanelId={workspaceChrome.contentPanelId}
+          isContentPanelCollapsed={workspaceChrome.isContentPanelCollapsed}
+          toggleContentPanel={workspaceChrome.toggleContentPanel}
+        />
+      )}
+
       <ProfileInfo
         profile={profile}
         isEditing={isEditing}

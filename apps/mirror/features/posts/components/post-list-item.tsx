@@ -20,8 +20,8 @@ export function PostListItem({ post, username }: PostListItemProps) {
 
   return (
     <article className="border-b border-border-subtle px-4.5 py-8 pb-10 last:border-b-0">
-      <div className="flex items-start justify-between gap-20 w-full">
-        <div className="flex flex-col">
+      <div className="flex items-start justify-between gap-12 w-full">
+        <div className="flex flex-col mt-0.5">
           <span className="shrink-0 text-[13px] font-medium w-24 whitespace-nowrap tracking-[-0.06em] leading-1.2 uppercase">
             {publishedLabel}
           </span>
@@ -29,19 +29,21 @@ export function PostListItem({ post, username }: PostListItemProps) {
             {post.category}
           </span>
         </div>
-        <div className="min-w-0 space-y-3 w-lg">
-          <div className="flex flex-col gap-3">
-            <h2 className="text-xl leading-tight underline decoration-transparent transition-colors hover:text-blue-11">
-              <Link href={href} scroll={false}>
-                <span className="underline">{post.title}</span>
-              </Link>
-            </h2>
-          </div>
+        <div className="flex flex-col items-center w-full">
+          <div className="max-w-lg flex flex-col gap-2">
+            <div className="flex flex-col gap-3">
+              <h2 className="text-xl leading-tight underline decoration-transparent transition-colors hover:text-blue-11">
+                <Link href={href} scroll={false}>
+                  <span className="underline">{post.title}</span>
+                </Link>
+              </h2>
+            </div>
 
-          <ContentBody
-            content={post.body}
-            className="max-w-xl text-[17px] leading-[1.3] font-regular space-y-2 [&_img]:my-3 mt-4"
-          />
+            <ContentBody
+              content={post.body}
+              className="max-w-xl text-[17px] leading-[1.3] font-regular space-y-2 [&_img]:my-3 mt-4"
+            />
+          </div>
         </div>
       </div>
     </article>

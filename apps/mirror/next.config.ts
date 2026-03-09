@@ -45,13 +45,6 @@ const nextConfig: NextConfig = {
       ],
     },
   ],
-  redirects: async () => [
-    {
-      source: "/@:username",
-      destination: "/@:username/posts",
-      permanent: false,
-    },
-  ],
   rewrites: async () => [
     { source: "/@:username/chat", destination: "/:username/chat" },
     { source: "/@:username/chat/:conversationId", destination: "/:username/chat/:conversationId" },
