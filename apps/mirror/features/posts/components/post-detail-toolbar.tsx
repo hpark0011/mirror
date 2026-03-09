@@ -13,7 +13,7 @@ export function PostDetailToolbar({ username }: PostDetailToolbarProps) {
   const { buildChatAwareHref } = useChatSearchParams();
 
   return (
-    <div className="flex h-10 items-center bg-background px-3.5 border-b border-border-subtle">
+    <div className="flex h-12 items-center bg-background px-3 border-none border-border-subtle">
       <Link
         href={buildChatAwareHref(getContentHref(username, "posts"))}
         scroll={false}

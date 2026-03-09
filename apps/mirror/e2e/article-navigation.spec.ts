@@ -13,6 +13,13 @@ const collaborationPostTitle = "Make the Room Safe";
 const filteredWeekPostTitle = "Doubt as Compass";
 const creativityArticleTitle = "Simplicity as a Superpower";
 
+function isPrefetchRequest(headers: Record<string, string | undefined>) {
+  return (
+    headers["next-router-prefetch"] !== undefined ||
+    headers.purpose === "prefetch"
+  );
+}
+
 test.describe("Article navigation", () => {
   test("redirects the profile root to the typed article list", async ({
     page,
@@ -105,10 +112,24 @@ test.describe("Article navigation", () => {
   });
 
   test("navigates to the posts tab", async ({ page }) => {
+    let delayedNavigation = false;
+
+    await page.route(`**/${username}/posts*`, async (route) => {
+      if (!delayedNavigation && !isPrefetchRequest(route.request().headers())) {
+        delayedNavigation = true;
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      }
+
+      await route.continue();
+    });
+
     await page.goto(`/@${username}/articles`);
 
     await page.getByRole("tab", { name: "Posts" }).click();
 
+    await expect(page.getByTestId("content-loading")).toBeVisible({
+      timeout: 5000,
+    });
     await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
 
     const emptyState = page.getByText("No posts yet");
@@ -135,6 +156,37 @@ test.describe("Article navigation", () => {
     ).toBeVisible({ timeout: 10000 });
     await expect(
       page.locator("article").getByText(postCategory),
+    ).toBeVisible({ timeout: 10000 });
+  });
+
+  test("navigates back to the articles tab with loading UI", async ({
+    page,
+  }) => {
+    let delayedNavigation = false;
+
+    await page.route(`**/${username}/articles*`, async (route) => {
+      if (!delayedNavigation && !isPrefetchRequest(route.request().headers())) {
+        delayedNavigation = true;
+        await new Promise((resolve) => setTimeout(resolve, 700));
+      }
+
+      await route.continue();
+    });
+
+    await page.goto(`/@${username}/posts`);
+
+    await expect(
+      page.getByRole("tab", { name: "Articles" }),
+    ).toBeVisible({ timeout: 10000 });
+
+    await page.getByRole("tab", { name: "Articles" }).click();
+
+    await expect(page.getByTestId("content-loading")).toBeVisible({
+      timeout: 5000,
+    });
+    await expect(page).toHaveURL(new RegExp(`/@${username}/articles(\\?.*)?$`));
+    await expect(
+      page.getByRole("link", { name: articleTitle }),
     ).toBeVisible({ timeout: 10000 });
   });
 

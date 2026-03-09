@@ -13,7 +13,7 @@ export function ArticleDetailToolbar({ username }: ArticleDetailToolbarProps) {
   const { buildChatAwareHref } = useChatSearchParams();
 
   return (
-    <div className="flex h-10 items-center px-4.5 bg-background">
+    <div className="flex h-12 items-center px-3 bg-background">
       <Link
         href={buildChatAwareHref(getContentHref(username, "articles"))}
         scroll={false}

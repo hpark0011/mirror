@@ -29,7 +29,7 @@ function ChatHeaderAction({
     "variant" | "size" | "children"
   >) {
   return (
-    <div data-slot="chat-header-action" className="mt-1.5">
+    <div data-slot="chat-header-action" className="mt-0.5">
       <Tooltip>
         <TooltipTrigger asChild>
           <Button
@@ -120,7 +120,7 @@ function ChatHeader({
   return (
     <div
       data-slot="chat-header"
-      className="grid grid-cols-[auto_1fr_auto] items-start px-4 pt-2"
+      className="grid grid-cols-[auto_1fr_auto] items-start px-3 pt-2"
     >
       <ChatHeaderAction
         tooltip="Conversations"

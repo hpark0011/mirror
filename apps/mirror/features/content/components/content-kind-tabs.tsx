@@ -33,6 +33,7 @@ export function ContentKindTabs({
           >
             <Link
               href={buildChatAwareHref(getContentHref(username, kind))}
+              prefetch={false}
               scroll={false}
             >
               {CONTENT_KIND_LABELS[kind]}
