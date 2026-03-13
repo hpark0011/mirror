@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
 import {
@@ -45,7 +46,7 @@ export const create = authMutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("articles", {
+    const articleId = await ctx.db.insert("articles", {
       userId: appUser._id,
       slug,
       title: args.title,
@@ -56,6 +57,16 @@ export const create = authMutation({
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
+
+    if (args.status === "published") {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.embeddings.actions.generateEmbedding,
+        { sourceTable: "articles" as const, sourceId: articleId },
+      );
+    }
+
+    return articleId;
   },
 });
 
@@ -131,6 +142,30 @@ export const update = authMutation({
     }
 
     await ctx.db.patch(args.id, patch);
+
+    // Schedule embedding update based on status change
+    const newStatus = args.status ?? article.status;
+    if (newStatus === "published") {
+      const contentChanged =
+        args.title !== undefined ||
+        args.body !== undefined ||
+        args.status !== undefined;
+      if (contentChanged) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.embeddings.actions.generateEmbedding,
+          { sourceTable: "articles" as const, sourceId: args.id },
+        );
+      }
+    } else if (args.status === "draft") {
+      // Unpublished — remove embeddings
+      await ctx.scheduler.runAfter(
+        0,
+        internal.embeddings.mutations.deleteBySource,
+        { sourceTable: "articles" as const, sourceId: args.id },
+      );
+    }
+
     return null;
   },
 });
@@ -153,6 +188,11 @@ export const remove = authMutation({
         await ctx.storage.delete(article.coverImageStorageId);
       }
       await ctx.db.delete(article._id);
+      await ctx.scheduler.runAfter(
+        0,
+        internal.embeddings.mutations.deleteBySource,
+        { sourceTable: "articles" as const, sourceId: article._id },
+      );
     }
 
     return null;

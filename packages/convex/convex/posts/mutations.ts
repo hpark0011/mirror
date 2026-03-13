@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import type { Doc } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
@@ -55,7 +56,7 @@ export const create = authMutation({
     }
 
     const now = Date.now();
-    return await ctx.db.insert("posts", {
+    const postId = await ctx.db.insert("posts", {
       userId: appUser._id,
       slug,
       title: args.title,
@@ -65,6 +66,16 @@ export const create = authMutation({
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
+
+    if (args.status === "published") {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.embeddings.actions.generateEmbedding,
+        { sourceTable: "posts" as const, sourceId: postId },
+      );
+    }
+
+    return postId;
   },
 });
 
@@ -128,6 +139,30 @@ export const update = authMutation({
     }
 
     await ctx.db.patch(args.id, patch);
+
+    // Schedule embedding update based on status change
+    const newStatus = args.status ?? post.status;
+    if (newStatus === "published") {
+      const contentChanged =
+        args.title !== undefined ||
+        args.body !== undefined ||
+        args.status !== undefined;
+      if (contentChanged) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.embeddings.actions.generateEmbedding,
+          { sourceTable: "posts" as const, sourceId: args.id },
+        );
+      }
+    } else if (args.status === "draft") {
+      // Unpublished — remove embeddings
+      await ctx.scheduler.runAfter(
+        0,
+        internal.embeddings.mutations.deleteBySource,
+        { sourceTable: "posts" as const, sourceId: args.id },
+      );
+    }
+
     return null;
   },
 });
@@ -147,6 +182,11 @@ export const remove = authMutation({
 
     for (const post of owned) {
       await ctx.db.delete(post._id);
+      await ctx.scheduler.runAfter(
+        0,
+        internal.embeddings.mutations.deleteBySource,
+        { sourceTable: "posts" as const, sourceId: post._id },
+      );
     }
 
     return null;

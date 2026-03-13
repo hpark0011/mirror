@@ -128,6 +128,7 @@ export const sendMessage = mutation({
         profileOwnerId: args.profileOwnerId,
         promptMessageId: messageId,
         lockStartedAt,
+        userMessage: content,
       },
     );
 

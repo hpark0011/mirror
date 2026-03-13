@@ -1,5 +1,7 @@
 import { v } from "convex/values";
+import { listMessages } from "@convex-dev/agent";
 import { internalQuery } from "../_generated/server";
+import { components } from "../_generated/api";
 
 const SAFETY_PREFIX = (name: string) =>
   `You are a digital clone of ${name}. You represent their ideas and perspectives based on their writing and profile.
@@ -44,5 +46,51 @@ export const loadStreamingContext = internalQuery({
       threadId: conversation.threadId,
       systemPrompt: parts.join("\n\n"),
     };
+  },
+});
+
+export const getLastUserMessage = internalQuery({
+  args: {
+    threadId: v.string(),
+  },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, { threadId }) => {
+    // Paginate through all messages to handle long threads
+    let cursor: string | null = null;
+    let lastUserText: string | null = null;
+
+    while (true) {
+      const result = await listMessages(ctx, components.agent, {
+        threadId,
+        paginationOpts: { numItems: 100, cursor },
+        excludeToolMessages: true,
+      });
+
+      // Messages are in ascending order; track the latest user message
+      for (const msg of result.page) {
+        if (msg.message?.role !== "user") continue;
+
+        const content = msg.message.content;
+        if (typeof content === "string") {
+          lastUserText = content;
+          continue;
+        }
+
+        if (!Array.isArray(content)) continue;
+
+        const text = content
+          .filter(
+            (p): p is { type: "text"; text: string } => p.type === "text",
+          )
+          .map((p) => p.text)
+          .join("");
+        if (text) lastUserText = text;
+      }
+
+      if (result.isDone) break;
+      cursor = result.continueCursor;
+    }
+
+    return lastUserText;
   },
 });
