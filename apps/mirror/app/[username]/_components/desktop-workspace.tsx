@@ -142,7 +142,7 @@ export function DesktopWorkspace({
           </ResizablePanel>
 
           <ResizableHandle
-            className="bg-border-subtle data-[resize-handle-state=hover]:shadow-[0_0_0_1px_var(--color-resizable-handle-hover)] data-[resize-handle-state=drag]:shadow-[0_0_0_1px_var(--color-resizable-handle-hover)] z-30 relative"
+            className="z-30 relative"
             onPointerDownCapture={handleResizePointerDownCapture}
           />
 
