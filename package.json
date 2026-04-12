@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
+    "dev:safe": "for port in 3000 3001 3002; do lsof -ti:$port | xargs kill -9 2>/dev/null; done && turbo run dev",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "clean": "turbo run clean",
