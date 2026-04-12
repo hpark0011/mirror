@@ -1,6 +1,6 @@
 # Feel Good Monorepo
 
-Turborepo monorepo with 3 Next.js applications, 1 Electron desktop application, and shared packages.
+Turborepo monorepo with 3 Next.js applications and shared packages.
 
 ## Quick Start
 
@@ -19,23 +19,12 @@ pnpm clean             # Clean all packages
 pnpm dev --filter=@feel-good/greyboard    # Run single app
 pnpm build --filter=@feel-good/greyboard  # Build single app
 pnpm lint --filter=@feel-good/greyboard   # Lint single app
-pnpm dev --filter=@feel-good/greyboard-desktop   # Run desktop app
-```
-
-### Desktop Commands
-
-```bash
-pnpm desktop:dev         # Run desktop app dev
-pnpm desktop:build       # Build desktop app
-pnpm desktop:dist        # Package desktop app
-pnpm desktop:lint        # Lint desktop app
-pnpm desktop:check-types # Typecheck desktop app
 ```
 
 ## Monorepo Structure
 
 ```
-apps/           Next.js and Electron applications (greyboard, mirror, ui-factory, greyboard-desktop)
+apps/           Next.js applications (greyboard, mirror, ui-factory)
 packages/       Shared libraries (ui, features, icons, utils, convex, tavus)
 tooling/        Shared configs (eslint, prettier, typescript, sentry)
 docs/           Conventions, plans, brainstorms, solutions
@@ -49,7 +38,6 @@ workspace/      Ticket tracking system
 | greyboard         | AI-powered task management         | 3000 |
 | mirror            | Interactive blogging platform      | 3001 |
 | ui-factory        | Design system showcase             | 3002 |
-| greyboard-desktop | Electron desktop app for Greyboard | N/A  |
 
 ## Packages
 
