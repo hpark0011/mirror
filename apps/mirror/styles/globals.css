@@ -23,6 +23,8 @@
 @import "@radix-ui/colors/indigo-dark.css";
 @import "@radix-ui/colors/sky.css";
 @import "@radix-ui/colors/sky-dark.css";
+@import "@radix-ui/colors/lime.css";
+@import "@radix-ui/colors/lime-dark.css";
 
 /* import shared styles from @feel-good/ui */
 @import "@feel-good/ui/styles.css";

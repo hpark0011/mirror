@@ -13,5 +13,3 @@ export type PostSummary = {
   status: "draft" | "published";
   category: string;
 };
-
-export type PostWithBody = PostSummary;

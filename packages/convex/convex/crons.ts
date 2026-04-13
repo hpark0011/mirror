@@ -38,4 +38,11 @@ crons.interval(
   {},
 );
 
+crons.interval(
+  "cleanup stale test otps",
+  { minutes: 15 },
+  internal.auth.testHelpers.cleanupStaleTestOtps,
+  {},
+);
+
 export default crons;

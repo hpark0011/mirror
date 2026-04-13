@@ -13,6 +13,7 @@ import type * as articles_mutations from "../articles/mutations.js";
 import type * as articles_queries from "../articles/queries.js";
 import type * as auth_client from "../auth/client.js";
 import type * as auth_queries from "../auth/queries.js";
+import type * as auth_testHelpers from "../auth/testHelpers.js";
 import type * as auth_triggers from "../auth/triggers.js";
 import type * as chat_actions from "../chat/actions.js";
 import type * as chat_agent from "../chat/agent.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "articles/queries": typeof articles_queries;
   "auth/client": typeof auth_client;
   "auth/queries": typeof auth_queries;
+  "auth/testHelpers": typeof auth_testHelpers;
   "auth/triggers": typeof auth_triggers;
   "chat/actions": typeof chat_actions;
   "chat/agent": typeof chat_agent;

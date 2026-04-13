@@ -8,7 +8,15 @@ const ARC_WIDTH = 84;
 const ARC_HEIGHT = 84;
 const RADIUS = ARC_WIDTH / (2 * Math.tan(Math.PI / SIDE_COUNT));
 
-function HeptagonalPrism({ className }: { className?: string }) {
+function HeptagonalPrism({
+  className,
+  topLabel = "No",
+  bottomLabel = "Posts",
+}: {
+  className?: string;
+  topLabel?: string;
+  bottomLabel?: string;
+}) {
   return (
     <GeometryScene
       slot="heptagonal-prism"
@@ -39,10 +47,8 @@ function HeptagonalPrism({ className }: { className?: string }) {
             }}
           >
             <div className="flex flex-col items-center justify-between pb-3.5 pt-4 h-full font-medium text-gray-12 dark:text-gray-11">
-              <span className="leading-1 text-sm">No</span>
-              <span className="leading-1 text-sm">
-                Posts
-              </span>
+              <span className="leading-1 text-sm">{topLabel}</span>
+              <span className="leading-1 text-sm">{bottomLabel}</span>
             </div>
           </div>
         );

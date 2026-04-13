@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { usePreloadedQuery } from "convex/react";
 import type { Preloaded } from "convex/react";
 import type { api } from "@feel-good/convex/convex/_generated/api";
@@ -57,6 +57,13 @@ export function PostWorkspaceProvider({
         ? "No posts match the current filters"
         : "No posts found";
 
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
+  const onOpenUploadDialog = useCallback(() => setIsUploadDialogOpen(true), []);
+  const onCloseUploadDialog = useCallback(
+    () => setIsUploadDialogOpen(false),
+    [],
+  );
+
   const toolbarValue = useMemo(
     () => ({
       isOwner,
@@ -65,8 +72,21 @@ export function PostWorkspaceProvider({
       search,
       filter,
       categories,
+      isUploadDialogOpen,
+      onOpenUploadDialog,
+      onCloseUploadDialog,
     }),
-    [isOwner, sortOrder, setSortOrder, search, filter, categories],
+    [
+      isOwner,
+      sortOrder,
+      setSortOrder,
+      search,
+      filter,
+      categories,
+      isUploadDialogOpen,
+      onOpenUploadDialog,
+      onCloseUploadDialog,
+    ],
   );
 
   const listValue = useMemo(

@@ -121,6 +121,19 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
         expiresIn: 300, // 5 minutes
         allowedAttempts: 5,
         sendVerificationOTP: async ({ email, otp, type }) => {
+          // Test mode: when PLAYWRIGHT_TEST_SECRET is set and the email is a test address,
+          // store the OTP in Convex for the test-session route to read back instead of emailing.
+          if (
+            process.env.NODE_ENV !== "production" &&
+            process.env.PLAYWRIGHT_TEST_SECRET &&
+            email.endsWith("@mirror.test")
+          ) {
+            await actionCtx.runMutation(
+              internal.auth.testHelpers.storeTestOtp,
+              { email, otp }
+            );
+            return;
+          }
           // Fire-and-forget: don't block auth response waiting for email
           void actionCtx.runAction(internal.email.actions.sendOTP, {
             to: email,

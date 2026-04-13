@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { ContentBody } from "@feel-good/features/editor/components";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import { formatLongDate, getContentHref } from "@/features/content";
+import { getContentHref } from "@/features/content";
+import { PostMetadata } from "./post-metadata";
 import type { PostSummary } from "../types";
 
 type PostListItemProps = {
@@ -14,27 +15,21 @@ type PostListItemProps = {
 export function PostListItem({ post, username }: PostListItemProps) {
   const { buildChatAwareHref } = useChatSearchParams();
   const href = buildChatAwareHref(getContentHref(username, "posts", post.slug));
-  const publishedLabel = post.status === "draft"
-    ? "Draft"
-    : formatLongDate(post.publishedAt ?? post.createdAt);
 
   return (
-    <article className="border-b border-border-subtle px-4.5 py-8 pb-10 last:border-b-0">
+    <article className="border-b border-border-subtle px-4.5 py-10 pb-10 last:border-b-0">
       <div className="flex items-start justify-between gap-12 w-full">
-        <div className="flex flex-col mt-0.5">
-          <span className="shrink-0 text-[13px] font-medium w-24 whitespace-nowrap tracking-[-0.06em] leading-1.2 uppercase">
-            {publishedLabel}
-          </span>
-          <span className="text-[14px] font-medium leading-[1.2]">
-            {post.category}
-          </span>
+        <div className="mt-0.5">
+          <PostMetadata post={post} capitalizeCategory />
         </div>
         <div className="flex flex-col items-center w-full">
           <div className="max-w-lg flex flex-col gap-2">
             <div className="flex flex-col gap-3">
               <h2 className="text-xl leading-tight underline decoration-transparent transition-colors hover:text-blue-11">
                 <Link href={href} scroll={false}>
-                  <span className="underline">{post.title}</span>
+                  <span className="underline capitalize">
+                    {post.title}
+                  </span>
                 </Link>
               </h2>
             </div>

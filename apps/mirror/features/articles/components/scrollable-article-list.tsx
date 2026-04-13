@@ -1,23 +1,16 @@
 "use client";
 
+import { EmptyMessage } from "@/components/empty-message";
 import { useScrollRoot } from "@/features/content";
 import { useArticleList } from "../context/article-list-context";
 import { ArticleList } from "./article-list";
-
-function EmptyMessage({ message }: { message: string }) {
-  return (
-    <div className="flex items-center justify-center py-16 text-muted-foreground">
-      {message}
-    </div>
-  );
-}
 
 export function ScrollableArticleList() {
   const ctx = useArticleList();
   const scrollRoot = useScrollRoot();
 
   if (ctx.hasNoArticles) {
-    return <EmptyMessage message="No articles yet" />;
+    return <EmptyMessage showGraphic graphicBottomLabel="Articles" />;
   }
 
   if (ctx.showEmpty) {

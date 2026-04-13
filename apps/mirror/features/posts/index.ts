@@ -5,4 +5,4 @@ export { ScrollablePostList } from "./components/scrollable-post-list";
 export { PostDetail } from "./components/post-detail";
 export { PostDetailToolbar } from "./components/post-detail-toolbar";
 export { PostDetailLoading } from "./components/post-detail-loading";
-export type { PostSummary, PostWithBody } from "./types";
+export type { PostSummary } from "./types";

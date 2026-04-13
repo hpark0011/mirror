@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { formatLongDate } from "@/features/content";
-import type { PostWithBody } from "../types";
+import { PostMetadata } from "./post-metadata";
+import type { PostSummary } from "../types";
 
 const RichTextViewer = dynamic(
   () =>
@@ -18,7 +18,7 @@ const RichTextViewer = dynamic(
 );
 
 type PostDetailProps = {
-  post: PostWithBody;
+  post: PostSummary;
 };
 
 export function PostDetail({ post }: PostDetailProps) {
@@ -26,16 +26,7 @@ export function PostDetail({ post }: PostDetailProps) {
     <div className="h-full px-4.5 py-8 flex">
       <article className="mx-auto w-full flex gap-20">
         <div className="pt-1">
-          <div className="flex flex-col items-start gap-0.5 text-nowrap">
-            <span className="text-[13px] leading-[1.2] uppercase font-medium">
-              {post.status === "draft"
-                ? "Draft"
-                : formatLongDate(post.publishedAt ?? post.createdAt)}
-            </span>
-            <span className="text-[14px] font-medium leading-[1.2]">
-              {post.category}
-            </span>
-          </div>
+          <PostMetadata post={post} />
         </div>
 
         <div className="w-full flex flex-col items-center">
