@@ -16,6 +16,7 @@ type ChatConversationListSheetProps = {
   conversations: Conversation[];
   activeConversationId: Id<"conversations"> | null;
   onSelect: (id: Id<"conversations">) => void;
+  isAuthenticated: boolean;
 };
 
 export function ChatConversationListSheet({
@@ -24,6 +25,7 @@ export function ChatConversationListSheet({
   conversations,
   activeConversationId,
   onSelect,
+  isAuthenticated,
 }: ChatConversationListSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -46,6 +48,7 @@ export function ChatConversationListSheet({
               onSelect(id);
               onOpenChange(false);
             }}
+            isAuthenticated={isAuthenticated}
           />
         </div>
       </SheetContent>

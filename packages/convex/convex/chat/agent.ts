@@ -9,7 +9,7 @@ import { components } from "../_generated/api";
 type Provider = "anthropic" | "openai" | "google";
 
 const DEFAULT_MODELS: Record<Provider, string> = {
-  anthropic: "claude-sonnet-4-20250514",
+  anthropic: "claude-sonnet-4-6",
   openai: "gpt-4o-mini",
   google: "gemini-2.0-flash",
 };

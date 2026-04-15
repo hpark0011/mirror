@@ -9,7 +9,11 @@ import { WireframeSphere } from "../../../components/animated-geometries/wirefra
 
 /* Internal building-block components — not exported. */
 
-function ConversationListEmpty() {
+function ConversationListEmpty({
+  isAuthenticated,
+}: {
+  isAuthenticated: boolean;
+}) {
   return (
     <div
       data-slot="conversation-list-empty"
@@ -22,7 +26,9 @@ function ConversationListEmpty() {
         )}
       >
         <p>
-          No conversations yet.
+          {isAuthenticated
+            ? "No conversations yet."
+            : "Sign up to save your conversations."}
         </p>
       </div>
       <div className="absolute flex flex-col items-center justify-center">
@@ -91,15 +97,17 @@ type ConversationListProps = {
   conversations: Conversation[];
   activeConversationId: Id<"conversations"> | null;
   onSelect: (id: Id<"conversations">) => void;
+  isAuthenticated: boolean;
 };
 
 function ConversationList({
   conversations,
   activeConversationId,
   onSelect,
+  isAuthenticated,
 }: ConversationListProps) {
   if (conversations.length === 0) {
-    return <ConversationListEmpty />;
+    return <ConversationListEmpty isAuthenticated={isAuthenticated} />;
   }
 
   return (

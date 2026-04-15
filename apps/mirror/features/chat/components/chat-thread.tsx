@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useSession } from "@/lib/auth-client";
 import { ArcSphere } from "../../../components/animated-geometries/arc-sphere";
 import { useChatContext } from "../context/chat-context";
 import { useChat } from "../hooks/use-chat";
@@ -69,6 +70,8 @@ function ChatActiveThread() {
     headerAddon,
   } = useChatContext();
 
+  const { isAuthenticated } = useSession();
+
   const [conversationListOpen, setConversationListOpen] = useState(false);
   const openConversationList = useCallback(
     () => setConversationListOpen(true),
@@ -105,6 +108,7 @@ function ChatActiveThread() {
           conversations={conversations}
           activeConversationId={activeConversationId}
           onSelect={setConversationId}
+          isAuthenticated={isAuthenticated}
         />
         <ChatHeader
           profileName={profileName}
@@ -131,6 +135,7 @@ function ChatActiveThread() {
         conversations={conversations}
         activeConversationId={activeConversationId}
         onSelect={setConversationId}
+        isAuthenticated={isAuthenticated}
       />
       <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
         <ChatHeader

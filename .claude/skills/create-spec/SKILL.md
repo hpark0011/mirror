@@ -1,21 +1,38 @@
 ---
 name: create-spec
-description: >
-  Create a product spec from user requirements through multi-agent research,
-  adversarial critique, and iterative refinement. Spawns PM, Adversarial Reviewer,
-  domain expert (when relevant), and Verification agents in separate context windows.
-  Outputs a spec with Playwright E2E tests and team orchestration plan to
-  .workspace/plans/. Use when the user wants to create a spec, write requirements,
-  plan a feature, or says "create spec", "spec this", "write a spec".
+description: Create a product spec from user requirements through multi-agent research, adversarial critique, and iterative refinement. Spawns PM, Adversarial Reviewer, domain expert (when relevant), and Verification agents in separate context windows. Outputs a spec with Playwright E2E tests and team orchestration plan to workspace/spec/. Use when the user wants to create a spec, write requirements, plan a feature, or says "create spec", "spec this", "write a spec".
 ---
 
 # Create Spec
 
-Five-phase workflow: gather requirements, gather materials, create spec, adversarial critique loop, final verification. Produces a spec in `.workspace/plans/{feature-name}-spec.md`.
+## When to use
 
----
+- User says "create a spec", "spec this", "write a spec", "write requirements", or "plan a feature" for a non-trivial piece of work.
+- A feature is large enough that it needs FR/NFR tables, test plans, and an orchestration plan before implementation starts.
+- A brainstorm or ticket is ready to be hardened into a verifiable, testable spec.
 
-## Phase 1: Gather Requirements
+**Do NOT use for**: ad-hoc notes, one-file bug fixes, quick refactors, or exploratory brainstorms (use `compound-engineering:ce-brainstorm` instead). Do not use to edit an existing spec's prose — only to author or rewrite one from requirements.
+
+## Quick start
+
+1. Confirm the requirement is unambiguous (Phase 1). If not, ask clarifying questions before spawning any agents.
+2. Gather materials in parallel: read provided research, spawn the Codebase Analyst, and (if the domain matches) consult a domain expert (Phase 2).
+3. Instantiate `spec-template/spec.md` into `workspace/spec/{feature-name}-spec.md` with hard-verification requirements and real test paths (Phase 3).
+4. Run the adversarial critique loop until no Critical concerns remain (Phase 4).
+5. Spawn the Verification Agent; fix any failures; write the final spec and summary (Phase 5).
+
+## Workflow
+
+Invariants that apply across all phases:
+
+- **Minimum 3 sub-agents**: PM Agent, Adversarial Spec Reviewer, Verification Agent. Each gets its own context window via the Agent tool.
+- **Domain expert is additive**: when consulted, it adds a 4th agent used in both Phase 2 and Phase 4.
+- **Hard verification only**: every requirement row must have a concrete, automatable check.
+- **Codebase accuracy**: every file path in the spec must be verified against the real codebase.
+- **User requirements are sovereign**: if the adversarial reviewer argues against something the user explicitly requested, reject it and document why.
+- **One-directional dependency**: `spec-template/` + `agents/` ← `SKILL.md` ← caller. This skill does not name its executor — the invoking agent owns Phase 3 routing.
+
+### Phase 1: Gather Requirements
 
 1. Read the user's requirement carefully.
 2. If any of these are unclear, ask before proceeding:
@@ -24,43 +41,15 @@ Five-phase workflow: gather requirements, gather materials, create spec, adversa
    - Constraints (tech stack, performance, UX)
 3. Do NOT proceed to Phase 2 until requirements are unambiguous.
 
----
+### Phase 2: Gather Materials
 
-## Phase 2: Gather Materials
+Run these in parallel where possible.
 
-Run these in parallel where possible:
+**2a — Read research material.** If the user provided or referenced research material (links, docs, prior specs), read it in full. Summarize key findings that affect design decisions.
 
-### 2a — Read Research Material
+**2b — Investigate codebase.** Spawn a **Codebase Analyst** agent using the prompt at `agents/codebase-analyst.md`.
 
-If the user provided or referenced research material (links, docs, prior specs), read it in full. Summarize key findings that affect design decisions.
-
-### 2b — Investigate Codebase
-
-Spawn a **Codebase Analyst** agent:
-
-```
-You are a Codebase Analyst. Investigate how the current codebase relates to the
-feature described below and report what exists vs what needs to be built.
-
-## Feature
-{user's requirement}
-
-## Instructions
-1. Use Grep and Glob to find related files. Read key files to understand existing patterns.
-2. Check package.json files for relevant dependencies.
-3. Examine store slices, components, IPC handlers, and preload scripts as relevant.
-4. Report:
-   - Feature status: exists | partial | missing
-   - Related files with brief descriptions
-   - Existing architectural patterns for similar features
-   - Where new code should live (packages, directories)
-   - Integration points with existing code
-   - Files to create and files to modify
-```
-
-### 2c — Consult Domain Expert (When Relevant)
-
-Check `.claude/agents/` for a domain expert agent whose description matches the feature's domain:
+**2c — Consult domain expert (when relevant).** Check `.claude/agents/` for a domain expert agent whose description matches the feature's domain:
 
 | Agent                   | Domain                                                           |
 | ----------------------- | ---------------------------------------------------------------- |
@@ -70,135 +59,32 @@ Check `.claude/agents/` for a domain expert agent whose description matches the 
 
 If the feature touches one of these domains, spawn that agent with the user's requirement and ask it to:
 
-1. Review the proposed feature for domain-specific concerns
-2. Identify constraints, gotchas, or patterns that must be followed
-3. Flag risks or conflicts with existing domain architecture
+1. Review the proposed feature for domain-specific concerns.
+2. Identify constraints, gotchas, or patterns that must be followed.
+3. Flag risks or conflicts with existing domain architecture.
 
 If no domain expert applies, skip this step.
 
----
+### Phase 3: Create Spec
 
-## Phase 3: Create Spec
+Instantiate the spec template at `spec-template/spec.md`. The template is the single source of truth for spec structure — Overview, Requirements (FR/NFR tables with hard verification columns), Architecture, Unit Tests table, Playwright E2E Tests table, Anti-patterns, Team Orchestration Plan, Open Questions, and the Adversarial Review Summary placeholder.
 
-Spawn a **PM Agent**:
+Rules for Phase 3:
 
-```
-You are a PM Agent. Create a product spec based on the user's requirement,
-codebase analysis, and domain expert input (if any).
+1. Read `spec-template/spec.md` and instantiate it; do not invent additional top-level sections.
+2. Every requirement row MUST have a concrete, automatable `Verification` value — no subjective criteria.
+3. Every requirement must be referenced by at least one row in Unit Tests or Playwright E2E Tests (ideally both where user-visible).
+4. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). Verify against the codebase, don't guess.
+5. Team Orchestration Plan must name real agents from `.claude/agents/` or explicitly recommend `/create-codebase-expert` for missing owners.
 
-## User's Requirement
-{paste requirement}
+### Phase 4: Adversarial Critique Loop
 
-## Codebase Analysis
-{paste codebase analyst output}
+After the spec is drafted, spawn **two agents in parallel** (three if a domain expert was consulted in Phase 2):
 
-## Domain Expert Input (if any)
-{paste domain expert output, or "N/A"}
+- **Adversarial Spec Reviewer** — spawn with the prompt at `agents/adversarial-reviewer.md`.
+- **Domain Expert** (if consulted in Phase 2) — re-spawn with the full spec, asking it to review for domain-specific correctness, missed constraints, and compatibility with existing domain architecture.
 
-## Instructions
-Write the spec as markdown. Every requirement MUST have a hard, automatable
-verification criterion — no subjective criteria.
-
-## Required Sections
-
-### Overview
-What the feature does, why it matters (2-3 sentences).
-
-### Requirements
-#### Functional Requirements
-| ID | Requirement | Priority | Verification |
-|----|-------------|----------|--------------|
-| FR-01 | {requirement} | {p0-p3} | {exact check} |
-
-#### Non-functional Requirements (if any)
-Same table format.
-
-### Architecture
-- Component design: where each piece lives, data flow, key interfaces
-- Files to create (table: file | purpose)
-- Files to modify (table: file | change)
-- Dependencies to add (if any)
-
-### Unit Tests
-| Test File | Test Case | Verifies |
-|-----------|-----------|----------|
-| {path} | {test name} | {FR-XX} |
-
-Use bun:test, test() not it(), .test.ts suffix, __tests__/ directory.
-
-### Playwright E2E Tests
-| Test File | Scenario | Verifies |
-|-----------|----------|----------|
-| {path} | {user flow from user's perspective} | {FR-XX} |
-
-E2E tests go in e2e/ at project root, use .spec.ts suffix.
-Tests must describe real user flows, not internal state checks.
-
-### Anti-patterns to Avoid
-Specific things NOT to do, with reasons.
-
-### Team Orchestration Plan
-Plan which agents execute the implementation work.
-- Check .claude/agents/ for domain expert agents that can own specific steps.
-- Prefer existing specialized agents over creating new ones.
-- For small features (< 5 files), a single implementation agent is fine.
-- For larger features, break into steps with clear ownership:
-  Step N — {description}
-  Agent: {agent name or "general"}
-  Tasks: {numbered list}
-  Verification: {what to check before moving on}
-
-### Open Questions (if any)
-Anything that needs user input before implementation.
-```
-
----
-
-## Phase 4: Adversarial Critique Loop
-
-After the PM Agent produces the spec, spawn **two agents in parallel** (three if a domain expert was consulted in Phase 2):
-
-### Agent 1: Adversarial Spec Reviewer
-
-```
-You are an Adversarial Spec Reviewer. You challenge plans by trying to falsify
-them. Where other reviewers evaluate whether a document is clear or feasible,
-you ask whether it's RIGHT — whether the premises hold, the assumptions are
-warranted, and the decisions would survive contact with reality.
-
-You construct counterarguments, not checklists.
-
-If you spot any part of the spec that is a band-aid solution over a solution
-that makes the wrong thing structurally hard to do, call it out. The
-architecture should prevent mistakes, not just handle them.
-
-## User's Requirement
-{paste requirement}
-
-## Spec
-{paste spec content}
-
-## Instructions
-For each concern, provide:
-- Severity: Critical | Important | Minor
-- The specific problem
-- Why it matters (what breaks, what's fragile, what's wrong)
-- Your proposed fix
-
-Focus on:
-1. Assumptions that might not hold
-2. Edge cases the spec doesn't address
-3. Architectural decisions that will cause pain later
-4. Requirements that are undertested or have weak verification
-5. Band-aid solutions where structural prevention is possible
-6. Missing failure modes
-```
-
-### Agent 2: Domain Expert (if consulted in Phase 2)
-
-Re-spawn the same domain expert agent from Phase 2 with the full spec, asking it to review for domain-specific correctness, missed constraints, and compatibility with existing domain architecture.
-
-### After critique completes:
+After critique completes:
 
 1. Evaluate each concern. Not all feedback is valid — reject concerns that contradict the user's explicit requirements.
 2. For accepted concerns: update the spec.
@@ -210,74 +96,55 @@ Re-spawn the same domain expert agent from Phase 2 with the full spec, asking it
 | --------- | ---------- | -------------------------------------- |
 | {concern} | {severity} | **Accepted** / **Rejected** — {reason} |
 
----
+### Phase 5: Final Verification
 
-## Phase 5: Final Verification
+Spawn a **Verification Agent** with the prompt at `agents/verification.md`. If it finds failures, fix them in the spec and re-verify only the failed items.
 
-Spawn a **Verification Agent**:
+### Final Output
 
-```
-You are a Verification Agent. Verify the final spec is complete and correct.
+1. Write the spec to `workspace/spec/{feature-name}-spec.md` (kebab-case filename).
+2. Present a summary including: spec location, FR/NFR counts, unit + E2E test counts, orchestration summary, adversarial review tallies (raised / accepted / rejected, no unresolved Critical), and verification result.
 
-## User's Original Requirement
-{paste requirement}
+## Examples
 
-## Final Spec
-{paste spec content}
-
-## Checklist — report PASS or FAIL for each:
-1. Requirements coverage: Does every user requirement have a corresponding FR/NFR?
-2. Test coverage: Does every FR have at least one unit test AND one E2E test?
-3. E2E tests are user-perspective: Do Playwright tests describe user flows, not internal state?
-4. Team orchestration plan exists and references real agents from .claude/agents/ where applicable
-5. Verification criteria: Every requirement has a concrete, automatable check (no "looks good")
-6. Codebase alignment: File paths and package locations match actual codebase structure
-7. Anti-patterns section exists with specific items
-
-## Output
-For each item: PASS/FAIL with details.
-If any FAIL: list the specific fix needed.
-```
-
-If the Verification Agent finds failures, fix them in the spec. Re-verify only the failed items.
-
----
-
-## Final Output
-
-1. Write the spec to `.workspace/plans/{feature-name}-spec.md`
-2. Present a summary:
+✓ Good invocation:
 
 ```
-## Spec Complete
+User: "Create a spec for a rate-limited magic-link login flow in mirror. Budget: 2 weeks. Must reuse existing Convex auth."
 
-**Location:** .workspace/plans/{feature-name}-spec.md
-
-### Requirements
-- {N} functional + {N} non-functional requirements
-
-### Test Plan
-- {N} unit tests + {N} E2E tests
-
-### Orchestration
-- {summary of who does what}
-
-### Adversarial Review
-- {N} concerns raised, {N} accepted, {N} rejected
-- No unresolved Critical concerns
-
-### Verification
-- All checks PASS
+→ Phase 1 passes (scope, constraint, reuse boundary all explicit).
+→ Phase 2 spawns Codebase Analyst + auth-layer domain expert.
+→ Phase 3 instantiates spec-template/spec.md with FRs tied to real e2e paths
+  in apps/mirror/tests/.
+→ Phase 4 adversarial loop flags one Critical (no abuse-mitigation NFR);
+  accepted and spec updated.
+→ Phase 5 verification passes.
 ```
 
----
+✗ Bad invocation:
 
-## Rules
+```
+User: "Spec out the dashboard improvements."
 
-- **Minimum 3 sub-agents**: PM Agent, Adversarial Spec Reviewer, Verification Agent. Each gets its own context window via the Agent tool.
-- **Domain expert is additive**: When a domain expert is consulted, it adds a 4th agent (used in Phase 2 and Phase 4).
-- **Hard verification only**: Every requirement must have a concrete, automatable check.
-- **Codebase accuracy**: File paths in the spec must be verified against the real codebase. Do not guess.
-- **Spec output**: `.workspace/plans/{feature-name}-spec.md`, kebab-case filename.
-- **Iterate critiques**: The adversarial loop runs until no Critical concerns remain.
-- **User requirements are sovereign**: If the adversarial reviewer argues against something the user explicitly requested, reject it and document why.
+→ Requirement is ambiguous — no scope, no constraints, no success criteria.
+→ Correct response: stay in Phase 1 and ask clarifying questions.
+→ Wrong response: guess at scope and run the full 5-phase workflow.
+```
+
+## Anti-patterns
+
+- **Skipping Phase 1 clarifications.** Spawning agents on an ambiguous requirement wastes context and produces a spec the user will reject.
+- **Inventing extra top-level sections.** The template is the schema. Add rows, not new H2s.
+- **Subjective verification criteria.** "Feels fast", "user-friendly", "looks good" — none are automatable. Every FR/NFR row needs a check a CI job could run.
+- **Guessing file paths.** Fabricated paths in the Team Orchestration Plan or test tables make the spec unactionable. Verify against the codebase.
+- **Naming an executor for Phase 3 inside this skill.** Creates a cycle with any agent that references this skill. The caller owns routing.
+- **Accepting adversarial concerns that contradict explicit user requirements.** Reject them and log the rejection in the Adversarial Review Summary.
+- **Running the adversarial loop once and stopping.** Iterate until no Critical concerns remain — that's the contract.
+
+## References
+
+- `spec-template/spec.md` — spec schema (single source of truth for structure).
+- `agents/codebase-analyst.md` — Phase 2b prompt.
+- `agents/adversarial-reviewer.md` — Phase 4 prompt.
+- `agents/verification.md` — Phase 5 prompt.
+- `.claude/skills/create-codebase-expert/SKILL.md#artifact-hierarchy-principle` — why templates and workflow-only agents live under this skill, not inlined.

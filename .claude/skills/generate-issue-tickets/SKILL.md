@@ -25,10 +25,7 @@ Create issue ticket markdown files in `workspace/tickets/to-do` following a stri
 
 ```
 workspace/tickets/
-├── backlog/        # Identified but not ready to be picked up
 ├── to-do/          # Prioritized and ready to be picked up
-├── in-progress/    # Actively being worked on
-├── in-review/      # Implementation done, awaiting review
 ├── completed/      # Resolved and verified
 └── canceled/       # Won't fix / no longer relevant
 ```
