@@ -13,7 +13,8 @@ export function PostMetadata({
   className,
   capitalizeCategory,
 }: PostMetadataProps) {
-  const label = post.status === "draft"
+  const isDraft = post.status === "draft";
+  const label = isDraft
     ? "Draft"
     : formatLongDate(post.publishedAt ?? post.createdAt);
 
@@ -24,7 +25,10 @@ export function PostMetadata({
         className,
       )}
     >
-      <span className="text-[13px] leading-[1.2] uppercase font-medium mt-0.5">
+      <span
+        className="text-[13px] leading-[1.2] uppercase font-medium mt-0.5"
+        {...(isDraft ? { "data-testid": "post-status-label" } : {})}
+      >
         {label}
       </span>
       <span

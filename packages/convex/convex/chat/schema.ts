@@ -9,6 +9,11 @@ export const conversationsTable = defineTable({
   title: v.string(),
   streamingInProgress: v.optional(v.boolean()),
   streamingStartedAt: v.optional(v.number()),
+  // Activity tracking fields (deployed via other branch, kept for compatibility)
+  lastActivityAt: v.optional(v.number()),
+  lastActivitySortKey: v.optional(v.string()),
+  lastMessagePreview: v.optional(v.string()),
+  lastMessageRole: v.optional(v.string()),
 })
   .index("by_profileOwnerId_and_viewerId", ["profileOwnerId", "viewerId"])
   .index("by_viewerId", ["viewerId"])

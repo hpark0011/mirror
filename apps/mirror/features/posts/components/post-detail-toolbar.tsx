@@ -4,16 +4,19 @@ import Link from "next/link";
 import { Icon } from "@feel-good/ui/components/icon";
 import { getContentHref } from "@/features/content";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { PublishToggleConnector } from "./publish-toggle-connector";
+import type { PostSummary } from "../types";
 
 type PostDetailToolbarProps = {
   username: string;
+  post: PostSummary;
 };
 
-export function PostDetailToolbar({ username }: PostDetailToolbarProps) {
+export function PostDetailToolbar({ username, post }: PostDetailToolbarProps) {
   const { buildChatAwareHref } = useChatSearchParams();
 
   return (
-    <div className="flex h-12 items-center bg-background px-3 border-none border-border-subtle">
+    <div className="flex h-12 items-center bg-background px-3 border-none border-border-subtle gap-2">
       <Link
         href={buildChatAwareHref(getContentHref(username, "posts"))}
         scroll={false}
@@ -25,6 +28,7 @@ export function PostDetailToolbar({ username }: PostDetailToolbarProps) {
         />
         <span className="leading-[1.2]">Back</span>
       </Link>
+      <PublishToggleConnector post={post} />
     </div>
   );
 }

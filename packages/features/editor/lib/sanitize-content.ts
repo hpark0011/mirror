@@ -128,7 +128,14 @@ function sanitizeMarks(
  * - Validates URL schemes on `src` and `href` (allows http, https, mailto, relative)
  * - Preserves only allowlisted structure so Tiptap cannot render malicious DOM
  */
-export function sanitizeContent(content: JSONContent): JSONContent {
+export function sanitizeContent(
+  content: JSONContent | null | undefined,
+  isRoot = true,
+): JSONContent {
+  // Guard against null/undefined body (e.g. posts created without body content)
+  if (content == null) {
+    return isRoot ? { type: "doc", content: [] } : { type: "paragraph" };
+  }
   // Reject unknown node types — return an empty paragraph as a safe fallback
   if (content.type && !ALLOWED_NODE_TYPES.has(content.type)) {
     return { type: "paragraph" };
@@ -165,7 +172,9 @@ export function sanitizeContent(content: JSONContent): JSONContent {
 
   // Recurse into children
   if (Array.isArray(content.content)) {
-    result.content = content.content.map(sanitizeContent);
+    result.content = content.content.map((child) =>
+      sanitizeContent(child as JSONContent | null | undefined, false),
+    );
   }
 
   return result;

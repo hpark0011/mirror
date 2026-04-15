@@ -1,26 +1,27 @@
 import { notFound } from "next/navigation";
-import { PostDetail, PostDetailToolbar } from "@/features/posts";
-import type { PostSummary } from "@/features/posts";
-import { fetchAuthQuery } from "@/lib/auth-server";
+import { PostDetailConnector } from "@/features/posts";
+import { fetchAuthQuery, preloadAuthQuery } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 
 export default async function PostContentPage({
   params,
 }: { params: Promise<{ username: string; slug: string }> }) {
   const { username, slug } = await params;
+
+  // Server-side check: 404 for non-owners viewing drafts
   const post = await fetchAuthQuery(api.posts.queries.getBySlug, {
     username,
     slug,
   });
   if (!post) notFound();
 
+  // Preload for reactive client subscription (status updates after publish/unpublish)
+  const preloadedPost = await preloadAuthQuery(api.posts.queries.getBySlug, {
+    username,
+    slug,
+  });
+
   return (
-    <>
-      <WorkspaceToolbar>
-        <PostDetailToolbar username={username} />
-      </WorkspaceToolbar>
-      <PostDetail post={post as PostSummary} />
-    </>
+    <PostDetailConnector preloadedPost={preloadedPost} username={username} />
   );
 }
