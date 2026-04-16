@@ -7,10 +7,5 @@
       "Bash(pnpm build:*)"
     ]
   },
-  "enabledMcpjsonServers": [
-    "supabase",
-    "Context7",
-    "shadcn",
-    "chrome-devtools"
-  ]
+  "enabledMcpjsonServers": ["Context7", "shadcn", "chrome-devtools"]
 }

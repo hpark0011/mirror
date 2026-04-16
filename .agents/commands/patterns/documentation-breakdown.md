@@ -37,18 +37,15 @@ When you detect large documentation files (>600 lines), suggest breaking them do
     └── subtopic-3.md         # Focused file (~200-400 lines)
 ```
 
-**Example (from data-fetching.md breakdown):**
+**Example structure:**
 ```
 .claude/commands/patterns/
-├── data-fetching.md              # Navigation index (196 lines)
-└── data-fetching/
-    ├── overview.md               # Quick start, decision tree (179 lines)
-    ├── server-side.md            # Server patterns (668 lines)
-    ├── client-side.md            # Client patterns (418 lines)
-    ├── hybrid.md                 # Hybrid approach (295 lines)
-    ├── server-actions-vs-routes.md (292 lines)
-    ├── performance.md            # Performance & monitoring (381 lines)
-    └── examples.md               # Examples & checklists (438 lines)
+├── {topic}.md                    # Navigation index (~200 lines)
+└── {topic}/
+    ├── overview.md               # Quick start, decision tree
+    ├── subtopic-a.md             # Focused subtopic
+    ├── subtopic-b.md             # Focused subtopic
+    └── examples.md               # Examples & checklists
 ```
 
 ## YAML Frontmatter Requirements
@@ -198,7 +195,7 @@ When suggesting a breakdown, provide:
        ├── topic-2.md              # {description} (~{lines} lines)
        └── topic-3.md              # {description} (~{lines} lines)
      ```
-   - Reference: See data-fetching.md breakdown (1,635 → 7 files)
+   - Reference: split when a single pattern file exceeds ~800 lines
 ```
 
 ## Follow Claude Code Conventions

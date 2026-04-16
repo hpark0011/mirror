@@ -8,13 +8,14 @@ paths:
 
 ## Decision Tree
 
-| Need                          | Solution                    |
-| ----------------------------- | --------------------------- |
-| Component-local state         | useState/useReducer         |
-| Cross-component, persisted    | localStorage (useLocalStorage) |
-| Global, complex, non-persisted| Zustand                     |
-| Theme, auth context           | React Context               |
-| Server data                   | Supabase + React Query      |
+| Need                           | Solution                       |
+| ------------------------------ | ------------------------------ |
+| Component-local state          | useState/useReducer            |
+| Cross-component, persisted     | localStorage (useLocalStorage) |
+| Global, complex, non-persisted | Zustand                        |
+| Theme, auth context            | React Context                  |
+
+Greyboard is local-only — no server data layer.
 
 ## localStorage (Primary for Tasks)
 

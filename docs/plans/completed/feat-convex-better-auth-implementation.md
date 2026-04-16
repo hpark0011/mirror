@@ -12,13 +12,13 @@ Implement authentication infrastructure for the Mirror app using **Convex** as t
 
 ## Problem Statement
 
-Greyboard currently uses Supabase for authentication, but we're migrating to Convex for several reasons:
+We're standardizing on Convex for several reasons:
 
 - **Affordability** - Better pricing for small teams
 - **Simpler DX** - No SQL management, TypeScript-native
 - **Better Integration** - First-class Next.js and TypeScript support
 
-Mirror is a fresh Next.js 16.1.4 app that needs authentication from scratch. Rather than copy Greyboard's Supabase implementation, we'll build with Convex + Better Auth from the start.
+Mirror is a fresh Next.js 16.1.4 app that needs authentication from scratch. We'll build with Convex + Better Auth from the start.
 
 ## Technical Approach
 
@@ -810,8 +810,6 @@ export const sendMagicLink = action({
 
 ### Internal References
 
-- Greyboard Supabase auth: `apps/greyboard/utils/supabase/`
-- Greyboard auth service: `apps/greyboard/lib/services/auth.service.ts`
 - UI components: `packages/ui/src/`
 - Utils package pattern: `packages/utils/package.json`
 

@@ -392,7 +392,7 @@ function Component() {
 ### When to Use
 
 ✅ **USE React Context for:**
-- External library wrappers (next-themes, Supabase Auth)
+- External library wrappers (next-themes, auth clients)
 - Global providers (theme, auth)
 - Compound providers (wrapping multiple providers)
 

@@ -22,7 +22,7 @@ Always separate client instantiation from provider composition:
 
 ## Singleton Pattern
 
-- Use lazy initialization for external service clients (Convex, Supabase, etc.)
+- Use lazy initialization for external service clients (Convex, etc.)
 - Never create clients at module level — wrap in a getter function
 - For React Query, use `useState(() => new QueryClient(...))` in the provider
 

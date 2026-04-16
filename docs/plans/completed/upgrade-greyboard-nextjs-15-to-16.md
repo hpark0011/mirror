@@ -164,10 +164,7 @@ pnpm build --filter=@feel-good/greyboard
 ### Phase 6: Manual QA
 
 - [ ] Navigate to http://localhost:3000
-- [ ] Sign in with Supabase auth
-- [ ] Verify protected routes work
-- [ ] Sign out
-- [ ] Verify redirect to sign-in page
+- [ ] Verify dashboard routes load
 - [ ] Test Kanban board drag-and-drop
 - [ ] Test form submissions
 - [ ] Check browser console for errors
@@ -200,7 +197,6 @@ pnpm build --filter=@feel-good/greyboard
 | recharts | 2.15.4 | Yes | Compatible |
 | zustand | ^5.0.8 | Yes | Full React 19 support |
 | react-hook-form | ^7.62.0 | Yes | Compatible |
-| @supabase/ssr | ^0.7.0 | Yes | No Next.js 16 issues reported |
 
 ## Risks & Mitigations
 
@@ -228,7 +224,6 @@ pnpm install
 
 1. **Middleware to Proxy Migration:** Consider migrating `middleware.ts` to `proxy.ts` in a future PR. This would require:
    - Moving auth logic to layouts/route handlers (Next.js 16 recommendation)
-   - Testing with @supabase/ssr patterns
    - Verifying Vercel deployment compatibility
 
 2. **Remove webpack Dependency:** Investigate if the explicit `webpack` dependency is needed or can be removed now that Turbopack is default.
@@ -240,7 +235,6 @@ pnpm install
 - [Next.js 16 Upgrade Guide](https://nextjs.org/docs/app/guides/upgrading/version-16)
 - [Next.js 16 Release Blog](https://nextjs.org/blog/next-16)
 - [ESLint Flat Config Migration](https://eslint.org/docs/latest/use/configure/migration-guide)
-- [Supabase SSR Documentation](https://supabase.com/docs/guides/auth/server-side/creating-a-client)
 
 ---
 

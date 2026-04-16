@@ -568,9 +568,7 @@ export function PageView({ data }) {
 
 ## Related Patterns
 
-- **data-fetching.md** - Where to put loaders, how to fetch data
 - **composition.md** - How to organize components within a feature
-- **server-actions.md** - How to handle data mutations
 - **state-management.md** - When to use different state approaches
 
 ---

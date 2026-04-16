@@ -12,7 +12,7 @@ Follow these steps systematically:
 
 **Steps**:
 1. Read `CLAUDE.md` and locate the "Project Structure" section
-2. Scan these directories: `app/`, `components/`, `hooks/`, `config/`, `lib/`, `store/`, `styles/`, `types/`, `utils/`, `supabase/`
+2. Scan these directories: `app/`, `components/`, `hooks/`, `config/`, `lib/`, `store/`, `styles/`, `types/`, `utils/`
 3. List all subdirectories found
 4. Compare against what's documented in CLAUDE.md
 5. Identify:
