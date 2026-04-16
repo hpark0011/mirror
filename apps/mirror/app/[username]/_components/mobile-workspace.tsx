@@ -1,14 +1,17 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { type ReactNode, useState } from "react";
 import { MobileProfileLayout } from "@/features/profile";
 import { ScrollRootProvider, type ContentRouteState } from "@/features/content";
+import { MirrorLogo } from "@/components/mirror-logo";
+import { MirrorLogoMenu } from "@/components/mirror-logo-menu";
 import { WorkspaceNavbar } from "@/components/workspace-navbar";
 import {
   ToolbarSlotProvider,
   ToolbarSlotTarget,
 } from "@/components/workspace-toolbar-slot";
 import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
+import { useProfileRouteData } from "../_providers/profile-route-data-context";
 
 type MobileWorkspaceProps = {
   routeState: ContentRouteState | null;
@@ -24,6 +27,7 @@ export function MobileWorkspace({
   children,
 }: MobileWorkspaceProps) {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
+  const { isOwner } = useProfileRouteData();
   useProfileNavigationEffects(scrollRoot, routeState);
 
   if (isChatOpen) {
@@ -35,6 +39,7 @@ export function MobileWorkspace({
       <ToolbarSlotProvider>
         <WorkspaceNavbar className="fixed top-0 inset-x-0" />
         <MobileProfileLayout
+          topSlot={isOwner ? <MirrorLogoMenu /> : <MirrorLogo />}
           profile={
             <div className="relative h-full flex flex-col">{interaction}</div>
           }

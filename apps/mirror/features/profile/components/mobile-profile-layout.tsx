@@ -22,11 +22,14 @@ const SHEET_SNAP_POINTS: Array<number | string> = [
 type MobileProfileLayoutProps = {
   profile: React.ReactNode;
   content: React.ReactNode | (() => React.ReactNode);
+  /** Rendered above the drawer at the top of the viewport (e.g. logo menu). */
+  topSlot?: React.ReactNode;
 };
 
 export function MobileProfileLayout({
   profile,
   content,
+  topSlot,
 }: MobileProfileLayoutProps) {
   const [activeSnapPoint, setActiveSnapPoint] = useState<
     number | string | null
@@ -48,6 +51,12 @@ export function MobileProfileLayout({
       >
         {profile}
       </div>
+
+      {topSlot && (
+        <div className="absolute left-3 top-14 z-10 pointer-events-auto">
+          {topSlot}
+        </div>
+      )}
 
       <div
         ref={setDrawerContainer}
