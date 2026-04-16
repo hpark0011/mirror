@@ -40,9 +40,7 @@ export function PublishToggle({
     ? "This post will be visible to everyone."
     : "This post will be hidden from public view.";
   const confirmLabel = isPending
-    ? isDraft
-      ? "Publishing…"
-      : "Unpublishing…"
+    ? isDraft ? "Publishing…" : "Unpublishing…"
     : buttonLabel;
 
   return (
@@ -53,9 +51,11 @@ export function PublishToggle({
         </Button>
       </AlertDialogTrigger>
       <AlertDialogContent size="sm">
-        <AlertDialogHeader>
+        <AlertDialogHeader className="h-10">
           <AlertDialogTitle>{dialogTitle}</AlertDialogTitle>
-          <AlertDialogDescription>{dialogDescription}</AlertDialogDescription>
+          <AlertDialogDescription className="sr-only">
+            {dialogDescription}
+          </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={onCancel}>Cancel</AlertDialogCancel>
