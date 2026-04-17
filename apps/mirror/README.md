@@ -10,7 +10,7 @@ NEXT_PUBLIC_SITE_URL="https://yourapp.com"
 
 # Convex configuration
 NEXT_PUBLIC_CONVEX_URL="https://your-deployment.convex.cloud"
-NEXT_PUBLIC_CONVEX_SITE_URL="https://yourapp.com"
+NEXT_PUBLIC_CONVEX_SITE_URL="https://your-deployment.convex.site"
 ```
 
 ### Required Variables
@@ -19,7 +19,7 @@ NEXT_PUBLIC_CONVEX_SITE_URL="https://yourapp.com"
 |----------|-------------|
 | `NEXT_PUBLIC_SITE_URL` | Base URL for the application (used by auth client) |
 | `NEXT_PUBLIC_CONVEX_URL` | URL of your Convex deployment |
-| `NEXT_PUBLIC_CONVEX_SITE_URL` | Site URL for Convex auth integration |
+| `NEXT_PUBLIC_CONVEX_SITE_URL` | Convex HTTP-actions host (ends in `.convex.site`) — target for the Better Auth proxy |
 
 ### Sentry Variables (Optional)
 
@@ -89,7 +89,7 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3001](http://localhost:3001) with your browser to see the result.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
