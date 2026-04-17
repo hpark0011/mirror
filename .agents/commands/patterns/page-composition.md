@@ -9,7 +9,7 @@ replaces: [page-view-providers-pattern.md, server-client-separation-pattern.md]
 
 # Page Composition Pattern
 
-This document defines the standard architecture patterns for organizing Next.js pages in the Greyboard codebase. It covers both simple (2-layer) and provider-based (3-layer) page structures.
+This document defines the standard architecture patterns for organizing Next.js pages in this monorepo. It covers both simple (2-layer) and provider-based (3-layer) page structures.
 
 ## Overview
 

@@ -1,6 +1,6 @@
 # Feel Good Monorepo
 
-Turborepo monorepo with 3 Next.js applications and shared packages.
+Turborepo monorepo with 2 Next.js applications and shared packages.
 
 ## Quick Start
 
@@ -16,15 +16,15 @@ pnpm clean             # Clean all packages
 ### Filtered Commands
 
 ```bash
-pnpm dev --filter=@feel-good/greyboard    # Run single app
-pnpm build --filter=@feel-good/greyboard  # Build single app
-pnpm lint --filter=@feel-good/greyboard   # Lint single app
+pnpm dev --filter=@feel-good/mirror    # Run single app
+pnpm build --filter=@feel-good/mirror  # Build single app
+pnpm lint --filter=@feel-good/mirror   # Lint single app
 ```
 
 ## Monorepo Structure
 
 ```
-apps/           Next.js applications (greyboard, mirror, ui-factory)
+apps/           Next.js applications (mirror, ui-factory)
 packages/       Shared libraries (ui, features, icons, utils, convex, tavus)
 tooling/        Shared configs (eslint, prettier, typescript, sentry)
 docs/           Conventions, plans, brainstorms, solutions
@@ -35,7 +35,6 @@ workspace/      Ticket tracking system
 
 | App        | Description                   | Port |
 | ---------- | ----------------------------- | ---- |
-| greyboard  | AI-powered task management    | 3000 |
 | mirror     | Interactive blogging platform | 3001 |
 | ui-factory | Design system showcase        | 3002 |
 
@@ -48,7 +47,6 @@ workspace/      Ticket tracking system
 | @feel-good/icons           | SVG icon components                                     | `@feel-good/icons`                |
 | @feel-good/utils           | Utilities (cn, etc.)                                    | `@feel-good/utils/cn`             |
 | @feel-good/convex          | Convex backend                                          | `@feel-good/convex`               |
-| @feel-good/greyboard-core  | Greyboard domain core (types, config, persistence)      | `@feel-good/greyboard-core/types` |
 | @feel-good/tavus           | Tavus CVI video calling                                 | `@feel-good/tavus/client`         |
 | @feel-good/tsconfig        | Shared TypeScript configs (base, react-library, nextjs) | —                                 |
 | @feel-good/eslint-config   | Shared ESLint configurations                            | —                                 |

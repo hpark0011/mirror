@@ -1,10 +1,3 @@
----
-paths:
-  - "apps/greyboard/**/*form*.tsx"
-  - "apps/greyboard/**/*form*.ts"
-  - "apps/greyboard/features/ticket-form/**/*"
----
-
 # Form Handling Rules
 
 ## Stack

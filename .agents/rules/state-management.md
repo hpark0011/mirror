@@ -1,9 +1,3 @@
----
-paths:
-  - "apps/greyboard/**/*.ts"
-  - "apps/greyboard/**/*.tsx"
----
-
 # State Management Rules
 
 ## Decision Tree
@@ -14,8 +8,6 @@ paths:
 | Cross-component, persisted     | localStorage (useLocalStorage) |
 | Global, complex, non-persisted | Zustand                        |
 | Theme, auth context            | React Context                  |
-
-Greyboard is local-only — no server data layer.
 
 ## localStorage (Primary for Tasks)
 

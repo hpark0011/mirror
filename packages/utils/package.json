@@ -5,8 +5,7 @@
   "type": "module",
   "exports": {
     "./cn": "./src/cn.ts",
-    "./use-local-storage": "./src/use-local-storage.ts",
-    "./greyboard-snapshot": "./src/greyboard-snapshot.ts"
+    "./use-local-storage": "./src/use-local-storage.ts"
   },
   "peerDependencies": {
     "react": "^18.0.0 || ^19.0.0"

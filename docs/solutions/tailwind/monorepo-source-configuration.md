@@ -81,10 +81,6 @@ Changes the base directory for automatic scanning. Useful when builds run from m
 /* ... rest of configuration */
 ```
 
-### apps/greyboard/styles/globals.css
-
-Should include the same `@source` directive if using shared UI components.
-
 ## Troubleshooting
 
 ### Classes not being generated

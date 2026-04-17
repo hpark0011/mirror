@@ -157,10 +157,6 @@ Keep route-only composition pieces in `app/**/_components`.
 
 Note: `views/` directories in Mirror features have been merged into `components/`. See `docs/2026-02-19-report-file-organization-consistency.md` for the full rationale.
 
-### Greyboard
-
-Continue feature-first organization under `apps/greyboard/features/**`; gradually reduce route-local `_hooks/_utils/_views` where logic is stable and reusable in feature modules.
-
 ### UI Factory
 
 Treat route demo pages as route entrypoints and keep only route-local composition wrappers there. Move reusable demo logic/UI into `features/**` when it becomes app-wide or cross-app relevant.
