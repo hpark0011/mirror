@@ -44,24 +44,25 @@ Rules:
 
 ## Where `trustedOrigins` and CORS go
 
-Two different Better Auth layers, both fed by `SITE_URL`:
+`trustedOrigins` (on `betterAuth({...})`) is the single source of truth. The adapter sources the CORS allow-list from it automatically.
 
 ```ts
 // packages/convex/convex/http.ts
-authComponent.registerRoutes(http, createAuth, {
-  cors: { allowedOrigins: [env.SITE_URL] },  // ← CORS preflight
-});
+authComponent.registerRoutes(http, createAuth, { cors: true });
 
 // packages/convex/convex/auth/client.ts
 betterAuth({
   baseURL: env.SITE_URL,
-  trustedOrigins: [env.SITE_URL],  // ← Better Auth's own origin check
+  trustedOrigins: [env.SITE_URL],  // ← CSRF check AND CORS allow-list
   ...
 });
 ```
 
-- `cors.allowedOrigins` on `registerRoutes` handles the browser's OPTIONS preflight. Scope it tight; don't use `cors: true` (wildcard).
 - `trustedOrigins` on `betterAuth({...})` handles CSRF-style origin checks on cookie-setting POSTs. The `@convex-dev/better-auth` adapter version we use **does not** accept `trustedOrigins` on `registerRoutes` — TypeScript will reject it.
+- `cors` on `registerRoutes` gates the CORS wrapper itself:
+  - `cors: true` — enable the wrapper; allowed origins = `trustedOrigins` from `betterAuth(...)`. This is what we want.
+  - `cors: { allowedOrigins: [...] }` — same, but appends extra origins beyond `trustedOrigins`. Only use this if a non-app origin legitimately needs cookie-bearing access.
+  - **Omitting `cors` entirely** skips the wrapper — the raw handler runs with no preflight/allow-origin headers at all. Don't do this.
 - Don't point `baseURL` at `.convex.site`. The Next.js proxy rewrites `x-forwarded-host` so Better Auth thinks the app domain is the host; OAuth redirect URIs are built from `baseURL`, and Google only knows about the app domain.
 
 ## Google OAuth redirect URI
