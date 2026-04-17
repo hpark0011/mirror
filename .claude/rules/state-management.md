@@ -9,36 +9,14 @@
 | Global, complex, non-persisted | Zustand                        |
 | Theme, auth context            | React Context                  |
 
-## localStorage (Primary for Tasks)
+## localStorage
 
 Use `useLocalStorage` hook for SSR-safe, cross-tab synchronized storage:
 
 ```typescript
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { STORAGE_KEYS } from "@/lib/storage-keys";
 
-const [board, setBoard] = useLocalStorage<Board>(
-  STORAGE_KEYS.TASKS.BOARD_STATE,
-  defaultBoard
-);
-```
-
-### Key Naming
-
-All keys defined in `lib/storage-keys.ts`:
-
-```typescript
-const STORAGE_KEYS = {
-  TASKS: {
-    BOARD_STATE: "docgen.v1.tasks.board-state",
-    PROJECTS: "docgen.v1.tasks.projects",
-    PROJECT_FILTER: "docgen.v1.tasks.project-filter",
-  },
-  UI: {
-    TODAY_FOCUS: "docgen.v1.ui.today-focus",
-    THEME: "theme",
-  },
-};
+const [value, setValue] = useLocalStorage<string>("my-key", "default");
 ```
 
 ## Zustand

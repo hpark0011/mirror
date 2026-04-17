@@ -70,33 +70,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 </Form>
 ```
 
-## Form Dialog Pattern
-
-Use `useDialogAutoSave` hook for auto-saving drafts:
-
-```tsx
-import { useDialogAutoSave } from "@/hooks/use-dialog-auto-save";
-
-const { savedData, clearSavedData } = useDialogAutoSave({
-  key: STORAGE_KEYS.TASKS.TICKET_FORM_SUBTASKS,
-  data: formData,
-  enabled: isOpen,
-});
-```
-
-## Keyboard Submit
-
-Use `useKeyboardSubmit` for Cmd+Enter submission:
-
-```tsx
-import { useKeyboardSubmit } from "@/hooks/use-keyboard-submit";
-
-useKeyboardSubmit({
-  onSubmit: form.handleSubmit(onSubmit),
-  enabled: isOpen,
-});
-```
-
 ## Schema Organization
 
 - Feature schemas: `lib/schema/{feature}.schema.ts`
