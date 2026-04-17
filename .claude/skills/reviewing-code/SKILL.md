@@ -6,38 +6,30 @@ description: Reviews pending code changes in this monorepo against AGENTS.md and
 
 # Reviewing Code
 
-Senior-engineer code review tuned to this repo's conventions. Instead of one flat pass, the skill runs a **pipeline of judgment**: understand intent, route to narrow reviewers, collect candidate findings, critique them ruthlessly, then compose only what matters.
+Senior-engineer code review tuned to this repo's conventions. A pipeline of judgment: understand intent, route to narrow reviewers, collect findings, critique them, compose only what matters.
 
-The core rule: **every finding must name a concrete failure mode or broken invariant.** Style preferences without a risk story get dropped by the Critic phase.
+**Core rule:** every finding must name a concrete failure mode or broken invariant. Style preferences without a risk story get dropped by the Critic.
 
-## Scope & non-goals
+## Stop conditions
 
-- **Not for GitHub PR comments** — use [`review-pr`](../review-pr/SKILL.md).
-- **Not a rewrite pass** — propose changes, don't silently apply them. Only edit if the user says "fix it" after the report.
-- **Not a substitute for `pnpm build` / `pnpm lint`** — run those too; this skill catches what linters can't.
-- **Orchestrator + specialists, not a swarm.** Phase 4 fans out to parallel specialist sub-agents (one per reviewer), but Intent, Normalize, Critique, and Compose all run in the orchestrator so the critic has one consistent voice. Cap the routed subset at ~5 agents — more coordination, diminishing returns.
+Pause and surface instead of pressing on when:
 
-## Quick start
-
-1. Identify the change set (arg, `--staged`, or `main...HEAD`).
-2. Run the 7-phase pipeline: Ingest → Intent → Route → Reviewer pass → Normalize → Critique → Compose.
-3. Emit a report with an Intent block up top, findings written as **Observation → Risk → Suggestion**, and a "Filtered by critic" footer.
-4. Capture blockers and should-fix items as tickets via [`generate-issue-tickets`](../generate-issue-tickets/SKILL.md).
-5. Ask if the user wants fixes applied.
+- Working tree is clean and no arg given — ask what to review.
+- The PR description contradicts the diff — surface the contradiction in the report; do not produce line-level findings on a misread goal.
+- A reviewer sub-agent times out or errors — note it in the "Filtered by critic" footer and proceed; don't block on a single specialist.
 
 ## Workflow
 
 ```
-- [ ] 1. Ingest    — scope, changed files, read each file fully, build packet
+- [ ] 1. Ingest    — scope, changed files, read each file fully, load matching rules
 - [ ] 2. Intent    — infer change type, goal, expected behavior, invariants, risk surface
 - [ ] 3. Route     — pick reviewers based on the risk map (correctness/convention/tests always)
-- [ ] 4. Reviewer pass — each selected reviewer emits candidate findings in the shared schema
+- [ ] 4. Review    — spawn selected reviewers AND run build+lint in parallel
 - [ ] 5. Normalize — dedupe and merge overlapping findings; preserve provenance
 - [ ] 6. Critique  — reject speculative/stylistic/misread findings; log reasons
-- [ ] 7. Compose   — rank by severity × confidence × blast radius; write the report
-- [ ] 8. Verify    — pnpm build + lint per .claude/rules/verification.md
-- [ ] 9. Tickets   — file blockers/should-fix via generate-issue-tickets
-- [ ] 10. Offer fixes
+- [ ] 7. Compose   — rank by severity × confidence × blast radius; write the report with Verify result
+- [ ] 8. Tickets   — file blockers/should-fix via generate-issue-tickets
+- [ ] 9. Offer fixes
 ```
 
 ### Phase 1 — Ingest
@@ -51,22 +43,22 @@ Determine scope and build the review packet. Read files in full; context lives o
 | Branch name | `git diff main...<branch>` |
 | File or dir | `git diff main -- <path>`  |
 
-If the working tree is clean and no arg given, ask the user what to review instead of guessing.
+**Rule mapping** — load only the rule files relevant to the diff. Every loaded rule costs tokens.
 
-**Rule mapping** — load only `.claude/rules/` files that match touched paths. Every loaded rule costs tokens.
+1. **Discover.** List `.claude/rules/**/*.md`. If that directory doesn't exist, fall back to whatever convention docs the repo uses (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/conventions/`).
+2. **Match by topic, not by hard-coded path.** Rule filenames name their domain — use the filename as the trigger.
+   - `forms.md` → diff touches form components or imports a form library
+   - `typescript.md` → diff touches `.ts` / `.tsx`
+   - `react-components.md` → diff touches `.tsx` components
+   - `tailwind.md` → diff touches classNames or `.css`
+   - `state-management.md` → diff touches stores, context, or global state
+   - `providers.md` → diff touches root layouts or provider trees
+   - `file-organization.md` → diff creates, moves, or renames files
+   - _(same pattern for any other rule file — the name is the trigger)_
+3. **Nested scopes.** If `.claude/rules/apps/<app>/` or `.claude/rules/<topic>/` exists and the diff lives under that scope, load those too.
+4. **Always-on rule.** Load the repo's dev-process / always-on rule if one exists (e.g. `dev-process.md`). The project's `AGENTS.md` / `CLAUDE.md` topic-rules index usually marks which rule is always-on.
 
-| If the diff touches…                     | Load                                    |
-| ---------------------------------------- | --------------------------------------- |
-| `packages/convex/**`                     | `.claude/rules/convex.md`               |
-| `**/forms/**`, `react-hook-form` imports | `.claude/rules/forms.md`                |
-| `*.tsx` components                       | `.claude/rules/react-components.md`     |
-| `store/`, context providers              | `.claude/rules/state-management.md`     |
-| Tailwind classes, `*.css`                | `.claude/rules/tailwind.md`             |
-| `*.ts` types, generics                   | `.claude/rules/typescript.md`           |
-| `providers/`, root layouts               | `.claude/rules/providers.md`            |
-| New/moved/renamed files                  | `.claude/rules/file-organization.md`    |
-| `apps/mirror/**`                         | `.claude/rules/apps/mirror/**`          |
-| Anything                                 | `.claude/rules/dev-process.md` (always) |
+Principle: rule filename = domain trigger. A new rule file added to the project auto-applies without editing this skill.
 
 ### Phase 2 — Intent map
 
@@ -80,36 +72,51 @@ Fill internally (will surface in the report header):
 - **invariants**: properties that must hold (e.g. "lock always released in finally", "auth required on write")
 - **risk_surface**: which boundaries this touches (state, concurrency, auth, schema, rendering, public API)
 
-If the PR description contradicts the diff, stop and surface that in the report instead of producing line-level findings on a misread goal.
-
 ### Phase 3 — Risk route
 
 Pick which specialist reviewer agents to spawn. Seven specialists live in `.claude/agents/code-review/` — three run on every review, four are routed by the risk map from Phase 2.
 
-| When                                                           | Agent                          |
-| -------------------------------------------------------------- | ------------------------------ |
-| **Always**                                                     | `code-review-correctness`      |
-| **Always**                                                     | `code-review-convention`       |
-| **Always**                                                     | `code-review-tests`            |
-| locks, async state, streaming, queues, retries, cancellation, shared mutable state (module vars, refs, caches, Convex docs read-then-written), check-then-act shapes, idempotency surfaces (webhooks, form submits, optimistic updates), effect ordering assumptions | `code-review-concurrency`      |
-| auth, permissions, trust boundaries, user input, secrets       | `code-review-security`         |
-| hot paths, render loops, N+1 access, large lists, Convex reads | `code-review-performance`      |
-| schema, migrations, data shape changes, Convex validators      | `code-review-data-integrity`   |
+| When                                                                                                                                                                                                                       | Agent                        |
+| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| **Always**                                                                                                                                                                                                                 | `code-review-correctness`    |
+| **Always**                                                                                                                                                                                                                 | `code-review-convention`     |
+| **Always**                                                                                                                                                                                                                 | `code-review-tests`          |
+| locks, async state, streaming, queues, retries, cancellation, shared mutable state (module vars, refs, caches, datastore docs read-then-written), check-then-act shapes, idempotency surfaces, effect ordering assumptions | `code-review-concurrency`    |
+| auth, permissions, trust boundaries, user input, secrets                                                                                                                                                                   | `code-review-security`       |
+| hot paths, render loops, N+1 access, large lists, database reads                                                                                                                                                           | `code-review-performance`    |
+| schema, migrations, data shape changes, schema validators                                                                                                                                                                  | `code-review-data-integrity` |
 
-A CSS-only diff collapses to the three always-on reviewers. Don't spawn routed reviewers that don't apply — every agent spawn is tokens and wall-clock time. Typical subset on a real PR: 3–5 agents total, cap at 5.
+Typical subset on a real PR: 3–5 agents total, cap at 5. Every agent spawn is tokens and wall-clock.
 
-### Phase 4 — Parallel reviewer pass
+## Finding schema
 
-Each reviewer runs as a **separate specialist sub-agent** with a narrow system prompt, so each reviewer holds full attention on one dimension. Reviewer agents produce candidate findings in the shared schema — they do not publish, they propose.
+Cross-cutting contract used by every reviewer in Phase 4 and by Normalize, Critique, and Compose downstream. Every candidate finding fills:
 
-**Spawn all selected reviewer agents in a single message with multiple parallel `Agent` tool calls.** Do not spawn them sequentially — the whole point is fan-out.
+```
+id:          short slug
+reviewer:    correctness | convention | tests | concurrency | security | performance | data | api
+title:       one-line (must name the concrete failure mode or risk)
+location:    file:startLine-endLine
+priority:    P0 | P1 | P2 | P3
+confidence:  0.0–1.0
+observation: what the code actually does
+risk:        the concrete failure mode or broken invariant (REQUIRED)
+evidence:    quoted lines, rule reference, or prior incident
+suggestedFix: one sentence
+```
 
-Each prompt must include:
+A finding with no `risk` is dropped by the Critic. Nits can skip `suggestedFix` but still need `risk`.
+
+### Phase 4 — Review (parallel)
+
+Spawn selected reviewers in parallel **and** run the repo's build + lint commands in parallel (discover from `package.json` scripts, `Makefile`, `justfile`, or whatever the repo uses). Each reviewer holds full attention on one dimension and proposes findings — they do not publish.
+
+Each reviewer prompt must include:
 
 1. **Scope** — the diff range, branch name, or path being reviewed.
-2. **Changed files** — paths and line ranges. Tell the agent to read each file end-to-end, not just the hunks.
+2. **Changed files** — paths and line ranges.
 3. **Intent packet** from Phase 2 verbatim: `change_type`, `goal`, `expected_behavior[]`, `invariants[]`, `risk_surface[]`.
-4. **Instruction to return findings as a JSON array** in the shared finding schema (below). Clean diffs return `[]` plus a one-line summary — do not invent findings.
+4. **Instruction to return findings as a JSON array** in the shared finding schema. Clean diffs return `[]` plus a one-line summary — do not invent findings.
 
 Example orchestration (one message, parallel tool calls):
 
@@ -120,28 +127,9 @@ Agent(subagent_type: "code-review-tests",       prompt: <same>)
 Agent(subagent_type: "code-review-concurrency", prompt: <same>)   // only if routed
 ```
 
-Collect all agent results before moving to Phase 5. If an agent times out or errors, note it in the report's "Filtered by critic" footer and proceed — don't block on a single specialist.
+Collect all agent results and the build/lint result before Phase 5. The build/lint outcome feeds the `Verified:` line in Phase 7's report header.
 
-**Reviewer agent definitions live in `.claude/agents/code-review/`** (one file per reviewer) — each has its own failure-mode checklist. Update those files when a reviewer needs to evolve, not this SKILL.md.
-
-### Shared finding schema
-
-Every candidate finding, regardless of reviewer, fills:
-
-```
-id:          short slug
-reviewer:    correctness | convention | tests | concurrency | security | performance | data | api
-title:       one-line (must name the concrete failure mode or risk)
-location:    file:startLine-endLine
-priority:    P0 | P1 | P2 | P3
-confidence:  0.0–1.0
-observation: what the code actually does (1–2 sentences)
-risk:        the concrete failure mode or broken invariant (REQUIRED)
-evidence:    quoted lines, rule reference, or prior incident
-suggestedFix: one sentence
-```
-
-**Hard rule:** a finding with no `risk` is dropped by the Critic. No exceptions. Nits can skip `suggestedFix` but still need `risk` (even if the risk is "small but real readability hazard in a hot file").
+Reviewer agent definitions live in `.claude/agents/code-review/` — each has its own failure-mode checklist. Update those files when a reviewer needs to evolve, not this SKILL.md.
 
 ### Phase 5 — Normalize
 
@@ -151,18 +139,16 @@ Dedupe by `location` + `risk` similarity. Sum confidence conservatively (cap at 
 
 ### Phase 6 — Critique (mandatory quality gate)
 
-This is the single biggest lever on review quality. Do not skip it.
-
-For each normalized finding, answer:
+The single biggest lever on review quality. For each normalized finding, answer:
 
 1. Is it grounded in the diff and the surrounding code I actually read? (Not speculation.)
 2. Does it name a real invariant or failure mode, not a preference?
 3. Is severity proportional to blast radius?
 4. Would a senior engineer on this repo actually say this?
 5. Does it contradict the PR's stated intent — i.e., did I misread the goal?
-6. Does `.claude/rules/dev-process.md` apply — am I about to ship a bandaid fix or rubber-stamp?
+6. Does the always-on dev-process rule apply — am I about to ship a bandaid or rubber-stamp?
 
-Reject findings that fail any check. **Log each rejection with a one-line reason** — this becomes the "Filtered by critic" footer in the report and is how the user can challenge the filter.
+Reject findings that fail any check. **Log each rejection with a one-line reason** — this becomes the "Filtered by critic" footer and is how the user can challenge the filter.
 
 **Self-check:** if the Critic rejects zero findings on a non-trivial diff, the phase didn't actually run. Go back and re-apply it honestly.
 
@@ -170,26 +156,22 @@ Reject findings that fail any check. **Log each rejection with a one-line reason
 
 Rank surviving findings by `severity × confidence × blast_radius` into four priority tiers:
 
-| Tier | Label | Maps to |
-|------|-------|---------|
-| **P0** | Critical | Correctness, data loss, auth bypass, concurrency — must fix before merge |
-| **P1** | High | Architecture violations, performance with real impact, missing tests on risky behavior |
-| **P2** | Moderate | Design smells, missed simplifications, minor test gaps |
-| **P3** | Low | Nits, style, readability — advisory only |
+| Tier   | Label    | Maps to                                                                                |
+| ------ | -------- | -------------------------------------------------------------------------------------- |
+| **P0** | Critical | Correctness, data loss, auth bypass, concurrency — must fix before merge               |
+| **P1** | High     | Architecture violations, performance with real impact, missing tests on risky behavior |
+| **P2** | Moderate | Design smells, missed simplifications, minor test gaps                                 |
+| **P3** | Low      | Nits, style, readability — advisory only                                               |
 
-Write the report (see format below). Use pipe-delimited markdown tables for findings. Do NOT use ASCII box-drawing characters.
+Compose the report (template below). Rules: every finding has a `file:line` anchor in backticks (no vague "in the auth module"); use pipe-delimited markdown tables, never ASCII box-drawing; omit empty priority sections; if the whole change is clean, say so in one sentence — don't invent findings; the Phase 4 build/lint result goes in the `Verified:` header line; always end with Summary table and Recommended next step; if lint caught something, cite lint output instead of re-listing it as a finding.
 
-### Phase 8 — Verify
-
-Run `pnpm build` + `pnpm lint` for the affected app per `.claude/rules/verification.md`. Record pass/fail in the report header. If lint catches something, point at lint output instead of re-listing it as a finding.
-
-### Phase 9 — Tickets
+### Phase 8 — Tickets
 
 Invoke [`generate-issue-tickets`](../generate-issue-tickets/SKILL.md) for every blocker and should-fix finding. One ticket per finding. Preserve the `file:line` anchor and the `risk` sentence in the ticket body. Do this **before** offering fixes so tickets exist even if the user defers the work.
 
-### Phase 10 — Offer fixes
+### Phase 9 — Offer fixes
 
-End with: _"Want me to apply the blockers / should-fix items?"_ Do not fix preemptively. If the user says yes, apply edits and re-run build + lint per `verification.md`.
+End with: _"Want me to apply the blockers / should-fix items?"_ Do not fix preemptively. If the user says yes, apply edits and re-run build + lint.
 
 ## Report format
 
@@ -198,70 +180,52 @@ End with: _"Want me to apply the blockers / should-fix items?"_ Do not fix preem
 
 **Scope:** <merge-base description> (<N files, M lines>)
 **Intent:** <one sentence — what the author is trying to do>
-**Verified:** build ✓/✗  lint ✓/✗
+**Verified:** build ✓/✗ lint ✓/✗
 
 **Reviewers:** <comma-separated list of active reviewers>
+
 - <routed reviewer> -- <one-line reason it was routed>
 
 ### P0 — Critical (<count>)
 
-| # | File | Issue | Reviewer | Confidence |
-|---|------|-------|----------|------------|
-| 1 | `path/to/file.tsx:42` | <title — concrete failure mode> | <reviewer> | 0.XX |
+| #   | File                  | Issue                           | Reviewer   | Confidence |
+| --- | --------------------- | ------------------------------- | ---------- | ---------- |
+| 1   | `path/to/file.tsx:42` | <title — concrete failure mode> | <reviewer> | 0.XX       |
 
 ### P1 — High (<count>)
 
-| # | File | Issue | Reviewer | Confidence |
-|---|------|-------|----------|------------|
-| 2 | `path/to/file.ts:17` | <title — concrete risk> | <reviewer> | 0.XX |
-
 ### P2 — Moderate (<count>)
-
-| # | File | Issue | Reviewer | Confidence |
-|---|------|-------|----------|------------|
-| 3 | `path/to/file.ts:55` | <title — concrete risk> | <reviewer> | 0.XX |
 
 ### P3 — Low (<count>)
 
-| # | File | Issue | Reviewer | Confidence |
-|---|------|-------|----------|------------|
-| 4 | `path/to/file.css:8` | <title — risk, even if small> | <reviewer> | 0.XX |
+(same table shape; omit empty sections)
 
 ### Looks good
+
 - <one-line positive callout, if any>
 
 ### Filtered by critic (<count>)
+
 - <finding title> — <rejection reason>
 
 ### Summary
 
-| Priority | Count |
-|----------|-------|
-| P0 Critical | N |
-| P1 High | N |
-| P2 Moderate | N |
-| P3 Low | N |
-| **Total** | **N** |
+| Priority    | Count |
+| ----------- | ----- |
+| P0 Critical | N     |
+| P1 High     | N     |
+| P2 Moderate | N     |
+| P3 Low      | N     |
+| **Total**   | **N** |
 
 ### Recommended next step
+
 <one sentence: what to do first — e.g., "Fix P0 #1 before merge, then address P1 items." or "Clean diff — ready to merge.">
 
 Want me to apply fixes for the P0/P1 items?
 ```
 
-Report rules:
-
-- Every finding has a `file:line` anchor in backticks. No vague "in the auth module".
-- Use pipe-delimited markdown tables. Do NOT use ASCII box-drawing characters.
-- **P0 Critical** = correctness, security, data loss, auth bypass, concurrency bugs.
-- **P1 High** = architecture violations, performance with real impact, missing tests on risky behavior.
-- **P2 Moderate** = design smells, missed simplifications, minor test gaps.
-- **P3 Low** = nits, style, readability — advisory only.
-- Omit empty priority sections (if no P0 findings, skip the P0 section).
-- If the whole change is clean, say so in one sentence — don't invent findings. The "Filtered by critic" footer can still show what you considered.
-- Always end with the Summary table and Recommended next step.
-
-## Examples
+## Example
 
 **Input:** user says "review my changes" on a branch that fixes a chat streaming race.
 
@@ -272,62 +236,32 @@ Report rules:
 
 **Scope:** main...fix-chat-message-system (3 files, 91 lines)
 **Intent:** Prevent the streaming lock from remaining stuck when a request is cancelled mid-stream
-**Verified:** build ✓  lint ✓
+**Verified:** build ✓ lint ✓
 
 **Reviewers:** correctness, convention, tests, concurrency
+
 - concurrency -- lock lifecycle and cleanup paths in streaming code
 
 ### P0 — Critical (1)
 
-| # | File | Issue | Reviewer | Confidence |
-|---|------|-------|----------|------------|
-| 1 | `packages/convex/chat/stream.ts:118-131` | Cleanup skipped on early return — `streamingInProgress` stays set after cancellation, blocking all subsequent streams | concurrency, correctness | 0.95 |
+| #   | File                                     | Issue                                                                                                                 | Reviewer                 | Confidence |
+| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------- |
+| 1   | `packages/convex/chat/stream.ts:118-131` | Cleanup skipped on early return — `streamingInProgress` stays set after cancellation, blocking all subsequent streams | concurrency, correctness | 0.95       |
 
-### P1 — High (1)
+### Filtered by critic (1)
 
-| # | File | Issue | Reviewer | Confidence |
-|---|------|-------|----------|------------|
-| 2 | `packages/convex/chat/stream.test.ts` | No test for the interrupted-stream path — no regression protection for the exact bug this PR fixes | tests | 0.85 |
-
-### P3 — Low (1)
-
-| # | File | Issue | Reviewer | Confidence |
-|---|------|-------|----------|------------|
-| 3 | `apps/mirror/app/(chat)/chat-input.tsx:5` | Unused `cn` import in a hot file | convention | 0.70 |
-
-### Looks good
-- Lock guard pattern with `expectedStartedAt` is a solid approach for stale-callback protection.
-
-### Filtered by critic (2)
 - "Rename `expectedStartedAt` to `streamToken`" — style preference, no risk named.
-- "Extract cleanup into a helper" — speculative refactor, not requested by the PR intent.
 
 ### Summary
 
-| Priority | Count |
-|----------|-------|
-| P0 Critical | 1 |
-| P1 High | 1 |
-| P2 Moderate | 0 |
-| P3 Low | 1 |
-| **Total** | **3** |
+| Priority    | Count |
+| ----------- | ----- |
+| P0 Critical | 1     |
+| **Total**   | **1** |
 
 ### Recommended next step
-Fix P0 #1 (move lock release into a `finally` block) before merge, then add regression test for P1 #2.
 
-Want me to apply fixes for the P0/P1 items?
+Move the lock release into a `finally` block before merge.
+
+Want me to apply fixes for the P0 item?
 ```
-
-## Anti-patterns
-
-- **Running every reviewer on every diff.** Route by risk map. A CSS tweak doesn't need the security reviewer.
-- **Findings without a `risk` field.** If you can't name a failure mode or broken invariant, it's a preference — drop it.
-- **Critic that rubber-stamps.** Zero rejects on a non-trivial diff means the phase didn't run.
-- **Style preferences dressed as blockers.** Severity must match blast radius, not conviction.
-- **Skipping the Intent block** because "the diff is obvious." The diff is never obvious — write it.
-- **Reviewing the diff without reading the whole file.** Context lives outside the hunks.
-- **Inventing findings to justify the review.** A clean diff deserves "looks good" in one line.
-- **Rewriting the code in the report.** Point at the problem; let the author write the fix.
-- **Loading every rule file regardless of scope.** Map paths to rules.
-- **Mixing review with fixes in the same pass.** Report first, ask, then fix.
-- **Duplicating `pnpm lint`.** If ESLint catches it, cite lint output instead of re-listing.
