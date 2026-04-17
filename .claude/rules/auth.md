@@ -120,6 +120,21 @@ If you change Vercel's build command, the nested `cd` pattern must be preserved 
 
 Any new env var read by either Next or Convex must also be added to `turbo.json`'s `globalEnv` array — otherwise turbo filters it out before the build subprocess sees it.
 
+## Preview deployments on Vercel
+
+Vercel builds every PR as a Preview. The build command invokes `npx convex deploy` unconditionally — which means a PR build that isn't set up for previews fails hard (exit 1, `no Convex deployment configuration found`). This whole setup is a one-time ops chore, but easy to get wrong in subtle ways.
+
+Six steps, in order. Skipping any one breaks the preview:
+
+1. **Generate a Convex Preview Deploy Key** in the Convex dashboard → **Project Settings** (click the project name in the top-left breadcrumb to get out of the Production deployment view; the key is a *project-level* artifact, not a deployment-level one). The key's format is `preview:<team-slug>:<project-slug>|<token>`.
+2. **Register the key on Vercel as `CONVEX_DEPLOY_KEY` — Preview scope only.** Do *not* overwrite or share scope with the Production key; a Preview-scoped key deploys ephemeral per-PR backends, a Production-scoped key deploys prod.
+3. **Use the Vercel dashboard, not `vercel env add`, for this one.** The CLI's `vercel env add NAME preview` supports branch scoping via `preview:<branch>` syntax, so a value containing colons (which Convex preview keys do — `preview:<team>:<project>|…`) gets mis-parsed as `preview` + branch `<team>:<project>|…` and fails with "Branch ... not found in the connected Git repository". The dashboard has separate Value and Environment fields and avoids the ambiguity.
+4. **Seed Convex Project-level Default Environment Variables** for every var our `packages/convex/convex/env.ts` zod schema requires: `SITE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Every new preview backend spawns empty; these defaults are what populate it on creation. Placeholders are fine (`https://preview.placeholder.invalid`, non-empty strings) — auth won't work on preview URLs anyway because the OAuth redirect URIs are app-domain-specific.
+5. **Defaults only apply to NEWLY-created preview deployments.** A preview deploy that failed before you set the defaults won't retroactively get them — push an empty commit (`git commit --allow-empty && git push`) to force Convex to provision a fresh backend that picks the defaults up.
+6. **Preview deploy URL behavior you should expect:** the app loads, Convex queries/mutations/streaming work, email-OTP sign-in works, but Google OAuth sign-in fails at callback (redirect-URI mismatch — Google's client has prod/dev domains whitelisted, not `mirror-<hash>-hpark0011s-projects.vercel.app`). If preview-auth matters for review, provision a dedicated "preview" Google OAuth client with the preview-URL pattern authorized and swap the placeholders for its real credentials.
+
+Preview backends auto-clean after 5 days (14 on Convex Pro) and count toward the project's deployment limit.
+
 ## Middleware runtime
 
 `apps/mirror/middleware.ts` imports `better-auth/cookies` (`getSessionCookie`). It's a pure cookie reader — safe on the default Edge Runtime, no `runtime: 'nodejs'` needed. If you add any Better Auth call that uses Node APIs (rare), declare `runtime: 'nodejs'` on the middleware config.
