@@ -7,10 +7,13 @@ import {
   TEST_EMAIL_SUFFIX,
 } from "./auth/testMode";
 import { authComponent, createAuth } from "./auth/client";
+import { env } from "./env";
 
 const http = httpRouter();
 
-authComponent.registerRoutes(http, createAuth);
+authComponent.registerRoutes(http, createAuth, {
+  cors: { allowedOrigins: [env.SITE_URL] },
+});
 
 // Constant-time string compare to avoid leaking secret length via timing.
 function secretsMatch(a: string, b: string): boolean {
