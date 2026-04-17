@@ -1,6 +1,5 @@
 ---
 paths:
-  - "apps/greyboard/**/*.tsx"
   - "packages/**/*.tsx"
 ---
 

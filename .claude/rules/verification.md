@@ -46,7 +46,6 @@ All of the above: build, lint, screenshot, and interaction test.
 | App | Filter |
 |-----|--------|
 | Mirror | `@feel-good/mirror` |
-| Greyboard | `@feel-good/greyboard` |
 | UI Factory | `@feel-good/ui-factory` |
 | Shared packages | `@feel-good/features`, `@feel-good/ui`, etc. |
 

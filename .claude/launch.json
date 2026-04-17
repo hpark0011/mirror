@@ -2,13 +2,6 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "greyboard",
-      "runtimeExecutable": "pnpm",
-      "runtimeArgs": ["dev", "--filter=@feel-good/greyboard"],
-      "port": 3000,
-      "autoPort": true
-    },
-    {
       "name": "mirror",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["dev", "--filter=@feel-good/mirror"],

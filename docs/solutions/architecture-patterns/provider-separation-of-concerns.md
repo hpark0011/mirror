@@ -187,7 +187,6 @@ providers/root-provider.tsx (composition only)
 ## Related
 
 - Session provider uses similar factory pattern in `packages/features/auth`
-- Greyboard uses similar composition in `apps/greyboard/providers`
 - Environment validation pattern in `lib/env/client.ts`
 
 ## Files Changed

@@ -17,7 +17,7 @@ You inspect this monorepo to answer: how is the topic currently implemented here
 
 1. Locate every file in the repo that relates to the topic. Use `Glob` + `Grep` aggressively — don't stop at the first hit.
 2. Read the implementation enough to describe the current pattern accurately. Cite real line numbers.
-3. Identify owning packages/apps (`apps/mirror`, `apps/greyboard`, `packages/features`, etc.) and note conventions already in use.
+3. Identify owning packages/apps (`apps/mirror`, `apps/ui-factory`, `packages/features`, etc.) and note conventions already in use.
 4. If the feature is absent, say so explicitly and identify the closest adjacent patterns that a new implementation would plug into.
 
 ## Output format
