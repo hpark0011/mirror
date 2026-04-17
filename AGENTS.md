@@ -112,6 +112,7 @@ Path- and topic-scoped guidance lives in `.claude/rules/` — load the relevant 
 
 | Topic             | File                                 |
 | ----------------- | ------------------------------------ |
+| Auth              | `.claude/rules/auth.md`              |
 | Convex backend    | `.claude/rules/convex.md`            |
 | Forms             | `.claude/rules/forms.md`             |
 | React components  | `.claude/rules/react-components.md`  |
