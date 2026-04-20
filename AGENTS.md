@@ -1,18 +1,15 @@
 # Feel Good Monorepo
 
-Turborepo monorepo with 2 Next.js applications and shared packages.
+Turborepo monorepo. Two Next.js 15 (App Router, React 19) apps backed by a shared Convex deployment (real-time queries + Better Auth), with UI primitives in `packages/ui` and cross-app feature modules in `packages/features`.
 
-Full project map (apps, packages, ports, auth layers): `docs/project-map.md`.
+Full project map (apps, packages, ports, auth layers): [`docs/project-map.md`](docs/project-map.md).
 
-## Quick Start
+## Deploy & Build Footguns
 
-```bash
-pnpm install           # Install all dependencies
-pnpm dev               # Run all apps in dev mode
-pnpm build             # Build all packages
-pnpm lint              # Lint all packages
-pnpm format            # Format all files
-```
+Two things about the Vercel/Convex setup are easy to break and hard to diagnose — read before touching:
+
+- **`turbo.json` `globalEnv` array.** Any env var read by Next or Convex at build time must be listed here, or Turbo filters it out before the build subprocess sees it. Owner: [`.claude/rules/auth.md` § Monorepo deploy gotcha](.claude/rules/auth.md).
+- **Vercel build command.** Root Directory is `apps/mirror` but Convex lives at `packages/convex/convex/`. The build walks up with `cd ../../packages/convex && npx convex deploy --cmd "cd ../../apps/mirror && ..."`. Do not simplify this. Owner: [`.claude/rules/auth.md` § Monorepo deploy gotcha](.claude/rules/auth.md).
 
 ## Core Principles
 
@@ -22,28 +19,21 @@ pnpm format            # Format all files
 
 Never commit directly to main. Always use feature branches. When a merge conflict or branch divergence occurs, stop and ask the user before force-pushing or resetting.
 
-## Task Management
+## Project Rules
 
-Work items tracked in `workspace/tickets/` using the `generate-issue-tickets` skill.
-For bug investigations, use the `/project-debug` skill (hypothesis-first protocol).
+Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` frontmatter unless noted.
 
-## Topic Rules
-
-Path- and topic-scoped guidance lives in `.claude/rules/` — load the relevant file when working in that area:
-
-| Topic             | File                                 |
-| ----------------- | ------------------------------------ |
-| Auth              | `.claude/rules/auth.md`              |
-| Convex backend    | `.claude/rules/convex.md`            |
-| Forms             | `.claude/rules/forms.md`             |
-| React components  | `.claude/rules/react-components.md`  |
-| State management  | `.claude/rules/state-management.md`  |
-| Tailwind          | `.claude/rules/tailwind.md`          |
-| TypeScript        | `.claude/rules/typescript.md`        |
-| Providers         | `.claude/rules/providers.md`         |
-| File organization | `.claude/rules/file-organization.md` |
-| Testing           | `.claude/rules/testing.md`           |
-| Verification      | `.claude/rules/verification.md`      |
-| Dev process       | `.claude/rules/dev-process.md`       |
-| App-specific      | `.claude/rules/apps/`                |
-| Sentry            | `.claude/rules/sentry/`              |
+- **[Auth](.claude/rules/auth.md)** — Better Auth running inside Convex; Next.js only proxies `/api/auth/*`. **Check before debugging sign-in, OAuth, or session cookies — the URL/host choreography between `.convex.cloud`, `.convex.site`, and the app domain is the #1 footgun.**
+- **[Convex](.claude/rules/convex.md)** — function guidelines, validators, schema, query/mutation patterns. Auto-loads under `packages/convex/convex/**`.
+- **[Verification](.claude/rules/verification.md)** — build/lint/Chrome-MCP tiers per change type. **Run the matching tier before reporting any task complete.**
+- **[File organization](.claude/rules/file-organization.md)** — where components/hooks/utils/schemas live in a feature module. All React components go in `components/`; `views/` is reserved for cross-app packages.
+- **[Forms](.claude/rules/forms.md)** — React Hook Form + Zod + `zodResolver`; shadcn `Form` primitives from `@feel-good/ui/primitives/form`; schemas live in each feature's `lib/schemas/`.
+- **[React components](.claude/rules/react-components.md)** — components under ~100 lines; **never `setTimeout` to fix rendering timing — use Suspense, view-transition isolation, or `startTransition` instead.**
+- **[State management](.claude/rules/state-management.md)** — three-tier hierarchy: `useState`/`useReducer` → `useLocalStorage` → React Context. Zustand is not used in this repo.
+- **[Tailwind](.claude/rules/tailwind.md)** — Tailwind v4, CSS-first config (no `tailwind.config.js`); use `@source` to scan shared packages; three-layer token system (Radix → semantic → `@theme inline`).
+- **[TypeScript](.claude/rules/typescript.md)** — inline type imports; feature types in `features/<feature>/types.ts`, shared in `types/<domain>.types.ts`.
+- **[Providers](.claude/rules/providers.md)** — separate client singleton (`lib/<service>.ts`) from React provider (`providers/<service>-provider.tsx`); never `!` on `process.env`; lazy-init external clients.
+- **[Testing](.claude/rules/testing.md)** — **Playwright CLI only for e2e tests.** Never the Playwright MCP plugin or browser-automation MCP tools.
+- **[Dev process](.claude/rules/dev-process.md)** — session discipline, planning, problem-solving flow; **after any correction, update `workspace/lessons.md`.**
+- **[App-specific](.claude/rules/apps/)** — per-app rules (currently `apps/mirror/articles.md`, `apps/mirror/navigation.md`).
+- **[Sentry](.claude/rules/sentry/)** — exception capture, tracing spans, and logger patterns for Next.js.
