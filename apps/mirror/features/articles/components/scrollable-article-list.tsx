@@ -1,13 +1,24 @@
 "use client";
 
+import { useEffect } from "react";
 import { EmptyMessage } from "@/components/empty-message";
 import { useScrollRoot } from "@/features/content";
+import { markContentPanelContentReady } from "@/lib/perf/content-panel-open";
 import { useArticleList } from "../context/article-list-context";
 import { ArticleList } from "./article-list";
 
 export function ScrollableArticleList() {
   const ctx = useArticleList();
   const scrollRoot = useScrollRoot();
+
+  useEffect(() => {
+    const raf1 = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        markContentPanelContentReady();
+      });
+    });
+    return () => cancelAnimationFrame(raf1);
+  }, []);
 
   if (ctx.hasNoArticles) {
     return <EmptyMessage showGraphic graphicBottomLabel="Articles" />;
