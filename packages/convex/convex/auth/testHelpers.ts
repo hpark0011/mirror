@@ -93,15 +93,21 @@ export const ensureTestUser = internalMutation({
       .unique();
 
     // Refuse to claim a username already owned by a different (non-test) email.
-    const usernameOwner = await ctx.db
+    // Use `.collect()` rather than `.unique()` because dev/test environments can
+    // accumulate duplicate rows with the same username across multiple test
+    // emails (e.g. "test-user" shared by several @mirror.test accounts). The
+    // original invariant we care about is "no NON-test user owns this username"
+    // — duplicates among test users are harmless here.
+    const usernameOwners = await ctx.db
       .query("users")
       .withIndex("by_username", (q) => q.eq("username", args.username))
-      .unique();
-    if (
-      usernameOwner &&
-      usernameOwner.email !== args.email &&
-      !usernameOwner.email.endsWith(TEST_EMAIL_SUFFIX)
-    ) {
+      .collect();
+    const blockingOwner = usernameOwners.find(
+      (owner) =>
+        owner.email !== args.email &&
+        !owner.email.endsWith(TEST_EMAIL_SUFFIX),
+    );
+    if (blockingOwner) {
       throw new Error(
         `Username ${args.username} is already owned by a non-test user`,
       );
