@@ -1,7 +1,7 @@
 ---
 paths:
   - "**/components/**/*form*.tsx"
-  - "**/features/**/components/**/*.tsx"
+  - "**/components/forms/**/*.tsx"
   - "**/lib/schemas/**"
   - "**/lib/schema/**"
 ---

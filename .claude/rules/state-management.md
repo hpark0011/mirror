@@ -5,6 +5,7 @@ paths:
   - "**/context/**/*.tsx"
   - "**/providers/**/*.tsx"
   - "**/store/**/*.ts"
+  - "**/features/**/store.ts"
 ---
 
 # State Management Rules
