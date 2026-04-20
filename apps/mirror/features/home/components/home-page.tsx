@@ -1,5 +1,6 @@
-import { Button } from "@feel-good/ui/primitives/button";
 import Link from "next/link";
+
+import { WaitlistForm } from "./waitlist-form";
 
 export function MirrorHomePage() {
   return (
@@ -11,20 +12,16 @@ export function MirrorHomePage() {
         <p className="text-xl">
           Turn your mind into something others can talk to.
         </p>
-        <p className="text-sm">Join Waitlist</p>
       </div>
 
-      <div className="flex flex-col gap-1.5">
-        <Button variant="outline" size="lg" asChild>
-          <Link href="/sign-in">
-            Sign in
-          </Link>
-        </Button>
-        <Button variant="primary" size="lg" asChild>
-          <Link href="/sign-up">
-            Create account
-          </Link>
-        </Button>
+      <div className="flex flex-col gap-4 items-center">
+        <WaitlistForm />
+        <Link
+          href="/sign-in"
+          className="text-sm text-muted-foreground hover:underline"
+        >
+          Already invited? Sign in
+        </Link>
       </div>
     </div>
   );
