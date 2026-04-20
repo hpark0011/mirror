@@ -2,11 +2,18 @@ import { NextResponse, type NextRequest } from "next/server";
 
 interface TestSessionRequestBody {
   email: string;
+  /**
+   * When true, skip the `/test/ensure-user` step so the resulting session
+   * belongs to a user whose `users.username` is undefined. Used by the
+   * no-username Playwright fixture to exercise auth-routing gates that
+   * branch on username presence (FR-01, FR-04, FR-06, FR-12).
+   */
+  withoutUsername?: boolean;
 }
 
 interface TestSessionResponse {
   ok: boolean;
-  username: string;
+  username: string | null;
 }
 
 interface ReadOtpResponse {
@@ -123,19 +130,32 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Collect all Set-Cookie headers from the sign-in response.
   const signInCookies = signInRes.headers.getSetCookie();
 
-  // Step 4: Ensure the app-level user profile exists (username, onboardingComplete, etc.).
-  const ensureUserRes = await fetch(`${convexSiteUrl}/test/ensure-user`, {
+  // Step 4: Normalize the app-level user profile to the state this fixture needs.
+  // With-username path: upsert `users.username = "test-user"` + `onboardingComplete: true`.
+  // No-username path: actively reset the row — `onCreate` only fires once per auth
+  // user, so a row that a prior run (or manual repro) set to onboarded state would
+  // otherwise persist and make the no-username fixture silently pass against a
+  // fully-onboarded user. Skipping this step would trade robustness for one RTT.
+  const normalizeUrl = body.withoutUsername
+    ? `${convexSiteUrl}/test/reset-user`
+    : `${convexSiteUrl}/test/ensure-user`;
+  const normalizeBody = body.withoutUsername
+    ? { email }
+    : { email, username: "test-user" };
+  const normalizeRes = await fetch(normalizeUrl, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       "x-test-secret": testSecret,
     },
-    body: JSON.stringify({ email, username: "test-user" }),
+    body: JSON.stringify(normalizeBody),
   });
-  if (!ensureUserRes.ok) {
+  if (!normalizeRes.ok) {
     return NextResponse.json(
-      { error: "ensure-user failed" },
-      { status: ensureUserRes.status },
+      {
+        error: body.withoutUsername ? "reset-user failed" : "ensure-user failed",
+      },
+      { status: normalizeRes.status },
     );
   }
 
@@ -159,7 +179,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Step 6: Forward all collected Set-Cookie headers to the caller (Playwright).
   const allCookies = [...signInCookies, ...tokenCookies];
 
-  const responseBody: TestSessionResponse = { ok: true, username: "test-user" };
+  const responseBody: TestSessionResponse = {
+    ok: true,
+    username: body.withoutUsername ? null : "test-user",
+  };
   const response = NextResponse.json(responseBody, { status: 200 });
 
   for (const cookieValue of allCookies) {

@@ -1,19 +1,11 @@
 import { redirect } from "next/navigation";
 import { fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import { MirrorHomePage } from "@/features/home";
-import { enforceOnboardingGate } from "@/lib/route-guards";
+import { OnboardingWizard } from "@/features/onboarding";
 
-export default async function HomePage() {
+export default async function OnboardingPage() {
   const authed = await isAuthenticated();
-
-  if (!authed) {
-    return (
-      <main className="mx-auto min-h-screen">
-        <MirrorHomePage />
-      </main>
-    );
-  }
+  if (!authed) redirect("/sign-in");
 
   const profile = await fetchAuthQuery(
     api.users.queries.getCurrentProfile,
@@ -24,5 +16,5 @@ export default async function HomePage() {
     redirect(`/@${profile.username}`);
   }
 
-  await enforceOnboardingGate(profile);
+  return <OnboardingWizard />;
 }

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Profile } from "@/features/profile";
 import { isReservedUsername } from "@/lib/reserved-usernames";
 import { fetchAuthQuery, preloadAuthQuery } from "@/lib/auth-server";
+import { enforceOnboardingGate } from "@/lib/route-guards";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { ProfileRouteDataProvider } from "./_providers/profile-route-data-context";
 import { ChatRouteController } from "./_providers/chat-route-controller";
@@ -21,6 +22,8 @@ export default async function ProfileLayout({
   void _children;
   const { username } = await params;
   if (isReservedUsername(username)) notFound();
+
+  await enforceOnboardingGate();
 
   const [convexProfile, preloadedProfile, currentAuthUser] =
     await Promise.all([

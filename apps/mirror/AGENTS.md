@@ -119,7 +119,7 @@ The `[username]` route uses a **panel-based workspace** with parallel routes:
 | `/@username/chat` | `[username]/chat/page.tsx` | Public | Chat with clone |
 | `/@username/chat/:conversationId` | `[username]/chat/[conversationId]/page.tsx` | Public | Specific conversation |
 | `/@username/clone-settings` | `[username]/clone-settings/page.tsx` | Owner | Clone persona config |
-| `/onboarding` | `(protected)/onboarding/page.tsx` | Required | New user wizard |
+| `/onboarding` | `onboarding/page.tsx` | Required | New user wizard |
 | `/dashboard` | `(protected)/dashboard/page.tsx` | Required | Insights |
 | `/sign-in` | `(auth)/sign-in/page.tsx` | Public | Login |
 | `/sign-up` | `(auth)/sign-up/page.tsx` | Public | Sign up |

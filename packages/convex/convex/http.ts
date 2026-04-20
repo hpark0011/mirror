@@ -102,6 +102,32 @@ if (isPlaywrightTestMode()) {
   });
 
   http.route({
+    path: "/test/reset-user",
+    method: "POST",
+    handler: httpAction(async (ctx, req) => {
+      const deny = authorizeTestRequest(req);
+      if (deny) return deny;
+      const { email } = (await req.json()) as { email: string };
+      if (!email) {
+        return new Response("Bad Request: email required", { status: 400 });
+      }
+      if (!email.endsWith(TEST_EMAIL_SUFFIX)) {
+        return new Response(
+          `Bad Request: email must end in ${TEST_EMAIL_SUFFIX}`,
+          { status: 400 },
+        );
+      }
+      await ctx.runMutation(internal.auth.testHelpers.resetTestUser, {
+        email,
+      });
+      return new Response(JSON.stringify({ ok: true }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }),
+  });
+
+  http.route({
     path: "/test/ensure-post-fixtures",
     method: "POST",
     handler: httpAction(async (ctx, req) => {
