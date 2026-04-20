@@ -24,5 +24,5 @@ export default async function HomePage() {
     redirect(`/@${profile.username}`);
   }
 
-  await enforceOnboardingGate();
+  await enforceOnboardingGate(profile);
 }
