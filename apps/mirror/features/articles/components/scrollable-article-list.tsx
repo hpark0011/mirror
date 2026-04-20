@@ -12,12 +12,16 @@ export function ScrollableArticleList() {
   const scrollRoot = useScrollRoot();
 
   useEffect(() => {
+    let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
         markContentPanelContentReady();
       });
     });
-    return () => cancelAnimationFrame(raf1);
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
   }, []);
 
   if (ctx.hasNoArticles) {
