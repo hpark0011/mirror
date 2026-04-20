@@ -130,26 +130,33 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Collect all Set-Cookie headers from the sign-in response.
   const signInCookies = signInRes.headers.getSetCookie();
 
-  // Step 4: Ensure the app-level user profile exists (username, onboardingComplete, etc.).
-  // When `withoutUsername` is true, we skip this step and let the Better Auth
-  // `onCreate` trigger's default insert stand — the row exists with no
-  // `username` and `onboardingComplete: false`. This is the authed no-username
-  // state the auth-routing e2e suite needs to exercise.
-  if (!body.withoutUsername) {
-    const ensureUserRes = await fetch(`${convexSiteUrl}/test/ensure-user`, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-test-secret": testSecret,
+  // Step 4: Normalize the app-level user profile to the state this fixture needs.
+  // With-username path: upsert `users.username = "test-user"` + `onboardingComplete: true`.
+  // No-username path: actively reset the row — `onCreate` only fires once per auth
+  // user, so a row that a prior run (or manual repro) set to onboarded state would
+  // otherwise persist and make the no-username fixture silently pass against a
+  // fully-onboarded user. Skipping this step would trade robustness for one RTT.
+  const normalizeUrl = body.withoutUsername
+    ? `${convexSiteUrl}/test/reset-user`
+    : `${convexSiteUrl}/test/ensure-user`;
+  const normalizeBody = body.withoutUsername
+    ? { email }
+    : { email, username: "test-user" };
+  const normalizeRes = await fetch(normalizeUrl, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-test-secret": testSecret,
+    },
+    body: JSON.stringify(normalizeBody),
+  });
+  if (!normalizeRes.ok) {
+    return NextResponse.json(
+      {
+        error: body.withoutUsername ? "reset-user failed" : "ensure-user failed",
       },
-      body: JSON.stringify({ email, username: "test-user" }),
-    });
-    if (!ensureUserRes.ok) {
-      return NextResponse.json(
-        { error: "ensure-user failed" },
-        { status: ensureUserRes.status },
-      );
-    }
+      { status: normalizeRes.status },
+    );
   }
 
   // Step 5: Pre-warm the Convex JWT by forwarding the session cookie to the

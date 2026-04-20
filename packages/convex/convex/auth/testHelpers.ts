@@ -127,6 +127,43 @@ export const ensureTestUser = internalMutation({
   },
 });
 
+/**
+ * Resets the app-level users row for a test user into the authed-but-not-onboarded
+ * state: `username` unset, `name`/`bio` cleared, and `onboardingComplete` false.
+ * Idempotent — if the row doesn't exist yet (Better Auth `onCreate` trigger will
+ * create it with the same shape), this is a no-op.
+ *
+ * Used by the no-username Playwright fixture so a row that was previously
+ * onboarded (by a prior run or manual repro) is forced back to the
+ * no-username state every run, instead of silently passing through
+ * auth-routing tests as a fully-onboarded user.
+ *
+ * WARNING: Only call from test infrastructure. Never expose as public API.
+ */
+export const resetTestUser = internalMutation({
+  args: {
+    email: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+
+    const existing = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+    if (!existing) return null;
+
+    await ctx.db.patch(existing._id, {
+      username: undefined,
+      name: undefined,
+      bio: undefined,
+      onboardingComplete: false,
+    });
+    return null;
+  },
+});
+
 const DRAFT_FIXTURE_SLUG = "test-fixture-draft";
 const PUBLISHED_FIXTURE_SLUG = "test-fixture-published";
 

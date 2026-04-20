@@ -20,7 +20,7 @@ export default async function HomePage() {
     {}
   );
 
-  if (profile?.username) {
+  if (profile?.username && profile.onboardingComplete) {
     redirect(`/@${profile.username}`);
   }
 

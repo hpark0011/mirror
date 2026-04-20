@@ -2,11 +2,19 @@ import { redirect } from "next/navigation";
 import { fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
 
-type ProfileForGate = { username?: string } | null;
+type ProfileForGate = {
+  username?: string;
+  onboardingComplete?: boolean;
+} | null;
+
+function hasFinishedOnboarding(profile: ProfileForGate): boolean {
+  return !!(profile?.username && profile.onboardingComplete);
+}
 
 /**
  * Server-side gate: if the request has an authenticated session but the user
- * has no username yet, redirects to `/onboarding`. Unauthenticated requests
+ * has not finished onboarding (no username yet OR `onboardingComplete` still
+ * false after step 1), redirects to `/onboarding`. Unauthenticated requests
  * pass through silently — other gates (middleware, page-level auth checks)
  * handle them.
  *
@@ -15,13 +23,13 @@ type ProfileForGate = { username?: string } | null;
  * avoid a second Convex round-trip and guarantee the gate decides against
  * the same profile snapshot the caller saw.
  *
- * Single source of truth for the "no-username → onboarding" rule (NFR-07).
+ * Single source of truth for the "not-onboarded → onboarding" rule (NFR-07).
  */
 export async function enforceOnboardingGate(
   preloadedProfile?: ProfileForGate
 ): Promise<void> {
   if (preloadedProfile !== undefined) {
-    if (!preloadedProfile?.username) redirect("/onboarding");
+    if (!hasFinishedOnboarding(preloadedProfile)) redirect("/onboarding");
     return;
   }
 
@@ -32,7 +40,7 @@ export async function enforceOnboardingGate(
     {}
   );
 
-  if (!profile?.username) {
+  if (!hasFinishedOnboarding(profile)) {
     redirect("/onboarding");
   }
 }
