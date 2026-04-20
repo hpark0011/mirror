@@ -1,3 +1,11 @@
+---
+paths:
+  - "**/components/**/*form*.tsx"
+  - "**/features/**/components/**/*.tsx"
+  - "**/lib/schemas/**"
+  - "**/lib/schema/**"
+---
+
 # Form Handling Rules
 
 ## Stack
@@ -49,7 +57,14 @@ function TicketForm({ onSubmit }: { onSubmit: (data: FormData) => void }) {
 ## With shadcn/ui Form
 
 ```tsx
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@feel-good/ui/primitives/form";
 
 <Form {...form}>
   <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -72,5 +87,8 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 
 ## Schema Organization
 
-- Feature schemas: `lib/schema/{feature}.schema.ts`
-- Shared schemas: `lib/schema/shared.schema.ts`
+- Feature (app-level): `features/<feature>/lib/schemas/<name>.schema.ts`
+- Feature (cross-app): `packages/features/<feature>/lib/schemas/<name>.schema.ts`
+- Derive types with `type FormData = z.infer<typeof schema>`
+
+See `docs/conventions/file-organization-convention.md` for the full feature-module layout.
