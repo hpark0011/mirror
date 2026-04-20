@@ -70,14 +70,13 @@ If no domain expert applies, skip this step.
 Instantiate the spec template at `spec-template/spec.md`. The template is the single source of truth for spec structure, in this order:
 
 1. **What the user gets** — user-POV bullets (alignment checkpoint)
-2. **How we'll know it works** — user-flow scenarios mapped to FRs
+2. **How we'll know it works** — user-flow scenarios mapped to FRs and Playwright test files (single source of truth for E2E coverage)
 3. **Requirements** — FR/NFR tables with hard verification columns
 4. **Architecture** — four required subsections: (1) Components and structure, (2) How data flows, (3) Why this works, (4) Edge cases and gotchas
 5. **Unit Tests** table
-6. **Playwright E2E Tests** table
-7. **Team Orchestration Plan**
-8. **Open Questions**
-9. **Adversarial Review Summary** placeholder
+6. **Team Orchestration Plan**
+7. **Open Questions**
+8. **Adversarial Review Summary** placeholder
 
 Rules for Phase 3:
 
@@ -85,9 +84,9 @@ Rules for Phase 3:
 2. **`What the user gets` must be written in user-POV, plain language — no tech jargon, no implementation verbs.** This is the alignment checkpoint; if it reads like implementation notes, the section has failed its job.
 3. **Every `How we'll know it works` scenario must be in user-flow language and reference at least one FR.** No internal state checks, no "component renders" — describe what the user does and what they see.
 4. Every requirement row MUST have a concrete, automatable `Verification` value — no subjective criteria.
-5. Every requirement must be referenced by at least one row in Unit Tests or Playwright E2E Tests (ideally both where user-visible).
+5. Every requirement must be referenced by at least one row in Unit Tests or `How we'll know it works` (ideally both where user-visible).
 6. **All four Architecture subsections must be populated.** For small features a single sentence per subsection is acceptable, but none may be empty or collapsed into another.
-7. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). Verify against the codebase, don't guess.
+7. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). Verify against the codebase, don't guess. The `Test file` column in `How we'll know it works` may be left blank during drafting, but must be populated before the orchestration plan runs.
 8. Team Orchestration Plan must name real agents from `.claude/agents/` or explicitly recommend `/create-codebase-expert` for missing owners.
 9. **Every orchestration step MUST name (a) a suggested executor, (b) a hard gate shell command that proves the step is done, and (c) the FR/NFR IDs it verifies.** Reviewer pairing is NOT decided in the spec — `.claude/skills/orchestrate-implementation/SKILL.md` owns the critique routing table and selects reviewers per wave at execution time. Rationale: keeping one source of truth for the `code-review-*` roster prevents drift; the spec describes *what must be true*, orchestration decides *who reviews*. The executor/critic separation itself is still load-bearing (see https://www.anthropic.com/engineering/harness-design-long-running-apps) — it's just enforced downstream, not here.
 

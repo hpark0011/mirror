@@ -14,14 +14,13 @@ instead of landing in a broken account.">
 
 ## How we'll know it works
 
-List the user-flow scenarios that prove the feature works, in plain language.
-No file paths, no test framework details — those come later in `## Playwright E2E Tests`.
-Each scenario should read like a story a non-engineer could follow and each should
-map to at least one FR below.
+User-flow scenarios that prove the feature works. Each row is the source of truth for one Playwright E2E test — write the scenario in plain language a non-engineer could follow, then fill in the test file path before orchestration. `Test file` may stay blank during drafting; it must be set before the orchestration plan runs.
 
-| Scenario (user-flow language)                     | Expected outcome                              | Verifies |
-| ------------------------------------------------- | --------------------------------------------- | -------- |
-| {e.g. "User submits signup with a blocked email"} | {e.g. "Sees waitlist screen, no account created"} | {FR-XX}  |
+E2E tests live in the owning app's Playwright directory (e.g., `apps/mirror/e2e/`) with a `.spec.ts` suffix. Use the Playwright CLI only (`.claude/rules/testing.md`). Tests must describe real user flows, not internal state checks.
+
+| Scenario (user-flow language)                     | Expected outcome                                  | Test file        | Verifies |
+| ------------------------------------------------- | ------------------------------------------------- | ---------------- | -------- |
+| {e.g. "User submits signup with a blocked email"} | {e.g. "Sees waitlist screen, no account created"} | {path or blank}  | {FR-XX}  |
 
 ## Requirements
 
@@ -94,15 +93,7 @@ Where this architecture is fragile or surprising. Call out:
 | --------- | ----------- | -------- |
 | {path}    | {test name} | {FR-XX}  |
 
-Use Vitest. Match the owning package's existing patterns: tests in `__tests__/` with `.test.ts` suffix, or `.unit.test.ts` when the package is already configured for it.
-
-## Playwright E2E Tests
-
-| Test File | Scenario                            | Verifies |
-| --------- | ----------------------------------- | -------- |
-| {path}    | {user flow from user's perspective} | {FR-XX}  |
-
-E2E tests go in the owning app's Playwright directory (e.g., `apps/mirror/e2e/`) with a `.spec.ts` suffix. Use the Playwright CLI only (`.claude/rules/testing.md`). Tests must describe real user flows, not internal state checks.
+Use Vitest. Match the owning package's existing patterns: tests in `__tests__/` with `.test.ts` suffix, or `.unit.test.ts` when the package is already configured for it. E2E coverage is captured in the `## How we'll know it works` table — don't duplicate scenarios here.
 
 ## Team Orchestration Plan
 
