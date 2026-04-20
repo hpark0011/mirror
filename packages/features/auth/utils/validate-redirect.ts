@@ -44,12 +44,12 @@ export function isValidRedirectUrl(
 /**
  * Returns a safe redirect URL, falling back to a default if the URL is invalid.
  * @param url - The URL to validate (can be null/undefined)
- * @param fallback - Fallback URL if validation fails. Defaults to "/dashboard"
+ * @param fallback - Fallback URL if validation fails. Defaults to "/"
  * @returns A safe URL to redirect to
  */
 export function getSafeRedirectUrl(
   url: string | null | undefined,
-  fallback = "/dashboard"
+  fallback = "/"
 ): string {
   if (!url) return fallback;
   return isValidRedirectUrl(url) ? url : fallback;
