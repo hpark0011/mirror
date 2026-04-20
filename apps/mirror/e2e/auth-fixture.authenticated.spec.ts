@@ -1,14 +1,13 @@
 import { test, expect } from "./fixtures/auth";
 
 test.describe("Auth fixture smoke", () => {
-  test("authenticated page navigates to /dashboard without redirect to /sign-in", async ({
+  test("authenticated page navigates to /dashboard and renders the dashboard", async ({
     authenticatedPage: page,
   }) => {
     await page.goto("/dashboard");
-    // App may redirect authenticated users from /dashboard to their profile.
-    // The only thing we require is that the auth fixture does NOT land on /sign-in.
+    // Authed user with a username sees /dashboard render directly (FR-05).
     await expect(page).not.toHaveURL(/\/sign-in/);
-    await expect(page).toHaveURL(/(dashboard|@test-user)/);
+    await expect(page).toHaveURL(/\/dashboard/);
   });
 
   test("better-auth.session_token cookie is present in authenticated context", async ({

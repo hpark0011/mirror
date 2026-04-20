@@ -2,11 +2,18 @@ import { NextResponse, type NextRequest } from "next/server";
 
 interface TestSessionRequestBody {
   email: string;
+  /**
+   * When true, skip the `/test/ensure-user` step so the resulting session
+   * belongs to a user whose `users.username` is undefined. Used by the
+   * no-username Playwright fixture to exercise auth-routing gates that
+   * branch on username presence (FR-01, FR-04, FR-06, FR-12).
+   */
+  withoutUsername?: boolean;
 }
 
 interface TestSessionResponse {
   ok: boolean;
-  username: string;
+  username: string | null;
 }
 
 interface ReadOtpResponse {
@@ -124,19 +131,25 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const signInCookies = signInRes.headers.getSetCookie();
 
   // Step 4: Ensure the app-level user profile exists (username, onboardingComplete, etc.).
-  const ensureUserRes = await fetch(`${convexSiteUrl}/test/ensure-user`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-test-secret": testSecret,
-    },
-    body: JSON.stringify({ email, username: "test-user" }),
-  });
-  if (!ensureUserRes.ok) {
-    return NextResponse.json(
-      { error: "ensure-user failed" },
-      { status: ensureUserRes.status },
-    );
+  // When `withoutUsername` is true, we skip this step and let the Better Auth
+  // `onCreate` trigger's default insert stand — the row exists with no
+  // `username` and `onboardingComplete: false`. This is the authed no-username
+  // state the auth-routing e2e suite needs to exercise.
+  if (!body.withoutUsername) {
+    const ensureUserRes = await fetch(`${convexSiteUrl}/test/ensure-user`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-test-secret": testSecret,
+      },
+      body: JSON.stringify({ email, username: "test-user" }),
+    });
+    if (!ensureUserRes.ok) {
+      return NextResponse.json(
+        { error: "ensure-user failed" },
+        { status: ensureUserRes.status },
+      );
+    }
   }
 
   // Step 5: Pre-warm the Convex JWT by forwarding the session cookie to the
@@ -159,7 +172,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   // Step 6: Forward all collected Set-Cookie headers to the caller (Playwright).
   const allCookies = [...signInCookies, ...tokenCookies];
 
-  const responseBody: TestSessionResponse = { ok: true, username: "test-user" };
+  const responseBody: TestSessionResponse = {
+    ok: true,
+    username: body.withoutUsername ? null : "test-user",
+  };
   const response = NextResponse.json(responseBody, { status: 200 });
 
   for (const cookieValue of allCookies) {
