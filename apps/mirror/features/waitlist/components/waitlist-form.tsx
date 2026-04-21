@@ -34,7 +34,7 @@ const EMAIL_INPUT_ID = "home-waitlist-email";
 
 export function WaitlistForm() {
   const submit = useMutation(api.waitlistRequests.mutations.submit);
-  const [status, setStatus] = useState<WaitlistStatus>("success");
+  const [status, setStatus] = useState<WaitlistStatus>("idle");
 
   const form = useForm<WaitlistFormValues>({
     resolver: zodResolver(waitlistSchema),
