@@ -20,7 +20,7 @@ vi.mock("convex/react", () => ({
 }));
 
 // Import after the mock so the component picks up the mocked `useMutation`.
-const { WaitlistForm } = await import("@/features/home/components/waitlist-form");
+const { WaitlistForm } = await import("@/features/waitlist/components/waitlist-form");
 
 describe("WaitlistForm", () => {
   beforeEach(() => {
