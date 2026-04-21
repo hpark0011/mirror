@@ -15,8 +15,8 @@ You are the Verification Agent lane of the `create-spec` skill. Your job is to v
 ## Checklist — report `PASS` or `FAIL` for each
 
 1. **Requirements coverage** — Does every user requirement have a corresponding FR or NFR row?
-2. **Test coverage** — Does every FR have at least one unit test AND one Playwright E2E test (where user-visible)?
-3. **E2E tests are user-perspective** — Do Playwright tests describe user flows, not internal state?
+2. **Test coverage** — Does every FR have at least one row in `## Unit Tests` AND one row in `## How we'll know it works` (where user-visible)?
+3. **E2E scenarios are user-perspective** — Do `## How we'll know it works` rows describe user flows, not internal state? Is the `Test file` column populated with a real Playwright path (or explicitly blank-pending-orchestration)?
 4. **Team orchestration plan** — Does it exist and reference real agents from `.claude/agents/`, or explicitly recommend `/create-codebase-expert` for missing owners?
 4b. **Executor + Critique pairing** — Does EVERY orchestration step name both an `Executor:` and a `Critique:` agent? The critique must be an independent agent (typically from `.claude/agents/code-review-*`), never the executor reviewing its own work. A step with only an executor is a FAIL regardless of size. Rationale: self-evaluation is systematically biased; external critique is the load-bearing mechanism.
 5. **Hard verification** — Does every FR/NFR row have a concrete, automatable check? No "looks good", "feels fast", or other subjective criteria.

@@ -46,6 +46,10 @@ import type * as seed from "../seed.js";
 import type * as users_helpers from "../users/helpers.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
+import type * as waitlistRequests_mutations from "../waitlistRequests/mutations.js";
+import type * as waitlistRequests_queries from "../waitlistRequests/queries.js";
+import type * as waitlistRequests_rateLimits from "../waitlistRequests/rateLimits.js";
+import type * as waitlistRequests_testHelpers from "../waitlistRequests/testHelpers.js";
 
 import type {
   ApiFromModules,
@@ -92,6 +96,10 @@ declare const fullApi: ApiFromModules<{
   "users/helpers": typeof users_helpers;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
+  "waitlistRequests/mutations": typeof waitlistRequests_mutations;
+  "waitlistRequests/queries": typeof waitlistRequests_queries;
+  "waitlistRequests/rateLimits": typeof waitlistRequests_rateLimits;
+  "waitlistRequests/testHelpers": typeof waitlistRequests_testHelpers;
 }>;
 
 /**

@@ -74,7 +74,7 @@ Write the output to `workspace/spec/<kebab-slug>-spec.md`. Cite `knowledge.md` w
 
 Before reporting completion, run these checks against the spec template's contract (`spec-template/spec.md`):
 
-1. **Every requirement has at least one test row** — grep the spec to confirm each FR-## appears in a `Verifies` column of Unit Tests or Playwright E2E Tests.
+1. **Every requirement has at least one test row** — grep the spec to confirm each FR-## appears in a `Verifies` column of Unit Tests or `How we'll know it works`.
 2. **Every test row has a concrete planned file path** — no `TODO` paths.
 3. **Team Orchestration Plan names real agents** from `.claude/agents/` (Glob to confirm) or explicitly says the agent must be created via `/create-codebase-expert` first.
 4. **All top-level template sections are present** — Grep the spec for each H2 heading the template defines.
@@ -100,7 +100,7 @@ Optimize in this exact order. Lower objectives never compromise higher ones.
 
 PM-spec-specific principles (grounded in this repo):
 
-- **No requirement without a test.** A row in the Requirements table with no corresponding row in Unit Tests or Playwright E2E Tests is a bug in the spec.
+- **No requirement without a test.** A row in the Requirements table with no corresponding row in Unit Tests or `How we'll know it works` is a bug in the spec.
 - **Playwright CLI only** for e2e tests (`.claude/rules/testing.md`). Never prescribe Playwright MCP or Chrome MCP in the verification list.
 - **Route execution to the right domain expert.** Before finishing, check `.claude/agents/` and name the owner for each orchestration step. If no owner exists for a surface, recommend `/create-codebase-expert` in the Team Orchestration Plan.
 - **Don't inline the template.** The spec structure lives only in `spec-template/spec.md`. If you feel the urge to duplicate it here, patch the template instead.
@@ -127,7 +127,7 @@ Tools/commands:
 
 **Correctness checks** (on the spec artifact, not on code):
 
-1. Grep confirms every `FR-\d+` (and `NFR-\d+` if present) in the Requirements tables appears in a `Verifies` cell in Unit Tests or Playwright E2E Tests.
+1. Grep confirms every `FR-\d+` (and `NFR-\d+` if present) in the Requirements tables appears in a `Verifies` cell in Unit Tests or `How we'll know it works`.
 2. Glob confirms every agent named in the Team Orchestration Plan exists under `.claude/agents/`, or the plan explicitly says the agent must be created first.
 3. All H2 section headings from `spec-template/spec.md` are present in the output spec (Grep the template, then Grep the spec).
 

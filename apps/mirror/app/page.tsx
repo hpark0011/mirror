@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import { MirrorHomePage } from "@/features/home";
+import { WaitlistLanding } from "@/features/waitlist";
 import { enforceOnboardingGate } from "@/lib/route-guards";
 
 export default async function HomePage() {
@@ -10,14 +10,14 @@ export default async function HomePage() {
   if (!authed) {
     return (
       <main className="mx-auto min-h-screen">
-        <MirrorHomePage />
+        <WaitlistLanding />
       </main>
     );
   }
 
   const profile = await fetchAuthQuery(
     api.users.queries.getCurrentProfile,
-    {}
+    {},
   );
 
   if (profile?.username && profile.onboardingComplete) {

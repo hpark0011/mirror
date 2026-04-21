@@ -6,6 +6,7 @@ import { conversationsTable } from "./chat/schema";
 import { contentEmbeddingsTable } from "./embeddings/schema";
 import { postsTable } from "./posts/schema";
 import { usersTable } from "./users/schema";
+import { waitlistRequestsTable } from "./waitlistRequests/schema";
 
 export default defineSchema({
   users: usersTable,
@@ -14,6 +15,7 @@ export default defineSchema({
   conversations: conversationsTable,
   contentEmbeddings: contentEmbeddingsTable,
   betaAllowlist: betaAllowlistTable,
+  waitlistRequests: waitlistRequestsTable,
 
   // Test-only table: stores OTPs for @mirror.test emails during Playwright auth setup.
   // Only populated when PLAYWRIGHT_TEST_SECRET env var is set.

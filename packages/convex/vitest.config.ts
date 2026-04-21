@@ -8,13 +8,14 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    // Scoped to chat/ for Wave 0 of the chat-constraints spec. Files under
+    // Scoped to Vitest-migrated feature modules. Files under
     // convex/users/__tests__/ still import from "bun:test" and are owned by a
-    // different agent; widen this glob once those tests have been migrated to
-    // Vitest to avoid breaking CI on out-of-scope files.
+    // different agent; add new module globs here as tests migrate to Vitest to
+    // avoid breaking CI on out-of-scope files.
     include: [
       "convex/chat/**/*.test.ts",
       "convex/betaAllowlist/**/*.test.ts",
+      "convex/waitlistRequests/**/*.test.ts",
     ],
     server: {
       deps: {

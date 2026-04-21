@@ -37,7 +37,7 @@
 
 :root {
   /* Base */
-  --background: var(--gray-4);
+  --background: var(--gray-3);
   --foreground: var(--gray-12);
 
   /* Text */
