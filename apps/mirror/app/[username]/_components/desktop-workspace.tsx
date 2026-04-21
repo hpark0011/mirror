@@ -15,6 +15,10 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@feel-good/ui/primitives/resizable";
+import {
+  markContentPanelOpenStart,
+  markContentPanelRouteReady,
+} from "@/lib/perf/content-panel-open";
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
 
 const CONTENT_PANEL_ID = "profile-content-panel";
@@ -55,6 +59,7 @@ export function DesktopWorkspace({
   const openDefaultContentRoute = useCallback(() => {
     if (!onOpenDefaultContent) return;
 
+    markContentPanelOpenStart();
     isPendingNavigationRef.current = true;
     onOpenDefaultContent();
   }, [onOpenDefaultContent]);
@@ -106,6 +111,7 @@ export function DesktopWorkspace({
     }
 
     if (hasContentRoute) {
+      markContentPanelRouteReady();
       isPendingNavigationRef.current = false;
       groupRef.current?.setLayout([50, 50]);
       return;

@@ -29,6 +29,7 @@
     "@sentry/nextjs": "catalog:",
     "@tailwindcss/typography": "^0.5.19",
     "@tiptap/core": "^3.19.0",
+    "@vercel/analytics": "^2.0.1",
     "ai": "^5.0.29",
     "better-auth": "catalog:",
     "class-variance-authority": "catalog:",

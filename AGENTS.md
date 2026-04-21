@@ -1,129 +1,39 @@
 # Feel Good Monorepo
 
-Turborepo monorepo with 2 Next.js applications and shared packages.
+Turborepo monorepo. Two Next.js 15 (App Router, React 19) apps backed by a shared Convex deployment (real-time queries + Better Auth), with UI primitives in `packages/ui` and cross-app feature modules in `packages/features`.
 
-## Quick Start
+Full project map (apps, packages, ports, auth layers): [`docs/project-map.md`](docs/project-map.md).
 
-```bash
-pnpm install           # Install all dependencies
-pnpm dev               # Run all apps in dev mode
-pnpm build             # Build all packages
-pnpm lint              # Lint all packages
-pnpm format            # Format all files
-pnpm clean             # Clean all packages
-```
+## Deploy & Build Footguns
 
-### Filtered Commands
+Two things about the Vercel/Convex setup are easy to break and hard to diagnose — read before touching:
 
-```bash
-pnpm dev --filter=@feel-good/mirror    # Run single app
-pnpm build --filter=@feel-good/mirror  # Build single app
-pnpm lint --filter=@feel-good/mirror   # Lint single app
-```
-
-## Monorepo Structure
-
-```
-apps/           Next.js applications (mirror, ui-factory)
-packages/       Shared libraries (ui, features, icons, utils, convex, tavus)
-tooling/        Shared configs (eslint, prettier, typescript, sentry)
-docs/           Conventions, plans, brainstorms, solutions
-workspace/      Ticket tracking system
-```
-
-## Apps
-
-| App        | Description                   | Port |
-| ---------- | ----------------------------- | ---- |
-| mirror     | Interactive blogging platform | 3001 |
-| ui-factory | Design system showcase        | 3002 |
-
-## Packages
-
-| Package                    | Purpose                                                 | Example Import                    |
-| -------------------------- | ------------------------------------------------------- | --------------------------------- |
-| @feel-good/ui              | shadcn/ui primitives                                    | `@feel-good/ui/primitives/button` |
-| @feel-good/features        | Feature components (auth, dock, editor, theme)          | `@feel-good/features/auth/blocks` |
-| @feel-good/icons           | SVG icon components                                     | `@feel-good/icons`                |
-| @feel-good/utils           | Utilities (cn, etc.)                                    | `@feel-good/utils/cn`             |
-| @feel-good/convex          | Convex backend                                          | `@feel-good/convex`               |
-| @feel-good/tavus           | Tavus CVI video calling                                 | `@feel-good/tavus/client`         |
-| @feel-good/tsconfig        | Shared TypeScript configs (base, react-library, nextjs) | —                                 |
-| @feel-good/eslint-config   | Shared ESLint configurations                            | —                                 |
-| @feel-good/prettier-config | Shared Prettier configuration                           | —                                 |
-| @feel-good/sentry-config   | Shared Sentry configuration for Next.js                 | `@feel-good/sentry-config/nextjs` |
-
-### Auth Package Layers
-
-| Layer  | Import                                      | Purpose                   |
-| ------ | ------------------------------------------- | ------------------------- |
-| Blocks | `@feel-good/features/auth/blocks`           | Drop-in page sections     |
-| Forms  | `@feel-good/features/auth/components/forms` | Complete forms with logic |
-| Views  | `@feel-good/features/auth/views`            | Pure UI components        |
-| Hooks  | `@feel-good/features/auth/hooks`            | Headless auth logic       |
-
-## Testing
-
-When testing browser/UI behavior, use CLI-based tools (e.g., Playwright CLI) rather than browser extension MCPs or Chrome MCP unless explicitly asked. Never default to Playwright MCP plugin.
-
-## Debugging
-
-Before attempting any fix for a bug, follow the `/project-debug` protocol:
-
-1. State your hypothesis for the root cause
-2. Describe what evidence would confirm or refute it
-3. Add instrumentation/logging to gather that evidence
-4. Only after confirming the root cause, propose a fix
-
-Do NOT skip to a theoretical fix.
+- **`turbo.json` `globalEnv` array.** Any env var read by Next or Convex at build time must be listed here, or Turbo filters it out before the build subprocess sees it. Owner: [`.claude/rules/auth.md` § Monorepo deploy gotcha](.claude/rules/auth.md).
+- **Vercel build command.** Root Directory is `apps/mirror` but Convex lives at `packages/convex/convex/`. The build walks up with `cd ../../packages/convex && npx convex deploy --cmd "cd ../../apps/mirror && ..."`. Do not simplify this. Owner: [`.claude/rules/auth.md` § Monorepo deploy gotcha](.claude/rules/auth.md).
 
 ## Core Principles
 
 - **Always Choose the Compounding Option** — You should ALWAYS choose the option that compounds, that architecturally makes the codebase less prone for error and never choose the quick wins. When a bug or feedback reveals a gap in a skill, rule, convention, or template, patch the upstream artifact before (or alongside) fixing the downstream instance.
 
-## Communication
-
-Explain technical problems in plain language. The reader is smart but may not know the codebase or the jargon.
-
-- **Lead with the problem in one plain sentence.** What is actually broken, in user-visible terms. Not type-system vocabulary, not file mechanics — the real-world consequence.
-- **Then the root cause in one plain sentence.** Why it's broken. No jargon unless you define it on the spot.
-- **When presenting options, state the tradeoff for each.** What you gain, what you give up, and which one you'd pick and why. Don't dump options as a neutral menu.
-- **Only add technical detail after the plain-language version has landed.** File paths, line numbers, and type details are supporting evidence, not the headline.
-- **Ban-list:** "defeats the intended schema collapse", "violates the declared union", "honest predicate", and similar pedantic phrasing. If a sentence reads like a compiler error, rewrite it.
-- **Save depth for when it's asked for.** A one-line answer with the right headline beats a thorough one the reader has to decode.
-
 ## Git Workflow
 
 Never commit directly to main. Always use feature branches. When a merge conflict or branch divergence occurs, stop and ask the user before force-pushing or resetting.
 
-## Verification
+## Project Rules
 
-- **Always hard-verify fixes.** After editing a file, re-read it to confirm the change landed correctly, then run the relevant build/lint/test command and check the output. Never assume a fix worked — prove it.
-- **Never ask the user to verify visually.** Do not tell the user to "go to localhost:3000 and check". Start the dev server yourself, then use Chrome MCP (screenshot, inspect, interact) or Playwright CLI to verify the change and share the proof directly in the conversation.
+Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` frontmatter unless noted.
 
-## Task Management
-
-- **Work items**: Tracked in `workspace/tickets/` using the `generate-issue-tickets` skill. See `.claude/skills/generate-issue-tickets/SKILL.md`.
-- **`compound-engineering:file-todos` plugin**: References a removed system. Use the local `generate-issue-tickets` skill instead.
-
-## Topic Rules
-
-Path- and topic-scoped guidance lives in `.claude/rules/` — load the relevant file when working in that area:
-
-| Topic             | File                                 |
-| ----------------- | ------------------------------------ |
-| Auth              | `.claude/rules/auth.md`              |
-| Convex backend    | `.claude/rules/convex.md`            |
-| Forms             | `.claude/rules/forms.md`             |
-| React components  | `.claude/rules/react-components.md`  |
-| State management  | `.claude/rules/state-management.md`  |
-| Tailwind          | `.claude/rules/tailwind.md`          |
-| TypeScript        | `.claude/rules/typescript.md`        |
-| Providers         | `.claude/rules/providers.md`         |
-| File organization | `.claude/rules/file-organization.md` |
-| Testing           | `.claude/rules/testing.md`           |
-| Verification      | `.claude/rules/verification.md`      |
-| Dev process       | `.claude/rules/dev-process.md`       |
-| Git worktrees     | `.claude/rules/git-worktrees.md`     |
-| App-specific      | `.claude/rules/apps/`                |
-| Sentry            | `.claude/rules/sentry/`              |
+- **[Auth](.claude/rules/auth.md)** — Better Auth running inside Convex; Next.js only proxies `/api/auth/*`. **Check before debugging sign-in, OAuth, or session cookies — the URL/host choreography between `.convex.cloud`, `.convex.site`, and the app domain is the #1 footgun.**
+- **[Convex](.claude/rules/convex.md)** — function guidelines, validators, schema, query/mutation patterns. Auto-loads under `packages/convex/convex/**`.
+- **[Verification](.claude/rules/verification.md)** — build/lint/Chrome-MCP tiers per change type. **Run the matching tier before reporting any task complete.**
+- **[File organization](.claude/rules/file-organization.md)** — where components/hooks/utils/schemas live in a feature module. All React components go in `components/`; `views/` is reserved for cross-app packages.
+- **[Forms](.claude/rules/forms.md)** — React Hook Form + Zod + `zodResolver`; shadcn `Form` primitives from `@feel-good/ui/primitives/form`; schemas live in each feature's `lib/schemas/`.
+- **[React components](.claude/rules/react-components.md)** — components under ~100 lines; **never `setTimeout` to fix rendering timing — use Suspense, view-transition isolation, or `startTransition` instead.**
+- **[State management](.claude/rules/state-management.md)** — three-tier hierarchy: `useState`/`useReducer` → `useLocalStorage` → React Context. Zustand is not used in this repo.
+- **[Tailwind](.claude/rules/tailwind.md)** — Tailwind v4, CSS-first config (no `tailwind.config.js`); use `@source` to scan shared packages; three-layer token system (Radix → semantic → `@theme inline`).
+- **[TypeScript](.claude/rules/typescript.md)** — inline type imports; feature types in `features/<feature>/types.ts`, shared in `types/<domain>.types.ts`.
+- **[Providers](.claude/rules/providers.md)** — separate client singleton (`lib/<service>.ts`) from React provider (`providers/<service>-provider.tsx`); never `!` on `process.env`; lazy-init external clients.
+- **[Testing](.claude/rules/testing.md)** — **Playwright CLI only for e2e tests.** Never the Playwright MCP plugin or browser-automation MCP tools.
+- **[Dev process](.claude/rules/dev-process.md)** — session discipline, planning, problem-solving flow; **after any correction, update `workspace/lessons.md`.**
+- **[App-specific](.claude/rules/apps/)** — per-app rules (currently `apps/mirror/articles.md`, `apps/mirror/navigation.md`).
+- **[Sentry](.claude/rules/sentry/)** — exception capture, tracing spans, and logger patterns for Next.js.

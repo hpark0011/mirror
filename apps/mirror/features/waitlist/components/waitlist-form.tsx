@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 
 import { api } from "@feel-good/convex/convex/_generated/api";
-import { ArrowBackwardIcon, ArrowLeftCircleFillIcon } from "@feel-good/icons";
+import { ArrowLeftCircleFillIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { Card, CardContent } from "@feel-good/ui/primitives/card";
 import { Field, FieldGroup, FieldLabel } from "@feel-good/ui/primitives/field";

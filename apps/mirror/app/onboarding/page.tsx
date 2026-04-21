@@ -1,28 +1,20 @@
 import { redirect } from "next/navigation";
 import { fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import { WaitlistLanding } from "@/features/waitlist";
-import { enforceOnboardingGate } from "@/lib/route-guards";
+import { OnboardingWizard } from "@/features/onboarding";
 
-export default async function HomePage() {
+export default async function OnboardingPage() {
   const authed = await isAuthenticated();
-
-  if (!authed) {
-    return (
-      <main className="mx-auto min-h-screen">
-        <WaitlistLanding />
-      </main>
-    );
-  }
+  if (!authed) redirect("/sign-in");
 
   const profile = await fetchAuthQuery(
     api.users.queries.getCurrentProfile,
-    {},
+    {}
   );
 
   if (profile?.username && profile.onboardingComplete) {
     redirect(`/@${profile.username}`);
   }
 
-  await enforceOnboardingGate(profile);
+  return <OnboardingWizard />;
 }

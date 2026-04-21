@@ -1,4 +1,4 @@
-import { preloadAuthQuery } from "@/lib/auth-server";
+import { preloadAuthOptionalQuery } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { ArticleWorkspaceProvider } from "@/features/articles";
 
@@ -10,7 +10,7 @@ export default async function ArticlesContentLayout({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  const preloadedArticles = await preloadAuthQuery(
+  const preloadedArticles = await preloadAuthOptionalQuery(
     api.articles.queries.getByUsername,
     { username },
   );

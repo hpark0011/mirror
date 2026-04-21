@@ -1,6 +1,6 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { type ContentRouteState, ScrollRootProvider } from "@/features/content";
 import { WorkspaceNavbar } from "@/components/workspace-navbar";
 import {
@@ -8,6 +8,7 @@ import {
   ToolbarSlotTarget,
 } from "@/components/workspace-toolbar-slot";
 import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
+import { markContentPanelRendered } from "@/lib/perf/content-panel-open";
 
 type ContentPanelProps = {
   routeState: ContentRouteState | null;
@@ -21,6 +22,29 @@ export function ContentPanel({
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
 
   useProfileNavigationEffects(scrollRoot, routeState);
+
+  useEffect(() => {
+    if (typeof performance === "undefined") return;
+    const hasStart =
+      performance.getEntriesByName("content-panel:open:start", "mark").length >
+        0;
+    const hasRendered =
+      performance.getEntriesByName("content-panel:open:rendered", "mark")
+        .length > 0;
+    if (!hasStart || hasRendered) return;
+
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        markContentPanelRendered();
+      });
+    });
+
+    return () => {
+      cancelAnimationFrame(raf1);
+      if (raf2) cancelAnimationFrame(raf2);
+    };
+  }, [routeState, children]);
 
   return (
     <ToolbarSlotProvider>

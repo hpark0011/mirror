@@ -1,14 +1,14 @@
 import { test, expect } from "./fixtures/auth";
 
 test.describe("Onboarding (authenticated)", () => {
-  test("shows dashboard when onboardingComplete is true", async ({
+  test("visiting /onboarding with completed onboarding redirects to the user's profile", async ({
     authenticatedPage: page,
   }) => {
     await page.goto("/onboarding");
-    await expect(page).toHaveURL(/\/(dashboard|@test-user)/);
+    await expect(page).toHaveURL(/\/@test-user/);
   });
 
-  test("no auth errors in console during dashboard page load", async ({
+  test("dashboard renders for authed user with username", async ({
     authenticatedPage: page,
   }) => {
     const consoleErrors: string[] = [];
@@ -19,7 +19,7 @@ test.describe("Onboarding (authenticated)", () => {
     });
 
     await page.goto("/dashboard");
-    await expect(page).toHaveURL(/(dashboard|@test-user)/);
+    await expect(page).toHaveURL(/\/dashboard/);
     await expect(page).not.toHaveURL(/\/sign-in/);
 
     const authErrors = consoleErrors.filter(
