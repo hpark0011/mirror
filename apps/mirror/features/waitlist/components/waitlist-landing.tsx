@@ -14,19 +14,19 @@ export function WaitlistLanding() {
         >
           MIRROR
         </Link>
+        <div className="flex flex-col items-center max-w-sm px-8 my-2 mb-3">
+          <MirrorLogo className="size-[40px]" />
+        </div>
+        <p className="text-[15px] text-center leading-[1.2]">
+          Interface for your mind.
+        </p>
       </div>
 
       <div className="flex w-full flex-col items-center">
-        <div className="flex flex-col items-center max-w-sm px-8 mb-3">
-          <MirrorLogo className="size-[40px]" />
-        </div>
-        <p className="text-lg text-center leading-[1.2] mb-40">
-          Interface for your mind.
-        </p>
         <WaitlistForm />
         <Link
           href="/sign-in"
-          className="text-sm text-muted-foreground hover:underline mt-4"
+          className="text-sm text-muted-foreground hover:underline mt-6"
         >
           Already invited? Sign in
         </Link>

@@ -236,6 +236,9 @@ importers:
       '@feel-good/features':
         specifier: workspace:*
         version: link:../../packages/features
+      '@feel-good/icons':
+        specifier: workspace:*
+        version: link:../../packages/icons
       '@feel-good/sentry-config':
         specifier: workspace:*
         version: link:../../tooling/sentry

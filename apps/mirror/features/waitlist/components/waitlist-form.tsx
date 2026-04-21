@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 
 import { api } from "@feel-good/convex/convex/_generated/api";
+import { ArrowBackwardIcon, ArrowLeftCircleFillIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { Card, CardContent } from "@feel-good/ui/primitives/card";
 import { Field, FieldGroup, FieldLabel } from "@feel-good/ui/primitives/field";
@@ -33,7 +34,7 @@ const EMAIL_INPUT_ID = "home-waitlist-email";
 
 export function WaitlistForm() {
   const submit = useMutation(api.waitlistRequests.mutations.submit);
-  const [status, setStatus] = useState<WaitlistStatus>("idle");
+  const [status, setStatus] = useState<WaitlistStatus>("success");
 
   const form = useForm<WaitlistFormValues>({
     resolver: zodResolver(waitlistSchema),
@@ -87,17 +88,23 @@ export function WaitlistForm() {
           <div className="space-y-4 text-center">
             <p
               data-testid={messageTestId}
-              className="text-foreground text-sm"
+              className="text-foreground"
             >
               {message}
             </p>
             <Button
-              variant="ghost"
+              variant="wrapper"
               onClick={handleReset}
-              className="text-sm"
+              className="text-base font-normal hover:opacity-70 rounded-none has-[>svg]:px-0 gap-0.5 h-fit py-0 pb-0.5 mb-20 items-center"
               data-testid="home.waitlist.reset-link"
             >
-              Use a different email
+              <ArrowLeftCircleFillIcon
+                className="size-5.5"
+                aria-hidden="true"
+              />
+              <span className="pb-px">
+                Back
+              </span>
             </Button>
           </div>
         </CardContent>
