@@ -21,7 +21,7 @@ export function PostMetadata({
   return (
     <div
       className={cn(
-        "flex flex-col items-start gap-0.5 text-nowrap",
+        "flex flex-col items-start gap-0.5 text-nowrap w-full",
         className,
       )}
     >

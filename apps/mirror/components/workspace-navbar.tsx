@@ -1,6 +1,5 @@
 "use client";
 
-import { ThemeToggleButton } from "@feel-good/features/theme/components";
 import { cn } from "@feel-good/utils/cn";
 import { ProfileTabs } from "@/features/profile-tabs/components/profile-tabs";
 import {
@@ -25,7 +24,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-12 items-end justify-between gap-2 px-4 relative border-b border-border-subtle",
+        "z-10 flex h-12 items-end gap-2 px-4 relative border-b border-border-subtle",
         className,
       )}
     >
@@ -35,10 +34,6 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
           currentKind={currentKind}
           isOwner={isOwner}
         />
-      </div>
-
-      <div className="h-full flex flex-col justify-center">
-        <ThemeToggleButton />
       </div>
     </nav>
   );

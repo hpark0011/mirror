@@ -6,8 +6,10 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@feel-good/ui/primitives/dropdown-menu";
+import { ThemeToggleButton } from "@feel-good/features/theme/components";
 import { signOut } from "@/lib/auth-client";
 import { MirrorLogo } from "./mirror-logo";
 
@@ -33,6 +35,11 @@ export function MirrorLogoMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={8}>
+        <div className="flex items-center justify-between px-2 py-1.5">
+          <span className="text-sm text-foreground-subtle">Theme</span>
+          <ThemeToggleButton />
+        </div>
+        <DropdownMenuSeparator />
         <DropdownMenuItem
           data-testid="logout-menu-item"
           variant="destructive"
