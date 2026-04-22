@@ -148,7 +148,7 @@ export function EditableAvatar({
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className="group relative size-[200px] rounded-t-full [corner-shape:superellipse(1.2)] overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-muted"
+                  className="group relative size-[200px] rounded-t-full [corner-shape:superellipse(1.2)] overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 bg-black"
                   data-test="edit-profile-avatar-button"
                 >
                   <AvatarImageSurface
@@ -190,7 +190,7 @@ export function EditableAvatar({
                   </div>
                 )
                 : (
-                  <div className="relative w-[200px] h-[200px] overflow-hidden rounded-t-full [corner-shape:superellipse(1.2)] bg-muted">
+                  <div className="relative w-[200px] h-[200px] overflow-hidden rounded-t-full [corner-shape:superellipse(1.2)] bg-black">
                     <AvatarImageSurface
                       initial={initial}
                       image={displayAvatar}
