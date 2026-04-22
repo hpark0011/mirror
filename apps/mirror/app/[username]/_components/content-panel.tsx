@@ -9,6 +9,8 @@ import {
 } from "@/components/workspace-toolbar-slot";
 import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
 import { markContentPanelRendered } from "@/lib/perf/content-panel-open";
+import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
+import { DesktopInteractionPanelToggle } from "./desktop-interaction-panel-toggle";
 
 type ContentPanelProps = {
   routeState: ContentRouteState | null;
@@ -20,6 +22,7 @@ export function ContentPanel({
   children,
 }: ContentPanelProps) {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
+  const workspaceChrome = useOptionalWorkspaceChrome();
 
   useProfileNavigationEffects(scrollRoot, routeState);
 
@@ -49,6 +52,13 @@ export function ContentPanel({
   return (
     <ToolbarSlotProvider>
       <div className="relative flex h-full min-w-0 flex-col">
+        {workspaceChrome && (
+          <DesktopInteractionPanelToggle
+            interactionPanelId={workspaceChrome.interactionPanelId}
+            isInteractionPanelCollapsed={workspaceChrome.isInteractionPanelCollapsed}
+            toggleInteractionPanel={workspaceChrome.toggleInteractionPanel}
+          />
+        )}
         <WorkspaceNavbar />
         <ToolbarSlotTarget />
         <div className="flex-1 min-h-0 *:h-full relative">

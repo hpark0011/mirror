@@ -22,6 +22,7 @@ import {
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
 
 const CONTENT_PANEL_ID = "profile-content-panel";
+const INTERACTION_PANEL_ID = "profile-interaction-panel";
 
 type DesktopWorkspaceProps = {
   hasContentRoute: boolean;
@@ -42,11 +43,14 @@ export function DesktopWorkspace({
 }: DesktopWorkspaceProps) {
   const groupRef = useRef<ComponentRef<typeof ResizablePanelGroup>>(null);
   const contentPanelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
+  const interactionPanelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
   const isPendingNavigationRef = useRef(false);
   const previousHasContentRouteRef = useRef(hasContentRoute);
   const [isContentPanelCollapsed, setIsContentPanelCollapsed] = useState(
     () => !hasContentRoute,
   );
+  const [isInteractionPanelCollapsed, setIsInteractionPanelCollapsed] =
+    useState(false);
 
   const handleContentPanelCollapse = useCallback(() => {
     setIsContentPanelCollapsed(true);
@@ -54,6 +58,14 @@ export function DesktopWorkspace({
 
   const handleContentPanelExpand = useCallback(() => {
     setIsContentPanelCollapsed(false);
+  }, []);
+
+  const handleInteractionPanelCollapse = useCallback(() => {
+    setIsInteractionPanelCollapsed(true);
+  }, []);
+
+  const handleInteractionPanelExpand = useCallback(() => {
+    setIsInteractionPanelCollapsed(false);
   }, []);
 
   const openDefaultContentRoute = useCallback(() => {
@@ -80,9 +92,25 @@ export function DesktopWorkspace({
     contentPanelRef.current?.collapse();
   }, [hasContentRoute, isContentPanelCollapsed, openDefaultContentRoute]);
 
+  const toggleInteractionPanel = useCallback(() => {
+    if (isInteractionPanelCollapsed) {
+      groupRef.current?.setLayout([50, 50]);
+      return;
+    }
+
+    interactionPanelRef.current?.collapse();
+  }, [isInteractionPanelCollapsed]);
+
   const handleResizePointerDownCapture = useCallback<
     ResizableHandlePointerDownCapture
   >((event) => {
+    if (isInteractionPanelCollapsed) {
+      event.preventDefault();
+      event.stopPropagation();
+      groupRef.current?.setLayout([50, 50]);
+      return;
+    }
+
     if (!isContentPanelCollapsed) return;
 
     event.preventDefault();
@@ -99,6 +127,7 @@ export function DesktopWorkspace({
   }, [
     hasContentRoute,
     isContentPanelCollapsed,
+    isInteractionPanelCollapsed,
     openDefaultContentRoute,
   ]);
 
@@ -125,8 +154,16 @@ export function DesktopWorkspace({
       contentPanelId: CONTENT_PANEL_ID,
       isContentPanelCollapsed,
       toggleContentPanel,
+      interactionPanelId: INTERACTION_PANEL_ID,
+      isInteractionPanelCollapsed,
+      toggleInteractionPanel,
     }),
-    [isContentPanelCollapsed, toggleContentPanel],
+    [
+      isContentPanelCollapsed,
+      toggleContentPanel,
+      isInteractionPanelCollapsed,
+      toggleInteractionPanel,
+    ],
   );
 
   return (
@@ -140,11 +177,26 @@ export function DesktopWorkspace({
         >
           <ResizablePanel
             id="profile-workspace-interaction"
+            ref={interactionPanelRef}
             defaultSize={hasContentRoute ? 50 : 100}
             minSize={25}
             maxSize={100}
+            collapsible
+            collapsedSize={0}
+            className="min-w-0 overflow-hidden"
+            onCollapse={handleInteractionPanelCollapse}
+            onExpand={handleInteractionPanelExpand}
           >
-            {interaction}
+            <div
+              id={INTERACTION_PANEL_ID}
+              data-state={isInteractionPanelCollapsed ? "closed" : "open"}
+              data-testid="desktop-interaction-panel"
+              aria-hidden={isInteractionPanelCollapsed}
+              inert={isInteractionPanelCollapsed}
+              className="h-full"
+            >
+              {interaction}
+            </div>
           </ResizablePanel>
 
           <ResizableHandle
@@ -157,7 +209,7 @@ export function DesktopWorkspace({
             ref={contentPanelRef}
             defaultSize={hasContentRoute ? 50 : 0}
             minSize={25}
-            maxSize={80}
+            maxSize={100}
             collapsible
             collapsedSize={0}
             className="min-w-0 overflow-hidden"
