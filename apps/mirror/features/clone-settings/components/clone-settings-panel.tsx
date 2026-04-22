@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type TonePreset } from "@feel-good/convex/chat/tonePresets";
 import { Button } from "@feel-good/ui/primitives/button";
@@ -16,8 +16,8 @@ import {
   FormMessage,
 } from "@feel-good/ui/primitives/form";
 import {
-  cloneSettingsSchema,
   type CloneSettingsFormValues,
+  cloneSettingsSchema,
 } from "@/features/clone-settings/lib/schemas/clone-settings.schema";
 import { TonePresetSelect } from "@/features/clone-settings/components/tone-preset-select";
 import { CharCounterTextarea } from "@/features/clone-settings/components/char-counter-textarea";
@@ -38,10 +38,11 @@ export function CloneSettingsPanel() {
     },
     values: currentProfile
       ? {
-          personaPrompt: currentProfile.personaPrompt ?? null,
-          topicsToAvoid: currentProfile.topicsToAvoid ?? null,
-          tonePreset: (currentProfile.tonePreset as TonePreset | null | undefined) ?? null,
-        }
+        personaPrompt: currentProfile.personaPrompt ?? null,
+        topicsToAvoid: currentProfile.topicsToAvoid ?? null,
+        tonePreset:
+          (currentProfile.tonePreset as TonePreset | null | undefined) ?? null,
+      }
       : undefined,
   });
 
@@ -95,7 +96,10 @@ export function CloneSettingsPanel() {
   }, [form, runWithPending, updatePersonaSettings]);
 
   return (
-    <div data-testid="clone-settings-panel" className="px-4 py-6 max-w-xl">
+    <div
+      data-testid="clone-settings-panel"
+      className="p-4 mx-auto"
+    >
       <h2 className="text-lg font-semibold mb-1">Clone settings</h2>
       <p className="text-sm text-muted-foreground mb-6">
         Customize how your AI clone speaks.
