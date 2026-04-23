@@ -2,6 +2,7 @@
 
 import {
   useCallback,
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -24,6 +25,13 @@ import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context"
 const CONTENT_PANEL_ID = "profile-content-panel";
 const INTERACTION_PANEL_ID = "profile-interaction-panel";
 
+// Lifecycle fallback: if the default-content navigation does not flip
+// `hasContentRoute` within this window (e.g., router.push was aborted,
+// the user navigated away before commit, or transitions stalled), clear
+// the pending-navigation guard so the toggle remains operable. This is a
+// lifecycle recovery, not rendering timing — see `.claude/rules/react-components.md`.
+const PENDING_NAVIGATION_TIMEOUT_MS = 1800;
+
 type DesktopWorkspaceProps = {
   hasContentRoute: boolean;
   interaction: ReactNode;
@@ -45,7 +53,22 @@ export function DesktopWorkspace({
   const contentPanelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
   const interactionPanelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
   const isPendingNavigationRef = useRef(false);
+  const pendingNavigationTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
   const previousHasContentRouteRef = useRef(hasContentRoute);
+
+  const clearPendingNavigationTimeout = useCallback(() => {
+    if (pendingNavigationTimeoutRef.current !== null) {
+      clearTimeout(pendingNavigationTimeoutRef.current);
+      pendingNavigationTimeoutRef.current = null;
+    }
+  }, []);
+
+  const clearPendingNavigation = useCallback(() => {
+    isPendingNavigationRef.current = false;
+    clearPendingNavigationTimeout();
+  }, [clearPendingNavigationTimeout]);
   const [isContentPanelCollapsed, setIsContentPanelCollapsed] = useState(
     () => !hasContentRoute,
   );
@@ -73,8 +96,15 @@ export function DesktopWorkspace({
 
     markContentPanelOpenStart();
     isPendingNavigationRef.current = true;
+    // Arm the fallback: if `hasContentRoute` never flips, recover the
+    // guard so subsequent toggle clicks are not permanently no-ops.
+    clearPendingNavigationTimeout();
+    pendingNavigationTimeoutRef.current = setTimeout(() => {
+      isPendingNavigationRef.current = false;
+      pendingNavigationTimeoutRef.current = null;
+    }, PENDING_NAVIGATION_TIMEOUT_MS);
     onOpenDefaultContent();
-  }, [onOpenDefaultContent]);
+  }, [clearPendingNavigationTimeout, onOpenDefaultContent]);
 
   const toggleContentPanel = useCallback(() => {
     if (isPendingNavigationRef.current) return;
@@ -139,15 +169,27 @@ export function DesktopWorkspace({
       return;
     }
 
+    // Any observed transition clears the pending-navigation guard. The
+    // happy `false → true` path is the intended case, but `true → false`
+    // (user navigated away mid-flight) must also release the latch so
+    // subsequent toggle clicks keep working.
+    clearPendingNavigation();
+
     if (hasContentRoute) {
       markContentPanelRouteReady();
-      isPendingNavigationRef.current = false;
       groupRef.current?.setLayout([50, 50]);
       return;
     }
 
     contentPanelRef.current?.collapse();
-  }, [hasContentRoute]);
+  }, [clearPendingNavigation, hasContentRoute]);
+
+  // Ensure the timeout fallback does not fire after unmount.
+  useEffect(() => {
+    return () => {
+      clearPendingNavigationTimeout();
+    };
+  }, [clearPendingNavigationTimeout]);
 
   const workspaceChromeValue = useMemo(
     () => ({

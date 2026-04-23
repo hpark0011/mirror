@@ -3,7 +3,7 @@ id: FG_075
 title: "Desktop content toggle recovers when default-content navigation does not commit"
 date: 2026-04-23
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "isPendingNavigationRef in DesktopWorkspace is set when opening the default content route but is only cleared when hasContentRoute flips false→true in the layout effect. If the user navigates elsewhere before the route commits, if the push is aborted, or if hasContentRoute never transitions as expected, the ref stays true and every subsequent content-toggle silently no-ops. Same failure family as FG_060 (ref set on action, cleared only by an observed effect that may never arrive)."
 dependencies: []
