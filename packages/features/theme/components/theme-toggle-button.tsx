@@ -35,8 +35,8 @@ export function ThemeToggleButton() {
         aria-label="Toggle dark mode"
         size="sm"
       />
-      <div className="size-4.5 flex items-center justify-center">
-        <Icon name="MoonFillIcon" className="size-4 text-icon" />
+      <div className="size-5 flex items-center justify-center">
+        <Icon name="MoonFillIcon" className="size-4.5 text-icon" />
       </div>
     </div>
   );

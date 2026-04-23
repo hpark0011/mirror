@@ -1,5 +1,4 @@
 import { InstrumentSerif, Inter } from "@/app/fonts/font";
-import { AppDockConnector } from "@/features/dock";
 import { RootProvider } from "@/providers/root-provider";
 import { Toaster } from "@feel-good/ui/primitives/sonner";
 import "@/styles/globals.css";
@@ -30,7 +29,6 @@ export default function RootLayout({
         <RootProvider>
           {children}
 
-          <AppDockConnector />
           <Toaster />
         </RootProvider>
         <Analytics />

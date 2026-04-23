@@ -10,15 +10,22 @@ import {
   DropdownMenuTrigger,
 } from "@feel-good/ui/primitives/dropdown-menu";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { MirrorLogo } from "./mirror-logo";
 
 export function MirrorLogoMenu() {
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
 
   async function handleLogout() {
     const { error } = await signOut();
     if (error) return;
     router.push("/sign-in");
+  }
+
+  function handleThemeToggle(event: Event) {
+    event.preventDefault();
+    setTheme(resolvedTheme === "dark" ? "light" : "dark");
   }
 
   return (
@@ -36,11 +43,14 @@ export function MirrorLogoMenu() {
       <DropdownMenuContent align="start" sideOffset={8}>
         <DropdownMenuItem
           data-testid="theme-toggle-item"
-          className="pr-0.5 has-[svg]:pr-0.5"
+          onSelect={handleThemeToggle}
+          className="pr-0.5 has-[svg]:pr-0.5 w-40"
         >
           <div className="flex items-center justify-between w-full">
             <span className="text-[13px] text-foreground">Theme</span>
-            <ThemeToggleButton />
+            <span className="pointer-events-none">
+              <ThemeToggleButton />
+            </span>
           </div>
         </DropdownMenuItem>
         <DropdownMenuItem
