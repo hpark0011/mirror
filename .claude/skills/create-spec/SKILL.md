@@ -129,16 +129,6 @@ User: "Create a spec for a rate-limited magic-link login flow in mirror. Budget:
 → Phase 5 verification passes.
 ```
 
-✗ Bad invocation:
-
-```
-User: "Spec out the dashboard improvements."
-
-→ Requirement is ambiguous — no scope, no constraints, no success criteria.
-→ Correct response: stay in Phase 1 and ask clarifying questions.
-→ Wrong response: guess at scope and run the full 5-phase workflow.
-```
-
 ## Anti-patterns
 
 These complement the Phase rules above; they call out the failure modes most likely to slip past rule-checking.
