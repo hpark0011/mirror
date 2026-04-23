@@ -15,7 +15,7 @@ description: Create a product spec from user requirements through multi-agent re
 
 Invariants that apply across all phases:
 
-- **Minimum 3 sub-agents**: PM Agent, Adversarial Spec Reviewer, Verification Agent. Each gets its own context window via the Agent tool.
+- **Minimum 3 specialist sub-agents spawned**: Codebase Analyst (Phase 2b), Adversarial Reviewer (Phase 4), Verification Agent (Phase 5). Each gets its own context window via the Agent tool. The invoking agent acts as the PM — it owns spec drafting and integration.
 - **Domain expert is additive**: when consulted, it adds a 4th agent used in both Phase 2 and Phase 4.
 - **Hard verification only**: every requirement row must have a concrete, automatable check.
 - **Codebase accuracy**: every file path in the spec must be verified against the real codebase.
@@ -39,15 +39,14 @@ Run these in parallel where possible.
 
 **2b — Investigate codebase.** Spawn the `create-spec-codebase-analyst` agent (defined at `.claude/agents/create-spec/codebase-analyst.md`).
 
-**2c — Consult domain expert (when relevant).** Check `.claude/agents/` for a domain expert agent whose description matches the feature's domain:
+**2c — Consult domain expert (when relevant).** Check `.claude/agents/` for an agent whose description matches the feature's domain. Current domain experts in this repo:
 
-| Agent                   | Domain                                                           |
-| ----------------------- | ---------------------------------------------------------------- |
-| `agent-stream-pipeline` | Streaming, chunk processing, token buffering, backpressure       |
-| `auth-layer`            | OAuth, API keys, token storage, auth state, credential injection |
-| `release`               | Packaging, CI, code signing, auto-updater, versioning            |
+| Agent                    | Domain                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `chat-backend-developer` | Convex chat agent layer — LLM streaming, RAG, system prompts, chat schema/mutations |
+| `design-system-manager`  | Design tokens, shadcn/ui components, styling consistency                            |
 
-If the feature touches one of these domains, spawn that agent with the user's requirement and ask it to:
+If no listed agent fits, scan `.claude/agents/` directly — new experts may have been added since this list was written. If the feature touches a matching domain, spawn that agent with the user's requirement and ask it to:
 
 1. Review the proposed feature for domain-specific concerns.
 2. Identify constraints, gotchas, or patterns that must be followed.
@@ -71,11 +70,13 @@ Rules for Phase 3:
 
 1. Read `spec-template/spec.md` and instantiate it; do not invent additional top-level sections.
 2. **`What the user gets` must be written in user-POV, plain language — no tech jargon, no implementation verbs.** This is the alignment checkpoint; if it reads like implementation notes, the section has failed its job.
-3. **Every `How we'll know it works` scenario must be in user-flow language and reference at least one FR.** No internal state checks, no "component renders" — describe what the user does and what they see.
-4. Every requirement row MUST have a concrete, automatable `Verification` value — no subjective criteria.
-5. Every requirement must be referenced by at least one row in Unit Tests or `How we'll know it works` (ideally both where user-visible).
-6. **All five Architecture subsections must be populated.** For small features a single sentence per subsection is acceptable, but none may be empty or collapsed into another. The _Alternatives considered_ table in subsection 3 needs at least two entries — "most obvious approach" does not count. Subsection 5 _Upstream artifact impact_ must name the rule/skill/template/lint being patched, or explicitly justify "none" (this enforces _Always Choose the Compounding Option_ from `AGENTS.md`).
-7. **`Non-goals` may not be empty.** If there are genuinely no non-goals, say so and justify why. This is the scope cliff that stops quick-win creep during implementation.
+3. **`Non-goals` may not be empty.** If there are genuinely no non-goals, say so and justify why. This is the scope cliff that stops quick-win creep during implementation.
+4. **Every `How we'll know it works` scenario must be in user-flow language and reference at least one FR.** No internal state checks, no "component renders" — describe what the user does and what they see.
+5. Every requirement row MUST have a concrete, automatable `Verification` value — no subjective criteria.
+6. Every requirement must be referenced by at least one row in Unit Tests or `How we'll know it works` (ideally both where user-visible).
+7. **All five Architecture subsections must be populated.** For small features a single sentence per subsection is acceptable, but none may be empty or collapsed into another.
+   - Subsection 3 (`Why this works`) — the _Alternatives considered_ table needs at least two entries. "Most obvious approach" does not count.
+   - Subsection 5 (`Upstream artifact impact`) — must name the rule/skill/template/lint being patched, or explicitly justify "none". Enforces _Always Choose the Compounding Option_ from `AGENTS.md`.
 8. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). Verify against the codebase, don't guess. The `Test file` column in `How we'll know it works` may be left blank during drafting, but must be populated before implementation begins.
 
 Orchestration — executor selection, reviewer pairing, wave sequencing, and hard gate commands — is NOT the spec's job. `.claude/skills/orchestrate-implementation/SKILL.md` owns that at execution time. The spec describes _what must be true_; orchestration decides _who builds and who reviews_. The executor/critic separation is still load-bearing (see https://www.anthropic.com/engineering/harness-design-long-running-apps) — it's just enforced downstream, not here.
@@ -140,12 +141,10 @@ User: "Spec out the dashboard improvements."
 
 ## Anti-patterns
 
+These complement the Phase rules above; they call out the failure modes most likely to slip past rule-checking.
+
 - **Skipping Phase 1 clarifications.** Spawning agents on an ambiguous requirement wastes context and produces a spec the user will reject.
-- **Inventing extra top-level sections.** The template is the schema. Add rows, not new H2s.
-- **Filling `What the user gets` with implementation language.** "Adds middleware to intercept signup" is not what the user gets — it's what the engineer builds. The section must read from the user's perspective or it fails its alignment-checkpoint purpose.
-- **Skipping or collapsing Architecture subsections.** All four (Components / Data flow / Why this works / Edge cases) must be populated. "Why this works" and "Edge cases" are the highest-leverage sections — omitting them defeats the point of the restructure.
-- **`How we'll know it works` scenarios that describe internal state.** "Component mounts", "store updates" — these are implementation checks, not user-flow proof. Scenarios must describe what a user does and what they observe.
-- **Subjective verification criteria.** "Feels fast", "user-friendly", "looks good" — none are automatable. Every FR/NFR row needs a check a CI job could run.
+- **Collapsing Architecture subsections.** All five (Components / Data flow / Why this works / Edge cases / Upstream artifact impact) must be populated. "Why this works", "Edge cases", and "Upstream artifact impact" are the highest-leverage sections — omitting them defeats the point.
 - **Guessing file paths.** Fabricated paths in the Architecture section or test tables make the spec unactionable. Verify against the codebase.
 - **Naming an executor for Phase 3 inside this skill.** Creates a cycle with any agent that references this skill. The caller owns routing.
 - **Accepting adversarial concerns that contradict explicit user requirements.** Reject them and log the rejection in the Adversarial Review Summary.
