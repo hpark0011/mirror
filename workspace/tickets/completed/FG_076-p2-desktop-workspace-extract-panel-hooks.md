@@ -3,7 +3,7 @@ id: FG_076
 title: "Desktop workspace shell delegates panel behavior to focused hooks"
 date: 2026-04-23
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "apps/mirror/app/[username]/_components/desktop-workspace.tsx is 238 lines and owns five unrelated concerns in one component: collapse/expand state, navigation coordination with perf marks, panel toggle policy, resize-handle pointer interception, and imperative route-to-panel layout sync. Toggle policy is duplicated between toggleContentPanel and handleResizePointerDownCapture, and the 50/50 layout constant is hard-coded in four places. Decompose into focused hooks so each concern is independently testable and the shell component reads as a layout spec."
 dependencies:
