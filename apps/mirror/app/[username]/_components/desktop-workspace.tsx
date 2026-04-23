@@ -11,9 +11,10 @@ import {
   ResizablePanelGroup,
 } from "@feel-good/ui/primitives/resizable";
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
-import { useContentPanelController } from "./use-content-panel-controller";
-import { useInteractionPanelController } from "./use-interaction-panel-controller";
-import { useResizeHandleExpand } from "./use-resize-handle-expand";
+import { DesktopContentPanelToggle } from "./desktop-content-panel-toggle";
+import { useContentPanelController } from "../_hooks/use-content-panel-controller";
+import { useInteractionPanelController } from "../_hooks/use-interaction-panel-controller";
+import { useResizeHandleExpand } from "../_hooks/use-resize-handle-expand";
 import {
   CONTENT_PANEL_ID,
   INTERACTION_PANEL_ID,
@@ -60,7 +61,7 @@ export function DesktopWorkspace({
 
   return (
     <WorkspaceChromeProvider value={workspaceChromeValue}>
-      <main className="h-screen">
+      <main className="relative h-screen">
         <ResizablePanelGroup
           id="profile-workspace"
           ref={groupRef}
@@ -90,6 +91,11 @@ export function DesktopWorkspace({
             {children}
           </WorkspaceContentPanel>
         </ResizablePanelGroup>
+        <DesktopContentPanelToggle
+          contentPanelId={CONTENT_PANEL_ID}
+          isContentPanelCollapsed={contentController.isCollapsed}
+          toggleContentPanel={contentController.toggle}
+        />
       </main>
     </WorkspaceChromeProvider>
   );
