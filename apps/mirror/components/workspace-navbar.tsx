@@ -3,8 +3,8 @@
 import { cn } from "@feel-good/utils/cn";
 import { ProfileTabs } from "@/features/profile-tabs/components/profile-tabs";
 import {
-  PROFILE_TAB_DEFAULT_KIND,
   isProfileTabKind,
+  PROFILE_TAB_DEFAULT_KIND,
   type ProfileTabKind,
 } from "@/features/profile-tabs/types";
 import { useProfileRouteData } from "@/app/[username]/_providers/profile-route-data-context";

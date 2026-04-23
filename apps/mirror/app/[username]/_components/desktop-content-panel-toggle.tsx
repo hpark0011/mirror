@@ -12,24 +12,25 @@ export function DesktopContentPanelToggle({
   isContentPanelCollapsed,
   toggleContentPanel,
 }: DesktopContentPanelToggleProps) {
-  const buttonLabel = isContentPanelCollapsed
-    ? "Show Artifacts"
-    : "Hide Artifacts";
+  if (!isContentPanelCollapsed) {
+    return null;
+  }
+
+  const buttonLabel = "Hide Artifacts";
 
   return (
     <button
       type="button"
       aria-controls={contentPanelId}
-      aria-expanded={!isContentPanelCollapsed}
+      aria-expanded
       aria-label={buttonLabel}
-      data-state={isContentPanelCollapsed ? "closed" : "open"}
-      className="absolute top-0 right-0 group h-14 w-[136px] cursor-pointer z-40 pointer-events-auto outline-none"
+      data-state="open"
+      className="absolute top-3 right-3 group cursor-pointer z-40 pointer-events-auto outline-none"
       onClick={toggleContentPanel}
     >
       <div
         className={cn(
-          "absolute top-2 flex items-center gap-2 transition-[right,opacity] duration-200 ease-in-out",
-          isContentPanelCollapsed ? "right-3" : "-right-5 group-hover:right-3",
+          "flex items-center gap-2 transition-[right,opacity] duration-200 ease-in-out",
         )}
       >
         <div
