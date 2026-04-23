@@ -1,16 +1,15 @@
 "use client";
 
-import { LogOutIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { signOut } from "@/lib/auth-client";
+import { ThemeToggleButton } from "@feel-good/features/theme/components";
+import { PersonCropCircleFillIcon } from "@feel-good/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@feel-good/ui/primitives/dropdown-menu";
-import { ThemeToggleButton } from "@feel-good/features/theme/components";
-import { signOut } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 import { MirrorLogo } from "./mirror-logo";
 
 export function MirrorLogoMenu() {
@@ -35,18 +34,24 @@ export function MirrorLogoMenu() {
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" sideOffset={8}>
-        <div className="flex items-center justify-between px-2 py-1.5">
-          <span className="text-sm text-foreground-subtle">Theme</span>
-          <ThemeToggleButton />
-        </div>
-        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          data-testid="theme-toggle-item"
+          className="pr-0.5 has-[svg]:pr-0.5"
+        >
+          <div className="flex items-center justify-between w-full">
+            <span className="text-[13px] text-foreground">Theme</span>
+            <ThemeToggleButton />
+          </div>
+        </DropdownMenuItem>
         <DropdownMenuItem
           data-testid="logout-menu-item"
-          variant="destructive"
           onClick={handleLogout}
+          className="pr-0.5 has-[svg]:pr-0.5"
         >
-          <LogOutIcon />
-          Log out
+          <div className="flex items-center justify-between w-full">
+            Log out
+            <PersonCropCircleFillIcon className="size-5.5 text-icon" />
+          </div>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

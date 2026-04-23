@@ -8,7 +8,6 @@ import {
   useState,
 } from "react";
 import type { DockConfig, DockContextValue, DockState } from "../lib/types";
-import React from "react";
 
 const DockContext = createContext<DockContextValue | null>(null);
 

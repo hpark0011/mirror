@@ -13,8 +13,7 @@ import { useProfileRouteData } from "../_providers/profile-route-data-context";
 import {
   useOptionalWorkspaceChrome,
 } from "../_providers/workspace-chrome-context";
-import { MirrorLogo } from "@/components/mirror-logo";
-import { MirrorLogoMenu } from "@/components/mirror-logo-menu";
+import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
   const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
@@ -54,8 +53,8 @@ export function ProfilePanel() {
         </div>
       )}
       {!isMobile && (
-        <div className="absolute left-3 top-3 z-10">
-          {isOwner ? <MirrorLogoMenu /> : <MirrorLogo />}
+        <div className="absolute left-3 top-3 z-100">
+          <ProfileLogo />
         </div>
       )}
 
