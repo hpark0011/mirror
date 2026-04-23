@@ -5,17 +5,22 @@ import { usePreloadedQuery } from "convex/react";
 import type { Preloaded } from "convex/react";
 import type { api } from "@feel-good/convex/convex/_generated/api";
 import { useIsProfileOwner } from "@/features/profile";
+import {
+  filterContent,
+  getUniqueContentCategories,
+  sortContent,
+  useContentSearch,
+  useContentSort,
+} from "@/features/content";
 import type { PostSummary } from "../types";
 import { usePostFilter } from "../hooks/use-post-filter";
-import { usePostSearch } from "../hooks/use-post-search";
-import { usePostSort } from "../hooks/use-post-sort";
-import {
-  filterPosts,
-  getUniquePostCategories,
-  sortPosts,
-} from "../utils/post-filter";
 import { PostListContext } from "./post-list-context";
 import { PostToolbarContext } from "./post-toolbar-context";
+
+const getPostSearchableFields = (post: PostSummary) => [
+  post.title,
+  post.category,
+];
 
 type PostWorkspaceProviderProps = {
   preloadedPosts: Preloaded<typeof api.posts.queries.getByUsername>;
@@ -34,18 +39,21 @@ export function PostWorkspaceProvider({
     () => ((reactivePosts ?? []) as PostSummary[]),
     [reactivePosts],
   );
-  const search = usePostSearch(posts);
-  const { sortOrder, setSortOrder } = usePostSort();
+  const search = useContentSearch(posts, getPostSearchableFields);
+  const { sortOrder, setSortOrder } = useContentSort();
   const filter = usePostFilter();
   const filteredPosts = useMemo(
-    () => filterPosts(search.filteredPosts, filter.filterState, isOwner),
-    [search.filteredPosts, filter.filterState, isOwner],
+    () => filterContent(search.filteredItems, filter.filterState, isOwner),
+    [search.filteredItems, filter.filterState, isOwner],
   );
   const visiblePosts = useMemo(
-    () => sortPosts(filteredPosts, sortOrder, search.isFiltered),
+    () => sortContent(filteredPosts, sortOrder, search.isFiltered),
     [filteredPosts, sortOrder, search.isFiltered],
   );
-  const categories = useMemo(() => getUniquePostCategories(posts), [posts]);
+  const categories = useMemo(
+    () => getUniqueContentCategories(posts),
+    [posts],
+  );
   const hasNoPosts = posts.length === 0;
   const showEmpty =
     visiblePosts.length === 0 &&

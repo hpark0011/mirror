@@ -1,10 +1,5 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@feel-good/convex/convex/_generated/api";
 import { type TonePreset } from "@feel-good/convex/chat/tonePresets";
 import { Button } from "@feel-good/ui/primitives/button";
 import {
@@ -15,84 +10,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@feel-good/ui/primitives/form";
-import {
-  cloneSettingsSchema,
-  type CloneSettingsFormValues,
-} from "@/features/clone-settings/lib/schemas/clone-settings.schema";
+import { useCloneSettings } from "@/features/clone-settings/hooks/use-clone-settings";
 import { TonePresetSelect } from "@/features/clone-settings/components/tone-preset-select";
 import { CharCounterTextarea } from "@/features/clone-settings/components/char-counter-textarea";
 import { ClearAllDialog } from "@/features/clone-settings/components/clear-all-dialog";
 
 export function CloneSettingsPanel() {
-  const currentProfile = useQuery(api.users.queries.getCurrentProfile);
-  const updatePersonaSettings = useMutation(
-    api.users.mutations.updatePersonaSettings,
-  );
-
-  const form = useForm<CloneSettingsFormValues>({
-    resolver: zodResolver(cloneSettingsSchema),
-    defaultValues: {
-      personaPrompt: null,
-      topicsToAvoid: null,
-      tonePreset: null,
-    },
-    values: currentProfile
-      ? {
-          personaPrompt: currentProfile.personaPrompt ?? null,
-          topicsToAvoid: currentProfile.topicsToAvoid ?? null,
-          tonePreset: (currentProfile.tonePreset as TonePreset | null | undefined) ?? null,
-        }
-      : undefined,
-  });
-
-  const pendingRef = useRef(false);
-  const [isPending, setIsPending] = useState(false);
-
-  const runWithPending = useCallback(async (action: () => Promise<void>) => {
-    if (pendingRef.current) {
-      return;
-    }
-
-    pendingRef.current = true;
-    setIsPending(true);
-
-    try {
-      return await action();
-    } finally {
-      pendingRef.current = false;
-      setIsPending(false);
-    }
-  }, []);
-
-  const onSubmit = useCallback(
-    async (data: CloneSettingsFormValues) => {
-      await runWithPending(async () => {
-        await updatePersonaSettings({
-          personaPrompt: data.personaPrompt,
-          tonePreset: data.tonePreset,
-          topicsToAvoid: data.topicsToAvoid,
-        });
-        form.reset(data);
-      });
-    },
-    [form, runWithPending, updatePersonaSettings],
-  );
-
-  const handleClearAll = useCallback(async () => {
-    await runWithPending(async () => {
-      const cleared: CloneSettingsFormValues = {
-        personaPrompt: null,
-        tonePreset: null,
-        topicsToAvoid: null,
-      };
-      await updatePersonaSettings({
-        personaPrompt: null,
-        tonePreset: null,
-        topicsToAvoid: null,
-      });
-      form.reset(cleared);
-    });
-  }, [form, runWithPending, updatePersonaSettings]);
+  const { form, isPending, handleSubmit, handleClear } = useCloneSettings();
 
   return (
     <div data-testid="clone-settings-panel" className="px-4 py-6 max-w-xl">
@@ -101,7 +25,7 @@ export function CloneSettingsPanel() {
         Customize how your AI clone speaks.
       </p>
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
           <FormField
             control={form.control}
             name="tonePreset"
@@ -162,7 +86,7 @@ export function CloneSettingsPanel() {
           />
 
           <div className="flex items-center justify-between">
-            <ClearAllDialog onConfirm={handleClearAll} />
+            <ClearAllDialog onConfirm={handleClear} />
             <Button type="submit" disabled={isPending}>
               {isPending ? "Saving..." : "Save"}
             </Button>

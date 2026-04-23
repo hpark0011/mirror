@@ -1,15 +1,15 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { SortOrder } from "../hooks/use-article-sort";
-import type { UseArticleSearchReturn } from "../hooks/use-article-search";
+import type { SortOrder, UseContentSearchReturn } from "@/features/content";
 import type { UseArticleFilterReturn } from "../hooks/use-article-filter";
+import type { ArticleSummary } from "../types";
 
 export type ArticleToolbarContextValue = {
   isOwner: boolean;
   sortOrder: SortOrder;
   onSortChange: (order: SortOrder) => void;
-  search: UseArticleSearchReturn;
+  search: UseContentSearchReturn<ArticleSummary>;
   filter: UseArticleFilterReturn;
   categories: { name: string; count: number }[];
   selectedCount: number;

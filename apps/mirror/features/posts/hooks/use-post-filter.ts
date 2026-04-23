@@ -2,14 +2,14 @@
 
 import { useCallback, useMemo } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { DatePreset } from "@/features/content";
 import {
-  INITIAL_POST_FILTER_STATE,
-  type PostFilterState,
-} from "../utils/post-filter";
+  INITIAL_CONTENT_FILTER_STATE,
+  type ContentFilterState,
+  type DatePreset,
+} from "@/features/content";
 
 export type UsePostFilterReturn = {
-  filterState: PostFilterState;
+  filterState: ContentFilterState;
   toggleCategory: (name: string) => void;
   clearCategories: () => void;
   setPublishedDatePreset: (preset: DatePreset | null) => void;
@@ -22,7 +22,7 @@ export type UsePostFilterReturn = {
 export function usePostFilter(): UsePostFilterReturn {
   const [filterState, setFilterState] = useLocalStorage(
     "mirror.posts.filter",
-    INITIAL_POST_FILTER_STATE,
+    INITIAL_CONTENT_FILTER_STATE,
   );
 
   const toggleCategory = useCallback(
@@ -72,7 +72,7 @@ export function usePostFilter(): UsePostFilterReturn {
   }, [setFilterState]);
 
   const clearAll = useCallback(() => {
-    setFilterState(INITIAL_POST_FILTER_STATE);
+    setFilterState(INITIAL_CONTENT_FILTER_STATE);
   }, [setFilterState]);
 
   const hasActiveFilters = useMemo(

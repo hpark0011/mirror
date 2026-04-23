@@ -11,14 +11,23 @@ import {
 import { useMutation, usePreloadedQuery } from "convex/react";
 import type { Preloaded } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { SortOrder } from "../hooks/use-article-sort";
+import {
+  filterContent,
+  getUniqueContentCategories,
+  sortContent,
+  useContentSearch,
+  useContentSort,
+  type SortOrder,
+} from "@/features/content";
 import type { ArticleSummary } from "../types";
 import { useArticlePagination } from "../hooks/use-article-pagination";
-import { useArticleSearch } from "../hooks/use-article-search";
 import { useArticleSelection } from "../hooks/use-article-selection";
-import { useArticleSort } from "../hooks/use-article-sort";
 import { useArticleFilter } from "../hooks/use-article-filter";
-import { filterArticles, getUniqueCategories } from "../utils/article-filter";
+
+const getArticleSearchableFields = (article: ArticleSummary) => [
+  article.title,
+  article.category,
+];
 import { useIsProfileOwner } from "@/features/profile";
 import { ArticleToolbarContext } from "./article-toolbar-context";
 import { ArticleListContext } from "./article-list-context";
@@ -41,18 +50,22 @@ export function ArticleWorkspaceProvider({
   );
   const isOwner = useIsProfileOwner();
   const removeArticles = useMutation(api.articles.mutations.remove);
-  const search = useArticleSearch(articles);
-  const { sortOrder, setSortOrder } = useArticleSort();
+  const search = useContentSearch(articles, getArticleSearchableFields);
+  const { sortOrder, setSortOrder } = useContentSort();
   const filter = useArticleFilter();
   const filteredByFilter = useMemo(
-    () => filterArticles(search.filteredArticles, filter.filterState, isOwner),
-    [search.filteredArticles, filter.filterState, isOwner],
+    () => filterContent(search.filteredItems, filter.filterState, isOwner),
+    [search.filteredItems, filter.filterState, isOwner],
+  );
+  const sortedArticles = useMemo(
+    () => sortContent(filteredByFilter, sortOrder, search.isFiltered),
+    [filteredByFilter, sortOrder, search.isFiltered],
   );
   const {
     articles: paginatedArticles,
     hasMore,
     loadMore,
-  } = useArticlePagination(filteredByFilter, sortOrder, search.isFiltered);
+  } = useArticlePagination(sortedArticles);
 
   // Animation trigger on sort change
   const [shouldAnimate, setShouldAnimate] = useState(false);
@@ -78,7 +91,7 @@ export function ArticleWorkspaceProvider({
   });
 
   const uniqueCategories = useMemo(
-    () => getUniqueCategories(articles),
+    () => getUniqueContentCategories(articles),
     [articles],
   );
 

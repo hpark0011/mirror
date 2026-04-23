@@ -1,27 +1,44 @@
-import type { DatePreset } from "@/features/content";
-import { getDateRange } from "@/features/content";
-import type { SortOrder } from "../hooks/use-post-sort";
-import type { PostSummary } from "../types";
+import type { DatePreset } from "./date-preset";
+import { getDateRange } from "./date-preset";
+import type { SortOrder } from "../hooks/use-content-sort";
 
-export type PostFilterState = {
+/**
+ * Shared filter state used by every content list (articles, posts, …).
+ *
+ * The shape is intentionally structural — `content/` does not know about
+ * any particular feature's document type.
+ */
+export type ContentFilterState = {
   categories: string[];
   publishedDatePreset: DatePreset | null;
   createdDatePreset: DatePreset | null;
   publishedStatus: "draft" | "published" | null;
 };
 
-export const INITIAL_POST_FILTER_STATE: PostFilterState = {
+export const INITIAL_CONTENT_FILTER_STATE: ContentFilterState = {
   categories: [],
   publishedDatePreset: null,
   createdDatePreset: null,
   publishedStatus: null,
 };
 
-export function filterPosts(
-  posts: PostSummary[],
-  filter: PostFilterState,
+/**
+ * Structural shape every filterable content item must satisfy. Articles and
+ * posts both already happen to expose these fields — the interface is defined
+ * here in `content/` and is not derived from any feature type.
+ */
+export interface FilterableContent {
+  category: string;
+  publishedAt?: number;
+  createdAt: number;
+  status: "draft" | "published";
+}
+
+export function filterContent<T extends FilterableContent>(
+  items: T[],
+  filter: ContentFilterState,
   isOwner: boolean,
-): PostSummary[] {
+): T[] {
   const publishedDateRange =
     filter.publishedDatePreset !== null
       ? (() => {
@@ -44,16 +61,16 @@ export function filterPosts(
         })()
       : null;
 
-  return posts.filter((post) => {
+  return items.filter((item) => {
     if (
       filter.categories.length > 0 &&
-      !filter.categories.includes(post.category)
+      !filter.categories.includes(item.category)
     ) {
       return false;
     }
 
     if (publishedDateRange !== null) {
-      const publishedTimestamp = post.publishedAt ?? 0;
+      const publishedTimestamp = item.publishedAt ?? 0;
 
       if (
         publishedTimestamp < publishedDateRange.start ||
@@ -65,8 +82,8 @@ export function filterPosts(
 
     if (createdDateRange !== null) {
       if (
-        post.createdAt < createdDateRange.start ||
-        post.createdAt > createdDateRange.end
+        item.createdAt < createdDateRange.start ||
+        item.createdAt > createdDateRange.end
       ) {
         return false;
       }
@@ -75,7 +92,7 @@ export function filterPosts(
     if (
       isOwner &&
       filter.publishedStatus !== null &&
-      post.status !== filter.publishedStatus
+      item.status !== filter.publishedStatus
     ) {
       return false;
     }
@@ -84,18 +101,18 @@ export function filterPosts(
   });
 }
 
-export function getUniquePostCategories(
-  posts: PostSummary[],
+export function getUniqueContentCategories<T extends { category: string }>(
+  items: T[],
 ): { name: string; count: number }[] {
-  if (posts.length === 0) {
+  if (items.length === 0) {
     return [];
   }
 
   const categoryMap = new Map<string, number>();
 
-  posts.forEach((post) => {
-    const currentCount = categoryMap.get(post.category) || 0;
-    categoryMap.set(post.category, currentCount + 1);
+  items.forEach((item) => {
+    const currentCount = categoryMap.get(item.category) ?? 0;
+    categoryMap.set(item.category, currentCount + 1);
   });
 
   return Array.from(categoryMap.entries())
@@ -103,16 +120,24 @@ export function getUniquePostCategories(
     .sort((left, right) => left.name.localeCompare(right.name));
 }
 
-export function sortPosts(
-  posts: PostSummary[],
+/**
+ * Structural shape required for chronological sort. Anything with an optional
+ * `publishedAt` timestamp is sortable.
+ */
+export interface SortableContent {
+  publishedAt?: number;
+}
+
+export function sortContent<T extends SortableContent>(
+  items: T[],
   sortOrder: SortOrder,
   preserveOrder = false,
-): PostSummary[] {
+): T[] {
   if (preserveOrder) {
-    return posts;
+    return items;
   }
 
-  return [...posts].sort((left, right) => {
+  return [...items].sort((left, right) => {
     const diff = (right.publishedAt ?? 0) - (left.publishedAt ?? 0);
     return sortOrder === "newest" ? diff : -diff;
   });

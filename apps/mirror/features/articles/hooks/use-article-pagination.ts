@@ -1,16 +1,11 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { ArticleSummary } from "../types";
-import type { SortOrder } from "./use-article-sort";
 
 const PAGE_SIZE = 30;
 
-export function useArticlePagination(
-  allArticles: ArticleSummary[],
-  sortOrder: SortOrder,
-  preserveOrder = false,
-) {
+export function useArticlePagination(allArticles: ArticleSummary[]) {
   const [page, setPage] = useState(1);
 
   // Reset page when filtered articles change (e.g. search query changes)
@@ -21,19 +16,11 @@ export function useArticlePagination(
     setPage(1);
   }
 
-  const sorted = useMemo(() => {
-    if (preserveOrder) return allArticles;
-    return [...allArticles].sort((a, b) => {
-      const diff = (b.publishedAt ?? 0) - (a.publishedAt ?? 0);
-      return sortOrder === "newest" ? diff : -diff;
-    });
-  }, [allArticles, sortOrder, preserveOrder]);
-
   const articles = useMemo(
-    () => sorted.slice(0, page * PAGE_SIZE),
-    [sorted, page],
+    () => allArticles.slice(0, page * PAGE_SIZE),
+    [allArticles, page],
   );
-  const hasMore = articles.length < sorted.length;
+  const hasMore = articles.length < allArticles.length;
 
   const loadMore = useCallback(() => {
     setPage((prev) => prev + 1);

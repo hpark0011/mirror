@@ -6,16 +6,17 @@ import {
   ContentListFilterDropdown,
   ContentListSearchInput,
   ContentListSortDropdown,
+  type SortOrder,
+  type UseContentSearchReturn,
 } from "@/features/content";
+import type { PostSummary } from "../types";
 import type { UsePostFilterReturn } from "../hooks/use-post-filter";
-import type { UsePostSearchReturn } from "../hooks/use-post-search";
-import type { SortOrder } from "../hooks/use-post-sort";
 
 type PostListToolbarProps = {
   isOwner: boolean;
   sortOrder: SortOrder;
   onSortChange: (order: SortOrder) => void;
-  search: UsePostSearchReturn;
+  search: UseContentSearchReturn<PostSummary>;
   categories: { name: string; count: number }[];
   filter: UsePostFilterReturn;
   onUploadClick: () => void;

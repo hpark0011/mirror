@@ -1,15 +1,18 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { SortOrder } from "../hooks/use-post-sort";
-import type { UsePostSearchReturn } from "../hooks/use-post-search";
+import type {
+  SortOrder,
+  UseContentSearchReturn,
+} from "@/features/content";
+import type { PostSummary } from "../types";
 import type { UsePostFilterReturn } from "../hooks/use-post-filter";
 
 export type PostToolbarContextValue = {
   isOwner: boolean;
   sortOrder: SortOrder;
   onSortChange: (order: SortOrder) => void;
-  search: UsePostSearchReturn;
+  search: UseContentSearchReturn<PostSummary>;
   filter: UsePostFilterReturn;
   categories: { name: string; count: number }[];
   isUploadDialogOpen: boolean;
