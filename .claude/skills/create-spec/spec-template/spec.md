@@ -1,5 +1,7 @@
 # <Feature Name> — Spec
 
+**Created:** <YYYY-MM-DD>
+
 ## What the user gets
 
 <2–5 bullets describing the feature from the user's perspective. No tech jargon.
