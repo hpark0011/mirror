@@ -8,17 +8,12 @@ import {
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
 import { useCallback, useState } from "react";
-import { DesktopContentPanelToggle } from "./desktop-content-panel-toggle";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
-import {
-  useOptionalWorkspaceChrome,
-} from "../_providers/workspace-chrome-context";
 import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
   const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
-  const workspaceChrome = useOptionalWorkspaceChrome();
   const isMobile = useIsMobile();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -56,14 +51,6 @@ export function ProfilePanel() {
         <div className="absolute left-3 top-3 z-100">
           <ProfileLogo />
         </div>
-      )}
-
-      {workspaceChrome && (
-        <DesktopContentPanelToggle
-          contentPanelId={workspaceChrome.contentPanelId}
-          isContentPanelCollapsed={workspaceChrome.isContentPanelCollapsed}
-          toggleContentPanel={workspaceChrome.toggleContentPanel}
-        />
       )}
 
       <ProfileInfo

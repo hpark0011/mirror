@@ -23,7 +23,7 @@ export function DesktopContentPanelToggle({
       aria-expanded={!isContentPanelCollapsed}
       aria-label={buttonLabel}
       data-state={isContentPanelCollapsed ? "closed" : "open"}
-      className="absolute top-1/2 right-0 group h-14 w-[136px] -translate-y-full cursor-pointer z-40 pointer-events-auto outline-none"
+      className="absolute top-0 right-0 group h-14 w-[136px] cursor-pointer z-40 pointer-events-auto outline-none"
       onClick={toggleContentPanel}
     >
       <div
