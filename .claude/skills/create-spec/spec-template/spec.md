@@ -1,10 +1,5 @@
 # <Feature Name> — Spec
 
-_Template artifact. Consumed by `.claude/skills/create-spec/SKILL.md` (Phase 3).
-Do NOT reference this file directly from an agent — go through the skill._
-
----
-
 ## What the user gets
 
 <2–5 bullets describing the feature from the user's perspective. No tech jargon.
@@ -18,9 +13,9 @@ User-flow scenarios that prove the feature works. Each row is the source of trut
 
 E2E tests live in the owning app's Playwright directory (e.g., `apps/mirror/e2e/`) with a `.spec.ts` suffix. Use the Playwright CLI only (`.claude/rules/testing.md`). Tests must describe real user flows, not internal state checks.
 
-| Scenario (user-flow language)                     | Expected outcome                                  | Test file        | Verifies |
-| ------------------------------------------------- | ------------------------------------------------- | ---------------- | -------- |
-| {e.g. "User submits signup with a blocked email"} | {e.g. "Sees waitlist screen, no account created"} | {path or blank}  | {FR-XX}  |
+| Scenario (user-flow language)                     | Expected outcome                                  | Test file       | Verifies |
+| ------------------------------------------------- | ------------------------------------------------- | --------------- | -------- |
+| {e.g. "User submits signup with a blocked email"} | {e.g. "Sees waitlist screen, no account created"} | {path or blank} | {FR-XX}  |
 
 ## Requirements
 
@@ -70,7 +65,7 @@ or numbered walkthrough is usually clearer than prose.
 ### 3. Why this works
 
 Why this design improves the system without introducing regressions, and why it
-makes the codebase *less* prone to failure. Address:
+makes the codebase _less_ prone to failure. Address:
 
 - What invariants does it preserve or strengthen?
 - What classes of bugs does it make impossible (or much harder)?
@@ -94,24 +89,6 @@ Where this architecture is fragile or surprising. Call out:
 | {path}    | {test name} | {FR-XX}  |
 
 Use Vitest. Match the owning package's existing patterns: tests in `__tests__/` with `.test.ts` suffix, or `.unit.test.ts` when the package is already configured for it. E2E coverage is captured in the `## How we'll know it works` table — don't duplicate scenarios here.
-
-## Team Orchestration Plan
-
-Reviewer selection and wave packaging happen at execution time — see `.claude/skills/orchestrate-implementation/SKILL.md`. This plan lists logical work chunks with hard gates; it does not pre-assign critics. The spec describes *what must be true*; orchestration decides *who reviews*.
-
-Plan which agents execute the implementation work. Check `.claude/agents/` for specialized agents that can own specific steps. Prefer existing specialized agents over creating new ones.
-
-```
-Step N — {description}
-Suggested executor: {agent name from .claude/agents/, or "general"}
-Scope: {files touched, what changes}
-Hard gate: {exact shell command(s) that must exit 0 before this step is done}
-Verifies: {FR-XX, FR-YY}
-```
-
-## Open Questions (if any)
-
-<Anything that needs user input before implementation.>
 
 ## Adversarial Review Summary
 

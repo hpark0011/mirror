@@ -3,16 +3,6 @@ name: create-spec
 description: Create a product spec from user requirements through multi-agent research, adversarial critique, and iterative refinement. Spawns PM, Adversarial Reviewer, domain expert (when relevant), and Verification agents in separate context windows. Outputs a spec with Playwright E2E tests and team orchestration plan to workspace/spec/. Use when the user wants to create a spec, write requirements, plan a feature, or says "create spec", "spec this", "write a spec".
 ---
 
-# Create Spec
-
-## When to use
-
-- User says "create a spec", "spec this", "write a spec", "write requirements", or "plan a feature" for a non-trivial piece of work.
-- A feature is large enough that it needs FR/NFR tables, test plans, and an orchestration plan before implementation starts.
-- A brainstorm or ticket is ready to be hardened into a verifiable, testable spec.
-
-**Do NOT use for**: ad-hoc notes, one-file bug fixes, quick refactors, or exploratory brainstorms. Do not use to edit an existing spec's prose — only to author or rewrite one from requirements.
-
 ## Quick start
 
 1. Confirm the requirement is unambiguous (Phase 1). If not, ask clarifying questions before spawning any agents.
@@ -88,7 +78,7 @@ Rules for Phase 3:
 6. **All four Architecture subsections must be populated.** For small features a single sentence per subsection is acceptable, but none may be empty or collapsed into another.
 7. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). Verify against the codebase, don't guess. The `Test file` column in `How we'll know it works` may be left blank during drafting, but must be populated before the orchestration plan runs.
 8. Team Orchestration Plan must name real agents from `.claude/agents/` or explicitly recommend `/create-codebase-expert` for missing owners.
-9. **Every orchestration step MUST name (a) a suggested executor, (b) a hard gate shell command that proves the step is done, and (c) the FR/NFR IDs it verifies.** Reviewer pairing is NOT decided in the spec — `.claude/skills/orchestrate-implementation/SKILL.md` owns the critique routing table and selects reviewers per wave at execution time. Rationale: keeping one source of truth for the `code-review-*` roster prevents drift; the spec describes *what must be true*, orchestration decides *who reviews*. The executor/critic separation itself is still load-bearing (see https://www.anthropic.com/engineering/harness-design-long-running-apps) — it's just enforced downstream, not here.
+9. **Every orchestration step MUST name (a) a suggested executor, (b) a hard gate shell command that proves the step is done, and (c) the FR/NFR IDs it verifies.** Reviewer pairing is NOT decided in the spec — `.claude/skills/orchestrate-implementation/SKILL.md` owns the critique routing table and selects reviewers per wave at execution time. Rationale: keeping one source of truth for the `code-review-*` roster prevents drift; the spec describes _what must be true_, orchestration decides _who reviews_. The executor/critic separation itself is still load-bearing (see https://www.anthropic.com/engineering/harness-design-long-running-apps) — it's just enforced downstream, not here.
 
 ### Phase 4: Adversarial Critique Loop
 
