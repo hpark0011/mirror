@@ -17,7 +17,7 @@ export function DesktopContentPanelToggle({
     : "Hide artifacts";
 
   const shinyButtonClass =
-    `w-11 h-11 rounded-[20px] [corner-shape:superellipse(1.3)] [&>span]:drop-shadow-none ${
+    `w-11 h-11 rounded-[20px] [corner-shape:superellipse(1.3)] [&>span]:drop-shadow-none border border-primary/5 ${
       isContentPanelCollapsed ? "bg-primary/20" : "bg-primary/20 shadow-xs"
     }`;
   const shinyButtonShadowClass =

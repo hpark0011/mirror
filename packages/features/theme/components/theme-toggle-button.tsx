@@ -25,7 +25,8 @@ export function ThemeToggleButton() {
 
   return (
     <div className="flex items-center gap-0.5">
-      <div className="-mr-[1px]">
+      {
+        /* <div className="-mr-[1px]">
         <Icon name="SunMaxFillIcon" className="size-5 text-icon" />
       </div>
       <Switch
@@ -34,9 +35,12 @@ export function ThemeToggleButton() {
         variant="theme"
         aria-label="Toggle dark mode"
         size="sm"
-      />
+      /> */
+      }
       <div className="size-5 flex items-center justify-center">
-        <Icon name="MoonFillIcon" className="size-4.5 text-icon" />
+        {resolvedTheme === "dark"
+          ? <Icon name="MoonFillIcon" className="size-4.5 text-icon" />
+          : <Icon name="SunMaxFillIcon" className="size-4.5 text-icon" />}
       </div>
     </div>
   );

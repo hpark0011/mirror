@@ -44,7 +44,7 @@ export function MirrorLogoMenu() {
         <DropdownMenuItem
           data-testid="theme-toggle-item"
           onSelect={handleThemeToggle}
-          className="pr-0.5 has-[svg]:pr-0.5 w-40"
+          className="pr-[5px] has-[svg]:pr-[5px] w-40"
         >
           <div className="flex items-center justify-between w-full">
             <span className="text-[13px] text-foreground">Theme</span>
@@ -56,7 +56,7 @@ export function MirrorLogoMenu() {
         <DropdownMenuItem
           data-testid="logout-menu-item"
           onClick={handleLogout}
-          className="pr-0.5 has-[svg]:pr-0.5"
+          className="pr-1 has-[svg]:pr-1"
         >
           <div className="flex items-center justify-between w-full">
             Log out
