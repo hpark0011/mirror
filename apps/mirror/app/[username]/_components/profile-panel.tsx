@@ -9,7 +9,6 @@ import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
 import { useCallback, useState } from "react";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
-import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
   const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
@@ -47,12 +46,6 @@ export function ProfilePanel() {
             : <EditProfileButton onClick={() => setIsEditing(true)} />}
         </div>
       )}
-      {!isMobile && (
-        <div className="absolute left-3 top-3 z-100">
-          <ProfileLogo />
-        </div>
-      )}
-
       <ProfileInfo
         profile={profile}
         isEditing={isEditing}

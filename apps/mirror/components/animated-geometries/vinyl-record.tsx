@@ -15,7 +15,7 @@ function VinylRecord({
   return (
     <GeometryScene
       slot="vinyl-record"
-      className={cn("size-[40px]", className)}
+      className={cn("size-[36px]", className)}
       perspective="none"
       stageStyle={EMPTY_STAGE_STYLE}
     >
