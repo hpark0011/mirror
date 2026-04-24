@@ -6,14 +6,18 @@ import {
   ProfileInfo,
 } from "@/features/profile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { XmarkIcon } from "@feel-good/icons";
+import { IconButton } from "@feel-good/ui/components/icon-button";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
 import { useCallback, useState } from "react";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
+import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
 import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
   const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
+  const chrome = useOptionalWorkspaceChrome();
   const isMobile = useIsMobile();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -23,10 +27,6 @@ export function ProfilePanel() {
     setIsEditing(false);
     setIsSubmitting(false);
   }, []);
-
-  const editButtonClassName = isMobile
-    ? "absolute top-3 right-3 z-10"
-    : "absolute top-3 right-3";
 
   return (
     <div
@@ -39,19 +39,33 @@ export function ProfilePanel() {
           <ProfileLogo />
         </div>
       )}
-      {isOwner && (
-        <div className={editButtonClassName}>
-          {isEditing
-            ? (
-              <EditActions
-                isEditing={isEditing}
-                isSubmitting={isSubmitting}
-                onCancel={handleEditClose}
-              />
-            )
-            : <EditProfileButton onClick={() => setIsEditing(true)} />}
-        </div>
-      )}
+
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
+        {isOwner &&
+            isEditing
+          ? (
+            <EditActions
+              isEditing={isEditing}
+              isSubmitting={isSubmitting}
+              onCancel={handleEditClose}
+            />
+          )
+          : <EditProfileButton onClick={() => setIsEditing(true)} />}
+        <IconButton
+          onClick={chrome?.toggleInteractionPanel}
+          aria-controls={chrome?.interactionPanelId}
+          aria-expanded={chrome
+            ? !chrome.isInteractionPanelCollapsed
+            : undefined}
+          aria-label="Close profile panel"
+          tooltip="Close Profile"
+          className="rounded-full"
+          size="icon"
+        >
+          <XmarkIcon className="size-5 text-icon" />
+        </IconButton>
+      </div>
+
       <ProfileInfo
         profile={profile}
         isEditing={isEditing}
