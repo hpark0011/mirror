@@ -41,7 +41,9 @@ export function MobileProfileLayout({
     PEEK_SNAP_POINT,
   );
   const isControlled = activeSnapPointProp !== undefined;
-  const activeSnapPoint = isControlled ? activeSnapPointProp : internalSnapPoint;
+  const activeSnapPoint = isControlled
+    ? activeSnapPointProp
+    : internalSnapPoint;
   const setActiveSnapPoint = (next: SnapPoint) => {
     if (!isControlled) setInternalSnapPoint(next);
     onActiveSnapPointChange?.(next);
@@ -56,7 +58,7 @@ export function MobileProfileLayout({
   return (
     <div className="h-dvh overflow-hidden relative">
       <div
-        className="absolute inset-0 origin-center pt-24 transition-transform duration-300"
+        className="absolute inset-0 origin-center transition-transform duration-300"
         style={{ transform: `scale(${isExpanded ? 0.8 : 1})` }}
       >
         {profile}

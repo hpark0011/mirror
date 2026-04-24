@@ -29,13 +29,13 @@ export function ProfilePanel() {
   }, []);
 
   const editButtonClassName = isMobile
-    ? "absolute top-0 right-5 z-10"
+    ? "absolute top-3 right-3 z-10"
     : "absolute top-3 right-3";
 
   return (
     <div
       className={isMobile
-        ? "relative h-full"
+        ? "relative h-full pt-24"
         : "relative z-20 h-full flex flex-col justify-start items-center px-6 py-[132px]"}
     >
       {!isMobile && (

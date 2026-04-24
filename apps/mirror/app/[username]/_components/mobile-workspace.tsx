@@ -15,10 +15,7 @@ import {
 import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
 import { ProfileLogo } from "./profile-logo";
-import {
-  CONTENT_PANEL_ID,
-  INTERACTION_PANEL_ID,
-} from "./workspace-panels";
+import { CONTENT_PANEL_ID, INTERACTION_PANEL_ID } from "./workspace-panels";
 
 type MobileWorkspaceProps = {
   routeState: ContentRouteState | null;
