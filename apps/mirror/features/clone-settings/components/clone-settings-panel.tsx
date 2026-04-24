@@ -19,7 +19,10 @@ export function CloneSettingsPanel() {
   const { form, isPending, handleSubmit, handleClear } = useCloneSettings();
 
   return (
-    <div data-testid="clone-settings-panel" className="px-4 py-6 max-w-xl">
+    <div
+      data-testid="clone-settings-panel"
+      className="px-4 py-6 max-w-xl mx-auto"
+    >
       <h2 className="text-lg font-semibold mb-1">Clone settings</h2>
       <p className="text-sm text-muted-foreground mb-6">
         Customize how your AI clone speaks.

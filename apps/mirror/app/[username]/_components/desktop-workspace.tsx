@@ -14,6 +14,7 @@ import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context"
 import { useContentPanelController } from "../_hooks/use-content-panel-controller";
 import { useInteractionPanelController } from "../_hooks/use-interaction-panel-controller";
 import { useResizeHandleExpand } from "../_hooks/use-resize-handle-expand";
+import { CollapsedProfileAvatarButton } from "./collapsed-profile-avatar-button";
 import {
   CONTENT_PANEL_ID,
   INTERACTION_PANEL_ID,
@@ -90,6 +91,7 @@ export function DesktopWorkspace({
             {children}
           </WorkspaceContentPanel>
         </ResizablePanelGroup>
+        <CollapsedProfileAvatarButton />
       </main>
     </WorkspaceChromeProvider>
   );
