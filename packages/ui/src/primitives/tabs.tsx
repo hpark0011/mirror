@@ -143,8 +143,8 @@ function TabsTrigger({
         // variant: folder — 3D perspective tab shape (before pseudo-element)
         "group-data-[variant=folder]/tabs-list:before:absolute",
         "group-data-[variant=folder]/tabs-list:before:inset-0",
-        "group-data-[variant=folder]/tabs-list:before:[transform:perspective(14px)_rotateX(3deg)]",
-        "group-data-[variant=folder]/tabs-list:before:rounded-t-[10px]",
+        "group-data-[variant=folder]/tabs-list:before:[transform:perspective(20px)_rotateX(6deg)]",
+        "group-data-[variant=folder]/tabs-list:before:rounded-t-[8px]",
         "group-data-[variant=folder]/tabs-list:before:rounded-b-none",
         "group-data-[variant=folder]/tabs-list:before:bg-gray-5",
         "dark:group-data-[variant=folder]/tabs-list:before:bg-gray-2",
@@ -166,7 +166,7 @@ function TabsTrigger({
         "dark:group-data-[variant=folder]/tabs-list:data-[state=active]:border-transparent",
         "group-data-[variant=folder]/tabs-list:border-transparent",
         // folder: padding
-        "group-data-[variant=folder]/tabs-list:px-3.5",
+        "group-data-[variant=folder]/tabs-list:px-3",
         "group-data-[variant=folder]/tabs-list:py-3.5",
         "group-data-[variant=folder]/tabs-list:pt-4",
         // svg defaults

@@ -15,9 +15,13 @@ import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
 
 type WorkspaceNavbarProps = {
   className?: string;
+  showContentPanelToggle?: boolean;
 };
 
-export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
+export function WorkspaceNavbar({
+  className,
+  showContentPanelToggle = true,
+}: WorkspaceNavbarProps) {
   const segments = useSelectedLayoutSegments();
   const { profile, isOwner } = useProfileRouteData();
   const chrome = useOptionalWorkspaceChrome();
@@ -38,7 +42,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
         isOwner={isOwner}
       />
 
-      {chrome
+      {showContentPanelToggle && chrome
         ? (
           <div className="h-full flex items-center">
             <IconButton

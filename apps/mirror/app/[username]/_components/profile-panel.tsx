@@ -62,7 +62,7 @@ export function ProfilePanel() {
           className="rounded-full"
           size="icon"
         >
-          <XmarkIcon className="size-5 text-icon" />
+          <XmarkIcon className="size-4.5 text-icon" />
         </IconButton>
       </div>
 

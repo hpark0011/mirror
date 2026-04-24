@@ -75,7 +75,10 @@ export function MobileWorkspace({
             }
             content={() => (
               <div className="flex h-full min-h-0 flex-col">
-                <WorkspaceNavbar className="fixed top-0 inset-x-0" />
+                <WorkspaceNavbar
+                  className="fixed top-0 inset-x-0"
+                  showContentPanelToggle={false}
+                />
                 <ToolbarSlotTarget />
                 <div className="flex-1 min-h-0 *:h-full">
                   <div

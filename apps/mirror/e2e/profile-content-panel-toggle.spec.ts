@@ -348,6 +348,34 @@ test.describe("Profile content panel toggle", () => {
       .toBeGreaterThan(120);
   });
 
+  test("workspace navbar content panel toggle is hidden in mobile", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/@${username}/articles`);
+
+    await expect(
+      page.getByRole("link", { name: articleTitle }),
+    ).toBeVisible({ timeout: 10000 });
+
+    await expect(
+      page.getByRole("button", { name: "Collapse content panel" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Expand content panel" }),
+    ).toHaveCount(0);
+  });
+
+  test("workspace navbar content panel toggle is visible on desktop", async ({
+    page,
+  }) => {
+    await openDesktopArticle(page);
+
+    await expect(
+      page.getByRole("button", { name: "Collapse content panel" }),
+    ).toBeVisible({ timeout: 5000 });
+  });
+
   test("mobile toggle opens the drawer to full", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/@${username}/articles`);
