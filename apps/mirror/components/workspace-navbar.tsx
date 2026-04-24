@@ -1,8 +1,6 @@
 "use client";
 
 import { cn } from "@feel-good/utils/cn";
-import { IconButton } from "@feel-good/ui/components/icon-button";
-import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
 import { ProfileTabs } from "@/features/profile-tabs/components/profile-tabs";
 import {
   isProfileTabKind,
@@ -10,8 +8,10 @@ import {
   type ProfileTabKind,
 } from "@/features/profile-tabs/types";
 import { useProfileRouteData } from "@/app/[username]/_providers/profile-route-data-context";
-import { useOptionalWorkspaceChrome } from "@/app/[username]/_providers/workspace-chrome-context";
 import { useSelectedLayoutSegments } from "next/navigation";
+import { useOptionalWorkspaceChrome } from "@/app/[username]/_providers/workspace-chrome-context";
+import { IconButton } from "@feel-good/ui/components/icon-button";
+import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
 
 type WorkspaceNavbarProps = {
   className?: string;
@@ -28,20 +28,19 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-12 items-end gap-2 px-4 relative border-b border-border-subtle justify-between",
+        "z-10 flex h-12 items-end justify-between gap-2 px-4 relative border-b border-border-subtle ",
         className,
       )}
     >
-      <div className="flex gap-2 h-full items-end">
-        <ProfileTabs
-          username={profile.username}
-          currentKind={currentKind}
-          isOwner={isOwner}
-        />
-      </div>
+      <ProfileTabs
+        username={profile.username}
+        currentKind={currentKind}
+        isOwner={isOwner}
+      />
+
       {chrome
         ? (
-          <div className="h-full flex items-center pr-1">
+          <div className="h-full flex items-center">
             <IconButton
               onClick={chrome.toggleContentPanel}
               aria-controls={chrome.contentPanelId}
@@ -55,7 +54,10 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
               variant="wrapper"
               className="w-auto"
             >
-              <SidebarTrigger isOpen={!chrome.isContentPanelCollapsed} />
+              <SidebarTrigger
+                isOpen={!chrome.isContentPanelCollapsed}
+                align="right"
+              />
             </IconButton>
           </div>
         )
