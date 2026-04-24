@@ -2,11 +2,7 @@
 
 import * as React from "react";
 import { Button } from "../primitives/button";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "../primitives/tooltip";
+import { Tooltip, TooltipContent, TooltipTrigger } from "../primitives/tooltip";
 
 type IconButtonProps =
   & React.ComponentProps<typeof Button>
@@ -33,7 +29,7 @@ function IconButton({
           {children}
         </Button>
       </TooltipTrigger>
-      <TooltipContent side={tooltipSide} align={tooltipAlign}>
+      <TooltipContent side={tooltipSide} align={tooltipAlign} sideOffset={0}>
         {tooltip}
       </TooltipContent>
     </Tooltip>

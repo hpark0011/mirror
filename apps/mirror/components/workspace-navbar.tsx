@@ -41,21 +41,23 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
       </div>
       {chrome
         ? (
-          <IconButton
-            onClick={chrome.toggleContentPanel}
-            aria-controls={chrome.contentPanelId}
-            aria-expanded={!chrome.isContentPanelCollapsed}
-            aria-label={chrome.isContentPanelCollapsed
-              ? "Expand content panel"
-              : "Collapse content panel"}
-            tooltip={chrome.isContentPanelCollapsed
-              ? "Expand content panel"
-              : "Collapse content panel"}
-            variant="wrapper"
-            className="h-full w-auto"
-          >
-            <SidebarTrigger isOpen={!chrome.isContentPanelCollapsed} />
-          </IconButton>
+          <div className="h-full flex items-center">
+            <IconButton
+              onClick={chrome.toggleContentPanel}
+              aria-controls={chrome.contentPanelId}
+              aria-expanded={!chrome.isContentPanelCollapsed}
+              aria-label={chrome.isContentPanelCollapsed
+                ? "Expand content panel"
+                : "Collapse content panel"}
+              tooltip={chrome.isContentPanelCollapsed
+                ? "Expand content panel"
+                : "Collapse content panel"}
+              variant="wrapper"
+              className="w-auto"
+            >
+              <SidebarTrigger isOpen={!chrome.isContentPanelCollapsed} />
+            </IconButton>
+          </div>
         )
         : null}
     </nav>
