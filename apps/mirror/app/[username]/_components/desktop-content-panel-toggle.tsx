@@ -1,5 +1,4 @@
 import { VinylRecord } from "@/components/animated-geometries/vinyl-record";
-import { cn } from "@feel-good/utils/cn";
 
 type DesktopContentPanelToggleProps = {
   contentPanelId: string;
@@ -12,37 +11,25 @@ export function DesktopContentPanelToggle({
   isContentPanelCollapsed,
   toggleContentPanel,
 }: DesktopContentPanelToggleProps) {
-  if (!isContentPanelCollapsed) {
-    return null;
-  }
-
-  const buttonLabel = "Hide Artifacts";
+  const buttonLabel = isContentPanelCollapsed
+    ? "Show artifacts"
+    : "Hide artifacts";
 
   return (
-    <button
-      type="button"
-      aria-controls={contentPanelId}
-      aria-expanded
-      aria-label={buttonLabel}
-      data-state="open"
-      className="absolute top-3 right-3 group cursor-pointer z-40 pointer-events-auto outline-none"
-      onClick={toggleContentPanel}
-    >
-      <div
-        className={cn(
-          "flex items-center gap-2 transition-[right,opacity] duration-200 ease-in-out",
-        )}
+    <div className="flex flex-col gap-2 items-center">
+      <button
+        type="button"
+        aria-controls={contentPanelId}
+        aria-expanded={!isContentPanelCollapsed}
+        aria-label={buttonLabel}
+        onClick={toggleContentPanel}
+        className="w-11 h-11 flex items-center justify-center cursor-pointer outline-none rounded-[20px] [corner-shape:superellipse(1.3)]"
       >
-        <div
-          className={cn(
-            "text-xs leading-[1.1] text-muted-foreground transition-opacity duration-200 ease-in-out",
-            "opacity-0 group-hover:opacity-100",
-          )}
-        >
-          {buttonLabel}
-        </div>
-        <VinylRecord />
-      </div>
-    </button>
+        <VinylRecord spinning={!isContentPanelCollapsed} />
+      </button>
+      <span className="text-xs text-center text-muted-foreground">
+        Artifacts
+      </span>
+    </div>
   );
 }

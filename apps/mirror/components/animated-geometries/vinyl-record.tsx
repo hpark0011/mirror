@@ -5,15 +5,21 @@ import { GeometryScene } from "./geometry-scene";
 const EMPTY_STAGE_STYLE = {} as const;
 
 /** Spinning vinyl record geometry. */
-function VinylRecord({ className }: { className?: string }) {
+function VinylRecord({
+  className,
+  spinning = true,
+}: {
+  className?: string;
+  spinning?: boolean;
+}) {
   return (
     <GeometryScene
       slot="vinyl-record"
-      className={cn("size-[32px]", className)}
+      className={cn("size-[40px]", className)}
       perspective="none"
       stageStyle={EMPTY_STAGE_STYLE}
     >
-      <div className="vinyl-record">
+      <div className={cn("vinyl-record", !spinning && "vinyl-record-paused")}>
         <div className="vinyl-record-shine" />
         <div className="vinyl-record-label">
           <div className="vinyl-record-spindle" />
