@@ -6,18 +6,14 @@ import {
   ProfileInfo,
 } from "@/features/profile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import { IconButton } from "@feel-good/ui/components/icon-button";
-import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
 import { useCallback, useState } from "react";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
-import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
 import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
   const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
-  const chrome = useOptionalWorkspaceChrome();
   const isMobile = useIsMobile();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -41,25 +37,6 @@ export function ProfilePanel() {
       {!isMobile && (
         <div className="absolute top-3 left-3 z-10 flex flex-col gap-3">
           <ProfileLogo />
-          {chrome
-            ? (
-              <IconButton
-                onClick={chrome.toggleInteractionPanel}
-                aria-controls={chrome.interactionPanelId}
-                aria-expanded={!chrome.isInteractionPanelCollapsed}
-                aria-label={chrome.isInteractionPanelCollapsed
-                  ? "Expand profile panel"
-                  : "Collapse profile panel"}
-                tooltip={chrome.isInteractionPanelCollapsed
-                  ? "Expand profile panel"
-                  : "Collapse profile panel"}
-                variant="wrapper"
-                className="w-auto"
-              >
-                <SidebarTrigger isOpen={!chrome.isInteractionPanelCollapsed} />
-              </IconButton>
-            )
-            : null}
         </div>
       )}
       {isOwner && (
