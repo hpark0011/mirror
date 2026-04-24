@@ -53,7 +53,7 @@ export function MobileProfileLayout({
       </div>
 
       {topSlot && (
-        <div className="absolute left-3 top-14 z-10 pointer-events-auto">
+        <div className="absolute left-3 top-3 z-10 pointer-events-auto">
           {topSlot}
         </div>
       )}

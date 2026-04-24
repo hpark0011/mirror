@@ -2,7 +2,7 @@
 
 import { type ReactNode, useState } from "react";
 import { MobileProfileLayout } from "@/features/profile";
-import { ScrollRootProvider, type ContentRouteState } from "@/features/content";
+import { type ContentRouteState, ScrollRootProvider } from "@/features/content";
 import { WorkspaceNavbar } from "@/components/workspace-navbar";
 import {
   ToolbarSlotProvider,
@@ -34,14 +34,16 @@ export function MobileWorkspace({
   return (
     <main className="h-screen">
       <ToolbarSlotProvider>
-        <WorkspaceNavbar className="fixed top-0 inset-x-0" />
         <MobileProfileLayout
           topSlot={<ProfileLogo />}
           profile={
-            <div className="relative h-full flex flex-col">{interaction}</div>
+            <div className="relative h-full flex flex-col">
+              {interaction}
+            </div>
           }
           content={() => (
             <div className="flex h-full min-h-0 flex-col">
+              <WorkspaceNavbar className="fixed top-0 inset-x-0" />
               <ToolbarSlotTarget />
               <div className="flex-1 min-h-0 *:h-full">
                 <div
