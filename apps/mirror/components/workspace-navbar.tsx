@@ -41,7 +41,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
       </div>
       {chrome
         ? (
-          <div className="h-full flex items-center">
+          <div className="h-full flex items-center pr-1">
             <IconButton
               onClick={chrome.toggleContentPanel}
               aria-controls={chrome.contentPanelId}

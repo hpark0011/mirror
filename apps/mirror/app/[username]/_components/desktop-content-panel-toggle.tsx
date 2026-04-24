@@ -31,7 +31,6 @@ export function DesktopContentPanelToggle({
         aria-expanded={!isContentPanelCollapsed}
         aria-label={buttonLabel}
         onClick={toggleContentPanel}
-        // className="w-11 h-11 flex items-center justify-center cursor-pointer outline-none rounded-[20px] [corner-shape:superellipse(1.3)] bg-secondary shadow-xs"
         className={shinyButtonClass}
         shadowClassName={shinyButtonShadowClass}
       >

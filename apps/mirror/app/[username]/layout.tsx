@@ -9,7 +9,6 @@ import { api } from "@feel-good/convex/convex/_generated/api";
 import { ProfileRouteDataProvider } from "./_providers/profile-route-data-context";
 import { ChatRouteController } from "./_providers/chat-route-controller";
 import { WorkspaceShell } from "./_components/workspace-shell";
-import { ProfileLogo } from "./_components/profile-logo";
 
 // Per-request memoized so generateMetadata and the layout body share one fetch.
 const getProfileByUsername = cache((username: string) =>
@@ -89,9 +88,6 @@ export default async function ProfileLayout({
       preloadedProfile={preloadedProfile}
       isOwner={isOwner}
     >
-      <div className="fixed left-3 top-3 z-100 max-md:hidden">
-        <ProfileLogo />
-      </div>
       <ChatRouteController>
         <WorkspaceShell interaction={interaction} content={content} />
       </ChatRouteController>
