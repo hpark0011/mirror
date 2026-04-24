@@ -3,8 +3,7 @@ import { Icon, type IconName } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
 import { cn } from "@feel-good/ui/lib/utils";
 import { motion } from "framer-motion";
-import { DesktopContentPanelToggle } from "@/app/[username]/_components/desktop-content-panel-toggle";
-import { useOptionalWorkspaceChrome } from "@/app/[username]/_providers/workspace-chrome-context";
+import { ContentPanelToggle } from "@/app/[username]/_components/content-panel-toggle";
 
 type ProfileAction = {
   label: string;
@@ -31,7 +30,6 @@ export function EditableProfileActions({
   onOpenVideoCall,
   onEdit,
 }: ProfileActionsProps) {
-  const chrome = useOptionalWorkspaceChrome();
   const actions: ProfileAction[] = [
     {
       label: "Text",
@@ -96,13 +94,7 @@ export function EditableProfileActions({
             </span>
           </div>
         ))}
-        {chrome && (
-          <DesktopContentPanelToggle
-            contentPanelId={chrome.contentPanelId}
-            isContentPanelCollapsed={chrome.isContentPanelCollapsed}
-            toggleContentPanel={chrome.toggleContentPanel}
-          />
-        )}
+        <ContentPanelToggle />
       </div>
     </div>
   );

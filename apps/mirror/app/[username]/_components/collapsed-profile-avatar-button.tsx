@@ -17,7 +17,7 @@ export function CollapsedProfileAvatarButton() {
       aria-controls={chrome.interactionPanelId}
       aria-expanded={false}
       aria-label="Expand profile panel"
-      className="absolute bottom-4.5 left-4.5 z-30 rounded-t-full cursor-pointer flex flex-col items-center shadow-avatar-shadow"
+      className="absolute bottom-4.5 left-4.5 z-30 rounded-t-full cursor-pointer flex flex-col items-center shadow-avatar-shadow hover:shadow-xs transition-all duration-200 ease-in-out"
     >
       <MirrorAvatar
         className="shrink-0 size-12"

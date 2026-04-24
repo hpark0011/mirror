@@ -348,18 +348,34 @@ test.describe("Profile content panel toggle", () => {
       .toBeGreaterThan(120);
   });
 
-  test("keeps the mobile drawer behavior unchanged", async ({ page }) => {
+  test("mobile toggle opens the drawer to full", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/@${username}/articles`);
 
-    await expect(
-      page.getByRole("button", { name: /Hide Artifacts|Show Artifacts/ }),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("region", { name: "Articles" }),
-    ).toBeVisible({ timeout: 10000 });
+    const drawer = page.getByRole("region", { name: "Articles" });
+    await expect(drawer).toBeVisible({ timeout: 10000 });
     await expect(
       page.getByRole("link", { name: articleTitle }),
     ).toBeVisible({ timeout: 10000 });
+
+    const toggle = page.getByRole("button", { name: "Show Artifacts" });
+    await expect(toggle).toBeVisible({ timeout: 10000 });
+
+    const initialHeight = await drawer.evaluate((el) =>
+      Math.round(el.getBoundingClientRect().height)
+    );
+
+    await toggle.click();
+
+    await expect
+      .poll(async () =>
+        drawer.evaluate((el) =>
+          Math.round(el.getBoundingClientRect().height)
+        )
+      )
+      .toBeGreaterThan(initialHeight + 100);
+    await expect(
+      page.getByRole("button", { name: "Hide Artifacts" }),
+    ).toBeVisible({ timeout: 5000 });
   });
 });

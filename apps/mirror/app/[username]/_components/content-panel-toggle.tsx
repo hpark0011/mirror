@@ -1,17 +1,15 @@
+"use client";
+
 import { VinylRecord } from "@/components/animated-geometries/vinyl-record";
 import { ShinyButton } from "@feel-good/ui/components/shiny-button";
+import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
 
-type DesktopContentPanelToggleProps = {
-  contentPanelId: string;
-  isContentPanelCollapsed: boolean;
-  toggleContentPanel: () => void;
-};
+export function ContentPanelToggle() {
+  const chrome = useOptionalWorkspaceChrome();
+  if (!chrome) return null;
 
-export function DesktopContentPanelToggle({
-  contentPanelId,
-  isContentPanelCollapsed,
-  toggleContentPanel,
-}: DesktopContentPanelToggleProps) {
+  const { contentPanelId, isContentPanelCollapsed, toggleContentPanel } =
+    chrome;
   const buttonLabel = isContentPanelCollapsed
     ? "Show artifacts"
     : "Hide artifacts";

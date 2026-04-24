@@ -10,32 +10,42 @@ import {
 import { useState } from "react";
 
 // ~15.85% of viewport — aligns the peek strip with the profile card's bottom edge
-const PEEK_SNAP_POINT = 0.165;
-const MIDDLE_SNAP_POINT = 0.5;
-const EXPANDED_SNAP_POINT = 1;
+export const PEEK_SNAP_POINT = 0.165;
+export const MIDDLE_SNAP_POINT = 0.5;
+export const EXPANDED_SNAP_POINT = 1;
 const SHEET_SNAP_POINTS: Array<number | string> = [
   PEEK_SNAP_POINT,
   MIDDLE_SNAP_POINT,
   EXPANDED_SNAP_POINT,
 ];
 
+type SnapPoint = number | string | null;
+
 type MobileProfileLayoutProps = {
   profile: React.ReactNode;
   content: React.ReactNode | (() => React.ReactNode);
   /** Rendered above the drawer at the top of the viewport (e.g. logo menu). */
   topSlot?: React.ReactNode;
+  activeSnapPoint?: SnapPoint;
+  onActiveSnapPointChange?: (snapPoint: SnapPoint) => void;
 };
 
 export function MobileProfileLayout({
   profile,
   content,
   topSlot,
+  activeSnapPoint: activeSnapPointProp,
+  onActiveSnapPointChange,
 }: MobileProfileLayoutProps) {
-  const [activeSnapPoint, setActiveSnapPoint] = useState<
-    number | string | null
-  >(
+  const [internalSnapPoint, setInternalSnapPoint] = useState<SnapPoint>(
     PEEK_SNAP_POINT,
   );
+  const isControlled = activeSnapPointProp !== undefined;
+  const activeSnapPoint = isControlled ? activeSnapPointProp : internalSnapPoint;
+  const setActiveSnapPoint = (next: SnapPoint) => {
+    if (!isControlled) setInternalSnapPoint(next);
+    onActiveSnapPointChange?.(next);
+  };
   const [drawerContainer, setDrawerContainer] = useState<HTMLDivElement | null>(
     null,
   );
