@@ -376,34 +376,27 @@ test.describe("Profile content panel toggle", () => {
     ).toBeVisible({ timeout: 5000 });
   });
 
-  test("mobile toggle opens the drawer to full", async ({ page }) => {
+  test("mobile artifacts button navigates to posts and back returns to profile", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/@${username}/articles`);
-
-    const drawer = page.getByRole("region", { name: "Articles" });
-    await expect(drawer).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByRole("link", { name: articleTitle }),
-    ).toBeVisible({ timeout: 10000 });
+    await page.goto(`/@${username}`);
 
     const toggle = page.getByRole("button", { name: "Show Artifacts" });
     await expect(toggle).toBeVisible({ timeout: 10000 });
 
-    const initialHeight = await drawer.evaluate((el) =>
-      Math.round(el.getBoundingClientRect().height)
-    );
-
     await toggle.click();
 
-    await expect
-      .poll(async () =>
-        drawer.evaluate((el) =>
-          Math.round(el.getBoundingClientRect().height)
-        )
-      )
-      .toBeGreaterThan(initialHeight + 100);
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
+
+    const backLink = page.getByRole("link", { name: "Back to profile" });
+    await expect(backLink).toBeVisible({ timeout: 5000 });
+
+    await backLink.click();
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}(\\?.*)?$`));
     await expect(
-      page.getByRole("button", { name: "Hide Artifacts" }),
+      page.getByRole("button", { name: "Show Artifacts" }),
     ).toBeVisible({ timeout: 5000 });
   });
 });

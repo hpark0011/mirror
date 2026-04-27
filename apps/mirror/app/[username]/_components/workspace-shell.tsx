@@ -48,7 +48,7 @@ export function WorkspaceShell({ interaction, content }: WorkspaceShellProps) {
 
   const profileBackHref = useMemo(() => {
     if (!username) return null;
-    return buildChatAwareHref(`/${username}`);
+    return buildChatAwareHref(`/@${username}`);
   }, [buildChatAwareHref, username]);
 
   const openDefaultContent = useCallback(() => {

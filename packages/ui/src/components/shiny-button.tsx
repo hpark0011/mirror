@@ -38,27 +38,26 @@ const shadowVariants = cva(
   },
 );
 
-export interface ShinyButtonProps extends VariantProps<typeof buttonVariants> {
-  type?: "button" | "submit" | "reset";
-  children: React.ReactNode;
-  onClick?: () => void;
-  className?: string;
+export interface ShinyButtonProps
+  extends
+    React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
   shadowClassName?: string;
 }
 
 export function ShinyButton({
   type = "button",
   children,
-  onClick,
   className,
   shadowClassName,
   size,
+  ...rest
 }: ShinyButtonProps) {
   return (
     <button
       className={cn(buttonVariants({ size }), className)}
-      onClick={onClick}
       type={type}
+      {...rest}
     >
       {/* Shadow */}
       <div className={cn(shadowVariants({ size }), shadowClassName)} />
