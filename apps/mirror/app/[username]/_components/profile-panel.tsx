@@ -34,11 +34,9 @@ export function ProfilePanel() {
         ? "relative h-full pt-24"
         : "relative z-20 h-full flex flex-col justify-start items-center px-6 py-[132px]"}
     >
-      {!isMobile && (
-        <div className="absolute top-3 left-3 z-10 flex flex-col gap-3">
-          <ProfileLogo />
-        </div>
-      )}
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-3">
+        <ProfileLogo />
+      </div>
 
       <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
         {isOwner &&

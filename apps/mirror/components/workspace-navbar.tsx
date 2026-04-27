@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { cn } from "@feel-good/utils/cn";
 import { ProfileTabs } from "@/features/profile-tabs/components/profile-tabs";
 import {
@@ -10,17 +11,20 @@ import {
 import { useProfileRouteData } from "@/app/[username]/_providers/profile-route-data-context";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useOptionalWorkspaceChrome } from "@/app/[username]/_providers/workspace-chrome-context";
+import { Icon } from "@feel-good/ui/components/icon";
 import { IconButton } from "@feel-good/ui/components/icon-button";
 import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
 
 type WorkspaceNavbarProps = {
   className?: string;
   showContentPanelToggle?: boolean;
+  backHref?: string;
 };
 
 export function WorkspaceNavbar({
   className,
   showContentPanelToggle = true,
+  backHref,
 }: WorkspaceNavbarProps) {
   const segments = useSelectedLayoutSegments();
   const { profile, isOwner } = useProfileRouteData();
@@ -36,11 +40,29 @@ export function WorkspaceNavbar({
         className,
       )}
     >
-      <ProfileTabs
-        username={profile.username}
-        currentKind={currentKind}
-        isOwner={isOwner}
-      />
+      <div className="flex items-end gap-1">
+        {backHref
+          ? (
+            <div className="h-full flex items-center pb-1">
+              <IconButton
+                asChild
+                aria-label="Back to profile"
+                tooltip="Back to profile"
+                variant="ghost"
+              >
+                <Link href={backHref}>
+                  <Icon name="ArrowBackwardIcon" />
+                </Link>
+              </IconButton>
+            </div>
+          )
+          : null}
+        <ProfileTabs
+          username={profile.username}
+          currentKind={currentKind}
+          isOwner={isOwner}
+        />
+      </div>
 
       {showContentPanelToggle && chrome
         ? (

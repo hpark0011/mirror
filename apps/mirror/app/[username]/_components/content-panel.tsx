@@ -13,11 +13,15 @@ import { markContentPanelRendered } from "@/lib/perf/content-panel-open";
 type ContentPanelProps = {
   routeState: ContentRouteState | null;
   children: ReactNode;
+  navbarBackHref?: string;
+  showContentPanelToggle?: boolean;
 };
 
 export function ContentPanel({
   routeState,
   children,
+  navbarBackHref,
+  showContentPanelToggle = true,
 }: ContentPanelProps) {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
 
@@ -49,7 +53,10 @@ export function ContentPanel({
   return (
     <ToolbarSlotProvider>
       <div className="relative flex h-full min-w-0 flex-col">
-        <WorkspaceNavbar />
+        <WorkspaceNavbar
+          backHref={navbarBackHref}
+          showContentPanelToggle={showContentPanelToggle}
+        />
         <ToolbarSlotTarget />
         <div className="flex-1 min-h-0 *:h-full relative">
           <div className="w-full absolute top-0 bg-linear-to-b to-transparent max-h-[40px] z-10 from-background" />

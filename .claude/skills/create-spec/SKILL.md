@@ -3,14 +3,6 @@ name: create-spec
 description: Create a product spec from user requirements through multi-agent research, adversarial critique, and iterative refinement. Spawns PM, Adversarial Reviewer, domain expert (when relevant), and Verification agents in separate context windows. Outputs a spec with Playwright E2E tests to workspace/spec/. Use when the user wants to create a spec, write requirements, plan a feature, or says "create spec", "spec this", "write a spec".
 ---
 
-## Quick start
-
-1. Confirm the requirement is unambiguous (Phase 1). If not, ask clarifying questions before spawning any agents.
-2. Gather materials in parallel: read provided research, spawn the Codebase Analyst, and (if the domain matches) consult a domain expert (Phase 2).
-3. Instantiate `spec-template/spec.md` into `workspace/spec/{YYYY-MM-DD}-{feature-name}-spec.md` with hard-verification requirements and real test paths (Phase 3).
-4. Run the adversarial critique loop until no Critical concerns remain (Phase 4).
-5. Spawn the Verification Agent; fix any failures; write the final spec and summary (Phase 5).
-
 ## Workflow
 
 Invariants that apply across all phases:

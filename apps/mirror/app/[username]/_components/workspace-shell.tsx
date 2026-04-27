@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import {
   useParams,
   useRouter,
@@ -20,14 +20,6 @@ import { DesktopWorkspace } from "./desktop-workspace";
 import { MobileWorkspace } from "./mobile-workspace";
 import { ContentPanel } from "./content-panel";
 
-const MOBILE_MEDIA_QUERY = "(max-width: 767px)";
-
-function hasMobileViewport() {
-  return typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia(MOBILE_MEDIA_QUERY).matches;
-}
-
 type WorkspaceShellProps = {
   interaction: ReactNode;
   content: ReactNode;
@@ -39,7 +31,7 @@ export function WorkspaceShell({ interaction, content }: WorkspaceShellProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const segments = useSelectedLayoutSegments();
-  const { isChatOpen } = useChatSearchParams();
+  const { isChatOpen, buildChatAwareHref } = useChatSearchParams();
   const hasContentRoute = isProfileTabKind(segments[0]);
   const routeState: ContentRouteState | null =
     segments[0] === "clone-settings"
@@ -53,33 +45,33 @@ export function WorkspaceShell({ interaction, content }: WorkspaceShellProps) {
     const queryString = searchParams.toString();
     return queryString ? `${href}?${queryString}` : href;
   }, [searchParams, username]);
-  const shouldRedirectMobileRoot = !hasContentRoute &&
-    !!defaultContentHref &&
-    (isMobile || hasMobileViewport());
+
+  const profileBackHref = useMemo(() => {
+    if (!username) return null;
+    return buildChatAwareHref(`/${username}`);
+  }, [buildChatAwareHref, username]);
 
   const openDefaultContent = useCallback(() => {
     if (!defaultContentHref) return;
     router.push(defaultContentHref);
   }, [defaultContentHref, router]);
 
-  useEffect(() => {
-    if (!shouldRedirectMobileRoot || !defaultContentHref) return;
-    router.replace(defaultContentHref);
-  }, [defaultContentHref, router, shouldRedirectMobileRoot]);
-
-  if (shouldRedirectMobileRoot) {
-    return null;
-  }
-
   return (
     isMobile
       ? (
         <MobileWorkspace
-          routeState={routeState}
           isChatOpen={isChatOpen}
+          hasContentRoute={hasContentRoute}
           interaction={interaction}
+          onOpenDefaultContent={defaultContentHref ? openDefaultContent : null}
         >
-          {content}
+          <ContentPanel
+            routeState={routeState}
+            navbarBackHref={profileBackHref ?? undefined}
+            showContentPanelToggle={false}
+          >
+            {content}
+          </ContentPanel>
         </MobileWorkspace>
       )
       : (
