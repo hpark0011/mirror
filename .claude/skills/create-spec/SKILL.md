@@ -5,14 +5,7 @@ description: Create a product spec from user requirements through multi-agent re
 
 ## Workflow
 
-Invariants that apply across all phases:
-
-- **Minimum 3 specialist sub-agents spawned**: Codebase Analyst (Phase 2b), Adversarial Reviewer (Phase 4), Verification Agent (Phase 5). Each gets its own context window via the Agent tool. The invoking agent acts as the PM — it owns spec drafting and integration.
-- **Domain expert is additive**: when consulted, it adds a 4th agent used in both Phase 2 and Phase 4.
-- **Hard verification only**: every requirement row must have a concrete, automatable check.
-- **Codebase accuracy**: every file path in the spec must be verified against the real codebase.
-- **User requirements are sovereign**: if the adversarial reviewer argues against something the user explicitly requested, reject it and document why.
-- **One-directional dependency**: `spec-template/` (local) + `.claude/agents/create-spec/` (shared) ← `SKILL.md` ← caller. This skill does not name its executor — the invoking agent owns Phase 3 routing.
+The invoking agent acts as PM and owns spec drafting and integration. It spawns three specialist sub-agents — Codebase Analyst (Phase 2b), Adversarial Reviewer (Phase 4), Verification (Phase 5) — each in its own context window via the Agent tool. A domain expert (Phase 2c, re-spawned in Phase 4) is added when the feature touches its area.
 
 ### Phase 1: Gather Requirements
 
@@ -44,7 +37,7 @@ If no listed agent fits, scan `.claude/agents/` directly — new experts may hav
 2. Identify constraints, gotchas, or patterns that must be followed.
 3. Flag risks or conflicts with existing domain architecture.
 
-If no domain expert applies, skip this step.
+If no domain expert applies, skip this step. When consulted, the same expert is re-spawned in Phase 4 to review the drafted spec for domain-specific correctness.
 
 ### Phase 3: Create Spec
 
@@ -69,7 +62,8 @@ Rules for Phase 3:
 7. **All five Architecture subsections must be populated.** For small features a single sentence per subsection is acceptable, but none may be empty or collapsed into another.
    - Subsection 3 (`Why this works`) — the _Alternatives considered_ table needs at least two entries. "Most obvious approach" does not count.
    - Subsection 5 (`Upstream artifact impact`) — must name the rule/skill/template/lint being patched, or explicitly justify "none". Enforces _Always Choose the Compounding Option_ from `AGENTS.md`.
-8. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). Verify against the codebase, don't guess. The `Test file` column in `How we'll know it works` may be left blank during drafting, but must be populated before implementation begins.
+8. **Every file path in the spec must be verified against the real codebase** — existing paths must resolve, and new-file targets must fit current conventions. No fabricated paths in Architecture, test tables, or anywhere else.
+9. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). The `Test file` column in `How we'll know it works` may be left blank during drafting, but must be populated before implementation begins.
 
 Orchestration — executor selection, reviewer pairing, wave sequencing, and hard gate commands — is NOT the spec's job. `.claude/skills/orchestrate-implementation/SKILL.md` owns that at execution time. The spec describes _what must be true_; orchestration decides _who builds and who reviews_. The executor/critic separation is still load-bearing (see https://www.anthropic.com/engineering/harness-design-long-running-apps) — it's just enforced downstream, not here.
 
@@ -82,7 +76,7 @@ After the spec is drafted, spawn **two agents in parallel** (three if a domain e
 
 After critique completes:
 
-1. Evaluate each concern. Not all feedback is valid — reject concerns that contradict the user's explicit requirements.
+1. Evaluate each concern. **User requirements are sovereign** — reject any concern that contradicts what the user explicitly requested, and record the rejection rationale in the Adversarial Review Summary.
 2. For accepted concerns: update the spec.
 3. If significant changes were made (any Critical or 2+ Important concerns accepted), re-run the adversarial reviewer on the updated spec.
 4. Iterate until the adversarial reviewer returns no Critical concerns and no more than 1 Important concern.
