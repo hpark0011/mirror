@@ -33,10 +33,7 @@ export function WorkspaceShell({ interaction, content }: WorkspaceShellProps) {
   const segments = useSelectedLayoutSegments();
   const { isChatOpen, buildChatAwareHref } = useChatSearchParams();
   const hasContentRoute = isProfileTabKind(segments[0]);
-  const routeState: ContentRouteState | null =
-    segments[0] === "clone-settings"
-      ? null
-      : getContentRouteState(segments);
+  const routeState: ContentRouteState | null = getContentRouteState(segments);
   const username = params.username;
   const defaultContentHref = useMemo(() => {
     if (!username) return null;

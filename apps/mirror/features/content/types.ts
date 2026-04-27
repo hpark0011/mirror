@@ -34,7 +34,12 @@ export function getContentHref(
 
 export function getContentRouteState(
   segments: readonly string[],
-): ContentRouteState {
+): ContentRouteState | null {
+  // Kindless routes (e.g. clone-settings) have no list/sort/filter semantics,
+  // so their route state is meaningfully null. Keep this carve-out here so
+  // callers don't each have to remember the exception.
+  if (segments[0] === "clone-settings") return null;
+
   const [kindSegment, slug] = segments;
   const kind = isContentKind(kindSegment)
     ? kindSegment
