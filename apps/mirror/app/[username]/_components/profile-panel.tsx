@@ -6,18 +6,14 @@ import {
   ProfileInfo,
 } from "@/features/profile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import { XmarkIcon } from "@feel-good/icons";
-import { IconButton } from "@feel-good/ui/components/icon-button";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
 import { useCallback, useState } from "react";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
-import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
 import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
   const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
-  const chrome = useOptionalWorkspaceChrome();
   const isMobile = useIsMobile();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -38,9 +34,9 @@ export function ProfilePanel() {
         <ProfileLogo />
       </div>
 
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-1.5">
-        {isOwner &&
-            isEditing
+      {/* Offset to leave room for the chrome's close-profile button at right-3 (see WorkspaceInteractionPanel) */}
+      <div className="absolute top-3 right-14 z-10 flex items-center gap-1.5">
+        {isOwner && isEditing
           ? (
             <EditActions
               isEditing={isEditing}
@@ -49,21 +45,6 @@ export function ProfilePanel() {
             />
           )
           : <EditProfileButton onClick={() => setIsEditing(true)} />}
-        {!isMobile && !chrome?.isContentPanelCollapsed && (
-          <IconButton
-            onClick={chrome?.toggleInteractionPanel}
-            aria-controls={chrome?.interactionPanelId}
-            aria-expanded={chrome
-              ? !chrome.isInteractionPanelCollapsed
-              : undefined}
-            aria-label="Close profile panel"
-            tooltip="Close Profile"
-            className="rounded-full"
-            size="icon"
-          >
-            <XmarkIcon className="size-4.5 text-icon" />
-          </IconButton>
-        )}
       </div>
 
       <ProfileInfo

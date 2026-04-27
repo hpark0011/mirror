@@ -6,6 +6,9 @@ import {
   type RefCallback,
 } from "react";
 import { ResizablePanel } from "@feel-good/ui/primitives/resizable";
+import { XmarkIcon } from "@feel-good/icons";
+import { IconButton } from "@feel-good/ui/components/icon-button";
+import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
 
 export const CONTENT_PANEL_ID = "profile-content-panel";
 export const INTERACTION_PANEL_ID = "profile-interaction-panel";
@@ -72,13 +75,36 @@ type WorkspacePanelProps = {
 };
 
 export function WorkspaceInteractionPanel(props: WorkspacePanelProps) {
+  const { children, ...rest } = props;
+  const chrome = useOptionalWorkspaceChrome();
+  const showCloseButton = chrome && !chrome.isContentPanelCollapsed;
+
   return (
     <PanelFrame
       id="profile-workspace-interaction"
       innerId={INTERACTION_PANEL_ID}
       testId="desktop-interaction-panel"
-      {...props}
-    />
+      {...rest}
+    >
+      <div className="relative h-full">
+        {children}
+        {showCloseButton && (
+          <div className="absolute top-3 right-3 z-20">
+            <IconButton
+              onClick={chrome.toggleInteractionPanel}
+              aria-controls={chrome.interactionPanelId}
+              aria-expanded={!chrome.isInteractionPanelCollapsed}
+              aria-label="Close profile panel"
+              tooltip="Close Profile"
+              className="rounded-full"
+              size="icon"
+            >
+              <XmarkIcon className="size-4.5 text-icon" />
+            </IconButton>
+          </div>
+        )}
+      </div>
+    </PanelFrame>
   );
 }
 
