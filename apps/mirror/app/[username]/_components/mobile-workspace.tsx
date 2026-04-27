@@ -3,7 +3,6 @@
 import { type ReactNode, useMemo } from "react";
 import { useProfileWorkspaceRouteData } from "../_hooks/use-profile-workspace-route-data";
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
-import { CONTENT_PANEL_ID, INTERACTION_PANEL_ID } from "./workspace-panels";
 
 type MobileWorkspaceProps = {
   hasContentRoute: boolean;
@@ -23,10 +22,8 @@ export function MobileWorkspace({
 
   const workspaceChromeValue = useMemo(
     () => ({
-      contentPanelId: CONTENT_PANEL_ID,
       isContentPanelCollapsed: !hasContentRoute,
       toggleContentPanel: openDefaultContent ?? NOOP,
-      interactionPanelId: INTERACTION_PANEL_ID,
       isInteractionPanelCollapsed: false,
       toggleInteractionPanel: NOOP,
       showContentPanelToggle: false,

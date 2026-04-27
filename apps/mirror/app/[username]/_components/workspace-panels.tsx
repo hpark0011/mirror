@@ -92,7 +92,7 @@ export function WorkspaceInteractionPanel(props: WorkspacePanelProps) {
           <div className="absolute top-3 right-3 z-20">
             <IconButton
               onClick={chrome.toggleInteractionPanel}
-              aria-controls={chrome.interactionPanelId}
+              aria-controls={INTERACTION_PANEL_ID}
               aria-expanded={!chrome.isInteractionPanelCollapsed}
               aria-label="Close profile panel"
               tooltip="Close Profile"

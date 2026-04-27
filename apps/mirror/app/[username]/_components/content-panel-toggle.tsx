@@ -3,13 +3,13 @@
 import { VinylRecord } from "@/components/animated-geometries/vinyl-record";
 import { ShinyButton } from "@feel-good/ui/components/shiny-button";
 import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
+import { CONTENT_PANEL_ID } from "./workspace-panels";
 
 export function ContentPanelToggle() {
   const chrome = useOptionalWorkspaceChrome();
   if (!chrome) return null;
 
-  const { contentPanelId, isContentPanelCollapsed, toggleContentPanel } =
-    chrome;
+  const { isContentPanelCollapsed, toggleContentPanel } = chrome;
   const buttonLabel = isContentPanelCollapsed
     ? "Show artifacts"
     : "Hide artifacts";
@@ -25,7 +25,7 @@ export function ContentPanelToggle() {
     <div className="flex flex-col gap-2 items-center">
       <ShinyButton
         type="button"
-        aria-controls={contentPanelId}
+        aria-controls={CONTENT_PANEL_ID}
         aria-expanded={!isContentPanelCollapsed}
         aria-label={buttonLabel}
         onClick={toggleContentPanel}

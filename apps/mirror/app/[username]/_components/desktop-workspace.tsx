@@ -16,8 +16,6 @@ import { useInteractionPanelController } from "../_hooks/use-interaction-panel-c
 import { useResizeHandleExpand } from "../_hooks/use-resize-handle-expand";
 import { CollapsedProfileAvatarButton } from "./collapsed-profile-avatar-button";
 import {
-  CONTENT_PANEL_ID,
-  INTERACTION_PANEL_ID,
   WorkspaceContentPanel,
   WorkspaceInteractionPanel,
 } from "./workspace-panels";
@@ -49,10 +47,8 @@ export function DesktopWorkspace({
 
   const workspaceChromeValue = useMemo(
     () => ({
-      contentPanelId: CONTENT_PANEL_ID,
       isContentPanelCollapsed: contentController.isCollapsed,
       toggleContentPanel: contentController.toggle,
-      interactionPanelId: INTERACTION_PANEL_ID,
       isInteractionPanelCollapsed: interactionController.isCollapsed,
       toggleInteractionPanel: interactionController.toggle,
       showContentPanelToggle: true,

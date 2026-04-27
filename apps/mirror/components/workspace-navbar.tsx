@@ -11,6 +11,7 @@ import {
 import { useProfileRouteData } from "@/app/[username]/_providers/profile-route-data-context";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useOptionalWorkspaceChrome } from "@/app/[username]/_providers/workspace-chrome-context";
+import { CONTENT_PANEL_ID } from "@/app/[username]/_components/workspace-panels";
 import { Icon } from "@feel-good/ui/components/icon";
 import { IconButton } from "@feel-good/ui/components/icon-button";
 import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
@@ -65,7 +66,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
           <div className="h-full flex items-center">
             <IconButton
               onClick={chrome.toggleContentPanel}
-              aria-controls={chrome.contentPanelId}
+              aria-controls={CONTENT_PANEL_ID}
               aria-expanded={!chrome.isContentPanelCollapsed}
               aria-label={chrome.isContentPanelCollapsed
                 ? "Expand content panel"

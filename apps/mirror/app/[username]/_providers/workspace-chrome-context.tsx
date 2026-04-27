@@ -7,10 +7,8 @@ import {
 } from "react";
 
 type WorkspaceChromeContextValue = {
-  contentPanelId: string;
   isContentPanelCollapsed: boolean;
   toggleContentPanel: () => void;
-  interactionPanelId: string;
   isInteractionPanelCollapsed: boolean;
   toggleInteractionPanel: () => void;
   showContentPanelToggle: boolean;
