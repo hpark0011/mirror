@@ -77,7 +77,9 @@ type WorkspacePanelProps = {
 export function WorkspaceInteractionPanel(props: WorkspacePanelProps) {
   const { children, ...rest } = props;
   const chrome = useOptionalWorkspaceChrome();
-  const showCloseButton = chrome && !chrome.isContentPanelCollapsed;
+  const showCloseButton =
+    chrome?.canCollapseInteractionPanel &&
+    !chrome.isInteractionPanelCollapsed;
 
   return (
     <PanelFrame

@@ -52,6 +52,8 @@ export function DesktopWorkspace({
       isInteractionPanelCollapsed: interactionController.isCollapsed,
       toggleInteractionPanel: interactionController.toggle,
       showContentPanelToggle: true,
+      canCollapseInteractionPanel: true,
+      canCollapseContentPanel: true,
       backHref: undefined,
     }),
     [contentController, interactionController],

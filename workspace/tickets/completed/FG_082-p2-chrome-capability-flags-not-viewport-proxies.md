@@ -3,7 +3,7 @@ id: FG_082
 title: "WorkspaceChromeContext exposes capability flags instead of viewport proxies"
 date: 2026-04-27
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "Consumers use useIsMobile() as a proxy for 'does chrome have a collapse affordance?'. This conflates viewport with capability. FG_080 relocated the close-X consumer but kept the underlying coupling — WorkspaceInteractionPanel still relies on chrome being present (mobile = absent) as the implicit capability check. Add explicit canCollapseInteractionPanel and canCollapseContentPanel flags so consumers ask the right question."
 dependencies: []
