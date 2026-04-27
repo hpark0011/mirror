@@ -51,19 +51,21 @@ export function ProfilePanel() {
             />
           )
           : <EditProfileButton onClick={() => setIsEditing(true)} />}
-        <IconButton
-          onClick={chrome?.toggleInteractionPanel}
-          aria-controls={chrome?.interactionPanelId}
-          aria-expanded={chrome
-            ? !chrome.isInteractionPanelCollapsed
-            : undefined}
-          aria-label="Close profile panel"
-          tooltip="Close Profile"
-          className="rounded-full"
-          size="icon"
-        >
-          <XmarkIcon className="size-4.5 text-icon" />
-        </IconButton>
+        {!isMobile && (
+          <IconButton
+            onClick={chrome?.toggleInteractionPanel}
+            aria-controls={chrome?.interactionPanelId}
+            aria-expanded={chrome
+              ? !chrome.isInteractionPanelCollapsed
+              : undefined}
+            aria-label="Close profile panel"
+            tooltip="Close Profile"
+            className="rounded-full"
+            size="icon"
+          >
+            <XmarkIcon className="size-4.5 text-icon" />
+          </IconButton>
+        )}
       </div>
 
       <ProfileInfo
