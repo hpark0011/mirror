@@ -40,8 +40,7 @@ export function ProfilePanel() {
         <ProfileLogo />
       </div>
 
-      {/* Offset to leave room for the chrome's close-profile button at right-3 (see WorkspaceInteractionPanel) */}
-      <div className="absolute top-3 right-14 z-10 flex items-center gap-1.5">
+      <div className="md:hidden absolute top-3 right-3 z-10 flex items-center gap-1.5">
         {isOwner && isEditing
           ? (
             <EditActions
