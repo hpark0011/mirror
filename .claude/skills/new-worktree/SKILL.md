@@ -9,7 +9,7 @@ Create a new git worktree for parallel feature development in this monorepo.
 
 ## Trigger
 
-- `/workspace:new-worktree` — start a scratch worktree, rename after scoping
+- `/workspace:new-worktree` — ask the user for scope, then create with a proper name
 - `/workspace:new-worktree <path-to-ticket.md>` — derive name from a ticket file
 - `/workspace:new-worktree <requirement>` — derive name from a free-text description
 
@@ -22,6 +22,8 @@ Determine the mode from the argument:
 | No argument provided     | **Empty (scratch)**       |
 | Argument ends with `.md` | **Ticket file**           |
 | Anything else            | **Free-text requirement** |
+
+In all modes, generate the branch name and create the worktree without asking the user to confirm the name.
 
 ## Name Generation Rules
 
@@ -37,20 +39,8 @@ All branch names must follow these conventions:
 
 ### Steps
 
-1. Generate a temporary name: `scratch-<4-char-hex>` (e.g., `scratch-a3f1`). Use a random hex value.
-2. Check the name doesn't collide with existing worktrees/branches (regenerate if it does).
-3. Run the creation script:
-   ```bash
-   bash .claude/skills/workspace/new-worktree/scripts/new-worktree.sh scratch-<hex>
-   ```
-4. Report the temporary worktree is ready.
-5. **Ask the user** what they want to work on in this worktree — the scope, feature, or bug.
-6. Once the user responds, generate a proper branch name following the naming rules above.
-7. Rename the worktree immediately (do not ask for confirmation):
-   ```bash
-   bash .claude/skills/workspace/new-worktree/scripts/rename-worktree.sh scratch-<hex> <new-name>
-   ```
-8. Report the final name and path.
+1. **Ask the user** what they want to work on in this worktree — the scope, feature, or bug.
+2. Once the user responds, treat the response as a free-text requirement and follow **Mode 3** below to derive the prefix and slug, then proceed to **Shared Steps**.
 
 ## Mode 2: Ticket File
 
@@ -78,7 +68,7 @@ All branch names must follow these conventions:
 
 ## Shared Steps (All Modes)
 
-These run after a branch name is confirmed (Modes 2 & 3) or after initial creation (Mode 1):
+These run once a branch name has been generated:
 
 ### 1. Check worktree doesn't already exist
 
