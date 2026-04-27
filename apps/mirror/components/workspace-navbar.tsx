@@ -32,7 +32,7 @@ export function WorkspaceNavbar({
   return (
     <nav
       className={cn(
-        "z-10 flex h-12 items-end justify-between gap-2 px-4 relative border-b border-border-subtle pr-5",
+        "z-10 flex h-11 items-end justify-between gap-2 px-4 relative border-b border-border-subtle pr-5",
         className,
       )}
     >
