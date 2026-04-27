@@ -6,21 +6,26 @@ import {
   ProfileInfo,
 } from "@/features/profile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
 import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
-  const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
+  const {
+    profile,
+    isOwner,
+    setVideoCallOpen,
+    isEditing,
+    setIsEditing,
+    isSubmitting,
+    setIsSubmitting,
+  } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleEditClose = useCallback(() => {
     setIsEditing(false);
     setIsSubmitting(false);
-  }, []);
+  }, [setIsEditing, setIsSubmitting]);
 
   // Vertical padding is sourced from chrome (desktop-workspace / mobile-workspace
   // publish --workspace-content-top-pad and --workspace-content-bottom-pad on
