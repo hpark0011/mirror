@@ -4,6 +4,7 @@ import {
   useMemo,
   useRef,
   type ComponentRef,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import {
@@ -61,7 +62,21 @@ export function DesktopWorkspace({
 
   return (
     <WorkspaceChromeProvider value={workspaceChromeValue}>
-      <main className="relative h-screen">
+      {/*
+        Vertical padding the ProfilePanel reserves for desktop chrome:
+        --workspace-content-top-pad clears the WorkspaceNavbar at the top
+        and --workspace-content-bottom-pad clears the bottom toolbar stack.
+        Bump these if either chrome surface grows or shrinks.
+      */}
+      <main
+        className="relative h-screen"
+        style={
+          {
+            "--workspace-content-top-pad": "132px",
+            "--workspace-content-bottom-pad": "132px",
+          } as CSSProperties
+        }
+      >
         <ResizablePanelGroup
           id="profile-workspace"
           ref={groupRef}

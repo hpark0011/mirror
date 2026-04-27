@@ -3,7 +3,7 @@ id: FG_083
 title: "ProfilePanel padding sourced from chrome instead of viewport proxies"
 date: 2026-04-27
 type: refactor
-status: to-do
+status: completed
 priority: p3
 description: "profile-panel.tsx uses useIsMobile() to pick pt-24 vs py-[132px]. Those magic numbers encode the heights of OTHER components (navbar, bottom toolbar). If chrome dimensions change, ProfilePanel breaks silently with no compile error. Same class of bug FG_081 just fixed for content-panel.tsx — relationship-explicit naming. Source the values from chrome (CSS variables or named constants) so the dependency is discoverable."
 dependencies: []
