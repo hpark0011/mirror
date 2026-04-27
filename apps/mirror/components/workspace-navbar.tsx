@@ -17,33 +17,29 @@ import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
 
 type WorkspaceNavbarProps = {
   className?: string;
-  showContentPanelToggle?: boolean;
-  backHref?: string;
 };
 
-export function WorkspaceNavbar({
-  className,
-  showContentPanelToggle = true,
-  backHref,
-}: WorkspaceNavbarProps) {
+export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   const segments = useSelectedLayoutSegments();
   const { profile, isOwner } = useProfileRouteData();
   const chrome = useOptionalWorkspaceChrome();
   const currentKind: ProfileTabKind = isProfileTabKind(segments[0])
     ? segments[0]
     : PROFILE_TAB_DEFAULT_KIND;
+  const backHref = chrome?.backHref;
+  const showContentPanelToggle = chrome?.showContentPanelToggle ?? false;
 
   return (
     <nav
       className={cn(
-        "z-10 flex h-11 items-end justify-between gap-2 px-4 relative border-b border-border-subtle pr-5",
+        "z-10 flex h-11 items-end justify-between gap-2 md:px-4 px-1.5 relative border-b border-border-subtle pr-5",
         className,
       )}
     >
-      <div className="flex items-end gap-1">
+      <div className="flex items-end gap-2 md:gap-1">
         {backHref
           ? (
-            <div className="h-full flex items-center pb-1">
+            <div className="h-full flex items-center pb-1.5">
               <IconButton
                 asChild
                 aria-label="Back to profile"

@@ -10,6 +10,7 @@ type MobileWorkspaceProps = {
   interaction: ReactNode;
   children: ReactNode;
   onOpenDefaultContent: (() => void) | null;
+  profileBackHref: string | null;
 };
 
 const NOOP = () => {};
@@ -20,6 +21,7 @@ export function MobileWorkspace({
   interaction,
   children,
   onOpenDefaultContent,
+  profileBackHref,
 }: MobileWorkspaceProps) {
   const workspaceChromeValue = useMemo(
     () => ({
@@ -29,8 +31,10 @@ export function MobileWorkspace({
       interactionPanelId: INTERACTION_PANEL_ID,
       isInteractionPanelCollapsed: false,
       toggleInteractionPanel: NOOP,
+      showContentPanelToggle: false,
+      backHref: profileBackHref ?? undefined,
     }),
-    [hasContentRoute, onOpenDefaultContent],
+    [hasContentRoute, onOpenDefaultContent, profileBackHref],
   );
 
   return (

@@ -13,6 +13,8 @@ type WorkspaceChromeContextValue = {
   interactionPanelId: string;
   isInteractionPanelCollapsed: boolean;
   toggleInteractionPanel: () => void;
+  showContentPanelToggle: boolean;
+  backHref?: string;
 };
 
 const WorkspaceChromeContext = createContext<WorkspaceChromeContextValue | null>(

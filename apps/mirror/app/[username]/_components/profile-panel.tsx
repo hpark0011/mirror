@@ -49,7 +49,7 @@ export function ProfilePanel() {
             />
           )
           : <EditProfileButton onClick={() => setIsEditing(true)} />}
-        {!isMobile && (
+        {!isMobile && !chrome?.isContentPanelCollapsed && (
           <IconButton
             onClick={chrome?.toggleInteractionPanel}
             aria-controls={chrome?.interactionPanelId}

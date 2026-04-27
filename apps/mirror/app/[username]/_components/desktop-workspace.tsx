@@ -55,6 +55,8 @@ export function DesktopWorkspace({
       interactionPanelId: INTERACTION_PANEL_ID,
       isInteractionPanelCollapsed: interactionController.isCollapsed,
       toggleInteractionPanel: interactionController.toggle,
+      showContentPanelToggle: true,
+      backHref: undefined,
     }),
     [contentController, interactionController],
   );

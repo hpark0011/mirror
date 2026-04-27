@@ -64,14 +64,9 @@ export function WorkspaceShell({ interaction, content }: WorkspaceShellProps) {
           hasContentRoute={hasContentRoute}
           interaction={interaction}
           onOpenDefaultContent={defaultContentHref ? openDefaultContent : null}
+          profileBackHref={profileBackHref}
         >
-          <ContentPanel
-            routeState={routeState}
-            navbarBackHref={profileBackHref ?? undefined}
-            showContentPanelToggle={false}
-          >
-            {content}
-          </ContentPanel>
+          <ContentPanel routeState={routeState}>{content}</ContentPanel>
         </MobileWorkspace>
       )
       : (
