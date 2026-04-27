@@ -1,21 +1,8 @@
 "use client";
 
-import { useCallback, useMemo, type ReactNode } from "react";
-import {
-  useParams,
-  useRouter,
-  useSearchParams,
-  useSelectedLayoutSegments,
-} from "next/navigation";
+import { type ReactNode } from "react";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import {
-  DEFAULT_PROFILE_CONTENT_KIND,
-  getContentHref,
-  getContentRouteState,
-  type ContentRouteState,
-} from "@/features/content";
-import { isProfileTabKind } from "@/features/profile-tabs/types";
+import { useProfileWorkspaceRouteData } from "../_hooks/use-profile-workspace-route-data";
 import { DesktopWorkspace } from "./desktop-workspace";
 import { MobileWorkspace } from "./mobile-workspace";
 import { ContentPanel } from "./content-panel";
@@ -27,53 +14,20 @@ type WorkspaceShellProps = {
 
 export function WorkspaceShell({ interaction, content }: WorkspaceShellProps) {
   const isMobile = useIsMobile();
-  const params = useParams<{ username: string }>();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const segments = useSelectedLayoutSegments();
-  const { isChatOpen, buildChatAwareHref } = useChatSearchParams();
-  const hasContentRoute = isProfileTabKind(segments[0]);
-  const routeState: ContentRouteState | null = getContentRouteState(segments);
-  const username = params.username;
-  const defaultContentHref = useMemo(() => {
-    if (!username) return null;
+  const { hasContentRoute, routeState, openDefaultContent } =
+    useProfileWorkspaceRouteData();
 
-    const href = getContentHref(username, DEFAULT_PROFILE_CONTENT_KIND);
-    const queryString = searchParams.toString();
-    return queryString ? `${href}?${queryString}` : href;
-  }, [searchParams, username]);
-
-  const profileBackHref = useMemo(() => {
-    if (!username) return null;
-    return buildChatAwareHref(`/@${username}`);
-  }, [buildChatAwareHref, username]);
-
-  const openDefaultContent = useCallback(() => {
-    if (!defaultContentHref) return;
-    router.push(defaultContentHref);
-  }, [defaultContentHref, router]);
-
-  return (
-    isMobile
-      ? (
-        <MobileWorkspace
-          isChatOpen={isChatOpen}
-          hasContentRoute={hasContentRoute}
-          interaction={interaction}
-          onOpenDefaultContent={defaultContentHref ? openDefaultContent : null}
-          profileBackHref={profileBackHref}
-        >
-          <ContentPanel routeState={routeState}>{content}</ContentPanel>
-        </MobileWorkspace>
-      )
-      : (
-        <DesktopWorkspace
-          interaction={interaction}
-          hasContentRoute={hasContentRoute}
-          onOpenDefaultContent={defaultContentHref ? openDefaultContent : null}
-        >
-          <ContentPanel routeState={routeState}>{content}</ContentPanel>
-        </DesktopWorkspace>
-      )
+  return isMobile ? (
+    <MobileWorkspace hasContentRoute={hasContentRoute} interaction={interaction}>
+      <ContentPanel routeState={routeState}>{content}</ContentPanel>
+    </MobileWorkspace>
+  ) : (
+    <DesktopWorkspace
+      interaction={interaction}
+      hasContentRoute={hasContentRoute}
+      onOpenDefaultContent={openDefaultContent}
+    >
+      <ContentPanel routeState={routeState}>{content}</ContentPanel>
+    </DesktopWorkspace>
   );
 }
