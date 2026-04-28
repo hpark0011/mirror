@@ -33,7 +33,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-14 items-center justify-between gap-2 md:gap-12 px-5 md:pl-4 pl-0 relative",
+        "z-10 flex h-10 md:h-14 items-center justify-between gap-2 md:gap-12 px-5 md:pl-4 pl-0 relative",
         className,
       )}
     >
@@ -63,7 +63,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
           )
           : null}
       </div>
-      <div className="flex items-center justify-center gap-2 w-full  ">
+      <div className="flex items-center justify-start md:justify-center gap-2 w-full  ">
         {backHref
           ? (
             <div className="h-full flex items-center">
