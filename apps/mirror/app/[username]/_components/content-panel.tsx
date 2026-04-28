@@ -10,6 +10,15 @@ import {
 import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
 import { markContentPanelRendered } from "@/lib/perf/content-panel-open";
 
+// Bottom padding reserved inside the scroll container so content clears the
+// chat input / sticky footer that floats above it. Pairs with the chat input
+// height — bump this if that surface grows.
+const SCROLL_FOOTER_PAD_PX = 64;
+// Height of the top fade-mask gradient that softens content scrolling under
+// the WorkspaceNavbar + ToolbarSlotTarget. Pairs with the navbar/toolbar
+// stack — adjust if either grows or the fade should reach further.
+const FADE_MASK_HEIGHT_PX = 40;
+
 type ContentPanelProps = {
   routeState: ContentRouteState | null;
   children: ReactNode;
@@ -52,10 +61,14 @@ export function ContentPanel({
         <WorkspaceNavbar />
         <ToolbarSlotTarget />
         <div className="flex-1 min-h-0 *:h-full relative">
-          <div className="w-full absolute top-0 bg-linear-to-b to-transparent max-h-[40px] z-10 from-background" />
+          <div
+            className="w-full absolute top-0 bg-linear-to-b to-transparent z-10 from-background"
+            style={{ maxHeight: FADE_MASK_HEIGHT_PX }}
+          />
           <div
             ref={setScrollRoot}
-            className="overflow-y-auto h-full pb-[64px] pt-0"
+            className="overflow-y-auto h-full pt-0"
+            style={{ paddingBottom: SCROLL_FOOTER_PAD_PX }}
           >
             <ScrollRootProvider value={scrollRoot}>
               {children}

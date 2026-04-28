@@ -20,7 +20,7 @@ import {
   EDIT_SHADOW_LIGHT,
   VIEW_SHADOW_DARK,
   VIEW_SHADOW_LIGHT,
-} from "../lib/edit-shadows";
+} from "../utils/edit-shadows";
 
 type EditableNameProps = {
   isEditing: boolean;

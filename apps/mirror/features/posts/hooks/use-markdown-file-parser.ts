@@ -6,8 +6,8 @@ import {
   validateFile,
   parseMdFrontmatter,
   type ParsedMarkdown,
-} from "../lib/parse-md-frontmatter";
-import { markdownToJsonContent } from "../lib/markdown-to-json-content";
+} from "../lib/parsers/parse-md-frontmatter";
+import { markdownToJsonContent } from "../lib/parsers/markdown-to-json-content";
 
 export type ParsedMarkdownFile = {
   metadata: ParsedMarkdown;

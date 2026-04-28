@@ -1,27 +1,25 @@
 "use client";
 
 import {
-  useCallback,
-  useLayoutEffect,
   useMemo,
   useRef,
-  useState,
-  type ComponentProps,
   type ComponentRef,
+  type CSSProperties,
   type ReactNode,
 } from "react";
 import {
   ResizableHandle,
-  ResizablePanel,
   ResizablePanelGroup,
 } from "@feel-good/ui/primitives/resizable";
-import {
-  markContentPanelOpenStart,
-  markContentPanelRouteReady,
-} from "@/lib/perf/content-panel-open";
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
-
-const CONTENT_PANEL_ID = "profile-content-panel";
+import { useContentPanelController } from "../_hooks/use-content-panel-controller";
+import { useInteractionPanelController } from "../_hooks/use-interaction-panel-controller";
+import { useResizeHandleExpand } from "../_hooks/use-resize-handle-expand";
+import { CollapsedProfileAvatarButton } from "./collapsed-profile-avatar-button";
+import {
+  WorkspaceContentPanel,
+  WorkspaceInteractionPanel,
+} from "./workspace-panels";
 
 type DesktopWorkspaceProps = {
   hasContentRoute: boolean;
@@ -30,10 +28,6 @@ type DesktopWorkspaceProps = {
   onOpenDefaultContent: (() => void) | null;
 };
 
-type ResizableHandlePointerDownCapture = NonNullable<
-  ComponentProps<typeof ResizableHandle>["onPointerDownCapture"]
->;
-
 export function DesktopWorkspace({
   hasContentRoute,
   interaction,
@@ -41,145 +35,78 @@ export function DesktopWorkspace({
   onOpenDefaultContent,
 }: DesktopWorkspaceProps) {
   const groupRef = useRef<ComponentRef<typeof ResizablePanelGroup>>(null);
-  const contentPanelRef = useRef<ComponentRef<typeof ResizablePanel>>(null);
-  const isPendingNavigationRef = useRef(false);
-  const previousHasContentRouteRef = useRef(hasContentRoute);
-  const [isContentPanelCollapsed, setIsContentPanelCollapsed] = useState(
-    () => !hasContentRoute,
-  );
-
-  const handleContentPanelCollapse = useCallback(() => {
-    setIsContentPanelCollapsed(true);
-  }, []);
-
-  const handleContentPanelExpand = useCallback(() => {
-    setIsContentPanelCollapsed(false);
-  }, []);
-
-  const openDefaultContentRoute = useCallback(() => {
-    if (!onOpenDefaultContent) return;
-
-    markContentPanelOpenStart();
-    isPendingNavigationRef.current = true;
-    onOpenDefaultContent();
-  }, [onOpenDefaultContent]);
-
-  const toggleContentPanel = useCallback(() => {
-    if (isPendingNavigationRef.current) return;
-
-    if (isContentPanelCollapsed) {
-      if (!hasContentRoute) {
-        openDefaultContentRoute();
-        return;
-      }
-
-      groupRef.current?.setLayout([50, 50]);
-      return;
-    }
-
-    contentPanelRef.current?.collapse();
-  }, [hasContentRoute, isContentPanelCollapsed, openDefaultContentRoute]);
-
-  const handleResizePointerDownCapture = useCallback<
-    ResizableHandlePointerDownCapture
-  >((event) => {
-    if (!isContentPanelCollapsed) return;
-
-    event.preventDefault();
-    event.stopPropagation();
-
-    if (isPendingNavigationRef.current) return;
-
-    if (!hasContentRoute) {
-      openDefaultContentRoute();
-      return;
-    }
-
-    groupRef.current?.setLayout([50, 50]);
-  }, [
+  const contentController = useContentPanelController({
+    groupRef,
     hasContentRoute,
-    isContentPanelCollapsed,
-    openDefaultContentRoute,
-  ]);
-
-  useLayoutEffect(() => {
-    const previousHasContentRoute = previousHasContentRouteRef.current;
-    previousHasContentRouteRef.current = hasContentRoute;
-
-    if (previousHasContentRoute === hasContentRoute) {
-      return;
-    }
-
-    if (hasContentRoute) {
-      markContentPanelRouteReady();
-      isPendingNavigationRef.current = false;
-      groupRef.current?.setLayout([50, 50]);
-      return;
-    }
-
-    contentPanelRef.current?.collapse();
-  }, [hasContentRoute]);
+    onOpenDefaultContent,
+  });
+  const interactionController = useInteractionPanelController({ groupRef });
+  const onResizePointerDownCapture = useResizeHandleExpand(
+    contentController,
+    interactionController,
+  );
 
   const workspaceChromeValue = useMemo(
     () => ({
-      contentPanelId: CONTENT_PANEL_ID,
-      isContentPanelCollapsed,
-      toggleContentPanel,
+      isContentPanelCollapsed: contentController.isCollapsed,
+      toggleContentPanel: contentController.toggle,
+      isInteractionPanelCollapsed: interactionController.isCollapsed,
+      toggleInteractionPanel: interactionController.toggle,
+      showContentPanelToggle: true,
+      canCollapseInteractionPanel: true,
+      canCollapseContentPanel: true,
+      backHref: undefined,
     }),
-    [isContentPanelCollapsed, toggleContentPanel],
+    [contentController, interactionController],
   );
 
   return (
     <WorkspaceChromeProvider value={workspaceChromeValue}>
-      <main className="h-screen">
+      {/*
+        Vertical padding the ProfilePanel reserves for desktop chrome:
+        --workspace-content-top-pad clears the WorkspaceNavbar at the top
+        and --workspace-content-bottom-pad clears the bottom toolbar stack.
+        Bump these if either chrome surface grows or shrinks.
+      */}
+      <main
+        className="relative h-screen"
+        style={
+          {
+            "--workspace-content-top-pad": "132px",
+            "--workspace-content-bottom-pad": "132px",
+          } as CSSProperties
+        }
+      >
         <ResizablePanelGroup
           id="profile-workspace"
           ref={groupRef}
           direction="horizontal"
           className="h-full"
         >
-          <ResizablePanel
-            id="profile-workspace-interaction"
+          <WorkspaceInteractionPanel
+            setPanelRef={interactionController.setPanelRef}
+            isCollapsed={interactionController.isCollapsed}
+            onCollapse={interactionController.onCollapse}
+            onExpand={interactionController.onExpand}
             defaultSize={hasContentRoute ? 50 : 100}
-            minSize={25}
-            maxSize={100}
           >
             {interaction}
-          </ResizablePanel>
-
+          </WorkspaceInteractionPanel>
           <ResizableHandle
             className="z-30 relative"
-            onPointerDownCapture={handleResizePointerDownCapture}
+            onPointerDownCapture={onResizePointerDownCapture}
           />
-
-          <ResizablePanel
-            id="profile-workspace-content"
-            ref={contentPanelRef}
+          <WorkspaceContentPanel
+            setPanelRef={contentController.setPanelRef}
+            isCollapsed={contentController.isCollapsed}
+            onCollapse={contentController.onCollapse}
+            onExpand={contentController.onExpand}
             defaultSize={hasContentRoute ? 50 : 0}
-            minSize={25}
-            maxSize={80}
-            collapsible
-            collapsedSize={0}
-            className="min-w-0 overflow-hidden"
-            onCollapse={handleContentPanelCollapse}
-            onExpand={handleContentPanelExpand}
           >
-            <div
-              id={CONTENT_PANEL_ID}
-              data-state={isContentPanelCollapsed ? "closed" : "open"}
-              data-testid="desktop-content-panel"
-              aria-hidden={isContentPanelCollapsed}
-              inert={isContentPanelCollapsed}
-              className="h-full"
-            >
-              {/*
-                Keep the content subtree mounted so route and scroll state survive
-                desktop panel toggles.
-              */}
-              {children}
-            </div>
-          </ResizablePanel>
+            {children}
+          </WorkspaceContentPanel>
         </ResizablePanelGroup>
+        <CollapsedProfileAvatarButton />
       </main>
     </WorkspaceChromeProvider>
   );

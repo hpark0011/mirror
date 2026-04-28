@@ -1,36 +1,11 @@
 ---
 name: create-spec
-description: Create a product spec from user requirements through multi-agent research, adversarial critique, and iterative refinement. Spawns PM, Adversarial Reviewer, domain expert (when relevant), and Verification agents in separate context windows. Outputs a spec with Playwright E2E tests and team orchestration plan to workspace/spec/. Use when the user wants to create a spec, write requirements, plan a feature, or says "create spec", "spec this", "write a spec".
+description: Create a product spec from user requirements through multi-agent research, adversarial critique, and iterative refinement. Spawns PM, Adversarial Reviewer, domain expert (when relevant), and Verification agents in separate context windows. Outputs a spec with Playwright E2E tests to workspace/spec/. Use when the user wants to create a spec, write requirements, plan a feature, or says "create spec", "spec this", "write a spec".
 ---
-
-# Create Spec
-
-## When to use
-
-- User says "create a spec", "spec this", "write a spec", "write requirements", or "plan a feature" for a non-trivial piece of work.
-- A feature is large enough that it needs FR/NFR tables, test plans, and an orchestration plan before implementation starts.
-- A brainstorm or ticket is ready to be hardened into a verifiable, testable spec.
-
-**Do NOT use for**: ad-hoc notes, one-file bug fixes, quick refactors, or exploratory brainstorms. Do not use to edit an existing spec's prose — only to author or rewrite one from requirements.
-
-## Quick start
-
-1. Confirm the requirement is unambiguous (Phase 1). If not, ask clarifying questions before spawning any agents.
-2. Gather materials in parallel: read provided research, spawn the Codebase Analyst, and (if the domain matches) consult a domain expert (Phase 2).
-3. Instantiate `spec-template/spec.md` into `workspace/spec/{feature-name}-spec.md` with hard-verification requirements and real test paths (Phase 3).
-4. Run the adversarial critique loop until no Critical concerns remain (Phase 4).
-5. Spawn the Verification Agent; fix any failures; write the final spec and summary (Phase 5).
 
 ## Workflow
 
-Invariants that apply across all phases:
-
-- **Minimum 3 sub-agents**: PM Agent, Adversarial Spec Reviewer, Verification Agent. Each gets its own context window via the Agent tool.
-- **Domain expert is additive**: when consulted, it adds a 4th agent used in both Phase 2 and Phase 4.
-- **Hard verification only**: every requirement row must have a concrete, automatable check.
-- **Codebase accuracy**: every file path in the spec must be verified against the real codebase.
-- **User requirements are sovereign**: if the adversarial reviewer argues against something the user explicitly requested, reject it and document why.
-- **One-directional dependency**: `spec-template/` (local) + `.claude/agents/create-spec/` (shared) ← `SKILL.md` ← caller. This skill does not name its executor — the invoking agent owns Phase 3 routing.
+The invoking agent acts as PM and owns spec drafting and integration. It spawns three specialist sub-agents — Codebase Analyst (Phase 2b), Adversarial Reviewer (Phase 4), Verification (Phase 5) — each in its own context window via the Agent tool. A domain expert (Phase 2c, re-spawned in Phase 4) is added when the feature touches its area.
 
 ### Phase 1: Gather Requirements
 
@@ -49,46 +24,48 @@ Run these in parallel where possible.
 
 **2b — Investigate codebase.** Spawn the `create-spec-codebase-analyst` agent (defined at `.claude/agents/create-spec/codebase-analyst.md`).
 
-**2c — Consult domain expert (when relevant).** Check `.claude/agents/` for a domain expert agent whose description matches the feature's domain:
+**2c — Consult domain expert (when relevant).** Check `.claude/agents/` for an agent whose description matches the feature's domain. Current domain experts in this repo:
 
-| Agent                   | Domain                                                           |
-| ----------------------- | ---------------------------------------------------------------- |
-| `agent-stream-pipeline` | Streaming, chunk processing, token buffering, backpressure       |
-| `auth-layer`            | OAuth, API keys, token storage, auth state, credential injection |
-| `release`               | Packaging, CI, code signing, auto-updater, versioning            |
+| Agent                    | Domain                                                                              |
+| ------------------------ | ----------------------------------------------------------------------------------- |
+| `chat-backend-developer` | Convex chat agent layer — LLM streaming, RAG, system prompts, chat schema/mutations |
+| `design-system-manager`  | Design tokens, shadcn/ui components, styling consistency                            |
 
-If the feature touches one of these domains, spawn that agent with the user's requirement and ask it to:
+If no listed agent fits, scan `.claude/agents/` directly — new experts may have been added since this list was written. If the feature touches a matching domain, spawn that agent with the user's requirement and ask it to:
 
 1. Review the proposed feature for domain-specific concerns.
 2. Identify constraints, gotchas, or patterns that must be followed.
 3. Flag risks or conflicts with existing domain architecture.
 
-If no domain expert applies, skip this step.
+If no domain expert applies, skip this step. When consulted, the same expert is re-spawned in Phase 4 to review the drafted spec for domain-specific correctness.
 
 ### Phase 3: Create Spec
 
 Instantiate the spec template at `spec-template/spec.md`. The template is the single source of truth for spec structure, in this order:
 
 1. **What the user gets** — user-POV bullets (alignment checkpoint)
-2. **How we'll know it works** — user-flow scenarios mapped to FRs and Playwright test files (single source of truth for E2E coverage)
-3. **Requirements** — FR/NFR tables with hard verification columns
-4. **Architecture** — four required subsections: (1) Components and structure, (2) How data flows, (3) Why this works, (4) Edge cases and gotchas
-5. **Unit Tests** table
-6. **Team Orchestration Plan**
-7. **Open Questions**
-8. **Adversarial Review Summary** placeholder
+2. **Non-goals** — explicit scope cliff (what we're deliberately NOT doing)
+3. **How we'll know it works** — user-flow scenarios mapped to FRs and Playwright test files (single source of truth for E2E coverage)
+4. **Requirements** — FR/NFR tables with hard verification columns
+5. **Architecture** — five required subsections: (1) Components and structure, (2) How data flows, (3) Why this works (with Alternatives-considered table), (4) Edge cases and gotchas, (5) Upstream artifact impact
+6. **Unit Tests** table
+7. **Adversarial Review Summary** placeholder
 
 Rules for Phase 3:
 
 1. Read `spec-template/spec.md` and instantiate it; do not invent additional top-level sections.
 2. **`What the user gets` must be written in user-POV, plain language — no tech jargon, no implementation verbs.** This is the alignment checkpoint; if it reads like implementation notes, the section has failed its job.
-3. **Every `How we'll know it works` scenario must be in user-flow language and reference at least one FR.** No internal state checks, no "component renders" — describe what the user does and what they see.
-4. Every requirement row MUST have a concrete, automatable `Verification` value — no subjective criteria.
-5. Every requirement must be referenced by at least one row in Unit Tests or `How we'll know it works` (ideally both where user-visible).
-6. **All four Architecture subsections must be populated.** For small features a single sentence per subsection is acceptable, but none may be empty or collapsed into another.
-7. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). Verify against the codebase, don't guess. The `Test file` column in `How we'll know it works` may be left blank during drafting, but must be populated before the orchestration plan runs.
-8. Team Orchestration Plan must name real agents from `.claude/agents/` or explicitly recommend `/create-codebase-expert` for missing owners.
-9. **Every orchestration step MUST name (a) a suggested executor, (b) a hard gate shell command that proves the step is done, and (c) the FR/NFR IDs it verifies.** Reviewer pairing is NOT decided in the spec — `.claude/skills/orchestrate-implementation/SKILL.md` owns the critique routing table and selects reviewers per wave at execution time. Rationale: keeping one source of truth for the `code-review-*` roster prevents drift; the spec describes *what must be true*, orchestration decides *who reviews*. The executor/critic separation itself is still load-bearing (see https://www.anthropic.com/engineering/harness-design-long-running-apps) — it's just enforced downstream, not here.
+3. **`Non-goals` may not be empty.** If there are genuinely no non-goals, say so and justify why. This is the scope cliff that stops quick-win creep during implementation.
+4. **Every `How we'll know it works` scenario must be in user-flow language and reference at least one FR.** No internal state checks, no "component renders" — describe what the user does and what they see.
+5. Every requirement row MUST have a concrete, automatable `Verification` value — no subjective criteria.
+6. Every requirement must be referenced by at least one row in Unit Tests or `How we'll know it works` (ideally both where user-visible).
+7. **All five Architecture subsections must be populated.** For small features a single sentence per subsection is acceptable, but none may be empty or collapsed into another.
+   - Subsection 3 (`Why this works`) — the _Alternatives considered_ table needs at least two entries. "Most obvious approach" does not count.
+   - Subsection 5 (`Upstream artifact impact`) — must name the rule/skill/template/lint being patched, or explicitly justify "none". Enforces _Always Choose the Compounding Option_ from `AGENTS.md`.
+8. **Every file path in the spec must be verified against the real codebase** — existing paths must resolve, and new-file targets must fit current conventions. No fabricated paths in Architecture, test tables, or anywhere else.
+9. Test file paths must match real package/app conventions (Vitest in `__tests__/` with `.test.ts`; Playwright in the owning app's e2e dir with `.spec.ts`). The `Test file` column in `How we'll know it works` may be left blank during drafting, but must be populated before implementation begins.
+
+Orchestration — executor selection, reviewer pairing, wave sequencing, and hard gate commands — is NOT the spec's job. `.claude/skills/orchestrate-implementation/SKILL.md` owns that at execution time. The spec describes _what must be true_; orchestration decides _who builds and who reviews_. The executor/critic separation is still load-bearing (see https://www.anthropic.com/engineering/harness-design-long-running-apps) — it's just enforced downstream, not here.
 
 ### Phase 4: Adversarial Critique Loop
 
@@ -99,7 +76,7 @@ After the spec is drafted, spawn **two agents in parallel** (three if a domain e
 
 After critique completes:
 
-1. Evaluate each concern. Not all feedback is valid — reject concerns that contradict the user's explicit requirements.
+1. Evaluate each concern. **User requirements are sovereign** — reject any concern that contradicts what the user explicitly requested, and record the rejection rationale in the Adversarial Review Summary.
 2. For accepted concerns: update the spec.
 3. If significant changes were made (any Critical or 2+ Important concerns accepted), re-run the adversarial reviewer on the updated spec.
 4. Iterate until the adversarial reviewer returns no Critical concerns and no more than 1 Important concern.
@@ -115,12 +92,12 @@ Spawn the `create-spec-verification` agent (defined at `.claude/agents/create-sp
 
 ### Final Output
 
-1. Write the spec to `workspace/spec/{feature-name}-spec.md` (kebab-case filename).
-2. Present a summary including: spec location, FR/NFR counts, unit + E2E test counts, orchestration summary, adversarial review tallies (raised / accepted / rejected, no unresolved Critical), and verification result.
+1. Write the spec to `workspace/spec/{YYYY-MM-DD}-{feature-name}-spec.md` (ISO date prefix, kebab-case feature name). Use today's date. Set the `**Created:**` line in the spec header to the same date.
+2. Present a summary including: spec location, FR/NFR counts, unit + E2E test counts, adversarial review tallies (raised / accepted / rejected, no unresolved Critical), and verification result.
 
 ### Implementation handoff
 
-This skill ends when the spec is verified. The downstream half of the pipeline is `.claude/skills/orchestrate-implementation/SKILL.md` — it consumes the spec and runs the Team Orchestration Plan with disciplined wave execution (executor/verifier separation, feedback loops, critique-budgeting). When the user wants to start building, hand off to that skill rather than orchestrating ad-hoc.
+This skill ends when the spec is verified. The downstream half of the pipeline is `.claude/skills/orchestrate-implementation/SKILL.md` — it consumes the spec and plans wave execution at that point (executor/verifier separation, feedback loops, critique-budgeting). When the user wants to start building, hand off to that skill rather than orchestrating ad-hoc.
 
 ## Examples
 
@@ -138,29 +115,17 @@ User: "Create a spec for a rate-limited magic-link login flow in mirror. Budget:
 → Phase 5 verification passes.
 ```
 
-✗ Bad invocation:
-
-```
-User: "Spec out the dashboard improvements."
-
-→ Requirement is ambiguous — no scope, no constraints, no success criteria.
-→ Correct response: stay in Phase 1 and ask clarifying questions.
-→ Wrong response: guess at scope and run the full 5-phase workflow.
-```
-
 ## Anti-patterns
 
+These complement the Phase rules above; they call out the failure modes most likely to slip past rule-checking.
+
 - **Skipping Phase 1 clarifications.** Spawning agents on an ambiguous requirement wastes context and produces a spec the user will reject.
-- **Inventing extra top-level sections.** The template is the schema. Add rows, not new H2s.
-- **Filling `What the user gets` with implementation language.** "Adds middleware to intercept signup" is not what the user gets — it's what the engineer builds. The section must read from the user's perspective or it fails its alignment-checkpoint purpose.
-- **Skipping or collapsing Architecture subsections.** All four (Components / Data flow / Why this works / Edge cases) must be populated. "Why this works" and "Edge cases" are the highest-leverage sections — omitting them defeats the point of the restructure.
-- **`How we'll know it works` scenarios that describe internal state.** "Component mounts", "store updates" — these are implementation checks, not user-flow proof. Scenarios must describe what a user does and what they observe.
-- **Subjective verification criteria.** "Feels fast", "user-friendly", "looks good" — none are automatable. Every FR/NFR row needs a check a CI job could run.
-- **Guessing file paths.** Fabricated paths in the Team Orchestration Plan or test tables make the spec unactionable. Verify against the codebase.
+- **Collapsing Architecture subsections.** All five (Components / Data flow / Why this works / Edge cases / Upstream artifact impact) must be populated. "Why this works", "Edge cases", and "Upstream artifact impact" are the highest-leverage sections — omitting them defeats the point.
+- **Guessing file paths.** Fabricated paths in the Architecture section or test tables make the spec unactionable. Verify against the codebase.
 - **Naming an executor for Phase 3 inside this skill.** Creates a cycle with any agent that references this skill. The caller owns routing.
 - **Accepting adversarial concerns that contradict explicit user requirements.** Reject them and log the rejection in the Adversarial Review Summary.
 - **Running the adversarial loop once and stopping.** Iterate until no Critical concerns remain — that's the contract.
-- **Orchestration steps without hard gates.** Every step needs a concrete shell command that proves it's done — no "run tests" hand-waving. Reviewer pairing is not the spec's job; gate commands and verified FR IDs are. Duplicating the `code-review-*` roster in the spec creates drift with `orchestrate-implementation`, which owns it.
+- **Smuggling orchestration back into the spec.** Wave sequencing, executor assignments, reviewer pairing, and hard-gate shell commands live in `orchestrate-implementation`, not here. The spec describes _what must be true_ and leaves _who builds, who reviews, and in what order_ to the downstream skill.
 
 ## References
 

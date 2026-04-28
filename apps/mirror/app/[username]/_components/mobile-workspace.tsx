@@ -1,65 +1,58 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
-import { MobileProfileLayout } from "@/features/profile";
-import { ScrollRootProvider, type ContentRouteState } from "@/features/content";
-import { MirrorLogo } from "@/components/mirror-logo";
-import { MirrorLogoMenu } from "@/components/mirror-logo-menu";
-import { WorkspaceNavbar } from "@/components/workspace-navbar";
-import {
-  ToolbarSlotProvider,
-  ToolbarSlotTarget,
-} from "@/components/workspace-toolbar-slot";
-import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
-import { useProfileRouteData } from "../_providers/profile-route-data-context";
+import { type CSSProperties, type ReactNode, useMemo } from "react";
+import { useProfileWorkspaceRouteData } from "../_hooks/use-profile-workspace-route-data";
+import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
 
 type MobileWorkspaceProps = {
-  routeState: ContentRouteState | null;
-  isChatOpen: boolean;
+  hasContentRoute: boolean;
   interaction: ReactNode;
   children: ReactNode;
 };
 
+const NOOP = () => {};
+
 export function MobileWorkspace({
-  routeState,
-  isChatOpen,
+  hasContentRoute,
   interaction,
   children,
 }: MobileWorkspaceProps) {
-  const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
-  const { isOwner } = useProfileRouteData();
-  useProfileNavigationEffects(scrollRoot, routeState);
+  const { isChatOpen, profileBackHref, openDefaultContent } =
+    useProfileWorkspaceRouteData();
 
-  if (isChatOpen) {
-    return <main className="h-screen">{interaction}</main>;
-  }
+  const workspaceChromeValue = useMemo(
+    () => ({
+      isContentPanelCollapsed: !hasContentRoute,
+      toggleContentPanel: openDefaultContent ?? NOOP,
+      isInteractionPanelCollapsed: false,
+      toggleInteractionPanel: NOOP,
+      showContentPanelToggle: false,
+      canCollapseInteractionPanel: false,
+      canCollapseContentPanel: false,
+      backHref: profileBackHref ?? undefined,
+    }),
+    [hasContentRoute, openDefaultContent, profileBackHref],
+  );
 
   return (
-    <main className="h-screen">
-      <ToolbarSlotProvider>
-        <WorkspaceNavbar className="fixed top-0 inset-x-0" />
-        <MobileProfileLayout
-          topSlot={isOwner ? <MirrorLogoMenu /> : <MirrorLogo />}
-          profile={
-            <div className="relative h-full flex flex-col">{interaction}</div>
-          }
-          content={() => (
-            <div className="flex h-full min-h-0 flex-col">
-              <ToolbarSlotTarget />
-              <div className="flex-1 min-h-0 *:h-full">
-                <div
-                  ref={setScrollRoot}
-                  className="overflow-y-auto overscroll-y-contain h-full px-3"
-                >
-                  <ScrollRootProvider value={scrollRoot}>
-                    {children}
-                  </ScrollRootProvider>
-                </div>
-              </div>
-            </div>
-          )}
-        />
-      </ToolbarSlotProvider>
-    </main>
+    <WorkspaceChromeProvider value={workspaceChromeValue}>
+      {/*
+        Vertical padding the ProfilePanel reserves for mobile chrome:
+        --workspace-content-top-pad clears the mobile WorkspaceNavbar at the top.
+        Mobile has no bottom toolbar floating over the profile, so the bottom
+        pad is 0. Bump these if either chrome surface gains height.
+      */}
+      <main
+        className="h-screen"
+        style={
+          {
+            "--workspace-content-top-pad": "96px",
+            "--workspace-content-bottom-pad": "0px",
+          } as CSSProperties
+        }
+      >
+        {isChatOpen || !hasContentRoute ? interaction : children}
+      </main>
+    </WorkspaceChromeProvider>
   );
 }

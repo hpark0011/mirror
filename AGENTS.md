@@ -14,10 +14,7 @@ Two things about the Vercel/Convex setup are easy to break and hard to diagnose 
 ## Core Principles
 
 - **Always Choose the Compounding Option** — You should ALWAYS choose the option that compounds, that architecturally makes the codebase less prone for error and never choose the quick wins. When a bug or feedback reveals a gap in a skill, rule, convention, or template, patch the upstream artifact before (or alongside) fixing the downstream instance.
-
-## Git Workflow
-
-Never commit directly to main. Always use feature branches. When a merge conflict or branch divergence occurs, stop and ask the user before force-pushing or resetting.
+- **Git workflow** — Never commit directly to main. Always use feature branches. When a merge conflict or branch divergence occurs, stop and ask the user before force-pushing or resetting.
 
 ## Project Rules
 

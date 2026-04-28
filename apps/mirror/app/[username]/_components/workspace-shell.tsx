@@ -1,32 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, type ReactNode } from "react";
-import {
-  useParams,
-  useRouter,
-  useSearchParams,
-  useSelectedLayoutSegments,
-} from "next/navigation";
+import { type ReactNode } from "react";
 import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import {
-  DEFAULT_PROFILE_CONTENT_KIND,
-  getContentHref,
-  getContentRouteState,
-  type ContentRouteState,
-} from "@/features/content";
-import { isProfileTabKind } from "@/features/profile-tabs/types";
+import { useProfileWorkspaceRouteData } from "../_hooks/use-profile-workspace-route-data";
 import { DesktopWorkspace } from "./desktop-workspace";
 import { MobileWorkspace } from "./mobile-workspace";
 import { ContentPanel } from "./content-panel";
-
-const MOBILE_MEDIA_QUERY = "(max-width: 767px)";
-
-function hasMobileViewport() {
-  return typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia(MOBILE_MEDIA_QUERY).matches;
-}
 
 type WorkspaceShellProps = {
   interaction: ReactNode;
@@ -35,61 +14,20 @@ type WorkspaceShellProps = {
 
 export function WorkspaceShell({ interaction, content }: WorkspaceShellProps) {
   const isMobile = useIsMobile();
-  const params = useParams<{ username: string }>();
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const segments = useSelectedLayoutSegments();
-  const { isChatOpen } = useChatSearchParams();
-  const hasContentRoute = isProfileTabKind(segments[0]);
-  const routeState: ContentRouteState | null =
-    segments[0] === "clone-settings"
-      ? null
-      : getContentRouteState(segments);
-  const username = params.username;
-  const defaultContentHref = useMemo(() => {
-    if (!username) return null;
+  const { hasContentRoute, routeState, openDefaultContent } =
+    useProfileWorkspaceRouteData();
 
-    const href = getContentHref(username, DEFAULT_PROFILE_CONTENT_KIND);
-    const queryString = searchParams.toString();
-    return queryString ? `${href}?${queryString}` : href;
-  }, [searchParams, username]);
-  const shouldRedirectMobileRoot = !hasContentRoute &&
-    !!defaultContentHref &&
-    (isMobile || hasMobileViewport());
-
-  const openDefaultContent = useCallback(() => {
-    if (!defaultContentHref) return;
-    router.push(defaultContentHref);
-  }, [defaultContentHref, router]);
-
-  useEffect(() => {
-    if (!shouldRedirectMobileRoot || !defaultContentHref) return;
-    router.replace(defaultContentHref);
-  }, [defaultContentHref, router, shouldRedirectMobileRoot]);
-
-  if (shouldRedirectMobileRoot) {
-    return null;
-  }
-
-  return (
-    isMobile
-      ? (
-        <MobileWorkspace
-          routeState={routeState}
-          isChatOpen={isChatOpen}
-          interaction={interaction}
-        >
-          {content}
-        </MobileWorkspace>
-      )
-      : (
-        <DesktopWorkspace
-          interaction={interaction}
-          hasContentRoute={hasContentRoute}
-          onOpenDefaultContent={defaultContentHref ? openDefaultContent : null}
-        >
-          <ContentPanel routeState={routeState}>{content}</ContentPanel>
-        </DesktopWorkspace>
-      )
+  return isMobile ? (
+    <MobileWorkspace hasContentRoute={hasContentRoute} interaction={interaction}>
+      <ContentPanel routeState={routeState}>{content}</ContentPanel>
+    </MobileWorkspace>
+  ) : (
+    <DesktopWorkspace
+      interaction={interaction}
+      hasContentRoute={hasContentRoute}
+      onOpenDefaultContent={openDefaultContent}
+    >
+      <ContentPanel routeState={routeState}>{content}</ContentPanel>
+    </DesktopWorkspace>
   );
 }

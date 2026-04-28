@@ -3,6 +3,7 @@ import { Icon, type IconName } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
 import { cn } from "@feel-good/ui/lib/utils";
 import { motion } from "framer-motion";
+import { ContentPanelToggle } from "@/app/[username]/_components/content-panel-toggle";
 
 type ProfileAction = {
   label: string;
@@ -42,7 +43,6 @@ export function EditableProfileActions({
       iconClassName: "size-5.5",
       handler: onOpenVideoCall,
     },
-    { label: "Voice", icon: "WaveformIcon", iconClassName: "size-6" },
   ];
 
   return (
@@ -94,6 +94,7 @@ export function EditableProfileActions({
             </span>
           </div>
         ))}
+        <ContentPanelToggle />
       </div>
     </div>
   );

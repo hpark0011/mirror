@@ -13,9 +13,9 @@ import {
 } from "@feel-good/ui/primitives/tooltip";
 import { cn } from "@feel-good/utils/cn";
 import { useState } from "react";
+import type { SortOrder, UseContentSearchReturn } from "@/features/content";
 import type { UseArticleFilterReturn } from "../hooks/use-article-filter";
-import type { UseArticleSearchReturn } from "../hooks/use-article-search";
-import type { SortOrder } from "../hooks/use-article-sort";
+import type { ArticleSummary } from "../types";
 import { ArticleFilterDropdown } from "./article-filter-dropdown";
 import { ArticleSearchInput } from "./article-search-input";
 import { ArticleSortDropdown } from "./article-sort-dropdown";
@@ -27,7 +27,7 @@ type ArticleListToolbarProps = {
   onDelete: () => void;
   sortOrder: SortOrder;
   onSortChange: (order: SortOrder) => void;
-  search: UseArticleSearchReturn;
+  search: UseContentSearchReturn<ArticleSummary>;
   categories: { name: string; count: number }[];
   filter: UseArticleFilterReturn;
 };

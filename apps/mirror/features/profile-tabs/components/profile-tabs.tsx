@@ -4,9 +4,9 @@ import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@feel-good/ui/primitives/tabs";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import {
+  getProfileTabHref,
   PROFILE_TAB_KINDS,
   PROFILE_TAB_LABELS,
-  getProfileTabHref,
   type ProfileTabKind,
 } from "../types";
 

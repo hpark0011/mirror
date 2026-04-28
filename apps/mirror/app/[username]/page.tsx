@@ -1,54 +1,17 @@
-import type { Metadata } from "next";
 import { userAgentFromString } from "next/server";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { fetchAuthQuery } from "@/lib/auth-server";
-import { api } from "@feel-good/convex/convex/_generated/api";
-import { isReservedUsername } from "@/lib/reserved-usernames";
 import {
   DEFAULT_PROFILE_CONTENT_KIND,
   getContentHref,
 } from "@/features/content";
 
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ username: string }>;
-}): Promise<Metadata> {
-  const { username } = await params;
-
-  if (isReservedUsername(username)) {
-    return {};
-  }
-
-  const profile = await fetchAuthQuery(api.users.queries.getByUsername, {
-    username,
-  });
-
-  if (!profile) {
-    return {};
-  }
-
-  const displayName = profile.name || `@${profile.username ?? username}`;
-  const description = profile.bio || `${displayName}'s profile on Mirror`;
-
-  return {
-    title: displayName,
-    description,
-    openGraph: {
-      title: displayName,
-      description,
-      ...(profile.avatarUrl && { images: [{ url: profile.avatarUrl }] }),
-    },
-  };
-}
-
 /**
  * Profile root page — dual-role design:
  *
  * Desktop: Returns `null` so the content panel starts collapsed (the layout
- *   still renders the profile shell via parallel routes). Crawlers still
- *   receive metadata from `generateMetadata` above.
+ *   still renders the profile shell via parallel routes). Metadata is emitted
+ *   by the layout's `generateMetadata`.
  *
  * Mobile: Redirects to the default content kind (e.g. articles) since
  *   mobile doesn't have a collapsible panel UX.

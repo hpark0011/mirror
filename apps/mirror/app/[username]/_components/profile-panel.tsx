@@ -6,66 +6,51 @@ import {
   ProfileInfo,
 } from "@/features/profile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import { useIsMobile } from "@feel-good/ui/hooks/use-mobile";
-import { useCallback, useState } from "react";
-import { DesktopContentPanelToggle } from "./desktop-content-panel-toggle";
+import { useCallback } from "react";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
-import {
-  useOptionalWorkspaceChrome,
-} from "../_providers/workspace-chrome-context";
-import { MirrorLogo } from "@/components/mirror-logo";
-import { MirrorLogoMenu } from "@/components/mirror-logo-menu";
+import { ProfileLogo } from "./profile-logo";
 
 export function ProfilePanel() {
-  const { profile, isOwner, setVideoCallOpen } = useProfileRouteData();
+  const {
+    profile,
+    isOwner,
+    setVideoCallOpen,
+    isEditing,
+    setIsEditing,
+    isSubmitting,
+    setIsSubmitting,
+  } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
-  const workspaceChrome = useOptionalWorkspaceChrome();
-  const isMobile = useIsMobile();
-
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleEditClose = useCallback(() => {
     setIsEditing(false);
     setIsSubmitting(false);
-  }, []);
+  }, [setIsEditing, setIsSubmitting]);
 
-  const editButtonClassName = isMobile
-    ? "absolute top-0 right-5 z-10"
-    : "absolute top-3 right-3";
-
+  // Vertical padding is sourced from chrome (desktop-workspace / mobile-workspace
+  // publish --workspace-content-top-pad and --workspace-content-bottom-pad on
+  // their <main> elements). Non-padding layout differences between the two
+  // chromes are preserved via Tailwind's md: prefix (>=768px), which mirrors
+  // the breakpoint the chrome decision keys off.
   return (
     <div
-      className={isMobile
-        ? "relative h-full"
-        : "relative z-20 h-full flex flex-col justify-start items-center px-6 py-[132px]"}
+      className="relative h-full pt-[var(--workspace-content-top-pad)] pb-[var(--workspace-content-bottom-pad)] md:z-20 md:flex md:flex-col md:justify-start md:items-center md:px-6"
     >
-      {isOwner && (
-        <div className={editButtonClassName}>
-          {isEditing
-            ? (
-              <EditActions
-                isEditing={isEditing}
-                isSubmitting={isSubmitting}
-                onCancel={handleEditClose}
-              />
-            )
-            : <EditProfileButton onClick={() => setIsEditing(true)} />}
-        </div>
-      )}
-      {!isMobile && (
-        <div className="absolute left-3 top-3 z-10">
-          {isOwner ? <MirrorLogoMenu /> : <MirrorLogo />}
-        </div>
-      )}
+      <div className="absolute top-3 left-3 z-10 flex flex-col gap-3">
+        <ProfileLogo />
+      </div>
 
-      {workspaceChrome && (
-        <DesktopContentPanelToggle
-          contentPanelId={workspaceChrome.contentPanelId}
-          isContentPanelCollapsed={workspaceChrome.isContentPanelCollapsed}
-          toggleContentPanel={workspaceChrome.toggleContentPanel}
-        />
-      )}
+      <div className="md:hidden absolute top-3 right-3 z-10 flex items-center gap-1.5">
+        {isOwner && isEditing
+          ? (
+            <EditActions
+              isEditing={isEditing}
+              isSubmitting={isSubmitting}
+              onCancel={handleEditClose}
+            />
+          )
+          : <EditProfileButton onClick={() => setIsEditing(true)} />}
+      </div>
 
       <ProfileInfo
         profile={profile}

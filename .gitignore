@@ -33,7 +33,7 @@ CLAUDE.local.md
 
 # Playwright
 playwright-report
-test-results.worktrees
+test-results
 .playwright-cli
 
 # Convex local backend

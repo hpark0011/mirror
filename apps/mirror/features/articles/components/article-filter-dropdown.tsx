@@ -1,13 +1,15 @@
 "use client";
 
-import { ContentListFilterDropdown } from "@/features/content";
-import type { ArticleFilterState } from "../utils/article-filter";
-import type { DatePreset } from "../utils/date-preset";
+import {
+  ContentListFilterDropdown,
+  type ContentFilterState,
+  type DatePreset,
+} from "@/features/content";
 
 type ArticleFilterDropdownProps = {
   isOwner: boolean;
   categories: { name: string; count: number }[];
-  filterState: ArticleFilterState;
+  filterState: ContentFilterState;
   hasActiveFilters: boolean;
   onToggleCategory: (name: string) => void;
   onSetPublishedDatePreset: (preset: DatePreset | null) => void;

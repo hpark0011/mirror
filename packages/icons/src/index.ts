@@ -111,6 +111,7 @@ export { PersonCropRectangleStackIcon } from "./components/person-crop-rectangle
 export { PersonCropRectangleStackFillIcon } from "./components/person-crop-rectangle-stack-fill";
 export { PersonFillIcon } from "./components/person-fill";
 export { Person2CropSquareStackIcon } from "./components/person2-crop-square-stack";
+export { PersonCropCircleFillIcon } from "./components/person-crop-circle-fill";
 export { Person2FillIcon } from "./components/person2-fill";
 export { PhotoFillIcon } from "./components/photo-fill";
 export { PlayFillIcon } from "./components/play-fill";

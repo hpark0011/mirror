@@ -48,7 +48,7 @@ function ChatHeaderAction({
 }
 
 /** Name badge displayed below the avatar. */
-function ChatHeaderProfileName({
+export function ChatHeaderProfileName({
   className,
   ...props
 }: React.ComponentProps<"span">) {

@@ -77,6 +77,13 @@ async function dragHandleBy(page: Page, handle: Locator, deltaX: number) {
     steps: Math.max(16, Math.round(Math.abs(deltaX) / 20)),
   });
   await page.mouse.up();
+  // react-resizable-panels can miss the synthetic pointerup at the
+  // collapse boundary because it re-installs its document-level pointer
+  // listeners (AbortController-based) on every dragState change. A
+  // follow-up pointer event with buttons=0 lets rrp's handlePointerMove
+  // detect the released state and clear its stuck drag.
+  await page.mouse.move(10, 10);
+  await page.mouse.up();
 }
 
 async function dragHandlePath(page: Page, handle: Locator, path: number[]) {
@@ -348,18 +355,55 @@ test.describe("Profile content panel toggle", () => {
       .toBeGreaterThan(120);
   });
 
-  test("keeps the mobile drawer behavior unchanged", async ({ page }) => {
+  test("workspace navbar content panel toggle is hidden in mobile", async ({
+    page,
+  }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`/@${username}/articles`);
 
     await expect(
-      page.getByRole("button", { name: /Hide Artifacts|Show Artifacts/ }),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("region", { name: "Articles" }),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
       page.getByRole("link", { name: articleTitle }),
     ).toBeVisible({ timeout: 10000 });
+
+    await expect(
+      page.getByRole("button", { name: "Collapse content panel" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("button", { name: "Expand content panel" }),
+    ).toHaveCount(0);
+  });
+
+  test("workspace navbar content panel toggle is visible on desktop", async ({
+    page,
+  }) => {
+    await openDesktopArticle(page);
+
+    await expect(
+      page.getByRole("button", { name: "Collapse content panel" }),
+    ).toBeVisible({ timeout: 5000 });
+  });
+
+  test("mobile artifacts button navigates to posts and back returns to profile", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/@${username}`);
+
+    const toggle = page.getByRole("button", { name: "Show Artifacts" });
+    await expect(toggle).toBeVisible({ timeout: 10000 });
+
+    await toggle.click();
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
+
+    const backLink = page.getByRole("link", { name: "Back to profile" });
+    await expect(backLink).toBeVisible({ timeout: 5000 });
+
+    await backLink.click();
+
+    await expect(page).toHaveURL(new RegExp(`/@${username}(\\?.*)?$`));
+    await expect(
+      page.getByRole("button", { name: "Show Artifacts" }),
+    ).toBeVisible({ timeout: 5000 });
   });
 });

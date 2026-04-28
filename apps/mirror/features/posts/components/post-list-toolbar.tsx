@@ -6,16 +6,17 @@ import {
   ContentListFilterDropdown,
   ContentListSearchInput,
   ContentListSortDropdown,
+  type SortOrder,
+  type UseContentSearchReturn,
 } from "@/features/content";
+import type { PostSummary } from "../types";
 import type { UsePostFilterReturn } from "../hooks/use-post-filter";
-import type { UsePostSearchReturn } from "../hooks/use-post-search";
-import type { SortOrder } from "../hooks/use-post-sort";
 
 type PostListToolbarProps = {
   isOwner: boolean;
   sortOrder: SortOrder;
   onSortChange: (order: SortOrder) => void;
-  search: UsePostSearchReturn;
+  search: UseContentSearchReturn<PostSummary>;
   categories: { name: string; count: number }[];
   filter: UsePostFilterReturn;
   onUploadClick: () => void;
@@ -31,7 +32,7 @@ export function PostListToolbar({
   onUploadClick,
 }: PostListToolbarProps) {
   return (
-    <div className="relative flex h-12 items-center justify-end gap-3 bg-background px-4.5 border-b border-border-subtle">
+    <div className="flex h-full items-center justify-end gap-3 px-4.5">
       <div className="flex w-full items-center justify-end gap-0">
         <ContentListSearchInput
           query={search.query}

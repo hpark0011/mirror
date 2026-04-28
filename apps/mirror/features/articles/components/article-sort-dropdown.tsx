@@ -1,7 +1,6 @@
 "use client";
 
-import { ContentListSortDropdown } from "@/features/content";
-import type { SortOrder } from "../hooks/use-article-sort";
+import { ContentListSortDropdown, type SortOrder } from "@/features/content";
 
 type ArticleSortDropdownProps = {
   value: SortOrder;

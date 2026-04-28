@@ -1,0 +1,30 @@
+"use client";
+
+import { MirrorAvatar } from "@/components/mirror-avatar";
+import { useProfileRouteData } from "../_providers/profile-route-data-context";
+import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
+import { INTERACTION_PANEL_ID } from "./workspace-panels";
+
+export function CollapsedProfileAvatarButton() {
+  const chrome = useOptionalWorkspaceChrome();
+  const { profile } = useProfileRouteData();
+
+  if (!chrome || !chrome.isInteractionPanelCollapsed) return null;
+
+  return (
+    <button
+      type="button"
+      onClick={chrome.toggleInteractionPanel}
+      aria-controls={INTERACTION_PANEL_ID}
+      aria-expanded={false}
+      aria-label="Expand profile panel"
+      className="absolute bottom-4.5 left-4.5 z-30 rounded-t-full cursor-pointer flex flex-col items-center shadow-avatar-shadow hover:shadow-xs transition-all duration-200 ease-in-out"
+    >
+      <MirrorAvatar
+        className="shrink-0 size-12"
+        avatarUrl={profile.avatarUrl}
+        profileName={profile.name}
+      />
+    </button>
+  );
+}

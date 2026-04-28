@@ -2,14 +2,14 @@
 
 import { useCallback, useMemo } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import type { DatePreset } from "../utils/date-preset";
 import {
-  type ArticleFilterState,
-  INITIAL_FILTER_STATE,
-} from "../utils/article-filter";
+  INITIAL_CONTENT_FILTER_STATE,
+  type ContentFilterState,
+  type DatePreset,
+} from "@/features/content";
 
 export type UseArticleFilterReturn = {
-  filterState: ArticleFilterState;
+  filterState: ContentFilterState;
   toggleCategory: (name: string) => void;
   clearCategories: () => void;
   setPublishedDatePreset: (preset: DatePreset | null) => void;
@@ -22,7 +22,7 @@ export type UseArticleFilterReturn = {
 export function useArticleFilter(): UseArticleFilterReturn {
   const [filterState, setFilterState] = useLocalStorage(
     "mirror.articles.filter",
-    INITIAL_FILTER_STATE
+    INITIAL_CONTENT_FILTER_STATE,
   );
 
   const toggleCategory = useCallback(
@@ -34,7 +34,7 @@ export function useArticleFilter(): UseArticleFilterReturn {
           : [...prev.categories, name],
       }));
     },
-    [setFilterState]
+    [setFilterState],
   );
 
   const setPublishedDatePreset = useCallback(
@@ -44,7 +44,7 @@ export function useArticleFilter(): UseArticleFilterReturn {
         publishedDatePreset: preset,
       }));
     },
-    [setFilterState]
+    [setFilterState],
   );
 
   const setCreatedDatePreset = useCallback(
@@ -54,7 +54,7 @@ export function useArticleFilter(): UseArticleFilterReturn {
         createdDatePreset: preset,
       }));
     },
-    [setFilterState]
+    [setFilterState],
   );
 
   const setPublishedStatus = useCallback(
@@ -64,7 +64,7 @@ export function useArticleFilter(): UseArticleFilterReturn {
         publishedStatus: status,
       }));
     },
-    [setFilterState]
+    [setFilterState],
   );
 
   const clearCategories = useCallback(() => {
@@ -72,7 +72,7 @@ export function useArticleFilter(): UseArticleFilterReturn {
   }, [setFilterState]);
 
   const clearAll = useCallback(() => {
-    setFilterState(INITIAL_FILTER_STATE);
+    setFilterState(INITIAL_CONTENT_FILTER_STATE);
   }, [setFilterState]);
 
   const hasActiveFilters = useMemo(() => {
@@ -95,6 +95,15 @@ export function useArticleFilter(): UseArticleFilterReturn {
       clearAll,
       hasActiveFilters,
     }),
-    [filterState, toggleCategory, clearCategories, setPublishedDatePreset, setCreatedDatePreset, setPublishedStatus, clearAll, hasActiveFilters],
+    [
+      filterState,
+      toggleCategory,
+      clearCategories,
+      setPublishedDatePreset,
+      setCreatedDatePreset,
+      setPublishedStatus,
+      clearAll,
+      hasActiveFilters,
+    ],
   );
 }

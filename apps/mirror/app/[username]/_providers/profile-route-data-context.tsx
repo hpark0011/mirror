@@ -24,6 +24,10 @@ type ProfileRouteData = {
   isOwner: boolean;
   videoCallOpen: boolean;
   setVideoCallOpen: (open: boolean) => void;
+  isEditing: boolean;
+  setIsEditing: (v: boolean) => void;
+  isSubmitting: boolean;
+  setIsSubmitting: (v: boolean) => void;
 };
 
 const ProfileRouteDataContext = createContext<ProfileRouteData | null>(null);
@@ -57,12 +61,23 @@ export function ProfileRouteDataProvider({
   });
 
   const [videoCallOpen, setVideoCallOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const profileContextValue = useMemo(() => ({ isOwner }), [isOwner]);
 
   const routeDataValue = useMemo(
-    () => ({ profile, isOwner, videoCallOpen, setVideoCallOpen }),
-    [profile, isOwner, videoCallOpen],
+    () => ({
+      profile,
+      isOwner,
+      videoCallOpen,
+      setVideoCallOpen,
+      isEditing,
+      setIsEditing,
+      isSubmitting,
+      setIsSubmitting,
+    }),
+    [profile, isOwner, videoCallOpen, isEditing, isSubmitting],
   );
 
   return (

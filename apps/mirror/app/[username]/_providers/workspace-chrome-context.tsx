@@ -7,9 +7,14 @@ import {
 } from "react";
 
 type WorkspaceChromeContextValue = {
-  contentPanelId: string;
   isContentPanelCollapsed: boolean;
   toggleContentPanel: () => void;
+  isInteractionPanelCollapsed: boolean;
+  toggleInteractionPanel: () => void;
+  showContentPanelToggle: boolean;
+  canCollapseInteractionPanel: boolean;
+  canCollapseContentPanel: boolean;
+  backHref?: string;
 };
 
 const WorkspaceChromeContext = createContext<WorkspaceChromeContextValue | null>(
