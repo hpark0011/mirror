@@ -33,11 +33,11 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-fit items-end justify-between gap-2 md:gap-12 px-5 md:pl-4 pl-2 relative border-b border-border-subtle",
+        "z-10 flex h-14 items-center justify-between gap-2 md:gap-12 px-5 md:pl-4 pl-0 relative",
         className,
       )}
     >
-      <div className="max-w-22 w-full h-full">
+      <div className="max-w-none w-fit md:max-w-22 md:w-full h-full">
         {showProfilePanelToggle && chrome
           ? (
             <div className="h-full flex items-center">
@@ -63,10 +63,10 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
           )
           : null}
       </div>
-      <div className="flex items-start justify-center gap-2 w-full  ">
+      <div className="flex items-center justify-center gap-2 w-full  ">
         {backHref
           ? (
-            <div className="h-full flex items-center pb-1.5">
+            <div className="h-full flex items-center">
               <IconButton
                 asChild
                 aria-label="Back to profile"

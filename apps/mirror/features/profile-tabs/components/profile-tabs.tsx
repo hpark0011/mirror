@@ -29,7 +29,7 @@ export function ProfileTabs({
 
   return (
     <Tabs value={currentKind}>
-      <TabsList variant="minimal">
+      <TabsList variant="minimal" className="">
         {visibleKinds.map((kind, index) => (
           <div key={kind} className="flex items-center">
             <TabsTrigger asChild value={kind}>
@@ -45,7 +45,7 @@ export function ProfileTabs({
               </Link>
             </TabsTrigger>
             {index < visibleKinds.length - 1 && (
-              <span className="text-border mx-2">/</span>
+              <span className="text-border mx-2.5 font-regular">/</span>
             )}
           </div>
         ))}
