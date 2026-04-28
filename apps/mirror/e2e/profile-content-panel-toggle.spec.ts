@@ -77,6 +77,13 @@ async function dragHandleBy(page: Page, handle: Locator, deltaX: number) {
     steps: Math.max(16, Math.round(Math.abs(deltaX) / 20)),
   });
   await page.mouse.up();
+  // react-resizable-panels can miss the synthetic pointerup at the
+  // collapse boundary because it re-installs its document-level pointer
+  // listeners (AbortController-based) on every dragState change. A
+  // follow-up pointer event with buttons=0 lets rrp's handlePointerMove
+  // detect the released state and clear its stuck drag.
+  await page.mouse.move(10, 10);
+  await page.mouse.up();
 }
 
 async function dragHandlePath(page: Page, handle: Locator, path: number[]) {
