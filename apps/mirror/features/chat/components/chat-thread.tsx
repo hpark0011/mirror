@@ -5,6 +5,7 @@ import { useSession } from "@/lib/auth-client";
 import { ArcSphere } from "../../../components/animated-geometries/arc-sphere";
 import { useChatContext } from "../context/chat-context";
 import { useChat } from "../hooks/use-chat";
+import { useChatUiControl } from "../hooks/use-chat-ui-control";
 import { ChatConversationListSheet } from "./chat-conversation-list-sheet";
 import { ChatHeader } from "./chat-header";
 import { ChatInput } from "./chat-input";
@@ -96,6 +97,7 @@ function ChatActiveThread() {
     conversationId,
     onConversationCreated: setConversationId,
   });
+  useChatUiControl(conversationId);
 
   // Conversation deleted after route resolved — show error state
   if (conversationNotFound) {

@@ -64,6 +64,13 @@ vi.mock("@convex-dev/agent", () => {
       isDone: true,
       continueCursor: "",
     })),
+    createTool: vi.fn((definition) => ({
+      description: definition.description,
+      inputSchema: definition.args,
+      execute: async (args: unknown, options: unknown) =>
+        definition.handler(definition.ctx, args, options),
+    })),
+    stepCountIs: vi.fn((count: number) => ({ type: "step-count", count })),
     // `Agent` is constructed at module load in `chat/agent.ts`. The stub
     // must be a class; its `continueThread` method is not called by these
     // tests (we mock `cloneAgent` directly below), but the constructor

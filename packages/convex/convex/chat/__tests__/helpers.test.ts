@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { TONE_PRESETS, type TonePreset } from "../tonePresets";
-import { composeSystemPrompt, SYSTEM_PROMPT_MAX_CHARS } from "../helpers";
+import {
+  composeSystemPrompt,
+  SYSTEM_PROMPT_MAX_CHARS,
+  UI_CONTROL_INSTRUCTIONS,
+} from "../helpers";
 
 const SAFETY_PREFIX_START = "You are a digital clone of ";
 
@@ -23,19 +27,22 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // Segment 0: SAFETY_PREFIX
     expect(segments[0]).toContain("digital clone of Alice");
 
-    // Segment 1: tone clause (friendly)
-    expect(segments[1]).toBe(TONE_PRESETS.friendly.clause);
+    // Segment 1: UI-control instructions
+    expect(segments[1]).toBe(UI_CONTROL_INSTRUCTIONS);
 
-    // Segment 2: bio
-    expect(segments[2]).toBe("Bio: A writer");
+    // Segment 2: tone clause (friendly)
+    expect(segments[2]).toBe(TONE_PRESETS.friendly.clause);
 
-    // Segment 3: persona
-    expect(segments[3]).toBe("My custom persona");
+    // Segment 3: bio
+    expect(segments[3]).toBe("Bio: A writer");
 
-    // Segment 4: topics
-    expect(segments[4]).toBe("Avoid discussing: politics");
+    // Segment 4: persona
+    expect(segments[4]).toBe("My custom persona");
 
-    expect(segments).toHaveLength(5);
+    // Segment 5: topics
+    expect(segments[5]).toBe("Avoid discussing: politics");
+
+    expect(segments).toHaveLength(6);
   });
 
   // UT-03: omits tone clause when tonePreset is null
@@ -54,8 +61,8 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     }
 
     const segments = result.split("\n\n");
-    // SAFETY_PREFIX, bio, persona — no tone, no topics
-    expect(segments).toHaveLength(3);
+    // SAFETY_PREFIX, UI control, bio, persona — no tone, no topics
+    expect(segments).toHaveLength(4);
   });
 
   // UT-04: omits topics line when topicsToAvoid is null
@@ -158,7 +165,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(result).toContain("digital clone of Alice");
     });
 
-    it("preserves section order (safety → tone → bio → persona → topics) when under budget", () => {
+    it("preserves section order (safety → UI control → tone → bio → persona → topics) when under budget", () => {
       const result = composeSystemPrompt({
         name: "Alice",
         bio: "Writer from Oakland",
@@ -168,13 +175,15 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       });
 
       const safetyIdx = result.indexOf("digital clone of Alice");
+      const uiControlIdx = result.indexOf(UI_CONTROL_INSTRUCTIONS);
       const toneIdx = result.indexOf(TONE_PRESETS.friendly.clause);
       const bioIdx = result.indexOf("Bio: Writer from Oakland");
       const personaIdx = result.indexOf("Persona body");
       const topicsIdx = result.indexOf("Avoid discussing: politics");
 
       expect(safetyIdx).toBeGreaterThanOrEqual(0);
-      expect(toneIdx).toBeGreaterThan(safetyIdx);
+      expect(uiControlIdx).toBeGreaterThan(safetyIdx);
+      expect(toneIdx).toBeGreaterThan(uiControlIdx);
       expect(bioIdx).toBeGreaterThan(toneIdx);
       expect(personaIdx).toBeGreaterThan(bioIdx);
       expect(topicsIdx).toBeGreaterThan(personaIdx);

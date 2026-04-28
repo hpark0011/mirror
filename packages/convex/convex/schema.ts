@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { articlesTable } from "./articles/schema";
 import { betaAllowlistTable } from "./betaAllowlist/schema";
 import { conversationsTable } from "./chat/schema";
+import { uiControlActionsTable } from "./chat/uiControlSchema";
 import { contentEmbeddingsTable } from "./embeddings/schema";
 import { postsTable } from "./posts/schema";
 import { usersTable } from "./users/schema";
@@ -13,6 +14,7 @@ export default defineSchema({
   articles: articlesTable,
   posts: postsTable,
   conversations: conversationsTable,
+  uiControlActions: uiControlActionsTable,
   contentEmbeddings: contentEmbeddingsTable,
   betaAllowlist: betaAllowlistTable,
   waitlistRequests: waitlistRequestsTable,

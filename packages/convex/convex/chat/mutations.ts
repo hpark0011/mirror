@@ -319,3 +319,27 @@ export const clearStreamingLock = internalMutation({
     return null;
   },
 });
+
+export const saveAssistantMessage = internalMutation({
+  args: {
+    conversationId: v.id("conversations"),
+    content: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, { conversationId, content }) => {
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation) {
+      throw new Error("Conversation not found");
+    }
+
+    await saveMessage(ctx, components.agent, {
+      threadId: conversation.threadId,
+      message: {
+        role: "assistant",
+        content: [{ type: "text", text: content }],
+      },
+    });
+
+    return null;
+  },
+});

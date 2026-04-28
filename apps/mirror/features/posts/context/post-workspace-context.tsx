@@ -1,9 +1,10 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { usePreloadedQuery } from "convex/react";
 import type { Preloaded } from "convex/react";
 import type { api } from "@feel-good/convex/convex/_generated/api";
+import { useUiControl } from "@/features/chat/context/ui-control-context";
 import { useIsProfileOwner } from "@/features/profile";
 import type { PostSummary } from "../types";
 import { usePostFilter } from "../hooks/use-post-filter";
@@ -37,6 +38,7 @@ export function PostWorkspaceProvider({
   const search = usePostSearch(posts);
   const { sortOrder, setSortOrder } = usePostSort();
   const filter = usePostFilter();
+  const { queuedVersion, takeQueuedActions } = useUiControl();
   const filteredPosts = useMemo(
     () => filterPosts(search.filteredPosts, filter.filterState, isOwner),
     [search.filteredPosts, filter.filterState, isOwner],
@@ -63,6 +65,39 @@ export function PostWorkspaceProvider({
     () => setIsUploadDialogOpen(false),
     [],
   );
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      const actions = takeQueuedActions("posts");
+      for (const action of actions) {
+        if (action.type === "clearListControls") {
+          search.close();
+          filter.clearAll();
+          setSortOrder("newest");
+          continue;
+        }
+
+        if (action.type !== "setListControls") continue;
+
+        if (action.searchQuery !== undefined) {
+          search.open();
+          search.setQuery(action.searchQuery);
+        }
+        if (action.sortOrder !== undefined) {
+          setSortOrder(action.sortOrder);
+        }
+        if (action.categories !== undefined) {
+          filter.clearCategories();
+          for (const category of action.categories) {
+            filter.toggleCategory(category);
+          }
+        }
+        if (action.publishedDatePreset !== undefined) {
+          filter.setPublishedDatePreset(action.publishedDatePreset);
+        }
+      }
+    });
+  }, [filter, queuedVersion, search, setSortOrder, takeQueuedActions]);
 
   const toolbarValue = useMemo(
     () => ({

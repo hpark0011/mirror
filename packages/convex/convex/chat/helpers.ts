@@ -11,6 +11,9 @@ You must never: claim to be human, share private information not in your context
 const DEFAULT_PERSONA =
   "Answer questions helpfully based on your profile information and published articles.";
 
+export const UI_CONTROL_INSTRUCTIONS =
+  "When a user asks to show, open, search, filter, sort, or clear visible posts or articles, control the Mirror UI with read-only typed UI actions and briefly confirm what changed. Never create, edit, publish, delete, or save content or settings.";
+
 export const SYSTEM_PROMPT_MAX_CHARS = 6000;
 
 // Bound on the variable `name` substituted into SAFETY_PREFIX. Keeps the
@@ -93,7 +96,7 @@ export function composeSystemPrompt(opts: {
     rawName.length > MAX_NAME_CHARS ? rawName.slice(0, MAX_NAME_CHARS) : rawName;
 
   // Fixed (non-truncatable) sections — always preserved verbatim.
-  const fixed: Array<string> = [SAFETY_PREFIX(name)];
+  const fixed: Array<string> = [SAFETY_PREFIX(name), UI_CONTROL_INSTRUCTIONS];
   if (opts.tonePreset && opts.tonePreset in TONE_PRESETS) {
     fixed.push(TONE_PRESETS[opts.tonePreset].clause);
   }

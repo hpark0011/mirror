@@ -11,6 +11,7 @@ import {
 import { useMutation, usePreloadedQuery } from "convex/react";
 import type { Preloaded } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
+import { useUiControl } from "@/features/chat/context/ui-control-context";
 import type { SortOrder } from "../hooks/use-article-sort";
 import type { ArticleSummary } from "../types";
 import { useArticlePagination } from "../hooks/use-article-pagination";
@@ -44,6 +45,7 @@ export function ArticleWorkspaceProvider({
   const search = useArticleSearch(articles);
   const { sortOrder, setSortOrder } = useArticleSort();
   const filter = useArticleFilter();
+  const { queuedVersion, takeQueuedActions } = useUiControl();
   const filteredByFilter = useMemo(
     () => filterArticles(search.filteredArticles, filter.filterState, isOwner),
     [search.filteredArticles, filter.filterState, isOwner],
@@ -124,6 +126,48 @@ export function ArticleWorkspaceProvider({
     }
     clearSelection();
   }, [clearSelection, allSlugs, articles, removeArticles]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      const actions = takeQueuedActions("articles");
+      for (const action of actions) {
+        if (action.type === "clearListControls") {
+          search.close();
+          filter.clearAll();
+          setSortOrder("newest");
+          clearSelection();
+          continue;
+        }
+
+        if (action.type !== "setListControls") continue;
+
+        if (action.searchQuery !== undefined) {
+          search.open();
+          search.setQuery(action.searchQuery);
+        }
+        if (action.sortOrder !== undefined) {
+          handleSortChange(action.sortOrder);
+        }
+        if (action.categories !== undefined) {
+          filter.clearCategories();
+          for (const category of action.categories) {
+            filter.toggleCategory(category);
+          }
+        }
+        if (action.publishedDatePreset !== undefined) {
+          filter.setPublishedDatePreset(action.publishedDatePreset);
+        }
+      }
+    });
+  }, [
+    clearSelection,
+    filter,
+    handleSortChange,
+    queuedVersion,
+    search,
+    setSortOrder,
+    takeQueuedActions,
+  ]);
 
   // Empty state derivations
   const hasNoArticles = articles.length === 0;

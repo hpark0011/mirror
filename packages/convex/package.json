@@ -9,6 +9,7 @@
     "./convex/_generated/dataModel": "./convex/_generated/dataModel.js",
     "./convex/_generated/server": "./convex/_generated/server.js",
     "./convex/content/schema": "./convex/content/schema.ts",
+    "./convex/chat/uiControlTypes": "./convex/chat/uiControlTypes.ts",
     "./convex/posts/categories": "./convex/posts/categories.ts",
     "./convex/*": "./convex/*",
     "./chat/tonePresets": {
@@ -29,6 +30,9 @@
       ],
       "convex/content/schema": [
         "./convex/content/schema.ts"
+      ],
+      "convex/chat/uiControlTypes": [
+        "./convex/chat/uiControlTypes.ts"
       ],
       "convex/posts/categories": [
         "./convex/posts/categories.ts"

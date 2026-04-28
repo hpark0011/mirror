@@ -7,6 +7,7 @@ import { api } from "@feel-good/convex/convex/_generated/api";
 import { ProfileRouteDataProvider } from "./_providers/profile-route-data-context";
 import { ChatRouteController } from "./_providers/chat-route-controller";
 import { WorkspaceShell } from "./_components/workspace-shell";
+import { UiControlProvider } from "@/features/chat/context/ui-control-context";
 
 export default async function ProfileLayout({
   children: _children,
@@ -57,7 +58,9 @@ export default async function ProfileLayout({
       isOwner={isOwner}
     >
       <ChatRouteController>
-        <WorkspaceShell interaction={interaction} content={content} />
+        <UiControlProvider username={profileData.username}>
+          <WorkspaceShell interaction={interaction} content={content} />
+        </UiControlProvider>
       </ChatRouteController>
     </ProfileRouteDataProvider>
   );

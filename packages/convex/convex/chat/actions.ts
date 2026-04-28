@@ -3,10 +3,18 @@
 import { v } from "convex/values";
 import { embed } from "ai";
 import { google } from "@ai-sdk/google";
+import { z } from "zod";
+import { createTool, stepCountIs } from "@convex-dev/agent";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { cloneAgent } from "./agent";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "../embeddings/config";
+import {
+  getTestUiControlResponse,
+  inferUiControlResponse,
+} from "./uiControlInference";
+import { isPlaywrightTestMode } from "../auth/testMode";
+import type { UiControlAction } from "./uiControlTypes";
 
 const RAG_RESULT_LIMIT = 5;
 const RAG_SCORE_THRESHOLD = 0.3;
@@ -129,7 +137,70 @@ export const streamResponse = internalAction({
 
       const fullSystemPrompt = systemPrompt + ragContext;
 
+      const uiControlResponse = isPlaywrightTestMode() && userMessage
+        ? getTestUiControlResponse(userMessage) ?? inferUiControlResponse(userMessage)
+        : userMessage
+          ? inferUiControlResponse(userMessage)
+          : null;
+
+      if (uiControlResponse) {
+        await ctx.runMutation(internal.chat.uiControl.enqueueValidated, {
+          conversationId,
+          profileOwnerId,
+          actions: uiControlResponse.actions,
+        });
+        await ctx.runMutation(internal.chat.mutations.saveAssistantMessage, {
+          conversationId,
+          content: uiControlResponse.confirmation,
+        });
+        return null;
+      }
+
       const { thread } = await cloneAgent.continueThread(ctx, { threadId });
+      const controlUiTool = createTool({
+        description:
+          "Queue read-only Mirror UI control actions for visible posts and articles. Use this for requests to show, open, search, filter, sort, or clear profile content. Never use it to create, edit, publish, delete, or save anything.",
+        args: z.object({
+          actions: z.array(
+            z.union([
+              z.object({
+                type: z.literal("navigate"),
+                kind: z.union([z.literal("posts"), z.literal("articles")]),
+                slug: z.string().optional(),
+              }),
+              z.object({
+                type: z.literal("setListControls"),
+                kind: z.union([z.literal("posts"), z.literal("articles")]),
+                searchQuery: z.string().optional(),
+                sortOrder: z.union([z.literal("newest"), z.literal("oldest")])
+                  .optional(),
+                categories: z.array(z.string()).optional(),
+                publishedDatePreset: z.union([
+                  z.literal("today"),
+                  z.literal("this_week"),
+                  z.literal("this_month"),
+                  z.literal("this_year"),
+                ]).optional(),
+              }),
+              z.object({
+                type: z.literal("clearListControls"),
+                kind: z.union([z.literal("posts"), z.literal("articles")]),
+              }),
+            ]),
+          ).min(1).max(3),
+        }),
+        ctx: ctx as any,
+        handler: async (toolCtx, args) => {
+          return await toolCtx.runMutation(
+            internal.chat.uiControl.enqueueValidated,
+            {
+              conversationId,
+              profileOwnerId,
+              actions: args.actions as UiControlAction[],
+            },
+          );
+        },
+      });
 
       // Empty or undefined promptMessageId = retry: respond to latest user message.
       // `maxOutputTokens` comes from `CHAT_MAX_OUTPUT_TOKENS` so both paths
@@ -137,6 +208,8 @@ export const streamResponse = internalAction({
       const streamArgs = {
         system: fullSystemPrompt,
         maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
+        tools: { control_ui: controlUiTool },
+        stopWhen: stepCountIs(2),
         ...(promptMessageId ? { promptMessageId } : {}),
       };
 
