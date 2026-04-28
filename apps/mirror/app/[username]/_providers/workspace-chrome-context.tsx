@@ -11,7 +11,7 @@ type WorkspaceChromeContextValue = {
   toggleContentPanel: () => void;
   isInteractionPanelCollapsed: boolean;
   toggleInteractionPanel: () => void;
-  showContentPanelToggle: boolean;
+  showProfilePanelToggle: boolean;
   canCollapseInteractionPanel: boolean;
   canCollapseContentPanel: boolean;
   backHref?: string;

@@ -52,7 +52,7 @@ export function DesktopWorkspace({
       toggleContentPanel: contentController.toggle,
       isInteractionPanelCollapsed: interactionController.isCollapsed,
       toggleInteractionPanel: interactionController.toggle,
-      showContentPanelToggle: true,
+      showProfilePanelToggle: true,
       canCollapseInteractionPanel: true,
       canCollapseContentPanel: true,
       backHref: undefined,

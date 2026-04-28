@@ -50,7 +50,7 @@ export function ToolbarSlotTarget() {
   return (
     <div
       ref={divRef}
-      className="shrink-0 h-12 z-20 w-full"
+      className="shrink-0 h-7 z-20 w-full relative"
     />
   );
 }

@@ -1,13 +1,13 @@
 "use client";
 
 import type { UIMessage } from "@convex-dev/agent/react";
+import { ArrowDownCircleFillIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { cn } from "@feel-good/utils/cn";
-import { ChevronDownIcon } from "lucide-react";
 import * as React from "react";
-import { ChatMessageItem } from "./chat-message-item";
 import { ArcSphere } from "../../../components/animated-geometries/arc-sphere";
 import { WireframeSphere } from "../../../components/animated-geometries/wireframe-sphere";
+import { ChatMessageItem } from "./chat-message-item";
 
 const AUTO_SCROLL_THRESHOLD_PX = 96;
 
@@ -129,24 +129,30 @@ function ChatMessageList({
 
   const lastKey = messages.at(-1)?.key ?? null;
 
-  const syncPinnedToBottom = React.useCallback((nextPinnedToBottom: boolean) => {
-    pinnedToBottomRef.current = nextPinnedToBottom;
-    setIsPinnedToBottom((currentPinnedToBottom) =>
-      currentPinnedToBottom === nextPinnedToBottom
-        ? currentPinnedToBottom
-        : nextPinnedToBottom
-    );
-  }, []);
+  const syncPinnedToBottom = React.useCallback(
+    (nextPinnedToBottom: boolean) => {
+      pinnedToBottomRef.current = nextPinnedToBottom;
+      setIsPinnedToBottom((currentPinnedToBottom) =>
+        currentPinnedToBottom === nextPinnedToBottom
+          ? currentPinnedToBottom
+          : nextPinnedToBottom
+      );
+    },
+    [],
+  );
 
-  const scrollToBottom = React.useCallback((behavior: ScrollBehavior = "auto") => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
+  const scrollToBottom = React.useCallback(
+    (behavior: ScrollBehavior = "auto") => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
 
-    container.scrollTo({
-      top: container.scrollHeight,
-      behavior,
-    });
-  }, []);
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior,
+      });
+    },
+    [],
+  );
 
   React.useEffect(() => {
     if (messages.length === 0) {
@@ -242,22 +248,21 @@ function ChatMessageList({
               />
             ))}
         </div>
-
       </ChatMessageScrollArea>
 
       {!isPinnedToBottom && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-32 flex justify-center px-4">
+        <div className="pointer-events-none absolute inset-x-0 bottom-32 flex justify-center px-4 mb-2">
           <Button
             type="button"
             variant="secondary"
             size="sm"
             data-slot="chat-message-scroll-to-bottom"
             aria-label="Scroll to latest message"
-            className="pointer-events-auto rounded-full shadow-xl"
+            className="pointer-events-auto rounded-lg shadow-xl has-[>svg]:pl-2 has-[>svg]:pr-1 has-[>svg]:gap-0.5 text-[13px]"
             onClick={() => scrollToBottom("smooth")}
           >
             Latest
-            <ChevronDownIcon className="size-4" />
+            <ArrowDownCircleFillIcon className="size-5" />
           </Button>
         </div>
       )}

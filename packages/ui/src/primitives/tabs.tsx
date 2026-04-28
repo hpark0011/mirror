@@ -54,7 +54,8 @@ const tabsListVariants = cva(
         default: "bg-muted",
         line: "gap-1 bg-transparent",
         folder:
-          "bg-transparent p-0 group-data-[orientation=horizontal]/tabs:h-7 rounded-none mb-[1px]",
+          "bg-transparent p-0 group-data-[orientation=horizontal]/tabs:h-7 rounded-none",
+        minimal: "p-0",
       },
     },
     defaultVariants: {
@@ -143,7 +144,7 @@ function TabsTrigger({
         // variant: folder — 3D perspective tab shape (before pseudo-element)
         "group-data-[variant=folder]/tabs-list:before:absolute",
         "group-data-[variant=folder]/tabs-list:before:inset-0",
-        "group-data-[variant=folder]/tabs-list:before:[transform:perspective(16px)_rotateX(4deg)]",
+        "group-data-[variant=folder]/tabs-list:before:[transform:perspective(16px)_rotateX(2deg)]",
         "group-data-[variant=folder]/tabs-list:before:rounded-t-[8px]",
         "group-data-[variant=folder]/tabs-list:before:rounded-b-none",
         "group-data-[variant=folder]/tabs-list:before:bg-gray-5",
@@ -167,8 +168,11 @@ function TabsTrigger({
         "group-data-[variant=folder]/tabs-list:border-transparent",
         // folder: padding
         "group-data-[variant=folder]/tabs-list:px-3",
-        "group-data-[variant=folder]/tabs-list:py-3.5",
-        "group-data-[variant=folder]/tabs-list:pt-4",
+        "group-data-[variant=folder]/tabs-list:py-0",
+        "group-data-[variant=folder]/tabs-list:pt-0",
+        // minimal: padding
+        "group-data-[variant=minimal]/tabs-list:px-0",
+        "group-data-[variant=minimal]/tabs-list:font-regular",
         // svg defaults
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",
         "[&_svg:not([class*='size-'])]:size-4",
