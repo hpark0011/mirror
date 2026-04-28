@@ -11,7 +11,7 @@ import {
 import { useProfileRouteData } from "@/app/[username]/_providers/profile-route-data-context";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useOptionalWorkspaceChrome } from "@/app/[username]/_providers/workspace-chrome-context";
-import { CONTENT_PANEL_ID } from "@/app/[username]/_components/workspace-panels";
+import { INTERACTION_PANEL_ID } from "@/app/[username]/_components/workspace-panels";
 import { Icon } from "@feel-good/ui/components/icon";
 import { IconButton } from "@feel-good/ui/components/icon-button";
 import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
@@ -28,16 +28,42 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
     ? segments[0]
     : PROFILE_TAB_DEFAULT_KIND;
   const backHref = chrome?.backHref;
-  const showContentPanelToggle = chrome?.showContentPanelToggle ?? false;
+  const showProfilePanelToggle = chrome?.showProfilePanelToggle ?? false;
 
   return (
     <nav
       className={cn(
-        "z-10 flex h-11 items-end justify-between gap-2 md:px-4 px-1.5 relative border-b border-border-subtle pr-5",
+        "z-10 flex h-fit items-end justify-between gap-2 md:gap-12 px-5 md:pl-4 pl-2 relative border-b border-border-subtle",
         className,
       )}
     >
-      <div className="flex items-end gap-2 md:gap-1">
+      <div className="max-w-22 w-full h-full">
+        {showProfilePanelToggle && chrome
+          ? (
+            <div className="h-full flex items-center">
+              <IconButton
+                onClick={chrome.toggleInteractionPanel}
+                aria-controls={INTERACTION_PANEL_ID}
+                aria-expanded={!chrome.isInteractionPanelCollapsed}
+                aria-label={chrome.isInteractionPanelCollapsed
+                  ? "Expand profile panel"
+                  : "Collapse profile panel"}
+                tooltip={chrome.isInteractionPanelCollapsed
+                  ? "Expand profile panel"
+                  : "Collapse profile panel"}
+                variant="wrapper"
+                className="w-auto"
+              >
+                <SidebarTrigger
+                  isOpen={!chrome.isInteractionPanelCollapsed}
+                  align="left"
+                />
+              </IconButton>
+            </div>
+          )
+          : null}
+      </div>
+      <div className="flex items-start justify-center gap-2 w-full  ">
         {backHref
           ? (
             <div className="h-full flex items-center pb-1.5">
@@ -54,37 +80,14 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
             </div>
           )
           : null}
-        <ProfileTabs
-          username={profile.username}
-          currentKind={currentKind}
-          isOwner={isOwner}
-        />
+        <div className="max-w-lg w-full">
+          <ProfileTabs
+            username={profile.username}
+            currentKind={currentKind}
+            isOwner={isOwner}
+          />
+        </div>
       </div>
-
-      {showContentPanelToggle && chrome
-        ? (
-          <div className="h-full flex items-center">
-            <IconButton
-              onClick={chrome.toggleContentPanel}
-              aria-controls={CONTENT_PANEL_ID}
-              aria-expanded={!chrome.isContentPanelCollapsed}
-              aria-label={chrome.isContentPanelCollapsed
-                ? "Expand content panel"
-                : "Collapse content panel"}
-              tooltip={chrome.isContentPanelCollapsed
-                ? "Expand content panel"
-                : "Collapse content panel"}
-              variant="wrapper"
-              className="w-auto"
-            >
-              <SidebarTrigger
-                isOpen={!chrome.isContentPanelCollapsed}
-                align="right"
-              />
-            </IconButton>
-          </div>
-        )
-        : null}
     </nav>
   );
 }

@@ -34,27 +34,29 @@ export function PostListToolbar({
   return (
     <div className="flex h-full items-center justify-end gap-3 px-4.5">
       <div className="flex w-full items-center justify-end gap-0">
-        <ContentListSearchInput
-          query={search.query}
-          onQueryChange={search.setQuery}
-          isOpen={search.isOpen}
-          onOpen={search.open}
-          onClose={search.close}
-          ariaLabel="Search posts"
-        />
-        <ContentListSortDropdown value={sortOrder} onChange={onSortChange} />
-        <ContentListFilterDropdown
-          isOwner={isOwner}
-          categories={categories}
-          filterState={filter.filterState}
-          hasActiveFilters={filter.hasActiveFilters}
-          onToggleCategory={filter.toggleCategory}
-          onSetPublishedDatePreset={filter.setPublishedDatePreset}
-          onSetCreatedDatePreset={filter.setCreatedDatePreset}
-          onSetPublishedStatus={filter.setPublishedStatus}
-          onClearAll={filter.clearAll}
-          onClearCategories={filter.clearCategories}
-        />
+        <div className="flex items-center gap-0 bg-background rounded-sm">
+          <ContentListSearchInput
+            query={search.query}
+            onQueryChange={search.setQuery}
+            isOpen={search.isOpen}
+            onOpen={search.open}
+            onClose={search.close}
+            ariaLabel="Search posts"
+          />
+          <ContentListSortDropdown value={sortOrder} onChange={onSortChange} />
+          <ContentListFilterDropdown
+            isOwner={isOwner}
+            categories={categories}
+            filterState={filter.filterState}
+            hasActiveFilters={filter.hasActiveFilters}
+            onToggleCategory={filter.toggleCategory}
+            onSetPublishedDatePreset={filter.setPublishedDatePreset}
+            onSetCreatedDatePreset={filter.setCreatedDatePreset}
+            onSetPublishedStatus={filter.setPublishedStatus}
+            onClearAll={filter.clearAll}
+            onClearCategories={filter.clearCategories}
+          />
+        </div>
 
         {isOwner && (
           <Button
