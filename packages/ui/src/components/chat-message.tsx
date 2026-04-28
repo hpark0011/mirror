@@ -6,6 +6,7 @@ import {
   AvatarImage,
 } from "@feel-good/ui/primitives/avatar";
 import { cn } from "@feel-good/utils/cn";
+import { SVGProps } from "react";
 
 const chatMessageVariants = cva("flex gap-1.5 max-w-[85%]", {
   variants: {
@@ -68,6 +69,27 @@ function ChatMessageContent({
   );
 }
 
+function BubbleTail({ className, ...props }: SVGProps<SVGSVGElement>) {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={cn("absolute right-[-2px] -bottom-[5px]", className)}
+      {...props}
+    >
+      <path
+        d="M10.6985 11.7925C4.96337 6.86778 6.74097 2.56293 7.69502 0.1875L-0.0532227 6.00238C4.70106 11.329 8.99525 11.7925 10.6985 11.7925Z"
+        fill="var(--blue-11)"
+      />
+    </svg>
+  );
+}
+
 const chatMessageBubbleVariants = cva(
   "rounded-[20px] px-3.5 py-2.5 leading-relaxed whitespace-pre-wrap wrap-break-word [corner-shape:superellipse(1.15)] relative",
   {
@@ -88,6 +110,7 @@ const chatMessageBubbleVariants = cva(
 function ChatMessageBubble({
   className,
   variant,
+  children,
   ...props
 }:
   & React.ComponentProps<"div">
@@ -97,7 +120,10 @@ function ChatMessageBubble({
       data-slot="chat-message-bubble"
       className={cn(chatMessageBubbleVariants({ variant }), className)}
       {...props}
-    />
+    >
+      {children}
+      {variant === "sent" && <BubbleTail />}
+    </div>
   );
 }
 

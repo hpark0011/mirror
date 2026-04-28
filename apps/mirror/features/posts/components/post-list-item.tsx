@@ -18,8 +18,8 @@ export function PostListItem({ post, username }: PostListItemProps) {
 
   return (
     <article className="border-b border-border-subtle px-4.5 py-10 pb-10 last:border-b-0">
-      <div className="flex flex-col md:flex-row items-start justify-between gap-5 md:gap-12 w-full">
-        <div className="mt-0.5 max-w-22 w-full">
+      <div className="flex flex-col md:flex-row  md:items-start md:justify-between gap-5 md:gap-12 w-full items-center justify-center">
+        <div className="mt-0.5 md:max-w-22 w-full max-w-lg">
           <PostMetadata post={post} capitalizeCategory />
         </div>
         <div className="flex flex-col items-center w-full">

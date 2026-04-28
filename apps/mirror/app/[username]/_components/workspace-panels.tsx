@@ -7,10 +7,8 @@ import {
   type RefCallback,
 } from "react";
 import { ResizablePanel } from "@feel-good/ui/primitives/resizable";
-import { XmarkIcon } from "@feel-good/icons";
-import { IconButton } from "@feel-good/ui/components/icon-button";
 import { EditActions, EditProfileButton } from "@/features/profile";
-import { useOptionalWorkspaceChrome } from "../_providers/workspace-chrome-context";
+import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
 
 export const CONTENT_PANEL_ID = "profile-content-panel";
@@ -79,12 +77,9 @@ type WorkspacePanelProps = {
 
 export function WorkspaceInteractionPanel(props: WorkspacePanelProps) {
   const { children, ...rest } = props;
-  const chrome = useOptionalWorkspaceChrome();
   const { isOwner, isEditing, isSubmitting, setIsEditing, setIsSubmitting } =
     useProfileRouteData();
-  const showCloseButton =
-    chrome?.canCollapseInteractionPanel &&
-    !chrome.isInteractionPanelCollapsed;
+  const { isChatOpen } = useChatSearchParams();
 
   const handleEditCancel = useCallback(() => {
     setIsEditing(false);
@@ -100,32 +95,21 @@ export function WorkspaceInteractionPanel(props: WorkspacePanelProps) {
     >
       <div className="relative h-full">
         {children}
-        <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
-          {isOwner && isEditing
-            ? (
-              <EditActions
-                isEditing={isEditing}
-                isSubmitting={isSubmitting}
-                onCancel={handleEditCancel}
-              />
-            )
-            : isOwner
-            ? <EditProfileButton onClick={() => setIsEditing(true)} />
-            : null}
-          {showCloseButton && (
-            <IconButton
-              onClick={chrome.toggleInteractionPanel}
-              aria-controls={INTERACTION_PANEL_ID}
-              aria-expanded={!chrome.isInteractionPanelCollapsed}
-              aria-label="Close profile panel"
-              tooltip="Close Profile"
-              className="rounded-full"
-              size="icon"
-            >
-              <XmarkIcon className="size-4.5 text-icon" />
-            </IconButton>
-          )}
-        </div>
+        {!isChatOpen && (
+          <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
+            {isOwner && isEditing
+              ? (
+                <EditActions
+                  isEditing={isEditing}
+                  isSubmitting={isSubmitting}
+                  onCancel={handleEditCancel}
+                />
+              )
+              : isOwner
+              ? <EditProfileButton onClick={() => setIsEditing(true)} />
+              : null}
+          </div>
+        )}
       </div>
     </PanelFrame>
   );

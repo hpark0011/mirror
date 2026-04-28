@@ -26,7 +26,7 @@ export function MobileWorkspace({
       toggleContentPanel: openDefaultContent ?? NOOP,
       isInteractionPanelCollapsed: false,
       toggleInteractionPanel: NOOP,
-      showContentPanelToggle: false,
+      showProfilePanelToggle: false,
       canCollapseInteractionPanel: false,
       canCollapseContentPanel: false,
       backHref: profileBackHref ?? undefined,

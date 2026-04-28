@@ -29,25 +29,25 @@ export function ProfileTabs({
 
   return (
     <Tabs value={currentKind}>
-      <TabsList variant="folder">
-        {visibleKinds.map((kind) => (
-          <TabsTrigger
-            asChild
-            key={kind}
-            value={kind}
-            className="group-data-[variant=folder]/tabs-list:before:border-border-subtle h-8"
-          >
-            <Link
-              href={buildChatAwareHref(getProfileTabHref(username, kind))}
-              prefetch={false}
-              scroll={false}
-              {...(kind === "clone-settings"
-                ? { "data-testid": "profile-tab-clone-settings" }
-                : {})}
-            >
-              {PROFILE_TAB_LABELS[kind]}
-            </Link>
-          </TabsTrigger>
+      <TabsList variant="minimal" className="">
+        {visibleKinds.map((kind, index) => (
+          <div key={kind} className="flex items-center">
+            <TabsTrigger asChild value={kind}>
+              <Link
+                href={buildChatAwareHref(getProfileTabHref(username, kind))}
+                prefetch={false}
+                scroll={false}
+                {...(kind === "clone-settings"
+                  ? { "data-testid": "profile-tab-clone-settings" }
+                  : {})}
+              >
+                {PROFILE_TAB_LABELS[kind]}
+              </Link>
+            </TabsTrigger>
+            {index < visibleKinds.length - 1 && (
+              <span className="text-border mx-2.5 font-regular">/</span>
+            )}
+          </div>
         ))}
       </TabsList>
     </Tabs>
