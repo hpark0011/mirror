@@ -41,11 +41,11 @@ export function ContentListSortDropdown({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon-xs"
               aria-label="Sort"
               className={cn(open && "[&_svg]:text-information")}
             >
-              <Icon name="ArrowUpAndDownIcon" className="size-4.5" />
+              <Icon name="ArrowUpAndDownIcon" className="size-4" />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>

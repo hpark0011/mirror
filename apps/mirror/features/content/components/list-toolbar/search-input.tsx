@@ -55,13 +55,13 @@ export function ContentListSearchInput({
           <Button
             ref={buttonRef}
             variant="ghost"
-            size="icon-sm"
+            size="icon-xs"
             onClick={isOpen ? onClose : onOpen}
             aria-label={ariaLabel}
             aria-expanded={isOpen}
             className={cn(isOpen && "[&_svg]:text-information")}
           >
-            <Icon name="MagnifyingGlassIcon" />
+            <Icon name="MagnifyingGlassIcon" className="size-4.5" />
           </Button>
         </TooltipTrigger>
         <TooltipContent>Search</TooltipContent>

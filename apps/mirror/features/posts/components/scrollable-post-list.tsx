@@ -31,7 +31,7 @@ export function ScrollablePostList() {
   }
 
   return (
-    <section className="w-full pt-6">
+    <section className="w-full">
       {context.posts.map((post) => (
         <PostListItem
           key={post.slug}

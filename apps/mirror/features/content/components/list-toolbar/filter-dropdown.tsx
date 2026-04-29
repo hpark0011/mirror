@@ -49,6 +49,7 @@ type ContentListFilterDropdownProps = {
   onSetPublishedStatus: (status: "draft" | "published" | null) => void;
   onClearAll: () => void;
   onClearCategories: () => void;
+  categoryDropdownVisibility?: "always" | "mobile-only";
 };
 
 export function ContentListFilterDropdown({
@@ -62,6 +63,7 @@ export function ContentListFilterDropdown({
   onSetPublishedStatus,
   onClearAll,
   onClearCategories,
+  categoryDropdownVisibility = "always",
 }: ContentListFilterDropdownProps) {
   const [open, setOpen] = useState(false);
 
@@ -72,20 +74,24 @@ export function ContentListFilterDropdown({
           <DropdownMenuTrigger asChild>
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="icon-xs"
               aria-label="Filter"
               className={cn(
                 (open || hasActiveFilters) && "[&_svg]:text-information",
               )}
             >
-              <Icon name="Line3Icon" />
+              <Icon name="Line3Icon" className="size-4.5" />
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>
         <TooltipContent>{open ? undefined : "Filter"}</TooltipContent>
         <DropdownMenuContent align="end">
           <DropdownMenuSub>
-            <DropdownMenuSubTrigger>
+            <DropdownMenuSubTrigger
+              className={cn(
+                categoryDropdownVisibility === "mobile-only" && "md:hidden",
+              )}
+            >
               <Icon name="TagFillIcon" className="size-4.5" />
               {filterState.categories.length > 0
                 ? `Category (${filterState.categories.length})`
@@ -106,8 +112,8 @@ export function ContentListFilterDropdown({
               <Icon name="CalendarFillIcon" className="size-4.5" />
               {filterState.publishedDatePreset
                 ? `Published · ${
-                    DATE_PRESET_LABELS[filterState.publishedDatePreset]
-                  }`
+                  DATE_PRESET_LABELS[filterState.publishedDatePreset]
+                }`
                 : "Published"}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
@@ -124,8 +130,8 @@ export function ContentListFilterDropdown({
                 <Icon name="CalendarFillIcon" className="size-4.5" />
                 {filterState.createdDatePreset
                   ? `Created · ${
-                      DATE_PRESET_LABELS[filterState.createdDatePreset]
-                    }`
+                    DATE_PRESET_LABELS[filterState.createdDatePreset]
+                  }`
                   : "Created"}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
@@ -143,10 +149,10 @@ export function ContentListFilterDropdown({
                 <Icon name="GlobeIcon" className="size-4.5" />
                 {filterState.publishedStatus
                   ? `Status · ${
-                      filterState.publishedStatus === "draft"
-                        ? "Draft"
-                        : "Published"
-                    }`
+                    filterState.publishedStatus === "draft"
+                      ? "Draft"
+                      : "Published"
+                  }`
                   : "Status"}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
