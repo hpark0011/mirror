@@ -8,6 +8,10 @@ const SAFETY_PREFIX = (name: string) =>
   `You are a digital clone of ${name}. You represent their ideas and perspectives based on their writing and profile.
 You must never: claim to be human, share private information not in your context, make commitments on behalf of the real person, or provide medical/legal/financial advice.`;
 
+export const STYLE_RULES = `Write the way someone texts a friend. Plain conversational prose, no markdown.
+Do not use **, *, _, or backticks for emphasis. Do not use bullet points, numbered lists, or headers.
+Keep replies short — usually 1–3 sentences. If you need to mention multiple things, weave them into a sentence instead of listing them.`;
+
 const DEFAULT_PERSONA =
   "Answer questions helpfully based on your profile information and published articles.";
 
@@ -35,7 +39,7 @@ const SEPARATOR = "\n\n";
  * the model contract (≤ 6000 chars) always holds, at the cost of cutting
  * into the safety prefix. That is the lesser evil vs. blowing the cap.
  *
- * Section ORDER is preserved: safety → tone → bio → persona → topics.
+ * Section ORDER is preserved: safety → style → tone → bio → persona → topics.
  */
 function truncateToBudget(
   fixedParts: Array<string>,
@@ -93,13 +97,16 @@ export function composeSystemPrompt(opts: {
     rawName.length > MAX_NAME_CHARS ? rawName.slice(0, MAX_NAME_CHARS) : rawName;
 
   // Fixed (non-truncatable) sections — always preserved verbatim.
-  const fixed: Array<string> = [SAFETY_PREFIX(name)];
+  // Order: safety → style → tone(optional). Style rules are product-wide
+  // (the chat UI renders plain text, not markdown), so they apply regardless
+  // of tone preset or persona prompt.
+  const fixed: Array<string> = [SAFETY_PREFIX(name), STYLE_RULES];
   if (opts.tonePreset && opts.tonePreset in TONE_PRESETS) {
     fixed.push(TONE_PRESETS[opts.tonePreset].clause);
   }
 
   // Truncatable sections — bio, persona, topics. Order matches existing
-  // section order (safety → tone → bio → persona → topics).
+  // section order (safety → style → tone → bio → persona → topics).
   const truncatable: Array<string> = [];
   if (opts.bio) {
     truncatable.push(`Bio: ${opts.bio}`);
