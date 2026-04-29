@@ -52,7 +52,7 @@ export function useProfileWorkspaceRouteData(): ProfileWorkspaceRouteData {
 
   const profileBackHref = useMemo(() => {
     if (!username) return null;
-    return buildChatAwareHref(`/@${username}`);
+    return buildChatAwareHref(`/@${username}/posts`);
   }, [buildChatAwareHref, username]);
 
   const openDefaultContent = useCallback(() => {

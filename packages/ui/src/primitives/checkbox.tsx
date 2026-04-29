@@ -16,7 +16,7 @@ function Checkbox({
       data-slot="checkbox"
       className={cn(
         // Layout
-        "peer shrink-0",
+        "peer shrink-0 flex items-center justify-center",
         // Sizing
         "size-4.5",
         // Shape & border

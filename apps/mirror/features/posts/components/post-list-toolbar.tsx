@@ -11,6 +11,7 @@ import {
 } from "@/features/content";
 import type { PostSummary } from "../types";
 import type { UsePostFilterReturn } from "../hooks/use-post-filter";
+import { PostCategoryFilterRow } from "./post-category-filter-row";
 
 type PostListToolbarProps = {
   isOwner: boolean;
@@ -32,8 +33,13 @@ export function PostListToolbar({
   onUploadClick,
 }: PostListToolbarProps) {
   return (
-    <div className="flex h-9 gap-3 px-4.5 justify-start items-start bg-background relative border-b border-border-subtle">
-      <div className="flex w-full items-center justify-end gap-0">
+    <div className="flex h-9 gap-3 px-3.5 md:justify-start justify-end items-start bg-background relative border-b border-border-subtle">
+      <PostCategoryFilterRow
+        categories={categories}
+        selectedCategories={filter.filterState.categories}
+        onToggleCategory={filter.toggleCategory}
+      />
+      <div className="flex w-fit items-center justify-end gap-0">
         <div className="flex items-center gap-0 bg-background rounded-sm">
           <ContentListSearchInput
             query={search.query}
@@ -55,18 +61,19 @@ export function PostListToolbar({
             onSetPublishedStatus={filter.setPublishedStatus}
             onClearAll={filter.clearAll}
             onClearCategories={filter.clearCategories}
+            categoryDropdownVisibility="mobile-only"
           />
         </div>
 
         {isOwner && (
           <Button
             variant="primary"
-            size="sm"
-            className="ml-2 has-[>svg]:gap-0.5 has-[>svg]:pl-1.5"
+            size="xs"
+            className="ml-2 has-[>svg]:gap-0.5 has-[>svg]:pl-1 has-[>svg]:pr-2"
             onClick={onUploadClick}
             data-testid="new-post-btn"
           >
-            <Icon name="PlusIcon" className="size-4.5 text-icon-light" />
+            <Icon name="PlusIcon" className="size-4 text-icon-light" />
             New
           </Button>
         )}

@@ -3,7 +3,7 @@ import { withSentryConfig } from "@sentry/nextjs";
 
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'", // Next.js requires unsafe-inline/eval for HMR and inline scripts
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com", // Next.js requires unsafe-inline/eval for HMR and inline scripts; va.vercel-scripts.com hosts Vercel Analytics + Speed Insights
   "style-src 'self' 'unsafe-inline'", // Tailwind and runtime style injection
   "img-src 'self' https://images.unsplash.com https://*.convex.cloud https://*.convex.site data: blob:", // data/blob previews plus Convex-hosted user images
   "font-src 'self'", // next/font self-hosts all fonts
