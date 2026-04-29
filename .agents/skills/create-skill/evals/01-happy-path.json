@@ -1,0 +1,22 @@
+{
+  "name": "happy-path-new-convex-table-scaffolder",
+  "skill": "create-skill",
+  "query": "Create a skill for scaffolding new Convex tables in packages/convex. It should add the schema entry, generate a starter CRUD file, and update the _generated exports.",
+  "expected_behavior": [
+    "Asks clarifying questions only if purpose/triggers/workflow are ambiguous — the query already contains all three, so should proceed",
+    "Picks a gerund-form name like 'scaffolding-convex-tables' (not 'convex-table-helper' or 'convex-utils')",
+    "Greps .claude/skills/ for overlap with existing Convex-related skills before writing",
+    "Creates .claude/skills/scaffolding-convex-tables/SKILL.md using the template at skill-template/SKILL.md",
+    "Writes third-person description ≤1024 chars that names concrete trigger phrases ('new convex table', 'add a table', 'scaffold convex')",
+    "Extracts any bundled template (e.g. starter CRUD file) into a subdirectory, does not inline content over ~20 lines",
+    "Re-reads the file with the Read tool after writing to verify frontmatter, name match, and one-level references",
+    "Final report is a single sentence with path + what the skill does, not a dump of the file"
+  ],
+  "failure_modes": [
+    "Writes the skill without clarifying or overlap check",
+    "Picks a noun name ('convex-tables', 'convex-helper')",
+    "Inlines a long starter template directly in SKILL.md",
+    "Skips the re-read verification step",
+    "Final report summarizes every section instead of a one-liner"
+  ]
+}

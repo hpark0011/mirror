@@ -31,10 +31,20 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({
+    const successResponse = NextResponse.json({
       conversation_url: response.conversation_url,
       conversation_id: response.conversation_id,
     });
+    successResponse.cookies.set({
+      name: "tavus_conv_id",
+      value: response.conversation_id,
+      httpOnly: true,
+      secure: true,
+      sameSite: "strict",
+      path: "/api/tavus",
+      maxAge: 720,
+    });
+    return successResponse;
   } catch (error) {
     console.error("[tavus/conversations]", error);
 
