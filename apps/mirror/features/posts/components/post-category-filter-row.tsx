@@ -25,38 +25,30 @@ export function PostCategoryFilterRow({
         "overflow-x-auto whitespace-nowrap min-w-0",
       )}
     >
-      <button
-        type="button"
-        onClick={() => {
-          if (!isAllChecked) onClearCategories();
-        }}
-        aria-pressed={isAllChecked}
-        className="h-9 pb-1.5 flex items-center gap-1 text-[13px] cursor-pointer"
-      >
+      <label className="h-9 pb-1.5 flex items-center gap-1 text-[13px] cursor-pointer select-none">
         <Checkbox
           checked={isAllChecked}
-          className="pointer-events-none size-4"
-          tabIndex={-1}
+          onCheckedChange={() => {
+            if (!isAllChecked) onClearCategories();
+          }}
+          className="size-4"
         />
         All
-      </button>
+      </label>
       {categories.map((category) => {
         const isChecked = selectedCategories.includes(category.name);
         return (
-          <button
+          <label
             key={category.name}
-            type="button"
-            onClick={() => onToggleCategory(category.name)}
-            aria-pressed={isChecked}
-            className="h-9 pb-1.5 flex items-center gap-1 text-[13px] cursor-pointer"
+            className="h-9 pb-1.5 flex items-center gap-1 text-[13px] cursor-pointer select-none"
           >
             <Checkbox
               checked={isChecked}
-              className="pointer-events-none size-4"
-              tabIndex={-1}
+              onCheckedChange={() => onToggleCategory(category.name)}
+              className="size-4"
             />
             {category.name}
-          </button>
+          </label>
         );
       })}
     </div>
