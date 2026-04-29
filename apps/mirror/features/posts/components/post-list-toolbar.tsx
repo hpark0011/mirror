@@ -38,7 +38,6 @@ export function PostListToolbar({
         categories={categories}
         selectedCategories={filter.filterState.categories}
         onToggleCategory={filter.toggleCategory}
-        onClearCategories={filter.clearCategories}
       />
       <div className="flex w-fit items-center justify-end gap-0">
         <div className="flex items-center gap-0 bg-background rounded-sm">
