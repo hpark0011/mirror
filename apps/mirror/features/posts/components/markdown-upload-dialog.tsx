@@ -13,6 +13,8 @@ import {
 import { Button } from "@feel-good/ui/primitives/button";
 import { type ParsedMarkdownFile } from "../hooks/use-markdown-file-parser";
 
+const ACCEPTED_COVER_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+
 type MarkdownUploadDialogProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -23,6 +25,9 @@ type MarkdownUploadDialogProps = {
   isCreating: boolean;
   createError: string | null;
   onConfirm: () => void;
+  coverImagePreview: string | null;
+  coverImageError: string | null;
+  onCoverImageChange: (file: File | null) => void;
 };
 
 export function MarkdownUploadDialog({
@@ -35,6 +40,9 @@ export function MarkdownUploadDialog({
   isCreating,
   createError,
   onConfirm,
+  coverImagePreview,
+  coverImageError,
+  onCoverImageChange,
 }: MarkdownUploadDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,7 +53,11 @@ export function MarkdownUploadDialog({
     }
   }
 
-  const error = parseError || createError;
+  function handleCoverImageChange(e: ChangeEvent<HTMLInputElement>) {
+    onCoverImageChange(e.target.files?.[0] ?? null);
+  }
+
+  const error = parseError || createError || coverImageError;
   const isDisabled = isParsing || isCreating || !parsed;
 
   return (
@@ -59,7 +71,7 @@ export function MarkdownUploadDialog({
         </DialogHeader>
 
         <DialogBody className="space-y-4">
-          {/* File Input */}
+          {/* Markdown File Input */}
           <div>
             <input
               ref={inputRef}
@@ -92,6 +104,29 @@ export function MarkdownUploadDialog({
               </div>
             </div>
           )}
+
+          {/* Cover Image Picker */}
+          <div className="space-y-2">
+            <label className="block text-xs font-medium text-foreground-muted">
+              Cover image (optional)
+            </label>
+            <input
+              type="file"
+              accept={ACCEPTED_COVER_IMAGE_TYPES}
+              onChange={handleCoverImageChange}
+              data-testid="cover-image-input"
+              className="block w-full text-sm text-foreground-muted file:mr-4 file:rounded-md file:border-0 file:bg-secondary file:px-4 file:py-2 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80 file:cursor-pointer"
+            />
+            {coverImagePreview && (
+              // eslint-disable-next-line @next/next/no-img-element -- Local preview from object URL; not a remote asset
+              <img
+                src={coverImagePreview}
+                alt="Cover preview"
+                className="rounded-md border border-border max-h-40 object-cover"
+                data-testid="cover-image-preview"
+              />
+            )}
+          </div>
 
           {/* Error */}
           {error && (

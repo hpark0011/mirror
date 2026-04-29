@@ -1,6 +1,8 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { contentStatusValidator } from "../content/schema";
+import { resolveStorageUrl } from "../content/helpers";
 import { resolvePostCategory } from "./categories";
 
 const postFields = {
@@ -10,6 +12,7 @@ const postFields = {
   slug: v.string(),
   title: v.string(),
   body: v.any(),
+  coverImageUrl: v.union(v.string(), v.null()),
   createdAt: v.number(),
   publishedAt: v.optional(v.number()),
   status: contentStatusValidator,
@@ -20,7 +23,17 @@ export const postSummaryReturnValidator = v.object(postFields);
 
 export const postWithBodyReturnValidator = v.object(postFields);
 
-export function serializePost(post: Doc<"posts">) {
+export async function resolvePostCoverImageUrl(
+  ctx: QueryCtx | MutationCtx,
+  coverImageStorageId: Id<"_storage"> | undefined,
+): Promise<string | null> {
+  return resolveStorageUrl(ctx, coverImageStorageId);
+}
+
+export function serializePost(
+  post: Doc<"posts">,
+  coverImageUrl: string | null,
+) {
   return {
     _id: post._id,
     _creationTime: post._creationTime,
@@ -28,6 +41,7 @@ export function serializePost(post: Doc<"posts">) {
     slug: post.slug,
     title: post.title,
     body: post.body,
+    coverImageUrl,
     createdAt: post.createdAt,
     publishedAt: post.publishedAt,
     status: post.status,

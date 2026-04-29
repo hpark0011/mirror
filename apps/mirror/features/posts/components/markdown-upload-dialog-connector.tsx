@@ -1,10 +1,12 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePostToolbar } from "../context/post-toolbar-context";
 import { useMarkdownFileParser } from "../hooks/use-markdown-file-parser";
 import { useCreatePostFromFile } from "../hooks/use-create-post-from-file";
 import { MarkdownUploadDialog } from "./markdown-upload-dialog";
+
+const MAX_COVER_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
 
 export function MarkdownUploadDialogConnector() {
   const { isUploadDialogOpen, onCloseUploadDialog } = usePostToolbar();
@@ -19,13 +21,53 @@ export function MarkdownUploadDialogConnector() {
     useCreatePostFromFile();
 
   const isSubmittingRef = useRef(false);
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
+  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
+    null,
+  );
+  const [coverImageError, setCoverImageError] = useState<string | null>(null);
+
+  // Revoke any object URL when it changes or on unmount
+  useEffect(() => {
+    if (!coverImagePreview) return;
+    return () => URL.revokeObjectURL(coverImagePreview);
+  }, [coverImagePreview]);
+
+  const resetCoverImage = useCallback(() => {
+    setCoverImageFile(null);
+    setCoverImagePreview(null);
+    setCoverImageError(null);
+  }, []);
+
+  const handleCoverImageChange = useCallback((file: File | null) => {
+    setCoverImageError(null);
+
+    if (!file) {
+      setCoverImageFile(null);
+      setCoverImagePreview(null);
+      return;
+    }
+
+    if (!file.type.startsWith("image/")) {
+      setCoverImageError("Cover image must be an image file");
+      return;
+    }
+    if (file.size > MAX_COVER_IMAGE_BYTES) {
+      setCoverImageError("Cover image must be smaller than 5 MB");
+      return;
+    }
+
+    setCoverImageFile(file);
+    setCoverImagePreview(URL.createObjectURL(file));
+  }, []);
 
   const handleClose = useCallback(() => {
     isSubmittingRef.current = false;
     resetParser();
     resetCreator();
+    resetCoverImage();
     onCloseUploadDialog();
-  }, [resetParser, resetCreator, onCloseUploadDialog]);
+  }, [resetParser, resetCreator, resetCoverImage, onCloseUploadDialog]);
 
   const handleConfirm = useCallback(async () => {
     if (isSubmittingRef.current || !parsedResult) return;
@@ -36,15 +78,24 @@ export function MarkdownUploadDialogConnector() {
         slug: parsedResult.metadata.slug,
         category: parsedResult.metadata.category,
         body: parsedResult.jsonContent,
+        coverImageFile,
       });
       resetParser();
+      resetCoverImage();
       onCloseUploadDialog();
     } catch {
       // Error is already set in createError state
     } finally {
       isSubmittingRef.current = false;
     }
-  }, [parsedResult, createPost, resetParser, onCloseUploadDialog]);
+  }, [
+    parsedResult,
+    createPost,
+    coverImageFile,
+    resetParser,
+    resetCoverImage,
+    onCloseUploadDialog,
+  ]);
 
   return (
     <MarkdownUploadDialog
@@ -57,6 +108,9 @@ export function MarkdownUploadDialogConnector() {
       isCreating={isCreating}
       createError={createError}
       onConfirm={handleConfirm}
+      coverImagePreview={coverImagePreview}
+      coverImageError={coverImageError}
+      onCoverImageChange={handleCoverImageChange}
     />
   );
 }

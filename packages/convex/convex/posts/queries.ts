@@ -7,6 +7,7 @@ import {
 import {
   postSummaryReturnValidator,
   postWithBodyReturnValidator,
+  resolvePostCoverImageUrl,
   serializePost,
 } from "./helpers";
 
@@ -25,7 +26,12 @@ export const getByUsername = query({
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
       .collect();
 
-    return filterVisibleContent(posts, isOwner).map(serializePost);
+    const visible = filterVisibleContent(posts, isOwner);
+    const coverImageUrls = await Promise.all(
+      visible.map((p) => resolvePostCoverImageUrl(ctx, p.coverImageStorageId)),
+    );
+
+    return visible.map((post, i) => serializePost(post, coverImageUrls[i]!));
   },
 });
 
@@ -53,6 +59,11 @@ export const getBySlug = query({
       return null;
     }
 
-    return serializePost(post);
+    const coverImageUrl = await resolvePostCoverImageUrl(
+      ctx,
+      post.coverImageStorageId,
+    );
+
+    return serializePost(post, coverImageUrl);
   },
 });

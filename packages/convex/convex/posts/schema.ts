@@ -4,6 +4,7 @@ import { contentBaseFields } from "../content/schema";
 
 export const postsTable = defineTable({
   ...contentBaseFields,
+  coverImageStorageId: v.optional(v.id("_storage")),
   category: v.string(),
 })
   .index("by_userId", ["userId"])

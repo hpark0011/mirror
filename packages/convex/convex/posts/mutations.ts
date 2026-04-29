@@ -26,6 +26,7 @@ export const create = authMutation({
     category: v.string(),
     body: v.any(),
     status: v.union(v.literal("draft"), v.literal("published")),
+    coverImageStorageId: v.optional(v.id("_storage")),
   },
   returns: v.id("posts"),
   handler: async (ctx, args) => {
@@ -63,6 +64,7 @@ export const create = authMutation({
       category: args.category,
       body: args.body,
       status: args.status,
+      coverImageStorageId: args.coverImageStorageId,
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
@@ -87,6 +89,7 @@ export const update = authMutation({
     category: v.optional(v.string()),
     body: v.optional(v.any()),
     status: v.optional(v.union(v.literal("draft"), v.literal("published"))),
+    coverImageStorageId: v.optional(v.id("_storage")),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -125,11 +128,22 @@ export const update = authMutation({
       }
     }
 
+    // Clean up old cover image if being replaced
+    if (
+      args.coverImageStorageId !== undefined &&
+      args.coverImageStorageId !== post.coverImageStorageId &&
+      post.coverImageStorageId
+    ) {
+      await ctx.storage.delete(post.coverImageStorageId);
+    }
+
     const patch: PostPatch = {};
     if (args.title !== undefined) patch.title = args.title;
     if (args.slug !== undefined) patch.slug = args.slug;
     if (args.category !== undefined) patch.category = args.category;
     if (args.body !== undefined) patch.body = args.body;
+    if (args.coverImageStorageId !== undefined)
+      patch.coverImageStorageId = args.coverImageStorageId;
 
     if (args.status !== undefined) {
       patch.status = args.status;
@@ -181,6 +195,9 @@ export const remove = authMutation({
     );
 
     for (const post of owned) {
+      if (post.coverImageStorageId) {
+        await ctx.storage.delete(post.coverImageStorageId);
+      }
       await ctx.db.delete(post._id);
       await ctx.scheduler.runAfter(
         0,
@@ -190,6 +207,14 @@ export const remove = authMutation({
     }
 
     return null;
+  },
+});
+
+export const generatePostCoverImageUploadUrl = authMutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
   },
 });
 

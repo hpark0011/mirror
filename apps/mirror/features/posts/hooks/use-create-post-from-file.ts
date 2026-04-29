@@ -4,12 +4,14 @@ import { useState, useCallback } from "react";
 import { useMutation } from "convex/react";
 import { type JSONContent } from "@feel-good/features/editor/types";
 import { api } from "@feel-good/convex/convex/_generated/api";
+import { usePostCoverImageUpload } from "./use-post-cover-image-upload";
 
 type CreatePostArgs = {
   title: string;
   slug: string;
   category: string;
   body: JSONContent;
+  coverImageFile?: File | null;
 };
 
 export type UseCreatePostFromFileReturn = {
@@ -21,6 +23,7 @@ export type UseCreatePostFromFileReturn = {
 
 export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
   const mutate = useMutation(api.posts.mutations.create);
+  const { upload: uploadCoverImage } = usePostCoverImageUpload();
   const [isCreating, setIsCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -34,12 +37,17 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
       setIsCreating(true);
       setError(null);
       try {
+        const coverImageStorageId = args.coverImageFile
+          ? await uploadCoverImage(args.coverImageFile)
+          : undefined;
+
         await mutate({
           title: args.title,
           slug: args.slug,
           category: args.category,
           body: args.body,
           status: "draft",
+          coverImageStorageId,
         });
       } catch (e) {
         const message =
@@ -50,7 +58,7 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
         setIsCreating(false);
       }
     },
-    [mutate],
+    [mutate, uploadCoverImage],
   );
 
   return { createPost, isCreating, error, reset };

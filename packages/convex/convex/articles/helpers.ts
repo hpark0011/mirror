@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import type { QueryCtx, MutationCtx } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
 import { contentStatusValidator } from "../content/schema";
+import { resolveStorageUrl } from "../content/helpers";
 
 const articleSummaryFields = {
   _id: v.id("articles"),
@@ -28,12 +29,9 @@ export const conversationArticleReturnValidator = v.object({
   body: v.any(),
 });
 
-export async function resolveCoverImageUrl(
+export async function resolveArticleCoverImageUrl(
   ctx: QueryCtx | MutationCtx,
   coverImageStorageId: Id<"_storage"> | undefined,
 ): Promise<string | null> {
-  if (!coverImageStorageId) {
-    return null;
-  }
-  return await ctx.storage.getUrl(coverImageStorageId);
+  return resolveStorageUrl(ctx, coverImageStorageId);
 }
