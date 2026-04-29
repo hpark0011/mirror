@@ -28,7 +28,7 @@ export function CollapsedProfileAvatarButton() {
           className="absolute bottom-4.5 left-4.5 z-30 rounded-t-full cursor-pointer flex flex-col items-center shadow-avatar-shadow hover:shadow-xs transition-all duration-200 ease-in-out"
         >
           <MirrorAvatar
-            className="shrink-0 size-16"
+            className="shrink-0 size-14 md:size-16"
             avatarUrl={profile.avatarUrl}
             profileName={profile.name}
           />
