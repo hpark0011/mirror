@@ -8,6 +8,7 @@ export type PostSummary = {
   slug: string;
   title: string;
   body: JSONContent;
+  coverImageUrl: string | null;
   createdAt: number;
   publishedAt?: number;
   status: "draft" | "published";

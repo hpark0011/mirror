@@ -26,6 +26,7 @@ export const create = authMutation({
     category: v.string(),
     body: v.any(),
     status: v.union(v.literal("draft"), v.literal("published")),
+    coverImageStorageId: v.optional(v.id("_storage")),
   },
   returns: v.id("posts"),
   handler: async (ctx, args) => {
@@ -63,6 +64,7 @@ export const create = authMutation({
       category: args.category,
       body: args.body,
       status: args.status,
+      coverImageStorageId: args.coverImageStorageId,
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
@@ -87,6 +89,7 @@ export const update = authMutation({
     category: v.optional(v.string()),
     body: v.optional(v.any()),
     status: v.optional(v.union(v.literal("draft"), v.literal("published"))),
+    coverImageStorageId: v.optional(v.id("_storage")),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -130,6 +133,8 @@ export const update = authMutation({
     if (args.slug !== undefined) patch.slug = args.slug;
     if (args.category !== undefined) patch.category = args.category;
     if (args.body !== undefined) patch.body = args.body;
+    if (args.coverImageStorageId !== undefined)
+      patch.coverImageStorageId = args.coverImageStorageId;
 
     if (args.status !== undefined) {
       patch.status = args.status;
@@ -139,6 +144,16 @@ export const update = authMutation({
     }
 
     await ctx.db.patch(args.id, patch);
+
+    // Clean up the previous cover image only after the DB patch succeeds, so a
+    // failed write can't leave the post pointing at deleted storage.
+    if (
+      args.coverImageStorageId !== undefined &&
+      args.coverImageStorageId !== post.coverImageStorageId &&
+      post.coverImageStorageId
+    ) {
+      await ctx.storage.delete(post.coverImageStorageId);
+    }
 
     // Schedule embedding update based on status change
     const newStatus = args.status ?? post.status;
@@ -182,6 +197,11 @@ export const remove = authMutation({
 
     for (const post of owned) {
       await ctx.db.delete(post._id);
+      // Delete storage after the DB row is gone so a failed delete can't
+      // leave a live post pointing at a missing asset.
+      if (post.coverImageStorageId) {
+        await ctx.storage.delete(post.coverImageStorageId);
+      }
       await ctx.scheduler.runAfter(
         0,
         internal.embeddings.mutations.deleteBySource,
@@ -190,6 +210,14 @@ export const remove = authMutation({
     }
 
     return null;
+  },
+});
+
+export const generatePostCoverImageUploadUrl = authMutation({
+  args: {},
+  returns: v.string(),
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
   },
 });
 

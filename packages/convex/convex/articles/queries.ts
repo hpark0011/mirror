@@ -4,7 +4,7 @@ import {
   articleSummaryReturnValidator,
   articleWithBodyReturnValidator,
   conversationArticleReturnValidator,
-  resolveCoverImageUrl,
+  resolveArticleCoverImageUrl,
 } from "./helpers";
 import {
   filterVisibleContent,
@@ -30,7 +30,7 @@ export const getByUsername = query({
     const visible = filterVisibleContent(articles, isOwner);
 
     const coverImageUrls = await Promise.all(
-      visible.map((a) => resolveCoverImageUrl(ctx, a.coverImageStorageId)),
+      visible.map((a) => resolveArticleCoverImageUrl(ctx, a.coverImageStorageId)),
     );
 
     return visible.map((article, i) => ({
@@ -95,7 +95,7 @@ export const getBySlug = query({
       return null;
     }
 
-    const coverImageUrl = await resolveCoverImageUrl(
+    const coverImageUrl = await resolveArticleCoverImageUrl(
       ctx,
       article.coverImageStorageId,
     );

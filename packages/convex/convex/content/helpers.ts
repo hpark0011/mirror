@@ -1,7 +1,17 @@
 import type { Doc, Id } from "../_generated/dataModel";
-import type { QueryCtx } from "../_generated/server";
+import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { authComponent } from "../auth/client";
 export { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "./schema";
+
+export async function resolveStorageUrl(
+  ctx: QueryCtx | MutationCtx,
+  storageId: Id<"_storage"> | undefined,
+): Promise<string | null> {
+  if (!storageId) {
+    return null;
+  }
+  return await ctx.storage.getUrl(storageId);
+}
 
 export function validateContentStringLength(
   value: string,

@@ -12,6 +12,8 @@ import {
 } from "@feel-good/ui/primitives/dialog";
 import { Button } from "@feel-good/ui/primitives/button";
 import { type ParsedMarkdownFile } from "../hooks/use-markdown-file-parser";
+import { CoverImagePicker } from "./cover-image-picker";
+import { ParsedMetadataPreview } from "./parsed-metadata-preview";
 
 type MarkdownUploadDialogProps = {
   isOpen: boolean;
@@ -23,6 +25,9 @@ type MarkdownUploadDialogProps = {
   isCreating: boolean;
   createError: string | null;
   onConfirm: () => void;
+  coverImagePreview: string | null;
+  coverImageError: string | null;
+  onCoverImageChange: (file: File | null) => void;
 };
 
 export function MarkdownUploadDialog({
@@ -35,6 +40,9 @@ export function MarkdownUploadDialog({
   isCreating,
   createError,
   onConfirm,
+  coverImagePreview,
+  coverImageError,
+  onCoverImageChange,
 }: MarkdownUploadDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -59,7 +67,6 @@ export function MarkdownUploadDialog({
         </DialogHeader>
 
         <DialogBody className="space-y-4">
-          {/* File Input */}
           <div>
             <input
               ref={inputRef}
@@ -70,30 +77,18 @@ export function MarkdownUploadDialog({
             />
           </div>
 
-          {/* Parsing State */}
           {isParsing && (
             <p className="text-sm text-foreground-muted">Parsing file...</p>
           )}
 
-          {/* Preview */}
-          {parsed && (
-            <div className="rounded-md border border-border p-3 space-y-2">
-              <div>
-                <span className="text-xs font-medium text-foreground-muted">Title</span>
-                <p className="text-sm" data-testid="preview-title">{parsed.metadata.title}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-foreground-muted">Slug</span>
-                <p className="text-sm text-foreground-muted" data-testid="preview-slug">{parsed.metadata.slug}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-foreground-muted">Category</span>
-                <p className="text-sm" data-testid="preview-category">{parsed.metadata.category}</p>
-              </div>
-            </div>
-          )}
+          {parsed && <ParsedMetadataPreview parsed={parsed} />}
 
-          {/* Error */}
+          <CoverImagePicker
+            preview={coverImagePreview}
+            error={coverImageError}
+            onChange={onCoverImageChange}
+          />
+
           {error && (
             <p className="text-sm text-destructive" role="alert">{error}</p>
           )}

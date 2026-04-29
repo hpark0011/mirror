@@ -199,7 +199,7 @@ export const remove = authMutation({
   },
 });
 
-export const generateCoverImageUploadUrl = authMutation({
+export const generateArticleCoverImageUploadUrl = authMutation({
   args: {},
   returns: v.string(),
   handler: async (ctx) => {
