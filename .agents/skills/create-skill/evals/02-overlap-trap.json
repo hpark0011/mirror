@@ -1,0 +1,18 @@
+{
+  "name": "overlap-trap-duplicate-commit-pr-skill",
+  "skill": "create-skill",
+  "query": "Create a skill that commits my staged changes, pushes to origin, and opens a PR with a good description.",
+  "expected_behavior": [
+    "Runs an overlap check against .claude/skills/ before creating anything",
+    "Identifies commit-commands:commit-push-pr and compound-engineering:git-commit-push-pr as existing skills covering this exact workflow",
+    "Stops and reports the overlap to the user — does NOT write a new SKILL.md",
+    "Proposes either (a) using the existing skill as-is, or (b) editing one of the existing skills if the user has specific gaps in mind",
+    "Asks the user what's missing from the existing skills before proceeding further"
+  ],
+  "failure_modes": [
+    "Writes a new skill without checking for overlap",
+    "Finds the overlap but writes the skill anyway",
+    "Creates a near-duplicate under a slightly different name ('committing-and-pushing', 'pr-creator')",
+    "Does not mention the existing skills by name in its response"
+  ]
+}
