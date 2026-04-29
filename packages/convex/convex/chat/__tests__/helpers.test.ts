@@ -7,6 +7,8 @@ const SAFETY_PREFIX_START = "You are a digital clone of ";
 const DEFAULT_PERSONA =
   "Answer questions helpfully based on your profile information and published articles.";
 
+const STYLE_RULES_MARKER = "no markdown";
+
 // UT-02: composes in exact order with \n\n joins when all fields provided
 describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
   it("UT-02: composes all segments in correct order joined by \\n\\n", () => {
@@ -23,19 +25,22 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // Segment 0: SAFETY_PREFIX
     expect(segments[0]).toContain("digital clone of Alice");
 
-    // Segment 1: tone clause (friendly)
-    expect(segments[1]).toBe(TONE_PRESETS.friendly.clause);
+    // Segment 1: STYLE_RULES (always present, alongside safety prefix)
+    expect(segments[1]).toContain(STYLE_RULES_MARKER);
 
-    // Segment 2: bio
-    expect(segments[2]).toBe("Bio: A writer");
+    // Segment 2: tone clause (friendly)
+    expect(segments[2]).toBe(TONE_PRESETS.friendly.clause);
 
-    // Segment 3: persona
-    expect(segments[3]).toBe("My custom persona");
+    // Segment 3: bio
+    expect(segments[3]).toBe("Bio: A writer");
 
-    // Segment 4: topics
-    expect(segments[4]).toBe("Avoid discussing: politics");
+    // Segment 4: persona
+    expect(segments[4]).toBe("My custom persona");
 
-    expect(segments).toHaveLength(5);
+    // Segment 5: topics
+    expect(segments[5]).toBe("Avoid discussing: politics");
+
+    expect(segments).toHaveLength(6);
   });
 
   // UT-03: omits tone clause when tonePreset is null
@@ -54,8 +59,22 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     }
 
     const segments = result.split("\n\n");
-    // SAFETY_PREFIX, bio, persona — no tone, no topics
-    expect(segments).toHaveLength(3);
+    // SAFETY_PREFIX, STYLE_RULES, bio, persona — no tone, no topics
+    expect(segments).toHaveLength(4);
+    expect(segments[1]).toContain(STYLE_RULES_MARKER);
+  });
+
+  it("always includes STYLE_RULES even when persona is custom and no tone is set", () => {
+    // STYLE_RULES is product-wide: the chat UI renders plain text, so this
+    // clause must survive every combination of persona/tone/topics.
+    const result = composeSystemPrompt({
+      name: "Eve",
+      personaPrompt: "Custom persona that does not mention formatting",
+      tonePreset: null,
+      topicsToAvoid: null,
+    });
+
+    expect(result).toContain(STYLE_RULES_MARKER);
   });
 
   // UT-04: omits topics line when topicsToAvoid is null
@@ -153,12 +172,15 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // the tone clause is load-bearing safety content and must survive
       // proportional truncation verbatim.
       expect(result).toContain(TONE_PRESETS.friendly.clause);
+      // STYLE_RULES is in the same fixed (non-truncatable) array as the tone
+      // clause, so it must also survive proportional truncation verbatim.
+      expect(result).toContain(STYLE_RULES_MARKER);
       // Safety prefix also preserved verbatim at the start.
       expect(result.startsWith(SAFETY_PREFIX_START)).toBe(true);
       expect(result).toContain("digital clone of Alice");
     });
 
-    it("preserves section order (safety → tone → bio → persona → topics) when under budget", () => {
+    it("preserves section order (safety → style → tone → bio → persona → topics) when under budget", () => {
       const result = composeSystemPrompt({
         name: "Alice",
         bio: "Writer from Oakland",
@@ -168,13 +190,15 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       });
 
       const safetyIdx = result.indexOf("digital clone of Alice");
+      const styleIdx = result.indexOf(STYLE_RULES_MARKER);
       const toneIdx = result.indexOf(TONE_PRESETS.friendly.clause);
       const bioIdx = result.indexOf("Bio: Writer from Oakland");
       const personaIdx = result.indexOf("Persona body");
       const topicsIdx = result.indexOf("Avoid discussing: politics");
 
       expect(safetyIdx).toBeGreaterThanOrEqual(0);
-      expect(toneIdx).toBeGreaterThan(safetyIdx);
+      expect(styleIdx).toBeGreaterThan(safetyIdx);
+      expect(toneIdx).toBeGreaterThan(styleIdx);
       expect(bioIdx).toBeGreaterThan(toneIdx);
       expect(personaIdx).toBeGreaterThan(bioIdx);
       expect(topicsIdx).toBeGreaterThan(personaIdx);
