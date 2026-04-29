@@ -45,7 +45,7 @@ export function ProfileTabs({
               </Link>
             </TabsTrigger>
             {index < visibleKinds.length - 1 && (
-              <span className="text-border mx-2.5 font-regular">/</span>
+              <span className="text-border-subtle mx-2.5 font-normal">/</span>
             )}
           </div>
         ))}

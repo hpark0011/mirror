@@ -33,11 +33,11 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-10 md:h-14 items-center justify-between gap-2 md:gap-12 px-5 md:pl-4 pl-0 relative",
+        "z-10 flex h-10 items-center justify-between gap-2 md:gap-4 px-5 md:pl-3 pl-0 relative",
         className,
       )}
     >
-      <div className="max-w-none w-fit md:max-w-22 md:w-full h-full">
+      <div className="max-w-none w-fit h-full">
         {showProfilePanelToggle && chrome
           ? (
             <div className="h-full flex items-center">
@@ -63,7 +63,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
           )
           : null}
       </div>
-      <div className="flex items-center justify-start md:justify-center gap-2 w-full  ">
+      <div className="flex items-center justify-start md:justify-center gap-2 w-full">
         {backHref
           ? (
             <div className="h-full flex items-center">
@@ -80,7 +80,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
             </div>
           )
           : null}
-        <div className="max-w-lg w-full">
+        <div className="w-full">
           <ProfileTabs
             username={profile.username}
             currentKind={currentKind}
