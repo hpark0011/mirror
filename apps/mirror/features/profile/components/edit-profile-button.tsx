@@ -18,7 +18,7 @@ export function EditProfileButton({ onClick }: EditProfileButtonProps) {
       <TooltipTrigger asChild>
         <Button
           variant="outline"
-          size="icon"
+          size="icon-sm"
           aria-label="Edit Profile"
           onClick={onClick}
           className="rounded-full [corner-shape:superellipse(1.0)] hover:[&_svg]:text-secondary-foreground [&_svg]:text-secondary-foreground [&_svg]:size-5.5"

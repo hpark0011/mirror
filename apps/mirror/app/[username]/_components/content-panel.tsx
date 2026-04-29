@@ -17,7 +17,6 @@ const SCROLL_FOOTER_PAD_PX = 64;
 // Height of the top fade-mask gradient that softens content scrolling under
 // the WorkspaceNavbar + ToolbarSlotTarget. Pairs with the navbar/toolbar
 // stack — adjust if either grows or the fade should reach further.
-const FADE_MASK_HEIGHT_PX = 40;
 
 type ContentPanelProps = {
   routeState: ContentRouteState | null;
@@ -61,10 +60,6 @@ export function ContentPanel({
         <WorkspaceNavbar />
         <ToolbarSlotTarget />
         <div className="flex-1 min-h-0 *:h-full relative">
-          <div
-            className="w-full absolute top-0 bg-linear-to-b to-transparent z-10 from-background"
-            style={{ maxHeight: FADE_MASK_HEIGHT_PX }}
-          />
           <div
             ref={setScrollRoot}
             className="overflow-y-auto h-full pt-0"

@@ -1,8 +1,10 @@
 "use client";
 
 import { type CSSProperties, type ReactNode, useMemo } from "react";
+import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileWorkspaceRouteData } from "../_hooks/use-profile-workspace-route-data";
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
+import { CollapsedProfileAvatarButton } from "./collapsed-profile-avatar-button";
 
 type MobileWorkspaceProps = {
   hasContentRoute: boolean;
@@ -19,19 +21,20 @@ export function MobileWorkspace({
 }: MobileWorkspaceProps) {
   const { isChatOpen, profileBackHref, openDefaultContent } =
     useProfileWorkspaceRouteData();
+  const { openChat } = useChatSearchParams();
 
   const workspaceChromeValue = useMemo(
     () => ({
       isContentPanelCollapsed: !hasContentRoute,
       toggleContentPanel: openDefaultContent ?? NOOP,
-      isInteractionPanelCollapsed: false,
-      toggleInteractionPanel: NOOP,
+      isInteractionPanelCollapsed: hasContentRoute && !isChatOpen,
+      toggleInteractionPanel: openChat,
       showProfilePanelToggle: false,
       canCollapseInteractionPanel: false,
       canCollapseContentPanel: false,
       backHref: profileBackHref ?? undefined,
     }),
-    [hasContentRoute, openDefaultContent, profileBackHref],
+    [hasContentRoute, isChatOpen, openChat, openDefaultContent, profileBackHref],
   );
 
   return (
@@ -43,7 +46,7 @@ export function MobileWorkspace({
         pad is 0. Bump these if either chrome surface gains height.
       */}
       <main
-        className="h-screen"
+        className="relative h-screen"
         style={
           {
             "--workspace-content-top-pad": "96px",
@@ -52,6 +55,7 @@ export function MobileWorkspace({
         }
       >
         {isChatOpen || !hasContentRoute ? interaction : children}
+        <CollapsedProfileAvatarButton />
       </main>
     </WorkspaceChromeProvider>
   );

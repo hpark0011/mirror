@@ -32,7 +32,7 @@ export function PostListToolbar({
   onUploadClick,
 }: PostListToolbarProps) {
   return (
-    <div className="flex pb-2 gap-3 px-4.5 justify-end bg-background relative border-b border-border-subtle">
+    <div className="flex h-9 gap-3 px-4.5 justify-start items-start bg-background relative border-b border-border-subtle">
       <div className="flex w-full items-center justify-end gap-0">
         <div className="flex items-center gap-0 bg-background rounded-sm">
           <ContentListSearchInput

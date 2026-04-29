@@ -98,7 +98,7 @@ function TabsTrigger({
         // typography
         "text-sm font-medium whitespace-nowrap",
         // color
-        "text-foreground/60",
+        "text-muted-foreground/80",
         // transition
         "transition-all",
         // hover
@@ -172,7 +172,9 @@ function TabsTrigger({
         "group-data-[variant=folder]/tabs-list:pt-0",
         // minimal: padding
         "group-data-[variant=minimal]/tabs-list:px-0",
-        "group-data-[variant=minimal]/tabs-list:font-regular",
+        "group-data-[variant=minimal]/tabs-list:font-normal",
+        "dark:group-data-[variant=folder]/tabs-list:data-[state=active]:border-transparent",
+        "dark:group-data-[variant=folder]/tabs-list:data-[state=active]:bg-transparent",
         // svg defaults
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",
         "[&_svg:not([class*='size-'])]:size-4",
