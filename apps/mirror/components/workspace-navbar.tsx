@@ -33,7 +33,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-10 items-center justify-between gap-2 md:gap-4 px-5 md:pl-3 pl-0 relative",
+        "z-10 flex h-10 items-center justify-between gap-2 md:gap-4 px-5 md:pl-3.5 pl-0 relative",
         className,
       )}
     >
@@ -80,7 +80,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
             </div>
           )
           : null}
-        <div className="w-full">
+        <div className="w-full pt-px">
           <ProfileTabs
             username={profile.username}
             currentKind={currentKind}

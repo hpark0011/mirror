@@ -98,7 +98,7 @@ function TabsTrigger({
         // typography
         "text-sm font-medium whitespace-nowrap",
         // color
-        "text-foreground/60",
+        "text-muted-foreground/80",
         // transition
         "transition-all",
         // hover
