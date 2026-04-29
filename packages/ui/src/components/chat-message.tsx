@@ -1,14 +1,9 @@
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@feel-good/ui/primitives/avatar";
 import { cn } from "@feel-good/utils/cn";
 import { SVGProps } from "react";
 
-const chatMessageVariants = cva("flex gap-1.5 max-w-[85%]", {
+const chatMessageVariants = cva("flex gap-1 max-w-[85%] relative", {
   variants: {
     variant: {
       sent: "ml-auto flex-row-reverse w-[80%] max-w-md",
@@ -32,27 +27,6 @@ function ChatMessage({
       className={cn(chatMessageVariants({ variant }), className)}
       {...props}
     />
-  );
-}
-
-function ChatMessageAvatar({
-  className,
-  src,
-  alt,
-  fallback,
-}: React.ComponentProps<typeof Avatar> & {
-  src?: string | null;
-  alt?: string;
-  fallback: string;
-}) {
-  return (
-    <Avatar
-      data-slot="chat-message-avatar"
-      className={cn("size-7 shrink-0 mt-1", className)}
-    >
-      {src && <AvatarImage src={src} alt={alt ?? ""} />}
-      <AvatarFallback className="text-[10px]">{fallback}</AvatarFallback>
-    </Avatar>
   );
 }
 
@@ -196,7 +170,6 @@ function ChatMessageError({
 
 export {
   ChatMessage,
-  ChatMessageAvatar,
   ChatMessageBubble,
   chatMessageBubbleVariants,
   ChatMessageContent,
