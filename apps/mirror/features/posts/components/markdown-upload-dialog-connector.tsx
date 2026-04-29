@@ -7,6 +7,11 @@ import { useCreatePostFromFile } from "../hooks/use-create-post-from-file";
 import { MarkdownUploadDialog } from "./markdown-upload-dialog";
 
 const MAX_COVER_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
+const ALLOWED_COVER_IMAGE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
 
 export function MarkdownUploadDialogConnector() {
   const { isUploadDialogOpen, onCloseUploadDialog } = usePostToolbar();
@@ -48,11 +53,15 @@ export function MarkdownUploadDialogConnector() {
       return;
     }
 
-    if (!file.type.startsWith("image/")) {
-      setCoverImageError("Cover image must be an image file");
+    if (!ALLOWED_COVER_IMAGE_TYPES.has(file.type)) {
+      setCoverImageFile(null);
+      setCoverImagePreview(null);
+      setCoverImageError("Cover image must be PNG, JPEG, or WEBP");
       return;
     }
     if (file.size > MAX_COVER_IMAGE_BYTES) {
+      setCoverImageFile(null);
+      setCoverImagePreview(null);
       setCoverImageError("Cover image must be smaller than 5 MB");
       return;
     }

@@ -128,15 +128,6 @@ export const update = authMutation({
       }
     }
 
-    // Clean up old cover image if being replaced
-    if (
-      args.coverImageStorageId !== undefined &&
-      args.coverImageStorageId !== post.coverImageStorageId &&
-      post.coverImageStorageId
-    ) {
-      await ctx.storage.delete(post.coverImageStorageId);
-    }
-
     const patch: PostPatch = {};
     if (args.title !== undefined) patch.title = args.title;
     if (args.slug !== undefined) patch.slug = args.slug;
@@ -153,6 +144,16 @@ export const update = authMutation({
     }
 
     await ctx.db.patch(args.id, patch);
+
+    // Clean up the previous cover image only after the DB patch succeeds, so a
+    // failed write can't leave the post pointing at deleted storage.
+    if (
+      args.coverImageStorageId !== undefined &&
+      args.coverImageStorageId !== post.coverImageStorageId &&
+      post.coverImageStorageId
+    ) {
+      await ctx.storage.delete(post.coverImageStorageId);
+    }
 
     // Schedule embedding update based on status change
     const newStatus = args.status ?? post.status;
@@ -195,10 +196,12 @@ export const remove = authMutation({
     );
 
     for (const post of owned) {
+      await ctx.db.delete(post._id);
+      // Delete storage after the DB row is gone so a failed delete can't
+      // leave a live post pointing at a missing asset.
       if (post.coverImageStorageId) {
         await ctx.storage.delete(post.coverImageStorageId);
       }
-      await ctx.db.delete(post._id);
       await ctx.scheduler.runAfter(
         0,
         internal.embeddings.mutations.deleteBySource,

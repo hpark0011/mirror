@@ -12,8 +12,8 @@ import {
 } from "@feel-good/ui/primitives/dialog";
 import { Button } from "@feel-good/ui/primitives/button";
 import { type ParsedMarkdownFile } from "../hooks/use-markdown-file-parser";
-
-const ACCEPTED_COVER_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+import { CoverImagePicker } from "./cover-image-picker";
+import { ParsedMetadataPreview } from "./parsed-metadata-preview";
 
 type MarkdownUploadDialogProps = {
   isOpen: boolean;
@@ -53,11 +53,7 @@ export function MarkdownUploadDialog({
     }
   }
 
-  function handleCoverImageChange(e: ChangeEvent<HTMLInputElement>) {
-    onCoverImageChange(e.target.files?.[0] ?? null);
-  }
-
-  const error = parseError || createError || coverImageError;
+  const error = parseError || createError;
   const isDisabled = isParsing || isCreating || !parsed;
 
   return (
@@ -71,7 +67,6 @@ export function MarkdownUploadDialog({
         </DialogHeader>
 
         <DialogBody className="space-y-4">
-          {/* Markdown File Input */}
           <div>
             <input
               ref={inputRef}
@@ -82,53 +77,18 @@ export function MarkdownUploadDialog({
             />
           </div>
 
-          {/* Parsing State */}
           {isParsing && (
             <p className="text-sm text-foreground-muted">Parsing file...</p>
           )}
 
-          {/* Preview */}
-          {parsed && (
-            <div className="rounded-md border border-border p-3 space-y-2">
-              <div>
-                <span className="text-xs font-medium text-foreground-muted">Title</span>
-                <p className="text-sm" data-testid="preview-title">{parsed.metadata.title}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-foreground-muted">Slug</span>
-                <p className="text-sm text-foreground-muted" data-testid="preview-slug">{parsed.metadata.slug}</p>
-              </div>
-              <div>
-                <span className="text-xs font-medium text-foreground-muted">Category</span>
-                <p className="text-sm" data-testid="preview-category">{parsed.metadata.category}</p>
-              </div>
-            </div>
-          )}
+          {parsed && <ParsedMetadataPreview parsed={parsed} />}
 
-          {/* Cover Image Picker */}
-          <div className="space-y-2">
-            <label className="block text-xs font-medium text-foreground-muted">
-              Cover image (optional)
-            </label>
-            <input
-              type="file"
-              accept={ACCEPTED_COVER_IMAGE_TYPES}
-              onChange={handleCoverImageChange}
-              data-testid="cover-image-input"
-              className="block w-full text-sm text-foreground-muted file:mr-4 file:rounded-md file:border-0 file:bg-secondary file:px-4 file:py-2 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80 file:cursor-pointer"
-            />
-            {coverImagePreview && (
-              // eslint-disable-next-line @next/next/no-img-element -- Local preview from object URL; not a remote asset
-              <img
-                src={coverImagePreview}
-                alt="Cover preview"
-                className="rounded-md border border-border max-h-40 object-cover"
-                data-testid="cover-image-preview"
-              />
-            )}
-          </div>
+          <CoverImagePicker
+            preview={coverImagePreview}
+            error={coverImageError}
+            onChange={onCoverImageChange}
+          />
 
-          {/* Error */}
           {error && (
             <p className="text-sm text-destructive" role="alert">{error}</p>
           )}
