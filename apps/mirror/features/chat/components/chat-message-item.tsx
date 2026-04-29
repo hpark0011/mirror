@@ -5,13 +5,12 @@ import type { UIMessage } from "@convex-dev/agent/react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import {
   ChatMessage,
-  ChatMessageAvatar,
   ChatMessageBubble,
   ChatMessageContent,
   ChatMessageError,
   ChatMessageLoading,
 } from "@feel-good/ui/components/chat-message";
-import { getProfileInitials } from "@/features/profile/lib/get-profile-initials";
+import { MirrorAvatar } from "@/components/mirror-avatar";
 import { BookFlip } from "@/components/animated-geometries/book-flip";
 
 export const ChatMessageItem = memo(function ChatMessageItem({
@@ -36,20 +35,22 @@ export const ChatMessageItem = memo(function ChatMessageItem({
   });
   const displayText = isStreaming ? smoothText : message.text;
   const showsEmptyAssistant = !isUser && !displayText;
-  const showsPendingAssistant =
-    showsEmptyAssistant
-    && (message.status === "streaming" || message.status === "pending");
+  const showsPendingAssistant = showsEmptyAssistant &&
+    (message.status === "streaming" || message.status === "pending");
 
   const variant = isUser ? "sent" : "received";
 
   return (
     <ChatMessage variant={variant}>
       {!isUser && (
-        <ChatMessageAvatar
-          src={avatarUrl}
-          alt={profileName}
-          fallback={getProfileInitials(profileName)}
-        />
+        <div className="flex flex-col justify-end relative">
+          <MirrorAvatar
+            shape="circle"
+            className="size-8 shrink-0 rounded-full relative bottom-[-8px]"
+            avatarUrl={avatarUrl}
+            profileName={profileName}
+          />
+        </div>
       )}
       <ChatMessageContent>
         <ChatMessageBubble

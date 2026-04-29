@@ -1,7 +1,7 @@
 "use client";
 
 import type { UIMessage } from "@convex-dev/agent/react";
-import { ArrowDownCircleFillIcon } from "@feel-good/icons";
+import { ArrowDownIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { cn } from "@feel-good/utils/cn";
 import * as React from "react";
@@ -254,15 +254,14 @@ function ChatMessageList({
         <div className="pointer-events-none absolute inset-x-0 bottom-32 flex justify-center px-4 mb-2">
           <Button
             type="button"
-            variant="secondary"
-            size="sm"
+            variant="primary"
+            size="icon"
             data-slot="chat-message-scroll-to-bottom"
             aria-label="Scroll to latest message"
-            className="pointer-events-auto rounded-lg shadow-xl has-[>svg]:pl-2 has-[>svg]:pr-1 has-[>svg]:gap-0.5 text-[13px]"
+            className="pointer-events-auto shadow-xl rounded-full"
             onClick={() => scrollToBottom("smooth")}
           >
-            Latest
-            <ArrowDownCircleFillIcon className="size-5" />
+            <ArrowDownIcon className="size-6 text-primary-foreground" />
           </Button>
         </div>
       )}
