@@ -20,6 +20,8 @@ export function PostCategoryFilterRow({
         "hidden md:flex items-center gap-3 w-full",
         "overflow-x-auto whitespace-nowrap min-w-0",
       )}
+      role="group"
+      aria-label="Filter by category"
     >
       {categories.map((category) => {
         const isChecked = selectedCategories.includes(category.name);

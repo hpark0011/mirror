@@ -112,8 +112,8 @@ export function ContentListFilterDropdown({
               <Icon name="CalendarFillIcon" className="size-4.5" />
               {filterState.publishedDatePreset
                 ? `Published · ${
-                  DATE_PRESET_LABELS[filterState.publishedDatePreset]
-                }`
+                    DATE_PRESET_LABELS[filterState.publishedDatePreset]
+                  }`
                 : "Published"}
             </DropdownMenuSubTrigger>
             <DropdownMenuSubContent>
@@ -130,8 +130,8 @@ export function ContentListFilterDropdown({
                 <Icon name="CalendarFillIcon" className="size-4.5" />
                 {filterState.createdDatePreset
                   ? `Created · ${
-                    DATE_PRESET_LABELS[filterState.createdDatePreset]
-                  }`
+                      DATE_PRESET_LABELS[filterState.createdDatePreset]
+                    }`
                   : "Created"}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>
@@ -149,10 +149,10 @@ export function ContentListFilterDropdown({
                 <Icon name="GlobeIcon" className="size-4.5" />
                 {filterState.publishedStatus
                   ? `Status · ${
-                    filterState.publishedStatus === "draft"
-                      ? "Draft"
-                      : "Published"
-                  }`
+                      filterState.publishedStatus === "draft"
+                        ? "Draft"
+                        : "Published"
+                    }`
                   : "Status"}
               </DropdownMenuSubTrigger>
               <DropdownMenuSubContent>

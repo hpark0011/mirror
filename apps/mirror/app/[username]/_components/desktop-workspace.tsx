@@ -72,7 +72,7 @@ export function DesktopWorkspace({
         className="relative h-screen"
         style={
           {
-            "--workspace-content-top-pad": "132px",
+            "--workspace-content-top-pad": "130px",
             "--workspace-content-bottom-pad": "132px",
           } as CSSProperties
         }

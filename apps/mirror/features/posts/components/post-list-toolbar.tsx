@@ -33,7 +33,7 @@ export function PostListToolbar({
   onUploadClick,
 }: PostListToolbarProps) {
   return (
-    <div className="flex h-9 gap-3 pl-[14px] px-3.5 md:justify-start justify-end items-start bg-background relative border-b border-border-subtle">
+    <div className="flex h-9 gap-3 px-3.5 md:justify-start justify-end items-start bg-background relative border-b border-border-subtle">
       <PostCategoryFilterRow
         categories={categories}
         selectedCategories={filter.filterState.categories}
