@@ -103,15 +103,19 @@ function ChatMessageBubble({
 }:
   & React.ComponentProps<"div">
   & VariantProps<typeof chatMessageBubbleVariants>) {
+  const resolvedVariant = variant ?? "received";
   return (
     <div
       data-slot="chat-message-bubble"
-      className={cn(chatMessageBubbleVariants({ variant }), className)}
+      className={cn(
+        chatMessageBubbleVariants({ variant: resolvedVariant }),
+        className,
+      )}
       {...props}
     >
       {children}
-      {variant === "sent" && <BubbleTail />}
-      {variant === "received" && (
+      {resolvedVariant === "sent" && <BubbleTail />}
+      {resolvedVariant === "received" && (
         <BubbleTail
           side="left"
           pathFill="var(--secondary)"
