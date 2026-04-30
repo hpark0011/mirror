@@ -1,9 +1,10 @@
 import { v } from "convex/values";
 import { internalMutation } from "../_generated/server";
+import { embeddingSourceTableValidator } from "./schema";
 
 export const deleteBySource = internalMutation({
   args: {
-    sourceTable: v.union(v.literal("articles"), v.literal("posts")),
+    sourceTable: embeddingSourceTableValidator,
     sourceId: v.string(),
   },
   returns: v.null(),
@@ -27,13 +28,14 @@ export const insertChunks = internalMutation({
   args: {
     chunks: v.array(
       v.object({
-        sourceTable: v.union(v.literal("articles"), v.literal("posts")),
+        sourceTable: embeddingSourceTableValidator,
         sourceId: v.string(),
         userId: v.id("users"),
         chunkIndex: v.number(),
         chunkText: v.string(),
         title: v.string(),
-        slug: v.string(),
+        // Optional: bio chunks have no canonical URL.
+        slug: v.optional(v.string()),
         embedding: v.array(v.float64()),
         embeddingModel: v.string(),
         embeddedAt: v.number(),
