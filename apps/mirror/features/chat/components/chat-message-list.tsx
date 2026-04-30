@@ -54,7 +54,7 @@ function ChatMessageEmptyState({
     >
       <WireframeSphere />
       <div className="flex flex-col">
-        <div className="text-center leading-[1.2] text-xl pb-20">
+        <div className="text-center leading-[1.2] pb-20 text-lg">
           <p>
             Hi! I&apos;m {profileName}&apos;s digital clone.
           </p>
