@@ -1,12 +1,13 @@
 import { test, expect } from "./fixtures/auth";
+import { requireEnv } from "./lib/env";
 import path from "path";
 import fs from "fs";
 
 const username = "test-user"; // matches ensureTestUser's username
 const testEmail = "playwright-test@mirror.test";
 
-const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL!;
-const testSecret = process.env.PLAYWRIGHT_TEST_SECRET!;
+const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
+const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
 
 async function ensureTestPostFixtures(): Promise<{
   draftSlug: string;
