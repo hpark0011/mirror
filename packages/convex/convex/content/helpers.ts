@@ -2,6 +2,12 @@ import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx, QueryCtx } from "../_generated/server";
 import { authComponent } from "../auth/client";
 export { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "./schema";
+export {
+  generateSlug,
+  isValidSlug,
+  assertValidSlug,
+  SLUG_PATTERN,
+} from "./slug";
 
 export async function resolveStorageUrl(
   ctx: QueryCtx | MutationCtx,
@@ -23,19 +29,6 @@ export function validateContentStringLength(
       `${field} exceeds maximum length of ${maxLength} (got ${value.length})`,
     );
   }
-}
-
-export function generateSlug(title: string): string {
-  const slug = title
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-
-  if (!slug) {
-    throw new Error("Cannot generate slug from the given title");
-  }
-
-  return slug;
 }
 
 export async function getUserAndContentAccess(

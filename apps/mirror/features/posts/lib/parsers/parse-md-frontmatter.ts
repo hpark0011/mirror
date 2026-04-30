@@ -3,6 +3,7 @@ import {
   MAX_TITLE_LENGTH,
   MAX_SLUG_LENGTH,
 } from "@feel-good/convex/convex/content/schema";
+import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import {
   DEFAULT_POST_CATEGORY,
   MAX_POST_CATEGORY_LENGTH,
@@ -77,30 +78,32 @@ export function parseMdFrontmatter(
       ? data.title.trim()
       : nameWithoutExt;
 
-  const slug =
+  // Always pass through the canonical normalizer, regardless of source.
+  // Frontmatter slugs were previously trusted verbatim, which let punctuation
+  // (e.g., `?`) leak into stored slugs. See `.claude/rules/identifiers.md`.
+  const slugSource =
     typeof data.slug === "string" && data.slug.trim()
       ? data.slug.trim()
-      : nameWithoutExt
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/[^a-z0-9-]/g, "");
+      : nameWithoutExt;
 
-  const category =
-    typeof data.category === "string" && data.category.trim()
-      ? data.category.trim()
-      : DEFAULT_POST_CATEGORY;
-
-  // Validate non-empty slug
-  if (!slug) {
+  let slug: string;
+  try {
+    slug = generateSlug(slugSource);
+  } catch {
     return {
       success: false,
       error: {
         field: "slug",
         message:
-          "Could not derive a valid slug from the filename. Please add a slug field to the frontmatter.",
+          "Could not derive a valid slug from the filename or frontmatter. Please add a slug field with at least one alphanumeric character.",
       },
     };
   }
+
+  const category =
+    typeof data.category === "string" && data.category.trim()
+      ? data.category.trim()
+      : DEFAULT_POST_CATEGORY;
 
   // Validate lengths
   if (title.length > MAX_TITLE_LENGTH) {

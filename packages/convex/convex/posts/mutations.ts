@@ -5,6 +5,7 @@ import { internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
 import {
+  assertValidSlug,
   generateSlug,
   isOwnedByUser,
   validateContentStringLength,
@@ -39,12 +40,12 @@ export const create = authMutation({
       MAX_POST_CATEGORY_LENGTH,
     );
 
-    const slug = args.slug || generateSlug(args.title);
+    // Always normalize: `generateSlug` is idempotent, so already-clean slugs
+    // pass through unchanged while malformed input gets sanitized. Never trust
+    // the client to have done this. See `.claude/rules/identifiers.md`.
+    const slug = generateSlug(args.slug ?? args.title);
     validateContentStringLength(slug, "Slug", MAX_SLUG_LENGTH);
-
-    if (!slug) {
-      throw new Error("Slug cannot be empty");
-    }
+    assertValidSlug(slug);
 
     const existing = await ctx.db
       .query("posts")
@@ -105,9 +106,6 @@ export const update = authMutation({
     if (args.title !== undefined) {
       validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
     }
-    if (args.slug !== undefined) {
-      validateContentStringLength(args.slug, "Slug", MAX_SLUG_LENGTH);
-    }
     if (args.category !== undefined) {
       validateContentStringLength(
         args.category,
@@ -116,21 +114,29 @@ export const update = authMutation({
       );
     }
 
-    if (args.slug && args.slug !== post.slug) {
+    // Normalize incoming slug at the boundary. See `.claude/rules/identifiers.md`.
+    let normalizedSlug: string | undefined;
+    if (args.slug !== undefined) {
+      normalizedSlug = generateSlug(args.slug);
+      validateContentStringLength(normalizedSlug, "Slug", MAX_SLUG_LENGTH);
+      assertValidSlug(normalizedSlug);
+    }
+
+    if (normalizedSlug && normalizedSlug !== post.slug) {
       const existing = await ctx.db
         .query("posts")
         .withIndex("by_userId_and_slug", (q) =>
-          q.eq("userId", appUser._id).eq("slug", args.slug!),
+          q.eq("userId", appUser._id).eq("slug", normalizedSlug),
         )
         .unique();
       if (existing) {
-        throw new Error(`A post with slug "${args.slug}" already exists`);
+        throw new Error(`A post with slug "${normalizedSlug}" already exists`);
       }
     }
 
     const patch: PostPatch = {};
     if (args.title !== undefined) patch.title = args.title;
-    if (args.slug !== undefined) patch.slug = args.slug;
+    if (normalizedSlug !== undefined) patch.slug = normalizedSlug;
     if (args.category !== undefined) patch.category = args.category;
     if (args.body !== undefined) patch.body = args.body;
     if (args.coverImageStorageId !== undefined)
