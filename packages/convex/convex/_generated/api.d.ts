@@ -26,7 +26,6 @@ import type * as chat_queries from "../chat/queries.js";
 import type * as chat_rateLimits from "../chat/rateLimits.js";
 import type * as chat_testHelpers from "../chat/testHelpers.js";
 import type * as chat_tonePresets from "../chat/tonePresets.js";
-import type * as content_backfill from "../content/backfill.js";
 import type * as content_helpers from "../content/helpers.js";
 import type * as content_slug from "../content/slug.js";
 import type * as crons from "../crons.js";
@@ -78,7 +77,6 @@ declare const fullApi: ApiFromModules<{
   "chat/rateLimits": typeof chat_rateLimits;
   "chat/testHelpers": typeof chat_testHelpers;
   "chat/tonePresets": typeof chat_tonePresets;
-  "content/backfill": typeof content_backfill;
   "content/helpers": typeof content_helpers;
   "content/slug": typeof content_slug;
   crons: typeof crons;
