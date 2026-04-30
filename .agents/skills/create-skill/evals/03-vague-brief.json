@@ -1,0 +1,19 @@
+{
+  "name": "vague-brief-requires-clarification",
+  "skill": "create-skill",
+  "query": "Make a skill.",
+  "expected_behavior": [
+    "Does not touch the filesystem — writes no files, runs no scaffolding",
+    "Asks the user for the four things the brief is missing: purpose (one sentence), trigger phrases, the 80% workflow, scope boundaries",
+    "Presents the questions concisely — not a long preamble explaining what skills are",
+    "Waits for the user's reply before proceeding to step 2",
+    "Does not invent a purpose or guess at triggers"
+  ],
+  "failure_modes": [
+    "Creates a generic 'helper' skill without clarifying",
+    "Writes a placeholder SKILL.md with TODO markers",
+    "Picks a random purpose and asks the user to confirm after the fact",
+    "Gives a lecture on skill authoring instead of asking the four questions",
+    "Asks only one question and then proceeds with partial information"
+  ]
+}
