@@ -81,21 +81,33 @@ export function parseMdFrontmatter(
   // Always pass through the canonical normalizer, regardless of source.
   // Frontmatter slugs were previously trusted verbatim, which let punctuation
   // (e.g., `?`) leak into stored slugs. See `.claude/rules/identifiers.md`.
-  const slugSource =
-    typeof data.slug === "string" && data.slug.trim()
-      ? data.slug.trim()
-      : nameWithoutExt;
+  const hasFrontmatterSlug =
+    typeof data.slug === "string" && data.slug.trim().length > 0;
+  const slugSource = hasFrontmatterSlug
+    ? (data.slug as string).trim()
+    : nameWithoutExt;
+  const slugSourceField: "frontmatter" | "filename" = hasFrontmatterSlug
+    ? "frontmatter"
+    : "filename";
 
   let slug: string;
   try {
     slug = generateSlug(slugSource);
-  } catch {
+  } catch (e) {
+    // Only swallow the specific "cannot generate slug" failure from
+    // `generateSlug`. Any other throw (e.g., a future length cap) should
+    // propagate so it isn't silently flattened to a "bad slug" error.
+    if (!(e instanceof Error) || !/cannot generate slug/i.test(e.message)) {
+      throw e;
+    }
     return {
       success: false,
       error: {
         field: "slug",
         message:
-          "Could not derive a valid slug from the filename or frontmatter. Please add a slug field with at least one alphanumeric character.",
+          slugSourceField === "frontmatter"
+            ? `Frontmatter slug "${slugSource}" must contain at least one alphanumeric character.`
+            : `Could not derive a valid slug from the filename "${nameWithoutExt}". Please add a \`slug:\` field to the frontmatter.`,
       },
     };
   }

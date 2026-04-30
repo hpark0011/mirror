@@ -68,7 +68,7 @@ function writeTempBlob(name: string, content: Buffer): string {
   return filePath;
 }
 
-test.describe("Post cover image upload (authenticated)", () => {
+test.describe("Post cover image picker (authenticated, no submit)", () => {
   test("cover image picker renders inside the upload dialog", async ({
     authenticatedPage: page,
   }) => {
@@ -150,6 +150,18 @@ test.describe("Post cover image upload (authenticated)", () => {
   // resolve it (the token cookie is already set, so no second fetch fires).
   // The dialog renders the Convex error string verbatim, which is itself
   // covered by the picker/preview/validation tests above.
+  //
+  // Coverage status with this test fixme'd:
+  //   COVERED above:
+  //     - cover image picker renders inside the upload dialog
+  //     - accept attribute filters MIME types (image/png, image/jpeg, image/webp)
+  //     - non-image .txt rejected with a user-visible error (no preview)
+  //     - valid PNG produces a blob: preview URL
+  //   NOT COVERED:
+  //     - api.posts.mutations.create with coverImageStorageId
+  //     - cover image upload to Convex storage
+  //     - persistence of coverImageStorageId in the created post row
+  //     - end-to-end slug normalization through frontmatter -> mutation
   test.fixme(
     "create post with markdown + cover image succeeds",
     async ({ authenticatedPage: page }) => {

@@ -33,10 +33,10 @@ describe("generateSlug", () => {
   });
 
   it("throws when the input has no alphanumeric characters", () => {
-    expect(() => generateSlug("")).toThrow();
-    expect(() => generateSlug("???")).toThrow();
-    expect(() => generateSlug("   ")).toThrow();
-    expect(() => generateSlug("---")).toThrow();
+    expect(() => generateSlug("")).toThrow(/cannot generate slug/i);
+    expect(() => generateSlug("???")).toThrow(/cannot generate slug/i);
+    expect(() => generateSlug("   ")).toThrow(/cannot generate slug/i);
+    expect(() => generateSlug("---")).toThrow(/cannot generate slug/i);
   });
 
   it("is idempotent — generateSlug(generateSlug(x)) === generateSlug(x)", () => {
@@ -63,25 +63,34 @@ describe("generateSlug", () => {
   it("output always matches SLUG_PATTERN (fuzz)", () => {
     // Property test: fuzz random strings of mixed ASCII + punctuation and
     // assert the output is always a valid slug or the function throws.
+    // Seeded LCG so the corpus is reproducible across CI runs.
+    let _seed = 0x9e3779b9;
+    const rand = () => {
+      _seed = Math.imul(_seed ^ (_seed >>> 15), 0x2545f491) >>> 0;
+      return _seed / 0xffffffff;
+    };
     const charset =
       "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 _-?!@#$%^&*()/.,;:'\"";
     let validProduced = 0;
     for (let i = 0; i < 200; i++) {
-      const len = Math.floor(Math.random() * 30) + 1;
+      const len = Math.floor(rand() * 30) + 1;
       let input = "";
       for (let j = 0; j < len; j++) {
-        input += charset[Math.floor(Math.random() * charset.length)];
+        input += charset[Math.floor(rand() * charset.length)];
       }
       try {
         const slug = generateSlug(input);
         expect(SLUG_PATTERN.test(slug)).toBe(true);
+        // Idempotency: re-running the normalizer on its own output is a no-op.
+        expect(generateSlug(slug)).toBe(slug);
         validProduced++;
       } catch {
         // generateSlug throws when no alphanumerics remain — acceptable.
       }
     }
-    // Sanity: at least some inputs should produce slugs in 200 tries.
-    expect(validProduced).toBeGreaterThan(0);
+    // Sanity: with the alphanumeric-rich charset, well over 150 of 200
+    // inputs should produce valid slugs.
+    expect(validProduced).toBeGreaterThan(150);
   });
 });
 

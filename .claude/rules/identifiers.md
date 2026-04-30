@@ -3,6 +3,8 @@ paths:
   - "packages/convex/convex/**/*.ts"
   - "apps/*/features/**/*.ts"
   - "apps/*/features/**/*.tsx"
+  - "packages/features/**/*.ts"
+  - "packages/features/**/*.tsx"
 ---
 
 # Identifier Normalization Rule
@@ -56,3 +58,16 @@ next to `content/slug.ts` (e.g., `content/room-code.ts`) exporting at minimum:
 - An `assert<Valid|Kind>(value)` boundary check
 
 Wire it through the package `exports` map so client and server share it.
+`packages/convex/package.json` has TWO parallel surfaces — both must be
+updated, or TypeScript resolution will fail at the call site even when
+runtime resolution succeeds:
+
+```jsonc
+// packages/convex/package.json — exports map
+"./convex/content/<kind>": "./convex/content/<kind>.ts",
+// AND in typesVersions["*"]:
+"convex/content/<kind>": ["./convex/content/<kind>.ts"]
+```
+
+Mirror the structure of `content/slug.ts` and `content/__tests__/slug.test.ts`
+as the canonical template.

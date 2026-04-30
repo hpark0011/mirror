@@ -29,7 +29,7 @@ export function isValidSlug(slug: string): boolean {
 export function assertValidSlug(slug: string, field = "Slug"): void {
   if (!isValidSlug(slug)) {
     throw new Error(
-      `${field} "${slug}" is not a valid slug — must match ${SLUG_PATTERN}`,
+      `${field} "${slug}" is not a valid slug — must contain only lowercase letters, numbers, and dashes (no leading or trailing dashes, no consecutive dashes)`,
     );
   }
 }

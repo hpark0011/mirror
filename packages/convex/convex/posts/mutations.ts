@@ -5,11 +5,10 @@ import { internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
 import {
-  assertValidSlug,
-  generateSlug,
   isOwnedByUser,
   validateContentStringLength,
 } from "../content/helpers";
+import { assertValidSlug, generateSlug } from "../content/slug";
 import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
 import {
   getPostCategoryForSlug,
@@ -42,8 +41,11 @@ export const create = authMutation({
 
     // Always normalize: `generateSlug` is idempotent, so already-clean slugs
     // pass through unchanged while malformed input gets sanitized. Never trust
-    // the client to have done this. See `.claude/rules/identifiers.md`.
-    const slug = generateSlug(args.slug ?? args.title);
+    // the client to have done this. Treat empty/whitespace-only client slug as
+    // "not supplied" and fall back to the title.
+    // See `.claude/rules/identifiers.md`.
+    const slugSource = args.slug?.trim() ? args.slug : args.title;
+    const slug = generateSlug(slugSource);
     validateContentStringLength(slug, "Slug", MAX_SLUG_LENGTH);
     assertValidSlug(slug);
 
@@ -115,8 +117,11 @@ export const update = authMutation({
     }
 
     // Normalize incoming slug at the boundary. See `.claude/rules/identifiers.md`.
+    // Empty/whitespace-only slug arg is treated as "no change requested" — a
+    // no-op, NOT a failed normalize. Only normalize when the caller supplied a
+    // non-empty value.
     let normalizedSlug: string | undefined;
-    if (args.slug !== undefined) {
+    if (args.slug !== undefined && args.slug.trim() !== "") {
       normalizedSlug = generateSlug(args.slug);
       validateContentStringLength(normalizedSlug, "Slug", MAX_SLUG_LENGTH);
       assertValidSlug(normalizedSlug);
@@ -136,7 +141,12 @@ export const update = authMutation({
 
     const patch: PostPatch = {};
     if (args.title !== undefined) patch.title = args.title;
-    if (normalizedSlug !== undefined) patch.slug = normalizedSlug;
+    // Only patch slug when it actually changes — avoids a redundant write and
+    // a needless uniqueness probe when the caller round-trips the existing
+    // value verbatim.
+    if (normalizedSlug !== undefined && normalizedSlug !== post.slug) {
+      patch.slug = normalizedSlug;
+    }
     if (args.category !== undefined) patch.category = args.category;
     if (args.body !== undefined) patch.body = args.body;
     if (args.coverImageStorageId !== undefined)
