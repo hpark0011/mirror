@@ -47,10 +47,4 @@ Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` 
 - **[App-specific](.claude/rules/apps/)** — per-app rules (currently `apps/mirror/articles.md`, `apps/mirror/navigation.md`).
 - **[Sentry](.claude/rules/sentry/)** — exception capture, tracing spans, and logger patterns for Next.js.
 
-<!-- convex-ai-start -->
-This project uses [Convex](https://convex.dev) as its backend.
-
-When working on Convex code, **always read `convex/_generated/ai/guidelines.md` first** for important guidelines on how to correctly use Convex APIs and patterns. The file contains rules that override what you may have learned about Convex from training data.
-
-Convex agent skills for common tasks can be installed by running `npx convex ai-files install`.
-<!-- convex-ai-end -->
+Convex-specific instructions and the canonical guidelines file live under [`packages/convex/AGENTS.md`](packages/convex/AGENTS.md) and [`packages/convex/convex/_generated/ai/guidelines.md`](packages/convex/convex/_generated/ai/guidelines.md). Both are managed by `npx convex ai-files install` from `packages/convex/`.
