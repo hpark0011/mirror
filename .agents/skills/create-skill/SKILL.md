@@ -45,7 +45,7 @@ Canonical scaffold lives at [skill-template/SKILL.md](skill-template/SKILL.md). 
 1. **Frontmatter is the discovery surface.** `name` + `description` are the only tokens pre-loaded. Description must be third-person, include _what_ and _when_, and name concrete trigger phrases. Max 1024 chars — every token competes with every other skill's metadata. Include an `argument-hint` field when the skill accepts input (e.g. `"[skill-name]"`, `"[ticket-id]"`); delete the line if the skill takes no arguments.
 2. **Naming convention: gerund form** (verb + `-ing`), lowercase, hyphen-separated. Examples: `creating-tickets`, `reviewing-prs`, `scaffolding-components`, `processing-pdfs`. The gerund aligns the skill's identity with the user's intent verb, which is how Codex matches triggers. Noun names (`tickets`, `pdf-helper`) force an extra inference hop and invite scope creep.
 
-   - **Constraints**: `^[a-z0-9-]+$`, ≤64 chars, no reserved words (`anthropic`, `Codex`).
+   - **Constraints**: `^[a-z0-9-]+$`, ≤64 chars, no reserved words (`anthropic`, `claude`).
    - **Directory name must equal frontmatter `name`** — location already namespaces the skill, so don't prefix.
    - **Acceptable fallbacks**: action form (`configure-settings`) or tool-action (`sentry-cli`, `tavus-cvi-quickstart`) when the tool name is the primary trigger.
    - **Avoid**: `helper`, `utils`, `tools`, version suffixes (`v2-...`), filler verbs (`do-stuff-with-...`), CamelCase.

@@ -16,6 +16,9 @@ export default defineConfig({
       "convex/chat/**/*.test.ts",
       "convex/betaAllowlist/**/*.test.ts",
       "convex/waitlistRequests/**/*.test.ts",
+      "convex/content/**/*.test.ts",
+      "convex/articles/**/*.test.ts",
+      "convex/posts/**/*.test.ts",
     ],
     server: {
       deps: {

@@ -4,10 +4,10 @@ import { internal } from "../_generated/api";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
 import {
-  generateSlug,
   isOwnedByUser,
   validateContentStringLength,
 } from "../content/helpers";
+import { assertValidSlug, generateSlug } from "../content/slug";
 import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
 
 const MAX_CATEGORY_LENGTH = 100;
@@ -28,12 +28,13 @@ export const create = authMutation({
     validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
     validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
 
-    const slug = args.slug || generateSlug(args.title);
+    // Always normalize: `generateSlug` is idempotent. See `.claude/rules/identifiers.md`.
+    // Treat empty/whitespace-only client slug as "not supplied" and fall back
+    // to the title.
+    const slugSource = args.slug?.trim() ? args.slug : args.title;
+    const slug = generateSlug(slugSource);
     validateContentStringLength(slug, "Slug", MAX_SLUG_LENGTH);
-
-    if (!slug) {
-      throw new Error("Slug cannot be empty");
-    }
+    assertValidSlug(slug);
 
     const existing = await ctx.db
       .query("articles")
@@ -98,22 +99,30 @@ export const update = authMutation({
     if (args.title !== undefined) {
       validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
     }
-    if (args.slug !== undefined) {
-      validateContentStringLength(args.slug, "Slug", MAX_SLUG_LENGTH);
-    }
     if (args.category !== undefined) {
       validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
     }
 
-    if (args.slug && args.slug !== article.slug) {
+    // Normalize incoming slug at the boundary. See `.claude/rules/identifiers.md`.
+    // Empty/whitespace-only slug arg is treated as "no change requested" — a
+    // no-op, NOT a failed normalize. Only normalize when the caller supplied a
+    // non-empty value.
+    let normalizedSlug: string | undefined;
+    if (args.slug !== undefined && args.slug.trim() !== "") {
+      normalizedSlug = generateSlug(args.slug);
+      validateContentStringLength(normalizedSlug, "Slug", MAX_SLUG_LENGTH);
+      assertValidSlug(normalizedSlug);
+    }
+
+    if (normalizedSlug && normalizedSlug !== article.slug) {
       const existing = await ctx.db
         .query("articles")
         .withIndex("by_userId_and_slug", (q) =>
-          q.eq("userId", appUser._id).eq("slug", args.slug!),
+          q.eq("userId", appUser._id).eq("slug", normalizedSlug),
         )
         .unique();
       if (existing) {
-        throw new Error(`An article with slug "${args.slug}" already exists`);
+        throw new Error(`An article with slug "${normalizedSlug}" already exists`);
       }
     }
 
@@ -128,7 +137,12 @@ export const update = authMutation({
 
     const patch: ArticlePatch = {};
     if (args.title !== undefined) patch.title = args.title;
-    if (args.slug !== undefined) patch.slug = args.slug;
+    // Only patch slug when it actually changes — avoids a redundant write and
+    // a needless uniqueness probe when the caller round-trips the existing
+    // value verbatim.
+    if (normalizedSlug !== undefined && normalizedSlug !== article.slug) {
+      patch.slug = normalizedSlug;
+    }
     if (args.category !== undefined) patch.category = args.category;
     if (args.body !== undefined) patch.body = args.body;
     if (args.coverImageStorageId !== undefined)

@@ -27,6 +27,7 @@ import type * as chat_rateLimits from "../chat/rateLimits.js";
 import type * as chat_testHelpers from "../chat/testHelpers.js";
 import type * as chat_tonePresets from "../chat/tonePresets.js";
 import type * as content_helpers from "../content/helpers.js";
+import type * as content_slug from "../content/slug.js";
 import type * as crons from "../crons.js";
 import type * as email_actions from "../email/actions.js";
 import type * as embeddings_actions from "../embeddings/actions.js";
@@ -77,6 +78,7 @@ declare const fullApi: ApiFromModules<{
   "chat/testHelpers": typeof chat_testHelpers;
   "chat/tonePresets": typeof chat_tonePresets;
   "content/helpers": typeof content_helpers;
+  "content/slug": typeof content_slug;
   crons: typeof crons;
   "email/actions": typeof email_actions;
   "embeddings/actions": typeof embeddings_actions;

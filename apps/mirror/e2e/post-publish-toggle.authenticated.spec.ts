@@ -1,10 +1,11 @@
 import { test, expect } from "./fixtures/auth";
+import { requireEnv } from "./lib/env";
 
 const username = "test-user"; // matches ensureTestUser's username
 const testEmail = "playwright-test@mirror.test"; // matches auth.setup.ts
 
-const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL!;
-const testSecret = process.env.PLAYWRIGHT_TEST_SECRET!;
+const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
+const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
 
 /**
  * Call the /test/ensure-post-fixtures HTTP action on the Convex backend.
