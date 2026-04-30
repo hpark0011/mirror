@@ -84,8 +84,10 @@ describe("generateSlug", () => {
         // Idempotency: re-running the normalizer on its own output is a no-op.
         expect(generateSlug(slug)).toBe(slug);
         validProduced++;
-      } catch {
+      } catch (error) {
         // generateSlug throws when no alphanumerics remain — acceptable.
+        expect(error).toBeInstanceOf(Error);
+        expect((error as Error).message).toMatch(/cannot generate slug/i);
       }
     }
     // Sanity: with the alphanumeric-rich charset, well over 150 of 200
