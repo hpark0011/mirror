@@ -1,13 +1,24 @@
 "use client";
 
 import { useRef, useEffect, useCallback } from "react";
-import { useDaily } from "@daily-co/daily-react";
 import { useCallState } from "./use-call-state";
+
+function endTavusConversation(conversationId: string) {
+  // Fire-and-forget POST that releases the Tavus slot. Used by the explicit
+  // endCall path, the unmount cleanup effect, and the pagehide handler.
+  // `keepalive: true` lets the request survive page unload so a tab close
+  // still releases the slot. Errors are non-fatal.
+  fetch(`/api/tavus/conversations/${conversationId}/end`, {
+    method: "POST",
+    keepalive: true,
+  }).catch(() => {});
+}
 
 export function useVideoCall() {
   const [callState, dispatch] = useCallState();
-  const daily = useDaily();
   const isStartingRef = useRef(false);
+  const activeConversationIdRef = useRef<string | null>(null);
+  const isMountedRef = useRef(true);
 
   const startCall = useCallback(
     async (username: string) => {
@@ -30,6 +41,16 @@ export function useVideoCall() {
         }
 
         const data = await response.json();
+
+        // If the hook unmounted while the request was in flight, the cleanup
+        // effect already ran with a null conversation id. Release the slot
+        // here directly and skip the dispatch — there's no consumer left.
+        if (!isMountedRef.current) {
+          endTavusConversation(data.conversation_id);
+          return;
+        }
+
+        activeConversationIdRef.current = data.conversation_id;
         dispatch({
           type: "connect",
           conversationUrl: data.conversation_url,
@@ -38,7 +59,9 @@ export function useVideoCall() {
       } catch (error) {
         const message =
           error instanceof Error ? error.message : "Failed to start call";
-        dispatch({ type: "error", message });
+        if (isMountedRef.current) {
+          dispatch({ type: "error", message });
+        }
       } finally {
         isStartingRef.current = false;
       }
@@ -47,9 +70,13 @@ export function useVideoCall() {
   );
 
   const endCall = useCallback(() => {
-    daily?.leave();
+    const conversationId = activeConversationIdRef.current;
+    if (conversationId) {
+      endTavusConversation(conversationId);
+      activeConversationIdRef.current = null;
+    }
     dispatch({ type: "end" });
-  }, [daily, dispatch]);
+  }, [dispatch]);
 
   const resetCall = useCallback(() => {
     dispatch({ type: "reset" });
@@ -66,14 +93,38 @@ export function useVideoCall() {
     [dispatch]
   );
 
-  // Cleanup on unmount
+  // Cleanup on unmount — release the Tavus conversation slot if one is active.
+  // Daily teardown is owned by `Conversation`'s unmount cleanup, not this hook.
   useEffect(() => {
     return () => {
-      if (callState.status === "connected") {
-        daily?.leave();
+      isMountedRef.current = false;
+      const conversationId = activeConversationIdRef.current;
+      if (conversationId) {
+        endTavusConversation(conversationId);
+        activeConversationIdRef.current = null;
       }
     };
-  }, [callState.status, daily]);
+  }, []);
+
+  // Release the Tavus slot on tab close / bfcache transitions. `pagehide`
+  // is the reliable signal for `keepalive` fetches; `beforeunload` is not.
+  useEffect(() => {
+    if (callState.status !== "connecting" && callState.status !== "connected") {
+      return;
+    }
+
+    const handlePageHide = () => {
+      const conversationId = activeConversationIdRef.current;
+      if (conversationId) {
+        endTavusConversation(conversationId);
+      }
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+    };
+  }, [callState.status]);
 
   // Warn before leaving during active call
   useEffect(() => {

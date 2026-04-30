@@ -33,7 +33,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
   return (
     <nav
       className={cn(
-        "z-10 flex h-10 items-center justify-between gap-2 md:gap-4.5 px-5 md:pl-3.5 pl-0 relative",
+        "z-10 flex h-9.5 items-center justify-between gap-2 md:gap-4.5 px-5 md:pl-3.5 pl-0 relative",
         className,
       )}
     >

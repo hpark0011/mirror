@@ -32,7 +32,7 @@ export function ProfileTabs({
       <TabsList variant="minimal" className="">
         {visibleKinds.map((kind, index) => (
           <div key={kind} className="flex items-center">
-            <TabsTrigger asChild value={kind}>
+            <TabsTrigger asChild value={kind} className="text-[13px]">
               <Link
                 href={buildChatAwareHref(getProfileTabHref(username, kind))}
                 prefetch={false}

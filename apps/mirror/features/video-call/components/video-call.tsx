@@ -1,6 +1,11 @@
 "use client";
 
-import { useParticipantIds, DailyVideo, useLocalSessionId } from "@daily-co/daily-react";
+import {
+  useParticipantIds,
+  DailyVideo,
+  DailyAudio,
+  useLocalSessionId,
+} from "@daily-co/daily-react";
 import type { CallState } from "../types";
 import { CallControls } from "./call-controls";
 import { ConnectionStatus } from "./connection-status";
@@ -21,6 +26,9 @@ export function VideoCall({ callState, onEndCall, onRetry, onClose }: VideoCallP
 
   return (
     <div className="relative flex h-full w-full items-center justify-center bg-black">
+      {/* Remote audio (avatar voice) — required for the Tavus replica to be heard */}
+      <DailyAudio />
+
       {/* Remote participant video (avatar) */}
       {isActive && participantIds.length > 0 && (
         <DailyVideo

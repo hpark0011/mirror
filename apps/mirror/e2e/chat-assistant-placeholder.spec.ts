@@ -1,4 +1,5 @@
-import { expect, test, type Locator, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+import { openChat, sendChatMessage } from "./helpers/chat";
 
 const username = "rick-rubin";
 const firstMessage = "Reply with exactly: ok";
@@ -139,20 +140,6 @@ async function getChatStateTracking(page: Page) {
   });
 }
 
-async function openChat(page: Page) {
-  await page.goto(`/@${username}?chat=1`);
-
-  const textarea = page.locator('textarea[placeholder^="Message "]');
-  await expect(textarea).toBeVisible({ timeout: 10000 });
-
-  return textarea;
-}
-
-async function sendChatMessage(textarea: Locator, message: string) {
-  await textarea.fill(message);
-  await textarea.press("Enter");
-}
-
 async function getScrollMetrics(page: Page): Promise<ScrollMetrics> {
   return page.locator('[data-slot="chat-message-scroll-area"]').evaluate((node) => {
     const container = node as HTMLDivElement;
@@ -203,7 +190,7 @@ test.describe("Chat assistant placeholder", () => {
   }) => {
     await installChatStateTracking(page);
 
-    const textarea = await openChat(page);
+    const textarea = await openChat(page, username);
 
     await resetChatStateTracking(page);
     await sendChatMessage(textarea, firstMessage);
@@ -250,7 +237,7 @@ test.describe("Chat assistant placeholder", () => {
   }) => {
     await installChatStateTracking(page);
 
-    const textarea = await openChat(page);
+    const textarea = await openChat(page, username);
 
     await resetChatStateTracking(page);
     await sendChatMessage(textarea, longReplyMessage);

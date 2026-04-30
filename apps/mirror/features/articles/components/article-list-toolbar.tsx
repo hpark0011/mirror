@@ -116,8 +116,8 @@ export function ArticleListToolbar({
           {isOwner && (
             <Button
               variant="primary"
-              size="sm"
-              className="has-[>svg]:gap-0.5 has-[>svg]:pl-1.5 ml-2"
+              size="xs"
+              className="ml-2 has-[>svg]:gap-0.5 has-[>svg]:pl-1 has-[>svg]:pr-2"
             >
               <Icon name="PlusIcon" className="text-icon-light size-4.5" />
               New

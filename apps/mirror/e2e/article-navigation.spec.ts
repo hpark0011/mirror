@@ -29,7 +29,7 @@ test.describe("Article navigation", () => {
 
     await expect(
       page,
-    ).toHaveURL(new RegExp(`/@${username}(\\?.*)?$`));
+    ).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
     await expect(
       page.getByRole("button", { name: "Show Artifacts" }),
     ).toBeVisible({ timeout: 10000 });
