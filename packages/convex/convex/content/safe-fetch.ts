@@ -1,5 +1,10 @@
 "use node";
 
+// Pure module: no Convex function registrations (query/mutation/action/internal*)
+// allowed in this file because the filename contains a hyphen — Convex's dotted
+// internal.* router cannot resolve hyphenated paths. Add functions to
+// camelCase sibling files instead.
+//
 // Best-effort SSRF-guarded fetch for inline image imports.
 //
 // Threat model:

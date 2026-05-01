@@ -5,9 +5,20 @@
 // across articles, posts, the cron sweep, and the markdown-import action.
 // Pure module: no Convex runtime imports — safe to import anywhere.
 //
+// Pure module: no Convex function registrations (query/mutation/action/internal*)
+// allowed in this file because the filename contains a hyphen — Convex's dotted
+// internal.* router cannot resolve hyphenated paths. Add functions to
+// camelCase sibling files instead.
+//
 // The local JSONContent shape mirrors the one used in
 // `embeddings/textExtractor.ts`, kept inline to avoid taking a dependency on
 // `@tiptap/core` from server-side code.
+//
+// `Id<"_storage">` is imported as a TYPE only — the dataModel module ships
+// types only at compile-time and so this import does not pull in any Convex
+// runtime code.
+
+import type { Id } from "../_generated/dataModel";
 
 /**
  * Minimal Tiptap JSONContent shape used by the body-walk helpers.
@@ -26,11 +37,18 @@ export type JSONContent = {
  * `image` node, in document order, with duplicates preserved (multiset
  * semantics). Image nodes lacking a `storageId` are skipped. Returns `[]`
  * for null, undefined, or empty bodies.
+ *
+ * Returns `Id<"_storage">[]` to constrain callers — every value pushed here
+ * is sourced from `attrs.storageId` on an image node, which by convention
+ * (and validated by the sanitizer regex) holds a Convex storage ID. The
+ * cast is at the source so downstream call sites can pass the result
+ * directly to `ctx.storage.delete(...)` / `ctx.storage.getUrl(...)` without
+ * re-narrowing.
  */
 export function extractInlineImageStorageIds(
   body: JSONContent | null | undefined,
-): string[] {
-  const ids: string[] = [];
+): Id<"_storage">[] {
+  const ids: Id<"_storage">[] = [];
   if (!body) {
     return ids;
   }
@@ -40,12 +58,13 @@ export function extractInlineImageStorageIds(
 
 function collectInlineImageStorageIds(
   node: JSONContent,
-  out: string[],
+  out: Id<"_storage">[],
 ): void {
   if (node.type === "image") {
     const id = node.attrs?.storageId;
     if (typeof id === "string" && id.length > 0) {
-      out.push(id);
+      // Cast at the source — see the function-level comment.
+      out.push(id as Id<"_storage">);
     }
   }
 
@@ -101,4 +120,36 @@ function mapNode(
     return { ...node, content: mappedChildren };
   }
   return node;
+}
+
+/**
+ * Returns the multiset difference `a - b`: for each occurrence in `b`, removes
+ * one matching occurrence from `a`. Useful for diffing inline image storage
+ * IDs across an `update` mutation: `multisetDifference(oldIds, newIds)` yields
+ * exactly the IDs that were removed (counting duplicates).
+ *
+ * Generic over `T extends string` so callers can pass `Id<"_storage">[]`
+ * without losing the brand. (`Id<TableName>` is a string subtype at runtime.)
+ *
+ * NOTE: this returns "what's removed by count" — it does NOT account for the
+ * still-referenced case. `[a, a, a] - [a] → [a, a]`. The caller is
+ * responsible for filtering against the new set if it cares about
+ * "blob's reference count fell to zero" (see articles/mutations.ts and
+ * posts/mutations.ts for the load-bearing filter).
+ */
+export function multisetDifference<T extends string>(a: T[], b: T[]): T[] {
+  const counts = new Map<T, number>();
+  for (const v of b) {
+    counts.set(v, (counts.get(v) ?? 0) + 1);
+  }
+  const out: T[] = [];
+  for (const v of a) {
+    const c = counts.get(v) ?? 0;
+    if (c > 0) {
+      counts.set(v, c - 1);
+    } else {
+      out.push(v);
+    }
+  }
+  return out;
 }

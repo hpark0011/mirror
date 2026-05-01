@@ -6,6 +6,11 @@
 //
 // Pure module: no Convex runtime imports, so it is safe to import from both
 // the Convex backend and the Next.js client.
+//
+// Pure module: no Convex function registrations (query/mutation/action/internal*)
+// allowed in this file because the filename contains a hyphen — Convex's dotted
+// internal.* router cannot resolve hyphenated paths. Add functions to
+// camelCase sibling files instead.
 
 /**
  * Grace period after which an unreferenced `_storage` blob is eligible for

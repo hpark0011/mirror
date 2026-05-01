@@ -8,7 +8,10 @@
  * @module
  */
 
+import type * as articles_actions from "../articles/actions.js";
 import type * as articles_helpers from "../articles/helpers.js";
+import type * as articles_inlineImages from "../articles/inlineImages.js";
+import type * as articles_internalImages from "../articles/internalImages.js";
 import type * as articles_mutations from "../articles/mutations.js";
 import type * as articles_queries from "../articles/queries.js";
 import type * as auth_client from "../auth/client.js";
@@ -26,8 +29,12 @@ import type * as chat_queries from "../chat/queries.js";
 import type * as chat_rateLimits from "../chat/rateLimits.js";
 import type * as chat_testHelpers from "../chat/testHelpers.js";
 import type * as chat_tonePresets from "../chat/tonePresets.js";
+import type * as content_backfill from "../content/backfill.js";
+import type * as content_body_walk from "../content/body-walk.js";
 import type * as content_helpers from "../content/helpers.js";
+import type * as content_safe_fetch from "../content/safe-fetch.js";
 import type * as content_slug from "../content/slug.js";
+import type * as content_storage_policy from "../content/storage-policy.js";
 import type * as crons from "../crons.js";
 import type * as email_actions from "../email/actions.js";
 import type * as embeddings_actions from "../embeddings/actions.js";
@@ -39,8 +46,11 @@ import type * as embeddings_textExtractor from "../embeddings/textExtractor.js";
 import type * as env from "../env.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as posts_actions from "../posts/actions.js";
 import type * as posts_categories from "../posts/categories.js";
 import type * as posts_helpers from "../posts/helpers.js";
+import type * as posts_inlineImages from "../posts/inlineImages.js";
+import type * as posts_internalImages from "../posts/internalImages.js";
 import type * as posts_mutations from "../posts/mutations.js";
 import type * as posts_queries from "../posts/queries.js";
 import type * as seed from "../seed.js";
@@ -59,7 +69,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "articles/actions": typeof articles_actions;
   "articles/helpers": typeof articles_helpers;
+  "articles/inlineImages": typeof articles_inlineImages;
+  "articles/internalImages": typeof articles_internalImages;
   "articles/mutations": typeof articles_mutations;
   "articles/queries": typeof articles_queries;
   "auth/client": typeof auth_client;
@@ -77,8 +90,12 @@ declare const fullApi: ApiFromModules<{
   "chat/rateLimits": typeof chat_rateLimits;
   "chat/testHelpers": typeof chat_testHelpers;
   "chat/tonePresets": typeof chat_tonePresets;
+  "content/backfill": typeof content_backfill;
+  "content/body-walk": typeof content_body_walk;
   "content/helpers": typeof content_helpers;
+  "content/safe-fetch": typeof content_safe_fetch;
   "content/slug": typeof content_slug;
+  "content/storage-policy": typeof content_storage_policy;
   crons: typeof crons;
   "email/actions": typeof email_actions;
   "embeddings/actions": typeof embeddings_actions;
@@ -90,8 +107,11 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "posts/actions": typeof posts_actions;
   "posts/categories": typeof posts_categories;
   "posts/helpers": typeof posts_helpers;
+  "posts/inlineImages": typeof posts_inlineImages;
+  "posts/internalImages": typeof posts_internalImages;
   "posts/mutations": typeof posts_mutations;
   "posts/queries": typeof posts_queries;
   seed: typeof seed;

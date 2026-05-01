@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
@@ -11,9 +11,17 @@ import {
 import { assertValidSlug, generateSlug } from "../content/slug";
 import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
 import {
+  extractInlineImageStorageIds,
+  multisetDifference,
+} from "../content/body-walk";
+import {
   getPostCategoryForSlug,
   MAX_POST_CATEGORY_LENGTH,
 } from "./categories";
+
+// Cap the number of inline storage deletes per `update` / `remove`
+// invocation. Excess removals are left for the cron sweep. (NFR-06.)
+const MAX_INLINE_DELETES_PER_INVOCATION = 50;
 
 type PostPatch = Partial<
   Omit<Doc<"posts">, "_id" | "_creationTime" | "userId" | "createdAt">
@@ -139,6 +147,35 @@ export const update = authMutation({
       }
     }
 
+    // Compute inline-image diff BEFORE the patch (we need both old and new
+    // bodies). Actual `ctx.storage.delete` calls happen AFTER
+    // `ctx.db.patch` so a failed write can't leave the post pointing at
+    // deleted storage.
+    //
+    // The `.filter(id => !newSet.has(id))` line below is LOAD-BEARING — do
+    // NOT remove it.
+    //
+    // `multisetDifference` returns IDs whose count dropped, including IDs
+    // STILL PRESENT IN THE NEW BODY when `oldCount > newCount > 0`. Concrete
+    // example: `[a, a, a] - [a]` returns `[a, a]`. If we deleted those, we
+    // would delete a blob that the new body still references. The filter
+    // discards every ID that newIds still contains, leaving only blobs whose
+    // reference count fell to zero.
+    //
+    // The trailing `Array.from(new Set(diff))` deduplicates so the SAME
+    // truly-orphaned blob isn't passed to `ctx.storage.delete` more than
+    // once when it appeared multiple times in the old body.
+    const removedInlineIds: Id<"_storage">[] = (() => {
+      if (args.body === undefined) return [];
+      const oldIds = extractInlineImageStorageIds(post.body);
+      const newIds = extractInlineImageStorageIds(args.body);
+      const newSet = new Set(newIds);
+      const diff = multisetDifference(oldIds, newIds).filter(
+        (id) => !newSet.has(id),
+      );
+      return Array.from(new Set(diff)) as Id<"_storage">[];
+    })();
+
     const patch: PostPatch = {};
     if (args.title !== undefined) patch.title = args.title;
     // Only patch slug when it actually changes — avoids a redundant write and
@@ -169,6 +206,17 @@ export const update = authMutation({
       post.coverImageStorageId
     ) {
       await ctx.storage.delete(post.coverImageStorageId);
+    }
+
+    // Delete inline storage IDs that are no longer referenced. Capped at
+    // MAX_INLINE_DELETES_PER_INVOCATION; any excess is collected by the cron
+    // sweep (NFR-06).
+    const toDelete = removedInlineIds.slice(
+      0,
+      MAX_INLINE_DELETES_PER_INVOCATION,
+    );
+    for (const id of toDelete) {
+      await ctx.storage.delete(id);
     }
 
     // Schedule embedding update based on status change
@@ -212,12 +260,37 @@ export const remove = authMutation({
     );
 
     for (const post of owned) {
+      // Walk inline-image storage IDs BEFORE the row is deleted so we can
+      // cascade-delete them after. Dedup so we don't try to delete the same
+      // blob twice when the body referenced it more than once.
+      const inlineIds = Array.from(
+        new Set(extractInlineImageStorageIds(post.body)),
+      ) as Id<"_storage">[];
+
       await ctx.db.delete(post._id);
+
       // Delete storage after the DB row is gone so a failed delete can't
       // leave a live post pointing at a missing asset.
       if (post.coverImageStorageId) {
         await ctx.storage.delete(post.coverImageStorageId);
       }
+
+      // Capped at MAX_INLINE_DELETES_PER_INVOCATION (NFR-06); excess is
+      // collected by the cron sweep.
+      const inlineToDelete = inlineIds.slice(
+        0,
+        MAX_INLINE_DELETES_PER_INVOCATION,
+      );
+      for (const id of inlineToDelete) {
+        try {
+          await ctx.storage.delete(id);
+        } catch {
+          // Ignore: blob may not be a valid `_storage` Id (legacy bodies),
+          // or the blob may already be gone. Either way the cron sweep is
+          // the safety net.
+        }
+      }
+
       await ctx.scheduler.runAfter(
         0,
         internal.embeddings.mutations.deleteBySource,
