@@ -29,6 +29,7 @@
     "./theme/components": "./theme/components/index.ts",
     "./editor": "./editor/index.ts",
     "./editor/components": "./editor/components/index.ts",
+    "./editor/components/rich-text-editor": "./editor/components/rich-text-editor.tsx",
     "./editor/lib": "./editor/lib/index.ts",
     "./editor/types": "./editor/types.ts",
     "./editor/styles/tiptap-content.css": "./editor/styles/tiptap-content.css"

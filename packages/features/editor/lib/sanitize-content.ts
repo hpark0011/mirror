@@ -28,10 +28,24 @@ const ALLOWED_MARK_TYPES = new Set(["bold", "italic", "code", "link"]);
 /** Attributes allowed per node type. Unlisted node types get no attrs. */
 const ALLOWED_ATTRS: Record<string, Set<string>> = {
   heading: new Set(["level"]),
-  image: new Set(["src", "alt", "title"]),
+  image: new Set(["src", "alt", "title", "storageId"]),
   codeBlock: new Set(["language"]),
   orderedList: new Set(["start"]),
 };
+
+/**
+ * XSS-prevention shape for Convex `_storage` IDs traveling inside body JSON.
+ * NOT a guarantee of the exact Convex ID format — Convex's `_storage` ID
+ * character set is not contractually documented and may change. This is
+ * deliberately a permissive alphanum + hyphen + underscore allowlist to keep
+ * the sanitizer focused on stripping HTML/JS injection, not validating IDs.
+ */
+const STORAGE_ID_PATTERN = /^[a-zA-Z0-9_-]+$/;
+
+function isStorageIdShape(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  return STORAGE_ID_PATTERN.test(value);
+}
 
 /** Attributes allowed per mark type. */
 const ALLOWED_MARK_ATTRS: Record<string, Set<string>> = {
@@ -63,6 +77,9 @@ function sanitizeAttrs(
 
       // Validate URL-bearing attributes
       if (key === "src" && !isSafeUrl(value)) continue;
+
+      // Validate Convex storage ID shape — strip on mismatch (FR-04).
+      if (key === "storageId" && !isStorageIdShape(value)) continue;
 
       sanitized[key] = value;
       hasKeys = true;
