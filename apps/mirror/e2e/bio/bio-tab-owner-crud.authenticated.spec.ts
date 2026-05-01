@@ -437,6 +437,109 @@ test.describe("Bio tab — authenticated owner CRUD", () => {
       .toEqual(["B — Older", "A — Newest"]);
   });
 
+  test("FR-09: server rejection on submit closes dialog and shows error toast", async ({
+    authenticatedPage: page,
+  }) => {
+    // Force the create-mutation rejection path. Convex transports
+    // mutations over a long-lived WebSocket (`wss://*.convex.cloud`),
+    // so Playwright's `page.route()` cannot intercept them — Option A
+    // in the ticket is blocked. Option B (state-driven): seed below the
+    // soft cap so the Add affordance is enabled, open + fill the
+    // dialog, then re-seed *past* the cap before clicking Save. The
+    // server's count check (packages/convex/convex/bio/mutations.ts:67)
+    // throws "Bio entry limit reached (50). Please remove an existing
+    // entry first." and `useBioPanelHandlers.handleSubmit` surfaces it
+    // via showToast() after closing the dialog synchronously.
+    //
+    // Why 49 → 51 (not 49 → 50): the create call is also subject to
+    // the soft cap, so the count must be >= 50 *at the time the server
+    // evaluates the mutation*. Seeding to 51 guarantees the server
+    // rejects regardless of any narrow timing window between the
+    // re-seed and the submit RPC.
+    const baselineCount = 49;
+    const baseline: SeedEntry[] = Array.from(
+      { length: baselineCount },
+      (_, i) => ({
+        kind: "work" as const,
+        title: `Baseline #${String(i).padStart(2, "0")}`,
+        startDate: monthEpoch(2018 + Math.floor(i / 12), (i % 12) + 1),
+        endDate: null,
+      }),
+    );
+    await ensureBioFixtures(baseline);
+
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await page.goto(`/@${username}/bio`, { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("bio-panel")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await waitForAuthReady(page);
+
+    // Wait for the cards to materialize so `canCreateEntry` is derived
+    // from the live query (49 < 50 → enabled).
+    await expect(page.getByTestId("bio-entry-card")).toHaveCount(
+      baselineCount,
+      { timeout: 10_000 },
+    );
+
+    const addButton = page.getByTestId("bio-add-entry-button");
+    await expect(addButton).toBeEnabled({ timeout: 5_000 });
+    await addButton.click();
+
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible({ timeout: 5_000 });
+
+    // Fill the only required field. Form defaults populate startMonth /
+    // startYear with valid integers, so the title alone passes
+    // client-side Zod validation.
+    await dialog.getByLabel("Title").fill("Server-rejected entry");
+
+    // Re-seed past the cap. ensureTestBioFixtures wipes + re-inserts,
+    // so this puts the server in an over-cap state. The dialog is
+    // already open; its form values are local RHF state and unaffected.
+    const overCapCount = 51;
+    const overCap: SeedEntry[] = Array.from(
+      { length: overCapCount },
+      (_, i) => ({
+        kind: "work" as const,
+        title: `OverCap #${String(i).padStart(2, "0")}`,
+        startDate: monthEpoch(2018 + Math.floor(i / 12), (i % 12) + 1),
+        endDate: null,
+      }),
+    );
+    await ensureBioFixtures(overCap);
+
+    // Wait for the live query to reflect the new server state — the
+    // public query slices to MAX_BIO_ENTRIES (50) at
+    // packages/convex/convex/bio/queries.ts, so the visible card count
+    // saturates at 50 even when the server holds 51. Asserting that
+    // saturation proves the WebSocket re-pushed the row set and the
+    // server view is now over-cap.
+    await expect(page.getByTestId("bio-entry-card")).toHaveCount(50, {
+      timeout: 10_000,
+    });
+
+    // Click the dialog's Add (create-mode submit label per
+    // bio-entry-form-dialog.tsx:52). The handler closes the dialog
+    // synchronously, fires createEntry, the server throws, the
+    // optimistic patch rolls back, and the toast surfaces the error.
+    await dialog.getByRole("button", { name: /^add$/i }).click();
+
+    // (a) Synchronous-close invariant — dialog must disappear within
+    // 5s of submit, BEFORE the server round-trip resolves.
+    await expect(dialog).not.toBeVisible({ timeout: 5_000 });
+
+    // (b) Toast shows the literal server error. Sonner renders each
+    // toast with `data-sonner-toast`; the title is in the toast
+    // subtree, so a `:has-text` filter scopes the assertion.
+    const toast = page
+      .locator('[data-sonner-toast]')
+      .filter({ hasText: "Bio entry limit reached (50)" });
+    await expect(toast).toBeVisible({ timeout: 5_000 });
+  });
+
   test("FR-08: deleting a card removes it; refresh confirms persistence", async ({
     authenticatedPage: page,
   }) => {
