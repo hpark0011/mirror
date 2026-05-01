@@ -70,14 +70,20 @@ Return a JSON array of findings. Every finding MUST fill:
   "reviewer": "concurrency",
   "title": "one line",
   "location": "path/to/file.ts:startLine-endLine",
-  "severity": "low | medium | high | critical",
+  "priority": "P0 | P1 | P2 | P3",
   "confidence": 0.0,
   "observation": "the specific code path that can misorder, skip cleanup, or race",
   "risk": "the concrete invariant it breaks — e.g. 'streamingInProgress can remain set after cancellation, blocking future streams' — REQUIRED",
   "evidence": ["quoted lines", "Intent invariant reference"],
-  "suggestedFix": "one sentence — e.g. 'move release into finally guarded by expectedStartedAt'"
+  "suggestedFix": "one sentence — e.g. 'move release into finally guarded by expectedStartedAt'",
+  "autofix_class": "safe_auto | gated_auto | manual | advisory",
+  "owner": "review-fixer | downstream-resolver | human | release",
+  "requires_verification": false,
+  "pre_existing": false
 }
 ```
+
+**Routing defaults for this reviewer:** concurrency findings are almost always `manual` / `downstream-resolver`. Cleanup placement and lock-token guards have correct shapes that depend on the surrounding state machine; an autofix can pick a wrong shape that compiles. Pick `safe_auto` only for clear cleanup-into-finally moves where the cleanup is unambiguous. Set `requires_verification: true` on every concurrency finding — these need a regression test that exercises the second-actor path before they can be considered fixed.
 
 **Hard rule:** name the broken invariant **and** the realistic trigger (who the second actor is — retry, double-click, webhook redelivery, concurrent request, StrictMode, streaming echo, etc.). "This feels racy" is not a finding — drop it yourself. "Two concurrent requests both pass the `if (!exists)` check and both insert" is a finding.
 

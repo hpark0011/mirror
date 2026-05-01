@@ -36,14 +36,23 @@ Return a JSON array of findings. Every finding MUST fill:
   "reviewer": "performance",
   "title": "one line",
   "location": "path/to/file.tsx:startLine-endLine",
-  "severity": "low | medium | high | critical",
+  "priority": "P0 | P1 | P2 | P3",
   "confidence": 0.0,
   "observation": "the specific pattern and where it runs",
   "risk": "the concrete cost — e.g. 'renders the full message list on every keystroke because Context value is a new object per render' — REQUIRED",
   "evidence": ["quoted lines"],
-  "suggestedFix": "one-sentence direction"
+  "suggestedFix": "one-sentence direction",
+  "autofix_class": "safe_auto | gated_auto | manual | advisory",
+  "owner": "review-fixer | downstream-resolver | human | release",
+  "requires_verification": false,
+  "pre_existing": false
 }
 ```
+
+**Routing defaults for this reviewer:**
+- Adding a `useMemo` / `useCallback` / `key` prop where the change is local and behavior-preserving → `safe_auto` / `review-fixer`.
+- Adding a Convex index, switching from `collect()` to a paginated query, or reshaping a hot mutation → `manual` / `downstream-resolver` — these change query plans and need an owner decision.
+- Bundle/import-shape changes that move work between server and client → `gated_auto` (the change is concrete but it shifts behavior).
 
 **Hard rule:** quantify the risk even if approximate. "This might be slow" is not a finding — describe *why* and *when* it becomes slow.
 

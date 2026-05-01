@@ -37,14 +37,20 @@ Return a JSON array of findings. Every finding MUST fill:
   "reviewer": "tests",
   "title": "one line",
   "location": "path/to/test-file.ts or production file the test is missing for",
-  "severity": "low | medium | high | critical",
+  "priority": "P0 | P1 | P2 | P3",
   "confidence": 0.0,
   "observation": "what tests exist (or don't) for this behavior",
   "risk": "the specific invariant or failure mode that has no regression protection — REQUIRED",
   "evidence": ["quoted test name or absence of one", "Intent invariant reference"],
-  "suggestedFix": "one-sentence direction — e.g. 'add a test that cancels mid-stream and asserts streamingInProgress is cleared'"
+  "suggestedFix": "one-sentence direction — e.g. 'add a test that cancels mid-stream and asserts streamingInProgress is cleared'",
+  "autofix_class": "safe_auto | gated_auto | manual | advisory",
+  "owner": "review-fixer | downstream-resolver | human | release",
+  "requires_verification": false,
+  "pre_existing": false
 }
 ```
+
+**Routing defaults for this reviewer:** missing-test findings are almost always `manual` / `downstream-resolver` — writing a meaningful regression test requires the author's understanding of the invariant. Pick `safe_auto` only when adding the test is a one-liner against an existing fixture. Always set `requires_verification: true` on missing-test findings: a test added later still has to actually run and fail before the fix.
 
 **Hard rule:** a missing test finding must point at a specific invariant or failure mode that lacks coverage. "More tests would be nice" is not a finding — drop it.
 

@@ -21,27 +21,33 @@ Pause and surface instead of pressing on when:
 ## Workflow
 
 ```
-- [ ] 1. Ingest    — scope, changed files, read each file fully, load matching rules
-- [ ] 2. Intent    — infer change type, goal, expected behavior, invariants, risk surface
-- [ ] 3. Route     — pick reviewers based on the risk map (correctness/convention/tests always)
+- [ ] 1. Ingest    — scope, changed files, untracked check, worktree-clean check, read each file fully, load matching rules
+- [ ] 2. Intent    — infer change type, goal, expected behavior, invariants, risk surface; grep workspace/lessons.md for past incidents
+- [ ] 3. Route     — pick reviewers based on the risk map (correctness/convention/tests/maintainability always)
 - [ ] 4. Review    — spawn selected reviewers AND run build+lint in parallel
-- [ ] 5. Normalize — dedupe and merge overlapping findings; preserve provenance
+- [ ] 5. Normalize — validate, confidence-gate (0.60 / P0@0.50), fingerprint dedup, agreement boost, disagreement preservation, pre-existing partition
 - [ ] 6. Critique  — reject speculative/stylistic/misread findings; log reasons
-- [ ] 7. Compose   — rank by severity × confidence × blast radius; write the report with Verify result
+- [ ] 7. Compose   — group by priority tier; render tables with Route column; pre-existing in its own section; format-verification self-check
 - [ ] 8. Tickets   — file blockers/should-fix via generate-issue-tickets
-- [ ] 9. Offer fixes
+- [ ] 9. Offer fixes — only `safe_auto → review-fixer` items qualify for in-skill auto-apply
 ```
 
 ### Phase 1 — Ingest
 
 Determine scope and build the review packet. Read files in full; context lives outside the hunks.
 
-| Input       | Command                    |
-| ----------- | -------------------------- |
-| No arg      | `git diff main...HEAD`     |
-| `--staged`  | `git diff --staged`        |
-| Branch name | `git diff main...<branch>` |
-| File or dir | `git diff main -- <path>`  |
+| Input          | Command                                                                                |
+| -------------- | -------------------------------------------------------------------------------------- |
+| No arg         | `git diff main...HEAD`                                                                 |
+| `--staged`     | `git diff --staged`                                                                    |
+| Branch name    | `git diff main...<branch>`                                                             |
+| File or dir    | `git diff main -- <path>`                                                              |
+| `--base <ref>` | `BASE=$(git merge-base HEAD <ref>) \|\| BASE=<ref>; git diff $BASE` — fast-path for skill-to-skill callers that already know the base. Skip merge-base detection. Do not combine with branch arg. |
+
+**Pre-flight checks** before computing the diff (run in this order):
+
+1. **Worktree-clean check.** Run `git status --porcelain`. If non-empty AND the chosen scope requires a branch switch, stop and tell the user to stash or commit first. Do not auto-stash. If the scope is `--staged` or no-arg on the current branch, dirty tree is fine — proceed.
+2. **Untracked-file inspection.** Always run `git ls-files --others --exclude-standard`. If non-empty, list the excluded files in the report's Coverage section so the user knows what was outside scope. If any of them clearly belong in the review, stop and tell the user to `git add` them first; only continue when the user is intentionally reviewing tracked changes only.
 
 **Rule mapping** — load only the rule files relevant to the diff. Every loaded rule costs tokens.
 
@@ -72,38 +78,57 @@ Fill internally (will surface in the report header):
 - **invariants**: properties that must hold (e.g. "lock always released in finally", "auth required on write")
 - **risk_surface**: which boundaries this touches (state, concurrency, auth, schema, rendering, public API)
 
+**Past incidents.** Before spawning reviewers, grep `workspace/lessons.md` for keywords from the diff (filenames, function names, the change summary). Pick the top 3 most relevant entries. Pass them to each reviewer as a `<past-incidents>` block in the prompt. Skip if the file is missing or no keywords match — this is additive context, not a hard requirement. Promotes the existing dev-process habit ("after any correction, update workspace/lessons.md") into a first-class review input so repeated mistakes get caught early.
+
 ### Phase 3 — Risk route
 
-Pick which specialist reviewer agents to spawn. Seven specialists live in `.claude/agents/code-review/` — three run on every review, four are routed by the risk map from Phase 2.
+Pick which specialist reviewer agents to spawn. Ten specialists live in `.claude/agents/code-review/` — four run on every review, six are routed by the risk map from Phase 2.
 
-| When                                                                                                                                                                                                                       | Agent                        |
-| -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
-| **Always**                                                                                                                                                                                                                 | `code-review-correctness`    |
-| **Always**                                                                                                                                                                                                                 | `code-review-convention`     |
-| **Always**                                                                                                                                                                                                                 | `code-review-tests`          |
-| locks, async state, streaming, queues, retries, cancellation, shared mutable state (module vars, refs, caches, datastore docs read-then-written), check-then-act shapes, idempotency surfaces, effect ordering assumptions | `code-review-concurrency`    |
-| auth, permissions, trust boundaries, user input, secrets                                                                                                                                                                   | `code-review-security`       |
-| hot paths, render loops, N+1 access, large lists, database reads                                                                                                                                                           | `code-review-performance`    |
-| schema, migrations, data shape changes, schema validators                                                                                                                                                                  | `code-review-data-integrity` |
+| When | Agent |
+| ---- | ----- |
+| **Always** | `code-review-correctness` |
+| **Always** | `code-review-convention` |
+| **Always** | `code-review-tests` |
+| **Always** | `code-review-maintainability` |
+| locks, async state, streaming, queues, retries, cancellation, shared mutable state (module vars, refs, caches, datastore docs read-then-written), check-then-act shapes, idempotency surfaces, effect ordering assumptions | `code-review-concurrency` |
+| auth, permissions, trust boundaries, user input, secrets | `code-review-security` |
+| hot paths, render loops, N+1 access, large lists, database reads | `code-review-performance` |
+| schema, migrations, data shape changes, schema validators | `code-review-data-integrity` |
+| error handling, retries, timeouts, background jobs, external API calls, async work whose failure mode (vs. race) matters | `code-review-reliability` |
+| PR mode only — `gh pr view` returned review threads on this PR | `code-review-previous-comments` |
 
-Typical subset on a real PR: 3–5 agents total, cap at 5. Every agent spawn is tokens and wall-clock.
+Typical subset on a real PR: 4–7 agents total, cap at 8. Every agent spawn is tokens and wall-clock — do not route a conditional reviewer "just in case." If the diff has zero auth surface, do not spawn `code-review-security`.
+
+**Lane discipline.** Concurrency owns "what happens when two actors race"; reliability owns "what happens when one call fails." If you find yourself routing both, that's correct only when the diff has both surfaces — otherwise pick the one that matches the actual risk.
 
 ## Finding schema
 
 Cross-cutting contract used by every reviewer in Phase 4 and by Normalize, Critique, and Compose downstream. Every candidate finding fills:
 
 ```
-id:          short slug
-reviewer:    correctness | convention | tests | concurrency | security | performance | data | api
-title:       one-line (must name the concrete failure mode or risk)
-location:    file:startLine-endLine
-priority:    P0 | P1 | P2 | P3
-confidence:  0.0–1.0
-observation: what the code actually does
-risk:        the concrete failure mode or broken invariant (REQUIRED)
-evidence:    quoted lines, rule reference, or prior incident
-suggestedFix: one sentence
+id:                    short slug
+reviewer:              correctness | convention | tests | maintainability | concurrency | security | performance | data | reliability | previous-comments
+title:                 one-line (must name the concrete failure mode or risk)
+location:              file:startLine-endLine
+priority:              P0 | P1 | P2 | P3
+confidence:            0.0–1.0
+observation:           what the code actually does
+risk:                  the concrete failure mode or broken invariant (REQUIRED)
+evidence:              quoted lines, rule reference, or prior incident
+suggestedFix:          one sentence
+autofix_class:         safe_auto | gated_auto | manual | advisory
+owner:                 review-fixer | downstream-resolver | human | release
+requires_verification: boolean — true means a fix is incomplete without a targeted regression test or operational check
+pre_existing:          boolean — true means the diff did not introduce this; the change touched the area but the smell predates it
 ```
+
+`priority` answers **urgency** (must-fix-before-merge, should-fix, nit). `autofix_class` + `owner` answer **who acts next** and **whether this skill may mutate the checkout**. The two axes are independent — a `P3` finding can still be `safe_auto` (a trivial mechanical fix) and a `P0` finding is almost always `manual` (security, concurrency, schema decisions need a human).
+
+Routing rules enforced in Phase 5:
+- Most-conservative route wins on disagreement. A merged finding may move from `safe_auto` to `gated_auto` or `manual`, but never the other way without new evidence.
+- Only `safe_auto → review-fixer` enters an in-skill fixer queue automatically.
+- `requires_verification: true` means a fix is not complete without a targeted test, a focused re-review, or operational validation.
+- `pre_existing: true` findings inform but do not block; they go in their own report section and do not count toward the verdict.
 
 A finding with no `risk` is dropped by the Critic. Nits can skip `suggestedFix` but still need `risk`.
 
@@ -116,7 +141,9 @@ Each reviewer prompt must include:
 1. **Scope** — the diff range, branch name, or path being reviewed.
 2. **Changed files** — paths and line ranges.
 3. **Intent packet** from Phase 2 verbatim: `change_type`, `goal`, `expected_behavior[]`, `invariants[]`, `risk_surface[]`.
-4. **Instruction to return findings as a JSON array** in the shared finding schema. Clean diffs return `[]` plus a one-line summary — do not invent findings.
+4. **`<past-incidents>` block** — top 3 hits from `workspace/lessons.md` (skip if none).
+5. **PR metadata** (`previous-comments` reviewer only): `<pr-context>` block with PR number, owner, repo, and review-thread API endpoint.
+6. **Instruction to return findings as a JSON array** in the shared finding schema, including `priority`, `autofix_class`, `owner`, `requires_verification`, and `pre_existing`. Clean diffs return `[]` plus a one-line summary — do not invent findings.
 
 Example orchestration (one message, parallel tool calls):
 
@@ -133,9 +160,16 @@ Reviewer agent definitions live in `.claude/agents/code-review/` — each has it
 
 ### Phase 5 — Normalize
 
-Merge overlapping findings from different reviewers into one canonical finding. Example: Correctness says "cleanup skipped on early return" and Concurrency says "lock may remain stuck" — these become one high-confidence finding with both reviewers as supporting provenance.
+Convert raw reviewer outputs into one deduplicated, confidence-gated finding set. Six steps, in order:
 
-Dedupe by `location` + `risk` similarity. Sum confidence conservatively (cap at 0.98).
+1. **Validate.** Drop findings that fail the schema (missing `risk`, missing `priority`, missing `autofix_class`, etc.). Record the drop count for the Coverage footer.
+2. **Confidence gate.** Suppress findings below `0.60` confidence. Exception: P0 findings at `0.50+` survive — critical-but-uncertain issues must not be silently dropped. Record the suppressed count.
+3. **Fingerprint dedup.** Compute a fingerprint per finding: `normalize(file) + line_bucket(line, ±3) + normalize(title)`. When fingerprints match across reviewers, merge into one canonical finding — keep the highest priority, keep the highest confidence with strongest evidence, union the evidence array, and list every contributing reviewer in the finding's provenance.
+4. **Cross-reviewer agreement boost.** When 2+ independent reviewers fingerprint the same issue, boost the merged confidence by `+0.10` (capped at `0.98`). Independent convergence is stronger signal than any single reviewer's confidence.
+5. **Disagreement preservation.** When reviewers flag the same fingerprint but disagree on `priority` or `autofix_class`, keep the most severe priority and the most conservative `autofix_class` (never widen `manual` → `safe_auto` without new evidence). Record the disagreement in the finding's evidence array (e.g. `"security rated P0, correctness rated P1 — kept P0"`) so the user can challenge the merge.
+6. **Pre-existing partition.** Move every finding with `pre_existing: true` into a separate list. Pre-existing findings inform but do not block — they appear in their own report section and do not count toward the verdict.
+
+Output: two finding lists — `findings` (this-PR-introduced) and `pre_existing`, both sorted by priority → confidence → file → line.
 
 ### Phase 6 — Critique (mandatory quality gate)
 
@@ -154,16 +188,29 @@ Reject findings that fail any check. **Log each rejection with a one-line reason
 
 ### Phase 7 — Rank + compose
 
-Rank surviving findings by `severity × confidence × blast_radius` into four priority tiers:
+Findings carry their priority directly (`P0`/`P1`/`P2`/`P3`). Within each tier, order by `confidence` desc → `file` → `line`. Tier definitions:
 
 | Tier   | Label    | Maps to                                                                                |
 | ------ | -------- | -------------------------------------------------------------------------------------- |
-| **P0** | Critical | Correctness, data loss, auth bypass, concurrency — must fix before merge               |
-| **P1** | High     | Architecture violations, performance with real impact, missing tests on risky behavior |
-| **P2** | Moderate | Design smells, missed simplifications, minor test gaps                                 |
+| **P0** | Critical | Correctness, data loss, auth bypass, concurrency, schema integrity — must fix before merge |
+| **P1** | High     | Architecture violations, performance with real impact, missing tests on risky behavior, unaddressed substantive PR feedback |
+| **P2** | Moderate | Design smells, missed simplifications, minor test gaps, unaddressed style PR feedback |
 | **P3** | Low      | Nits, style, readability — advisory only                                               |
 
-Compose the report (template below). Rules: every finding has a `file:line` anchor in backticks (no vague "in the auth module"); use pipe-delimited markdown tables, never ASCII box-drawing; omit empty priority sections; if the whole change is clean, say so in one sentence — don't invent findings; the Phase 4 build/lint result goes in the `Verified:` header line; always end with Summary table and Recommended next step; if lint caught something, cite lint output instead of re-listing it as a finding.
+Compose the report (template below). Rules:
+
+- Every finding has a `file:line` anchor in backticks (no vague "in the auth module").
+- Use pipe-delimited markdown tables, never ASCII box-drawing or freeform prose.
+- Omit empty priority sections.
+- If the whole change is clean, say so in one sentence — don't invent findings.
+- The Phase 4 build/lint result goes in the `Verified:` header line.
+- Always end with Summary table and Recommended next step.
+- If lint caught something, cite lint output instead of re-listing it as a finding.
+- **Pre-existing findings** go in their own section AFTER the Pn tiers and AFTER "Looks good"; they have their own row in the Summary table and do NOT count toward the verdict tiers.
+- **Disagreement** among reviewers on the same finding stays visible in the finding's evidence (the merged record from Phase 5 step 5).
+- The findings table includes a `Route` column showing the `autofix_class` (`safe` / `gated` / `manual` / `advisory`) so the user can see at a glance which findings the skill could auto-fix vs. which need owner judgment.
+
+**Format verification self-check** (mandatory before delivering): re-read the report and confirm findings rendered as pipe-delimited table rows (`| # | File | Issue | ... |`), not as freeform prose blocks separated by horizontal rules. If you catch yourself using prose, stop and reformat into tables.
 
 ### Phase 8 — Tickets
 
@@ -188,9 +235,9 @@ End with: _"Want me to apply the blockers / should-fix items?"_ Do not fix preem
 
 ### P0 — Critical (<count>)
 
-| #   | File                  | Issue                           | Reviewer   | Confidence |
-| --- | --------------------- | ------------------------------- | ---------- | ---------- |
-| 1   | `path/to/file.tsx:42` | <title — concrete failure mode> | <reviewer> | 0.XX       |
+| #   | File                  | Issue                           | Reviewer(s)       | Route     | Confidence |
+| --- | --------------------- | ------------------------------- | ----------------- | --------- | ---------- |
+| 1   | `path/to/file.tsx:42` | <title — concrete failure mode> | <reviewer list>   | manual    | 0.XX       |
 
 ### P1 — High (<count>)
 
@@ -198,11 +245,19 @@ End with: _"Want me to apply the blockers / should-fix items?"_ Do not fix preem
 
 ### P3 — Low (<count>)
 
-(same table shape; omit empty sections)
+(same table shape; omit empty sections; `Route` shows `safe` / `gated` / `manual` / `advisory`)
 
 ### Looks good
 
 - <one-line positive callout, if any>
+
+### Pre-existing (<count>)
+
+| #   | File                  | Issue                           | Reviewer(s)       | Priority | Confidence |
+| --- | --------------------- | ------------------------------- | ----------------- | -------- | ---------- |
+| 1   | `path/to/file.tsx:88` | <title>                         | <reviewer list>   | P2       | 0.XX       |
+
+These predate this diff. They do not count toward the verdict but are surfaced for awareness.
 
 ### Filtered by critic (<count>)
 
@@ -210,13 +265,14 @@ End with: _"Want me to apply the blockers / should-fix items?"_ Do not fix preem
 
 ### Summary
 
-| Priority    | Count |
-| ----------- | ----- |
-| P0 Critical | N     |
-| P1 High     | N     |
-| P2 Moderate | N     |
-| P3 Low      | N     |
-| **Total**   | **N** |
+| Priority                       | Count |
+| ------------------------------ | ----- |
+| P0 Critical                    | N     |
+| P1 High                        | N     |
+| P2 Moderate                    | N     |
+| P3 Low                         | N     |
+| **Total (this PR)**            | **N** |
+| Pre-existing (informational)   | N     |
 
 ### Recommended next step
 
@@ -238,15 +294,15 @@ Want me to apply fixes for the P0/P1 items?
 **Intent:** Prevent the streaming lock from remaining stuck when a request is cancelled mid-stream
 **Verified:** build ✓ lint ✓
 
-**Reviewers:** correctness, convention, tests, concurrency
+**Reviewers:** correctness, convention, tests, maintainability, concurrency
 
 - concurrency -- lock lifecycle and cleanup paths in streaming code
 
 ### P0 — Critical (1)
 
-| #   | File                                     | Issue                                                                                                                 | Reviewer                 | Confidence |
-| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------ | ---------- |
-| 1   | `packages/convex/chat/stream.ts:118-131` | Cleanup skipped on early return — `streamingInProgress` stays set after cancellation, blocking all subsequent streams | concurrency, correctness | 0.95       |
+| #   | File                                     | Issue                                                                                                                 | Reviewer(s)              | Route  | Confidence |
+| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------ | ---------- |
+| 1   | `packages/convex/chat/stream.ts:118-131` | Cleanup skipped on early return — `streamingInProgress` stays set after cancellation, blocking all subsequent streams | concurrency, correctness | manual | 0.95       |
 
 ### Filtered by critic (1)
 
@@ -254,10 +310,11 @@ Want me to apply fixes for the P0/P1 items?
 
 ### Summary
 
-| Priority    | Count |
-| ----------- | ----- |
-| P0 Critical | 1     |
-| **Total**   | **1** |
+| Priority                     | Count |
+| ---------------------------- | ----- |
+| P0 Critical                  | 1     |
+| **Total (this PR)**          | **1** |
+| Pre-existing (informational) | 0     |
 
 ### Recommended next step
 

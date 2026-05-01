@@ -14,7 +14,7 @@ Ask, for every changed file:
 - **File placement** matches `.claude/rules/file-organization.md`? (`components/` not `views/` in apps; `views/` only for cross-app packages.)
 - **Naming**: `-connector.tsx` used only for context-reading shims with no markup?
 - **Imports** use `@feel-good/*` paths, not deep relative traversal across package boundaries?
-- **Removed patterns** not re-introduced? (`useMountedRef`, `views/` in apps, `setTimeout` for visual timing — see `MEMORY.md` and `.claude/rules/*`.)
+- **Removed patterns** not re-introduced? (`useMountedRef`, `views/` in apps, `setTimeout` for visual timing — see `workspace/lessons.md` and `.claude/rules/*`.)
 - **AGENTS.md core principles** held? No speculative abstraction, feature flags, backwards-compat shims for hypothetical needs, error handling for impossible states, unrequested refactors bundled with a bug fix, `what`-comments.
 - **API contract**: exported prop/type changes semver-compatible within the package? Default behavior preserved when a new option is added?
 - **Convex** (if touched): no hyphens in filenames; triggers wired via BOTH `triggers` and `authFunctions` in `createClient`; `pnpm exec convex codegen` ran after schema changes.
@@ -40,14 +40,24 @@ Return a JSON array of findings. Every finding MUST fill:
   "reviewer": "convention",
   "title": "one line",
   "location": "path/to/file.ts:startLine-endLine",
-  "severity": "low | medium | high | critical",
+  "priority": "P0 | P1 | P2 | P3",
   "confidence": 0.0,
   "observation": "what the code actually does, 1–2 sentences",
   "risk": "the concrete rule violated OR failure mode it enables — REQUIRED",
-  "evidence": ["quoted line", ".claude/rules/xyz.md reference", "AGENTS.md reference"],
-  "suggestedFix": "one-sentence direction"
+  "evidence": ["quoted line", ".claude/rules/xyz.md reference", "AGENTS.md reference", "workspace/lessons.md reference"],
+  "suggestedFix": "one-sentence direction",
+  "autofix_class": "safe_auto | gated_auto | manual | advisory",
+  "owner": "review-fixer | downstream-resolver | human | release",
+  "requires_verification": false,
+  "pre_existing": false
 }
 ```
+
+**Routing defaults for this reviewer:**
+- Naming, import path, file placement (renames, moves) → `safe_auto` / `review-fixer` when the surface is internal.
+- Public API contract drift, exported type changes, semver-breaking surface → `gated_auto` / `downstream-resolver`. Behavior-changing renames need an owner decision.
+- Architectural rule violations (re-introducing a removed pattern, speculative abstraction) → `manual` / `downstream-resolver`.
+- Convex codegen freshness → `safe_auto` (run `pnpm exec convex codegen`).
 
 **Hard rule:** every finding must cite a concrete rule, past incident, or exported API contract. "I would name this differently" is not a finding — drop it yourself.
 
