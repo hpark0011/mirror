@@ -14,7 +14,6 @@ import { BioTextFields } from "./bio-form-fields/bio-text-fields";
 
 type BioEntryFormProps = {
   defaultValues: BioEntryFormValues;
-  isSubmitting: boolean;
   submitLabel: string;
   onSubmit: (values: BioEntryFormValues) => void | Promise<void>;
   onCancel?: () => void;
@@ -22,7 +21,6 @@ type BioEntryFormProps = {
 
 export function BioEntryForm({
   defaultValues,
-  isSubmitting,
   submitLabel,
   onSubmit,
   onCancel,
@@ -61,9 +59,7 @@ export function BioEntryForm({
               Cancel
             </Button>
           ) : null}
-          <Button type="submit" disabled={isSubmitting}>
-            {isSubmitting ? "Saving..." : submitLabel}
-          </Button>
+          <Button type="submit">{submitLabel}</Button>
         </div>
       </form>
     </Form>

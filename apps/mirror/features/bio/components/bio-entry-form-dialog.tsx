@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Dialog,
   DialogBody,
@@ -44,16 +43,6 @@ function getDefaultValues(entry?: BioEntry): BioEntryFormValues {
 
 export function BioEntryFormDialog(props: BioEntryFormDialogProps) {
   const { open, mode, entry, onOpenChange, onSubmit } = props;
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  async function handleSubmit(values: BioEntryFormValues) {
-    setIsSubmitting(true);
-    try {
-      await onSubmit(values);
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
 
   const title = mode === "create" ? "Add bio entry" : "Edit bio entry";
   const description =
@@ -74,9 +63,8 @@ export function BioEntryFormDialog(props: BioEntryFormDialogProps) {
             // Re-mount the form when switching between entries so RHF resets.
             key={entry?._id ?? "new"}
             defaultValues={getDefaultValues(entry)}
-            isSubmitting={isSubmitting}
             submitLabel={submitLabel}
-            onSubmit={handleSubmit}
+            onSubmit={onSubmit}
             onCancel={() => onOpenChange(false)}
           />
         </DialogBody>
