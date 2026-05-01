@@ -24,7 +24,7 @@ type PostDetailProps = {
 
 export function PostDetail({ post }: PostDetailProps) {
   return (
-    <div className="px-4.5 py-8 flex">
+    <div className="px-4.5 py-10 flex">
       <article className="mx-auto w-full flex gap-20">
         <div className="pt-1">
           <PostMetadata post={post} />

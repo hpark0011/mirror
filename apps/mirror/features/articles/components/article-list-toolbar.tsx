@@ -13,7 +13,11 @@ import {
 } from "@feel-good/ui/primitives/tooltip";
 import { cn } from "@feel-good/utils/cn";
 import { useState } from "react";
-import type { SortOrder, UseContentSearchReturn } from "@/features/content";
+import {
+  ContentToolbarShell,
+  type SortOrder,
+  type UseContentSearchReturn,
+} from "@/features/content";
 import type { UseArticleFilterReturn } from "../hooks/use-article-filter";
 import type { ArticleSummary } from "../types";
 import { ArticleFilterDropdown } from "./article-filter-dropdown";
@@ -46,7 +50,7 @@ export function ArticleListToolbar({
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
   return (
-    <div className="flex pb-2 items-center gap-3 px-4.5 justify-end bg-background relative border-b border-border-subtle">
+    <ContentToolbarShell>
       <div className="flex items-center justify-end w-full gap-3">
         {isOwner && (
           <div className="flex items-center">
@@ -125,6 +129,6 @@ export function ArticleListToolbar({
           )}
         </div>
       </div>
-    </div>
+    </ContentToolbarShell>
   );
 }

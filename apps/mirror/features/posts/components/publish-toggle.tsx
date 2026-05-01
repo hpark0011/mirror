@@ -46,7 +46,7 @@ export function PublishToggle({
   return (
     <AlertDialog open={dialogOpen} onOpenChange={onOpenChange}>
       <AlertDialogTrigger asChild>
-        <Button variant="outline" size="sm">
+        <Button variant="outline" size="xs">
           {buttonLabel}
         </Button>
       </AlertDialogTrigger>
