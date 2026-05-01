@@ -1,5 +1,5 @@
 ---
-name: reviewing-code
+name: review-code
 argument-hint: "[path | branch | --staged]"
 description: Reviews pending code changes in this monorepo against AGENTS.md and .claude/rules/, producing a prioritized findings report. Use when the user says "review this code", "code review", "review my changes", "check this before I commit", or asks for feedback on a diff, branch, or file. Distinct from review-pr (fetches GitHub PR comments) and security-review (threat-model focused).
 ---

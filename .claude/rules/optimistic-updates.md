@@ -61,6 +61,71 @@ Reference: `apps/mirror/features/bio/hooks/use-bio-entries.ts`.
    optimistic insert briefly exceed the cap; Convex auto-rolls-back when
    the mutation throws and the toast surfaces the message.
 
+## Preconditions are reactive queries, not error responses
+
+Optimistic UI only feels right when the success path is the only path
+the user can reach. Any server-side rejection that is **predictable
+from current query state** MUST be lifted into UI gating — disable or
+hide the affordance before the user can try.
+
+This applies to soft caps ("max 50 entries"), ownership checks
+("only the author can edit"), state-machine guards ("can't publish a
+draft without a title"), and any other condition derivable from data
+the screen already subscribes to.
+
+**Pattern**
+
+1. The hook that returns the underlying query data ALSO returns a
+   `canDoX: boolean` (or a `disabledReason: string | null`) derived
+   from that same query result. Don't allocate a separate hook /
+   second query for this — keep the precondition next to the data.
+2. The affordance (button, menu item, drag handle) reads the boolean
+   and disables/hides itself with a tooltip explaining why. The user
+   can never reach the form/submit path when the precondition fails.
+3. The mutation handler doesn't repeat the check — the form was
+   unreachable, and the server is still the trust boundary anyway.
+4. Server validators stay in place unchanged. They are the **trust
+   boundary**, not the UX layer — they defend against malformed,
+   malicious, or stale-tab calls. The toast catch-all in the mutation
+   handler covers those exceptional escapes.
+
+**Example shape:**
+
+```ts
+// Hook
+export function useBioEntries() {
+  const entries = usePreloadedQuery(...);
+  return {
+    entries,
+    canCreateEntry: entries.length < MAX_BIO_ENTRIES,
+    // ... mutations
+  };
+}
+
+// Component
+<BioAddEntryButton
+  onClick={openCreate}
+  disabled={!canCreateEntry}
+  disabledReason={
+    !canCreateEntry
+      ? `Bio entry limit reached (${MAX_BIO_ENTRIES}). Delete an entry to add another.`
+      : undefined
+  }
+/>
+```
+
+**Anti-pattern: the form as recovery surface.** Don't accept a
+predictable failure on submit and then engineer "save the user's input
+and re-open the dialog with an inline error." That recovery code is
+the smell — the form should never have been reachable. It also
+fragments the UX (some validation inline in the form, some after-submit
+in a banner) for no benefit.
+
+**What stays in the toast:** genuinely exceptional rejections —
+network drops, auth races, two-tab edits-after-delete. These can't be
+prevented by query-derived gating, are rare, and are not worth
+designing form-state recovery for.
+
 ## Submit-flow UX
 
 The point of optimism isn't just "list updates fast" — it's that the

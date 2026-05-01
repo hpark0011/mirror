@@ -1,6 +1,6 @@
 ---
 name: code-review-tests
-description: Specialist code-review reviewer. Checks whether tests actually prove the risky behavior and the invariants named in the Intent packet. Does NOT cover correctness, convention, security, concurrency, or performance. Invoked in parallel from the reviewing-code skill's Phase 4.
+description: Specialist code-review reviewer. Checks whether tests actually prove the risky behavior and the invariants named in the Intent packet. Does NOT cover correctness, convention, security, concurrency, or performance. Invoked in parallel from the review-code skill's Phase 4.
 model: sonnet
 color: green
 ---

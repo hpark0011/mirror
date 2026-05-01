@@ -7,11 +7,12 @@ import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { useBioWorkspace } from "../context/bio-workspace-context";
 import { type BioEntry } from "../types";
 
-// Mirrors the server-side ordering/cap at
-// packages/convex/convex/bio/queries.ts:49-56 and
-// packages/convex/convex/bio/mutations.ts:17 so optimistic create/update
-// place rows at their eventual sorted position.
-const MAX_OPTIMISTIC_ENTRIES = 50;
+// Mirrors the server-side cap at packages/convex/convex/bio/mutations.ts:17
+// and the public query slice at packages/convex/convex/bio/queries.ts:6.
+// Used both as the optimistic-update sort cap AND as the source of the
+// `canCreateEntry` precondition exposed below — see
+// .claude/rules/optimistic-updates.md "Preconditions" section.
+export const MAX_BIO_ENTRIES = 50;
 
 function sortAndCap<T extends { startDate: number; _creationTime: number }>(
   entries: ReadonlyArray<T>,
@@ -20,7 +21,7 @@ function sortAndCap<T extends { startDate: number; _creationTime: number }>(
     if (a.startDate !== b.startDate) return b.startDate - a.startDate;
     return b._creationTime - a._creationTime;
   });
-  return sorted.slice(0, MAX_OPTIMISTIC_ENTRIES);
+  return sorted.slice(0, MAX_BIO_ENTRIES);
 }
 
 /**
@@ -39,6 +40,13 @@ function sortAndCap<T extends { startDate: number; _creationTime: number }>(
 export function useBioEntries(): {
   entries: ReadonlyArray<BioEntry>;
   username: string;
+  /**
+   * Reactive precondition derived from the same query the panel reads —
+   * gates the "Add bio entry" affordance so the user can't reach a
+   * submission that the server's soft cap would reject. See
+   * .claude/rules/optimistic-updates.md "Preconditions".
+   */
+  canCreateEntry: boolean;
   createEntry: ReturnType<typeof useMutation<typeof api.bio.mutations.create>>;
   updateEntry: ReturnType<typeof useMutation<typeof api.bio.mutations.update>>;
   removeEntry: ReturnType<typeof useMutation<typeof api.bio.mutations.remove>>;
@@ -145,5 +153,14 @@ export function useBioEntries(): {
     [removeMutation, username],
   );
 
-  return { entries, username, createEntry, updateEntry, removeEntry };
+  const canCreateEntry = entries.length < MAX_BIO_ENTRIES;
+
+  return {
+    entries,
+    username,
+    canCreateEntry,
+    createEntry,
+    updateEntry,
+    removeEntry,
+  };
 }

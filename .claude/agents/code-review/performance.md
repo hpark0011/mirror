@@ -1,6 +1,6 @@
 ---
 name: code-review-performance
-description: Specialist code-review reviewer. Looks only for avoidable cost and bad scaling — N+1 access, render loops, expensive work in hot paths, unbounded reads, useEffect-syncing-into-state. Routed by the reviewing-code skill when the diff touches hot paths, large lists, Convex reads, or rendering. Does NOT cover correctness, style, tests, security, or concurrency.
+description: Specialist code-review reviewer. Looks only for avoidable cost and bad scaling — N+1 access, render loops, expensive work in hot paths, unbounded reads, useEffect-syncing-into-state. Routed by the review-code skill when the diff touches hot paths, large lists, Convex reads, or rendering. Does NOT cover correctness, style, tests, security, or concurrency.
 model: sonnet
 color: blue
 ---

@@ -2,6 +2,7 @@
 
 import { useIsProfileOwner } from "@/features/profile";
 import { useBioPanelHandlers } from "../hooks/use-bio-panel-handlers";
+import { MAX_BIO_ENTRIES } from "../hooks/use-bio-entries";
 import { BioEntryList } from "./bio-entry-list";
 import { BioAddEntryButton } from "./bio-add-entry-button";
 import { BioEntryFormDialog } from "./bio-entry-form-dialog";
@@ -10,6 +11,7 @@ export function BioPanel() {
   const isOwner = useIsProfileOwner();
   const {
     entries,
+    canCreateEntry,
     dialog,
     openCreate,
     openEdit,
@@ -17,6 +19,11 @@ export function BioPanel() {
     handleDelete,
     handleSubmit,
   } = useBioPanelHandlers();
+
+  const addDisabled = !canCreateEntry;
+  const addDisabledReason = addDisabled
+    ? `Bio entry limit reached (${MAX_BIO_ENTRIES}). Delete an entry to add another.`
+    : undefined;
 
   return (
     <div data-testid="bio-panel" className="flex flex-col gap-4 p-4">
@@ -27,7 +34,13 @@ export function BioPanel() {
             Work and education history.
           </p>
         </div>
-        {isOwner ? <BioAddEntryButton onClick={openCreate} /> : null}
+        {isOwner ? (
+          <BioAddEntryButton
+            onClick={openCreate}
+            disabled={addDisabled}
+            disabledReason={addDisabledReason}
+          />
+        ) : null}
       </header>
 
       <BioEntryList
@@ -37,7 +50,11 @@ export function BioPanel() {
         onDelete={handleDelete}
         ownerEmptyAction={
           isOwner ? (
-            <BioAddEntryButton onClick={openCreate}>
+            <BioAddEntryButton
+              onClick={openCreate}
+              disabled={addDisabled}
+              disabledReason={addDisabledReason}
+            >
               Add your first entry
             </BioAddEntryButton>
           ) : undefined

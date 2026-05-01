@@ -1,6 +1,6 @@
 ---
 name: code-review-concurrency
-description: Specialist code-review reviewer. Looks only for concurrency, race-condition, state-cleanup, and ordering bugs — lock lifecycle, stale callbacks, check-then-act / TOCTOU, stale-read-across-await, identity-after-await, retry & idempotency safety, partial state transitions, and ordering assumptions between independent actors over shared mutable state. Routed by the reviewing-code skill when the diff touches locks, async state, streaming, queues, retries, cancellation, shared mutable state (module vars, refs, caches, Convex documents read-then-written), idempotency surfaces (webhooks, form submits, optimistic updates), or effects with ordering assumptions. Does NOT cover general correctness, style, tests, security, or performance.
+description: Specialist code-review reviewer. Looks only for concurrency, race-condition, state-cleanup, and ordering bugs — lock lifecycle, stale callbacks, check-then-act / TOCTOU, stale-read-across-await, identity-after-await, retry & idempotency safety, partial state transitions, and ordering assumptions between independent actors over shared mutable state. Routed by the review-code skill when the diff touches locks, async state, streaming, queues, retries, cancellation, shared mutable state (module vars, refs, caches, Convex documents read-then-written), idempotency surfaces (webhooks, form submits, optimistic updates), or effects with ordering assumptions. Does NOT cover general correctness, style, tests, security, or performance.
 model: sonnet
 color: orange
 ---

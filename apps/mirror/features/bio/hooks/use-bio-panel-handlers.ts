@@ -24,7 +24,8 @@ export type BioDialogState =
  * closes, so server errors here are rare (e.g. 50-entry soft cap).
  */
 export function useBioPanelHandlers() {
-  const { entries, createEntry, updateEntry, removeEntry } = useBioEntries();
+  const { entries, canCreateEntry, createEntry, updateEntry, removeEntry } =
+    useBioEntries();
   const [dialog, setDialog] = useState<BioDialogState>({ open: false });
 
   const openCreate = useCallback(() => {
@@ -73,6 +74,7 @@ export function useBioPanelHandlers() {
 
   return {
     entries,
+    canCreateEntry,
     dialog,
     openCreate,
     openEdit,

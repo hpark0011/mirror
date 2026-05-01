@@ -1,6 +1,6 @@
 ---
 name: code-review-security
-description: Specialist code-review reviewer. Looks only for auth bypasses, missing authorization, trust-boundary violations, input sanitization at boundaries, and secret leakage. Routed by the reviewing-code skill when the diff touches auth, permissions, user input, or secrets. Does NOT do full threat modeling (use security-review skill for that) or cover correctness, style, tests, concurrency, or performance.
+description: Specialist code-review reviewer. Looks only for auth bypasses, missing authorization, trust-boundary violations, input sanitization at boundaries, and secret leakage. Routed by the review-code skill when the diff touches auth, permissions, user input, or secrets. Does NOT do full threat modeling (use security-review skill for that) or cover correctness, style, tests, concurrency, or performance.
 model: sonnet
 color: red
 ---

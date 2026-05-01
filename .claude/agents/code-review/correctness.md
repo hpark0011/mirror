@@ -1,6 +1,6 @@
 ---
 name: code-review-correctness
-description: Specialist code-review reviewer. Looks only for correctness bugs — logic errors, null/undefined, off-by-one, missing cleanup, boundary inputs, accidental breaking changes. Does NOT cover style, tests, security, concurrency, or performance — other specialist agents handle those. Invoked in parallel from the reviewing-code skill's Phase 4.
+description: Specialist code-review reviewer. Looks only for correctness bugs — logic errors, null/undefined, off-by-one, missing cleanup, boundary inputs, accidental breaking changes. Does NOT cover style, tests, security, concurrency, or performance — other specialist agents handle those. Invoked in parallel from the review-code skill's Phase 4.
 model: sonnet
 color: red
 ---

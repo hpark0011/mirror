@@ -1,6 +1,6 @@
 ---
 name: code-review-previous-comments
-description: Specialist code-review reviewer. Checks whether prior PR review feedback has actually been addressed in the latest commits. PR-mode only — the orchestrator must not spawn this reviewer on standalone branch reviews with no associated PR. Routed by reviewing-code when `gh pr view` returns review threads. Does NOT cover correctness, convention, tests, or any other dimension — only "did the author address what reviewers asked for?"
+description: Specialist code-review reviewer. Checks whether prior PR review feedback has actually been addressed in the latest commits. PR-mode only — the orchestrator must not spawn this reviewer on standalone branch reviews with no associated PR. Routed by review-code when `gh pr view` returns review threads. Does NOT cover correctness, convention, tests, or any other dimension — only "did the author address what reviewers asked for?"
 model: sonnet
 color: yellow
 ---

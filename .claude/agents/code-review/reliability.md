@@ -1,6 +1,6 @@
 ---
 name: code-review-reliability
-description: Specialist code-review reviewer. Looks only for error propagation, retry / timeout / circuit-breaker shape, partial-failure recovery, and background-job durability — the production-failure-mode lens that sits next to but not on top of the concurrency reviewer. Routed by reviewing-code when the diff touches error handling, retries, timeouts, health checks, background jobs, or external API calls. Does NOT cover concurrency races (concurrency agent), correctness logic (correctness agent), security, performance, or data integrity.
+description: Specialist code-review reviewer. Looks only for error propagation, retry / timeout / circuit-breaker shape, partial-failure recovery, and background-job durability — the production-failure-mode lens that sits next to but not on top of the concurrency reviewer. Routed by review-code when the diff touches error handling, retries, timeouts, health checks, background jobs, or external API calls. Does NOT cover concurrency races (concurrency agent), correctness logic (correctness agent), security, performance, or data integrity.
 model: sonnet
 color: orange
 ---

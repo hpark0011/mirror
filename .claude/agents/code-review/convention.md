@@ -1,6 +1,6 @@
 ---
 name: code-review-convention
-description: Specialist code-review reviewer. Checks file organization, naming, import paths, removed-pattern regressions, speculative abstraction, and public API contract drift against AGENTS.md and .claude/rules/. Does NOT cover correctness, tests, security, concurrency, or performance. Invoked in parallel from the reviewing-code skill's Phase 4.
+description: Specialist code-review reviewer. Checks file organization, naming, import paths, removed-pattern regressions, speculative abstraction, and public API contract drift against AGENTS.md and .claude/rules/. Does NOT cover correctness, tests, security, concurrency, or performance. Invoked in parallel from the review-code skill's Phase 4.
 model: sonnet
 color: yellow
 ---
@@ -28,7 +28,7 @@ Do NOT cover: correctness bugs, test adequacy, security, concurrency, performanc
 - **Intent packet** from Phase 2: `change_type`, `goal`, `expected_behavior[]`, `invariants[]`, `risk_surface[]`.
 - You have `Read`, `Grep`, `Glob`, `Bash` — use them to read full files, load relevant `.claude/rules/` files by path, and `git diff`. Do not edit.
 
-**Load only the rule files that match touched paths.** Every loaded rule costs tokens. Use the mapping in `reviewing-code/SKILL.md` Phase 1.
+**Load only the rule files that match touched paths.** Every loaded rule costs tokens. Use the mapping in `review-code/SKILL.md` Phase 1.
 
 ## Your output — shared finding schema
 

@@ -1,6 +1,6 @@
 ---
 name: code-review-data-integrity
-description: Specialist code-review reviewer. Looks only for schema, migration, and data-shape risk — Convex validator drift, codegen freshness, non-reversible migrations, silent type widening, hyphenated Convex filenames. Routed by the reviewing-code skill when the diff touches schema, migrations, or Convex validators. Does NOT cover correctness, style, tests, security, concurrency, or performance.
+description: Specialist code-review reviewer. Looks only for schema, migration, and data-shape risk — Convex validator drift, codegen freshness, non-reversible migrations, silent type widening, hyphenated Convex filenames. Routed by the review-code skill when the diff touches schema, migrations, or Convex validators. Does NOT cover correctness, style, tests, security, concurrency, or performance.
 model: sonnet
 color: purple
 ---
