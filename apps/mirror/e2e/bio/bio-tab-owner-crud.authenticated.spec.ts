@@ -129,6 +129,56 @@ test.describe("Bio tab — authenticated owner CRUD", () => {
     await expect(card.getByTestId("bio-entry-delete")).toBeVisible();
   });
 
+  test("FR-04b: Add button is disabled with tooltip when owner has 50 entries", async ({
+    authenticatedPage: page,
+  }) => {
+    // Seed exactly 50 entries (the soft cap) so the precondition gate fires.
+    // Pattern mirrors FR-10 in bio-tab-public.spec.ts:241-267 — distinct
+    // monthEpoch values give deterministic descending sort.
+    const totalEntries = 50;
+    const entries: SeedEntry[] = Array.from(
+      { length: totalEntries },
+      (_, i) => ({
+        kind: "work" as const,
+        title: `Entry #${String(i).padStart(2, "0")}`,
+        startDate: monthEpoch(2020 + Math.floor(i / 12), (i % 12) + 1),
+        endDate: null,
+      }),
+    );
+    await ensureBioFixtures(entries);
+
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await page.goto(`/@${username}/bio`, { waitUntil: "domcontentloaded" });
+
+    await expect(page.getByTestId("bio-panel")).toBeVisible({
+      timeout: 10_000,
+    });
+
+    await waitForAuthReady(page);
+
+    // Wait for the cards to materialize so the canCreateEntry derivation
+    // is based on the live query result, not the empty preload.
+    await expect(page.getByTestId("bio-entry-card")).toHaveCount(50, {
+      timeout: 10_000,
+    });
+
+    // At 50 entries the empty-state CTA is not rendered, so a single
+    // bio-add-entry-button match is expected (the panel header CTA).
+    const addButton = page.getByTestId("bio-add-entry-button");
+    await expect(addButton).toBeDisabled({ timeout: 5_000 });
+
+    // Hovering the wrapper <span tabIndex={0}> in
+    // apps/mirror/features/bio/components/bio-add-entry-button.tsx:42
+    // surfaces the Radix tooltip with the literal disabledReason
+    // composed in apps/mirror/features/bio/components/bio-panel.tsx:24-26.
+    await addButton.locator("xpath=..").hover();
+
+    await expect(page.getByRole("tooltip")).toContainText(
+      "Bio entry limit reached (50). Delete an entry to add another.",
+      { timeout: 3_000 },
+    );
+  });
+
   test("FR-06: empty submit shows inline validation errors on title AND startDate", async ({
     authenticatedPage: page,
   }) => {
