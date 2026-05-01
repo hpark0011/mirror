@@ -26,8 +26,8 @@ export function PostListItem({ post, username }: PostListItemProps) {
         <div className="flex flex-col items-center w-full">
           <div className="max-w-lg flex flex-col gap-2 w-full">
             {post.coverImageUrl && (
-              <Link href={href} scroll={false} className="block mb-2">
-                <div className="relative aspect-video w-full overflow-hidden rounded-md border border-border-subtle bg-background-subtle">
+              <Link href={href} scroll={false} className="block mb-3.5">
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)]">
                   <Image
                     src={post.coverImageUrl}
                     alt=""

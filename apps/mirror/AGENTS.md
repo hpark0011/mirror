@@ -49,7 +49,7 @@ features/
   content/              # Shared list utilities (toolbar, filter, sort, date presets)
   profile/              # Profile display, inline editing, avatar
   profile-tabs/         # Tab navigation between articles/posts/chat
-  home/                 # Landing page
+  waitlist/             # Landing page + waitlist signup form
   onboarding/           # New user onboarding wizard
   video-call/           # Tavus CVI video calling
 
@@ -107,24 +107,7 @@ The `[username]` route uses a **panel-based workspace** with parallel routes:
 - **Content slot** (`@content/`): renders articles, posts, or clone-settings based on route
 - **Interaction slot** (`@interaction/`): renders chat or video call
 
-## URL Routing
-
-| URL | Route | Auth | Content |
-|-----|-------|------|---------|
-| `/@username` | `[username]/page.tsx` | Public | Profile + default content |
-| `/@username/articles` | `[username]/articles/page.tsx` | Public | Article list |
-| `/@username/articles/:slug` | `[username]/articles/[slug]/page.tsx` | Public | Article detail |
-| `/@username/posts` | `[username]/posts/page.tsx` | Public | Post list |
-| `/@username/posts/:slug` | `[username]/posts/[slug]/page.tsx` | Public | Post detail |
-| `/@username/chat` | `[username]/chat/page.tsx` | Public | Chat with clone |
-| `/@username/chat/:conversationId` | `[username]/chat/[conversationId]/page.tsx` | Public | Specific conversation |
-| `/@username/clone-settings` | `[username]/clone-settings/page.tsx` | Owner | Clone persona config |
-| `/onboarding` | `onboarding/page.tsx` | Required | New user wizard |
-| `/dashboard` | `(protected)/dashboard/page.tsx` | Required | Insights |
-| `/sign-in` | `(auth)/sign-in/page.tsx` | Public | Login |
-| `/sign-up` | `(auth)/sign-up/page.tsx` | Public | Sign up |
-
-`/@username` URLs are mapped to `/[username]` via Next.js rewrites in `next.config.ts`.
+URL routing table lives in [`.claude/rules/apps/mirror/routing.md`](../../.claude/rules/apps/mirror/routing.md) (loads on demand under `app/`).
 
 ## Key Patterns
 
@@ -153,3 +136,4 @@ Feature-specific rules live in `.claude/rules/apps/mirror/`:
 | ---------- | ---------------------------------------- |
 | Articles   | `.claude/rules/apps/mirror/articles.md`  |
 | Navigation | `.claude/rules/apps/mirror/navigation.md`|
+| Routing    | `.claude/rules/apps/mirror/routing.md`   |

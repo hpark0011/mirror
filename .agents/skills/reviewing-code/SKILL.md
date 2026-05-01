@@ -1,7 +1,7 @@
 ---
 name: reviewing-code
 argument-hint: "[path | branch | --staged]"
-description: Reviews pending code changes in this monorepo against AGENTS.md and .Codex/rules/, producing a prioritized findings report. Use when the user says "review this code", "code review", "review my changes", "check this before I commit", or asks for feedback on a diff, branch, or file. Distinct from review-pr (fetches GitHub PR comments) and security-review (threat-model focused).
+description: Reviews pending code changes in this monorepo against AGENTS.md and .claude/rules/, producing a prioritized findings report. Use when the user says "review this code", "code review", "review my changes", "check this before I commit", or asks for feedback on a diff, branch, or file. Distinct from review-pr (fetches GitHub PR comments) and security-review (threat-model focused).
 ---
 
 # Reviewing Code
@@ -45,7 +45,7 @@ Determine scope and build the review packet. Read files in full; context lives o
 
 **Rule mapping** — load only the rule files relevant to the diff. Every loaded rule costs tokens.
 
-1. **Discover.** List `.Codex/rules/**/*.md`. If that directory doesn't exist, fall back to whatever convention docs the repo uses (`AGENTS.md`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/conventions/`).
+1. **Discover.** List `.claude/rules/**/*.md`. If that directory doesn't exist, fall back to whatever convention docs the repo uses (`AGENTS.md`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/conventions/`).
 2. **Match by topic, not by hard-coded path.** Rule filenames name their domain — use the filename as the trigger.
    - `forms.md` → diff touches form components or imports a form library
    - `typescript.md` → diff touches `.ts` / `.tsx`
@@ -55,7 +55,7 @@ Determine scope and build the review packet. Read files in full; context lives o
    - `providers.md` → diff touches root layouts or provider trees
    - `file-organization.md` → diff creates, moves, or renames files
    - _(same pattern for any other rule file — the name is the trigger)_
-3. **Nested scopes.** If `.Codex/rules/apps/<app>/` or `.Codex/rules/<topic>/` exists and the diff lives under that scope, load those too.
+3. **Nested scopes.** If `.claude/rules/apps/<app>/` or `.claude/rules/<topic>/` exists and the diff lives under that scope, load those too.
 4. **Always-on rule.** Load the repo's dev-process / always-on rule if one exists (e.g. `dev-process.md`). The project's `AGENTS.md` / `AGENTS.md` topic-rules index usually marks which rule is always-on.
 
 Principle: rule filename = domain trigger. A new rule file added to the project auto-applies without editing this skill.
@@ -74,7 +74,7 @@ Fill internally (will surface in the report header):
 
 ### Phase 3 — Risk route
 
-Pick which specialist reviewer agents to spawn. Seven specialists live in `.Codex/agents/code-review/` — three run on every review, four are routed by the risk map from Phase 2.
+Pick which specialist reviewer agents to spawn. Seven specialists live in `.claude/agents/code-review/` — three run on every review, four are routed by the risk map from Phase 2.
 
 | When                                                                                                                                                                                                                       | Agent                        |
 | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
@@ -129,7 +129,7 @@ Agent(subagent_type: "code-review-concurrency", prompt: <same>)   // only if rou
 
 Collect all agent results and the build/lint result before Phase 5. The build/lint outcome feeds the `Verified:` line in Phase 7's report header.
 
-Reviewer agent definitions live in `.Codex/agents/code-review/` — each has its own failure-mode checklist. Update those files when a reviewer needs to evolve, not this SKILL.md.
+Reviewer agent definitions live in `.claude/agents/code-review/` — each has its own failure-mode checklist. Update those files when a reviewer needs to evolve, not this SKILL.md.
 
 ### Phase 5 — Normalize
 

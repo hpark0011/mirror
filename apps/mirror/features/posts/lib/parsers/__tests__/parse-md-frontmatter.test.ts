@@ -178,4 +178,42 @@ Body.`;
     expect(result.data.slug).toBe("my-filename");
     expect(result.data.category).toBe("Creativity");
   });
+
+  it("strips trailing punctuation from a frontmatter slug ('?' → '')", () => {
+    // Regression: frontmatter slugs were previously trusted verbatim, letting
+    // characters like `?` leak into the stored slug. The canonical normalizer
+    // now strips them. See `.claude/rules/identifiers.md`.
+    const content = `---\ntitle: A Post\nslug: why-do-product-builders-build-product?\n---\nBody.`;
+    const result = parseMdFrontmatter(content, "file.md");
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.slug).toBe("why-do-product-builders-build-product");
+  });
+
+  it("strips trailing punctuation from a filename-derived slug ('?' → '')", () => {
+    const result = parseMdFrontmatter(
+      "Body.",
+      "why-do-product-builders-build-product?.md",
+    );
+    expect(result.success).toBe(true);
+    if (!result.success) return;
+    expect(result.data.slug).toBe("why-do-product-builders-build-product");
+  });
+
+  it("returns an error identifying frontmatter when slug normalizes to empty", () => {
+    const content = `---\ntitle: A Post\nslug: "?"\n---\nBody.`;
+    const result = parseMdFrontmatter(content, "valid-filename.md");
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.field).toBe("slug");
+    expect(result.error.message).toMatch(/frontmatter/i);
+  });
+
+  it("returns an error identifying filename when filename has no alphanumerics", () => {
+    const result = parseMdFrontmatter("Body.", "???.md");
+    expect(result.success).toBe(false);
+    if (result.success) return;
+    expect(result.error.field).toBe("slug");
+    expect(result.error.message).toMatch(/filename/i);
+  });
 });

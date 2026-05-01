@@ -3,6 +3,7 @@ import {
   MAX_TITLE_LENGTH,
   MAX_SLUG_LENGTH,
 } from "@feel-good/convex/convex/content/schema";
+import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import {
   DEFAULT_POST_CATEGORY,
   MAX_POST_CATEGORY_LENGTH,
@@ -77,30 +78,44 @@ export function parseMdFrontmatter(
       ? data.title.trim()
       : nameWithoutExt;
 
-  const slug =
-    typeof data.slug === "string" && data.slug.trim()
-      ? data.slug.trim()
-      : nameWithoutExt
-          .toLowerCase()
-          .replace(/\s+/g, "-")
-          .replace(/[^a-z0-9-]/g, "");
+  // Always pass through the canonical normalizer, regardless of source.
+  // Frontmatter slugs were previously trusted verbatim, which let punctuation
+  // (e.g., `?`) leak into stored slugs. See `.claude/rules/identifiers.md`.
+  const hasFrontmatterSlug =
+    typeof data.slug === "string" && data.slug.trim().length > 0;
+  const slugSource = hasFrontmatterSlug
+    ? (data.slug as string).trim()
+    : nameWithoutExt;
+  const slugSourceField: "frontmatter" | "filename" = hasFrontmatterSlug
+    ? "frontmatter"
+    : "filename";
 
-  const category =
-    typeof data.category === "string" && data.category.trim()
-      ? data.category.trim()
-      : DEFAULT_POST_CATEGORY;
-
-  // Validate non-empty slug
-  if (!slug) {
+  let slug: string;
+  try {
+    slug = generateSlug(slugSource);
+  } catch (e) {
+    // Only swallow the specific "cannot generate slug" failure from
+    // `generateSlug`. Any other throw (e.g., a future length cap) should
+    // propagate so it isn't silently flattened to a "bad slug" error.
+    if (!(e instanceof Error) || !/cannot generate slug/i.test(e.message)) {
+      throw e;
+    }
     return {
       success: false,
       error: {
         field: "slug",
         message:
-          "Could not derive a valid slug from the filename. Please add a slug field to the frontmatter.",
+          slugSourceField === "frontmatter"
+            ? `Frontmatter slug "${slugSource}" must contain at least one alphanumeric character.`
+            : `Could not derive a valid slug from the filename "${nameWithoutExt}". Please add a \`slug:\` field to the frontmatter.`,
       },
     };
   }
+
+  const category =
+    typeof data.category === "string" && data.category.trim()
+      ? data.category.trim()
+      : DEFAULT_POST_CATEGORY;
 
   // Validate lengths
   if (title.length > MAX_TITLE_LENGTH) {

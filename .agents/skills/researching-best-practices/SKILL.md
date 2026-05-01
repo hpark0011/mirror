@@ -18,7 +18,7 @@ Produces a verified research synthesis and codebase gap analysis for a named fea
 ## Quick start
 
 1. Confirm the feature/topic and scope with the user if ambiguous.
-2. Spawn four research sub-agents + the codebase analyst in parallel (single message, five `Agent` calls) using the registered subagents in `.Codex/agents/research/`.
+2. Spawn four research sub-agents + the codebase analyst in parallel (single message, five `Agent` calls) using the registered subagents in `.claude/agents/research/`.
 3. Spawn the verification agent once all five return — it critiques each research agent and produces the final synthesis + gap analysis.
 4. Write the report to `workspace/research/{topic-kebab}.md` and return the path.
 
@@ -113,12 +113,12 @@ User: "Research our auth."
 
 Registered subagent definitions (invoked via `subagent_type`):
 
-- `research-open-source` — `.Codex/agents/research/open-source.md`
-- `research-official-docs` — `.Codex/agents/research/official-docs.md`
-- `research-social` — `.Codex/agents/research/social.md`
-- `research-paper-review` — `.Codex/agents/research/paper-review.md`
-- `research-codebase-analyst` — `.Codex/agents/research/codebase-analyst.md`
-- `research-verification` — `.Codex/agents/research/verification.md`
+- `research-open-source` — `.claude/agents/research/open-source.md`
+- `research-official-docs` — `.claude/agents/research/official-docs.md`
+- `research-social` — `.claude/agents/research/social.md`
+- `research-paper-review` — `.claude/agents/research/paper-review.md`
+- `research-codebase-analyst` — `.claude/agents/research/codebase-analyst.md`
+- `research-verification` — `.claude/agents/research/verification.md`
 
 Other:
 
