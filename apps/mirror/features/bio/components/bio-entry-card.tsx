@@ -14,6 +14,7 @@ type BioEntryCardProps = {
   isOwner: boolean;
   onEdit: (entry: BioEntry) => void;
   onDelete: (entry: BioEntry) => void;
+  isDeleting?: boolean;
 };
 
 export function BioEntryCard({
@@ -21,6 +22,7 @@ export function BioEntryCard({
   isOwner,
   onEdit,
   onDelete,
+  isDeleting = false,
 }: BioEntryCardProps) {
   const dateRange = formatDateRange(entry.startDate, entry.endDate);
   const description = entry.description?.trim();
@@ -56,6 +58,7 @@ export function BioEntryCard({
               size="sm"
               variant="ghost"
               onClick={() => onDelete(entry)}
+              disabled={isDeleting}
               data-testid="bio-entry-delete"
             >
               Delete

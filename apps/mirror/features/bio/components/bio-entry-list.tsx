@@ -1,6 +1,7 @@
 "use client";
 
 import { type ReactNode } from "react";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { type BioEntry } from "../types";
 import { BioEntryCard } from "./bio-entry-card";
 
@@ -9,6 +10,7 @@ type BioEntryListProps = {
   isOwner: boolean;
   onEdit: (entry: BioEntry) => void;
   onDelete: (entry: BioEntry) => void;
+  pendingDeletes?: ReadonlySet<Id<"bioEntries">>;
   ownerEmptyAction?: ReactNode;
 };
 
@@ -17,6 +19,7 @@ export function BioEntryList({
   isOwner,
   onEdit,
   onDelete,
+  pendingDeletes,
   ownerEmptyAction,
 }: BioEntryListProps) {
   if (entries.length === 0) {
@@ -55,6 +58,7 @@ export function BioEntryList({
             isOwner={isOwner}
             onEdit={onEdit}
             onDelete={onDelete}
+            isDeleting={pendingDeletes?.has(entry._id) ?? false}
           />
         </li>
       ))}

@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { showToast } from "@feel-good/ui/components/toast";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { useBioEntries } from "./use-bio-entries";
 import { type BioEntry } from "../types";
 import { type BioEntryFormValues } from "../lib/schemas/bio-entry.schema";
@@ -27,6 +28,22 @@ export function useBioPanelHandlers() {
   const { entries, canCreateEntry, createEntry, updateEntry, removeEntry } =
     useBioEntries();
   const [dialog, setDialog] = useState<BioDialogState>({ open: false });
+  // In-flight deletes — used to gate `handleDelete` so a rapid second
+  // click on the same row is a no-op, and to disable the per-row
+  // Delete button while its mutation is pending. Without this guard,
+  // the second `removeEntry({ id })` call resolves on the server with
+  // `Bio entry not found` (the row was deleted by call #1), surfacing
+  // a spurious error toast for an operation the user perceives as
+  // successful. See ticket FG_088.
+  const [pendingDeletes, setPendingDeletes] = useState<
+    ReadonlySet<Id<"bioEntries">>
+  >(() => new Set());
+  // Synchronous gate — the React `setState` updater can run twice in
+  // StrictMode, so it isn't safe to derive "did I add this id?" from
+  // inside the updater. The ref is the source of truth for "is this
+  // id in flight right now", and `pendingDeletes` state mirrors it
+  // for rendering the per-row `disabled` prop.
+  const pendingDeletesRef = useRef<Set<Id<"bioEntries">>>(new Set());
 
   const openCreate = useCallback(() => {
     setDialog({ open: true, mode: "create" });
@@ -40,10 +57,29 @@ export function useBioPanelHandlers() {
 
   const handleDelete = useCallback(
     async (entry: BioEntry) => {
+      // Ref-based gate — synchronous and StrictMode-safe (unlike a
+      // side-effecting setState updater). A rapid second click on the
+      // same row before the first mutation resolves is a no-op.
+      if (pendingDeletesRef.current.has(entry._id)) return;
+      pendingDeletesRef.current.add(entry._id);
+      setPendingDeletes((prev) => {
+        const next = new Set(prev);
+        next.add(entry._id);
+        return next;
+      });
+
       try {
         await removeEntry({ id: entry._id });
       } catch (err) {
         showToast({ type: "error", title: getMutationErrorMessage(err) });
+      } finally {
+        pendingDeletesRef.current.delete(entry._id);
+        setPendingDeletes((prev) => {
+          if (!prev.has(entry._id)) return prev;
+          const next = new Set(prev);
+          next.delete(entry._id);
+          return next;
+        });
       }
     },
     [removeEntry],
@@ -81,5 +117,6 @@ export function useBioPanelHandlers() {
     closeDialog,
     handleDelete,
     handleSubmit,
+    pendingDeletes,
   };
 }

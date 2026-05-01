@@ -18,6 +18,7 @@ export function BioPanel() {
     closeDialog,
     handleDelete,
     handleSubmit,
+    pendingDeletes,
   } = useBioPanelHandlers();
 
   const addDisabled = !canCreateEntry;
@@ -48,6 +49,7 @@ export function BioPanel() {
         isOwner={isOwner}
         onEdit={openEdit}
         onDelete={handleDelete}
+        pendingDeletes={pendingDeletes}
         ownerEmptyAction={
           isOwner ? (
             <BioAddEntryButton
