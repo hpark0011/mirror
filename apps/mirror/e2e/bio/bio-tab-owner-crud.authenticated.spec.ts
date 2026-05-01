@@ -357,7 +357,7 @@ test.describe("Bio tab — authenticated owner CRUD", () => {
     await dialog.getByLabel("Title").fill("Edited Title");
     await dialog.getByRole("button", { name: /^save$/i }).click();
 
-    // Dialog closes after a successful save (handler clears formError + sets open=false).
+    // Dialog closes synchronously on submit (handler calls setDialog({ open: false }) before awaiting the mutation).
     await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
     // Card updates in place — Convex reactive query.
