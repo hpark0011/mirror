@@ -16,7 +16,10 @@ export const RAG_CONTEXT_MAX_CHARS = 4000;
 // first-send paths can't drift.
 const CHAT_MAX_OUTPUT_TOKENS = 1024;
 
-const RAG_CONTEXT_HEADER = "\n\n## Relevant Content from Your Writing\n\n";
+// Generalized header — bio entries are not "writing" and future structured
+// sources (events, projects, …) won't be either. One header string that
+// covers prose + structured retrieval avoids per-source-type renames.
+export const RAG_CONTEXT_HEADER = "\n\n## Relevant Background and Writing\n\n";
 
 /**
  * Assembles the RAG context string that gets appended to the system prompt.
@@ -27,10 +30,17 @@ const RAG_CONTEXT_HEADER = "\n\n## Relevant Content from Your Writing\n\n";
  *    `RAG_CONTEXT_MAX_CHARS`
  *  - input order is preserved (deterministic)
  *
+ * Slug behavior:
+ *  - articles/posts have a non-empty `slug` and get a `[Read more](/<slug>)`
+ *    line appended after the chunk text.
+ *  - bio entries are stored with `slug: undefined`. The link is omitted
+ *    rather than emitted with an empty path (which would produce a
+ *    malformed `/` link in the prompt).
+ *
  * Exported so it can be unit tested without the Convex harness.
  */
 export function buildRagContext(
-  chunks: Array<{ title: string; chunkText: string }>,
+  chunks: Array<{ title: string; chunkText: string; slug?: string }>,
 ): string {
   if (chunks.length === 0) {
     return "";
@@ -41,7 +51,9 @@ export function buildRagContext(
 
   for (const chunk of chunks) {
     const truncatedText = chunk.chunkText.slice(0, RAG_CHUNK_MAX_CHARS);
-    const part = `### ${chunk.title}\n${truncatedText}`;
+    const slug = chunk.slug?.trim();
+    const linkLine = slug ? `\n[Read more](/${slug})` : "";
+    const part = `### ${chunk.title}\n${truncatedText}${linkLine}`;
     // Account for "\n\n" separator between parts (absent before the first).
     const added = parts.length === 0 ? part.length : part.length + 2;
 
@@ -117,9 +129,13 @@ export const streamResponse = internalAction({
             );
 
             if (chunks.length > 0) {
-              ragContext = buildRagContext(
-                chunks as Array<{ title: string; chunkText: string }>,
-              );
+              // `chunks` already has `{ title, chunkText, slug? }` per
+              // `fetchChunksByIds`'s validator — no cast needed. `slug` is
+              // optional so bio chunks (slug undefined) and article/post
+              // chunks (slug present) flow through the same path; the
+              // conditional `[Read more]` link inside `buildRagContext`
+              // handles the difference.
+              ragContext = buildRagContext(chunks);
             }
           }
         } catch (error) {

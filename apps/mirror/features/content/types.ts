@@ -35,18 +35,16 @@ export function getContentHref(
 export function getContentRouteState(
   segments: readonly string[],
 ): ContentRouteState | null {
-  // Kindless routes (e.g. clone-settings) have no list/sort/filter semantics,
-  // so their route state is meaningfully null. Keep this carve-out here so
-  // callers don't each have to remember the exception.
-  if (segments[0] === "clone-settings") return null;
-
+  // Inverted predicate (issue m11): only routes whose first segment is a
+  // content kind (posts/articles) have list/detail semantics. Every other
+  // tab — clone-settings, bio, and any future kindless tab — yields a null
+  // route state. New tabs without list/detail semantics no longer require
+  // touching this file; the closed CONTENT_KINDS set is self-maintaining.
   const [kindSegment, slug] = segments;
-  const kind = isContentKind(kindSegment)
-    ? kindSegment
-    : DEFAULT_PROFILE_CONTENT_KIND;
+  if (!isContentKind(kindSegment)) return null;
 
   return {
-    kind,
+    kind: kindSegment,
     view: slug ? "detail" : "list",
     slug,
   };

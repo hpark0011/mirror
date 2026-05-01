@@ -3,6 +3,7 @@ import {
   buildRagContext,
   RAG_CHUNK_MAX_CHARS,
   RAG_CONTEXT_MAX_CHARS,
+  RAG_CONTEXT_HEADER,
 } from "../actions";
 
 describe("buildRagContext (FR-08)", () => {
@@ -47,5 +48,53 @@ describe("buildRagContext (FR-08)", () => {
 
   it("returns empty string when no chunks", () => {
     expect(buildRagContext([])).toBe("");
+  });
+
+  // Issue m9 — guards against accidental rename or deletion of the header.
+  it("output contains the literal RAG_CONTEXT_HEADER string", () => {
+    const result = buildRagContext([
+      { title: "Post", chunkText: "body", slug: "some-slug" },
+    ]);
+    expect(result).toContain(RAG_CONTEXT_HEADER);
+    // Lock the human-readable phrase too — a future rename that keeps the
+    // markdown shape but changes the words would slip past a substring check
+    // alone, so assert the words.
+    expect(RAG_CONTEXT_HEADER).toContain("Relevant Background and Writing");
+  });
+
+  // Issue iter3-Finding1 — non-vacuous coverage of the slug branch:
+  // BOTH branches must be asserted, otherwise the conditional could pass by
+  // being unreachable.
+  it("renders [Read more] link when slug is a non-empty string", () => {
+    const result = buildRagContext([
+      {
+        title: "Article Title",
+        chunkText: "article body text",
+        slug: "some-article-slug",
+      },
+    ]);
+    expect(result).toContain("[Read more](/some-article-slug)");
+  });
+
+  it("does NOT render [Read more] link when slug is undefined (bio chunk)", () => {
+    const result = buildRagContext([
+      {
+        title: "Bio Entry Title",
+        chunkText: "Worked as Senior Engineer at Acme from January 2022 to present.",
+        // slug intentionally omitted — bio chunks are stored without a slug
+      },
+    ]);
+    expect(result).not.toContain("[Read more]");
+  });
+
+  it("does NOT render [Read more] link when slug is an empty string", () => {
+    const result = buildRagContext([
+      {
+        title: "Edge",
+        chunkText: "body",
+        slug: "",
+      },
+    ]);
+    expect(result).not.toContain("[Read more]");
   });
 });

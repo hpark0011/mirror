@@ -35,7 +35,7 @@ Run each item against the target skill. Every failure becomes a finding.
 ### Body (blockers)
 
 - [ ] ≤500 lines total.
-- [ ] Required H2 sections present, matching `create-skill/skill-template/SKILL.md`: `Quick start`, `Workflow`, `Examples`, `Anti-patterns`. Optional: `Scope & non-goals` (only when sibling skills could misfire — e.g. `reviewing-code` vs `review-pr`) and `References` (only when the skill ≥150 lines and genuinely needs progressive disclosure). Renaming a required section (e.g. `Workflow` → `Process`, or legacy `When to use`) counts as a blocker — the template vocabulary is load-bearing for discoverability. An H1 title or purpose paragraph above the first H2 is also a blocker — frontmatter already carries that signal.
+- [ ] Required H2 sections present, matching `create-skill/skill-template/SKILL.md`: `Quick start`, `Workflow`, `Examples`, `Anti-patterns`. Optional: `Scope & non-goals` (only when sibling skills could misfire — e.g. `review-code` vs `review-pr`) and `References` (only when the skill ≥150 lines and genuinely needs progressive disclosure). Renaming a required section (e.g. `Workflow` → `Process`, or legacy `When to use`) counts as a blocker — the template vocabulary is load-bearing for discoverability. An H1 title or purpose paragraph above the first H2 is also a blocker — frontmatter already carries that signal.
 - [ ] No section is empty or a placeholder ("N/A", "TBD", "REPLACE").
 - [ ] No inline code/config block >20 lines — must be extracted into `{artifact}-template/`.
 - [ ] No nested references (`SKILL.md → a.md → b.md`). All links one level deep.

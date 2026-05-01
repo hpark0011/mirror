@@ -1,6 +1,6 @@
 # chat-backend-developer — Session Logs
 
-*Last updated: 2026-04-14*
+*Last updated: 2026-04-30*
 
 Append-only. One entry per task, newest at bottom. Format and rules live in the agent spec → **How to Operate** (step 5: Log & Patch) and **Evidence Rule**. Do not duplicate them here.
 
@@ -79,3 +79,84 @@ FR-03's "51st anon call throws RATE_LIMIT_DAILY" spec cell was folded into **NFR
 3. Update the **"sendMessage pipeline"** section to reflect the new order: validate → auth → profileOwner → ownership → per-minute → daily → concurrency guard → createThread/saveMessage → patch lock → schedule action. Emphasize that both rate-limit checks MUST precede the lock patch (NFR-03).
 4. Add `SYSTEM_PROMPT_MAX_CHARS = 6000` (helpers.ts) and `RAG_CHUNK_MAX_CHARS = 800` / `RAG_CONTEXT_MAX_CHARS = 4000` (actions.ts, exported) to the "Gotchas & Edge Cases" section as constants the next session should not accidentally tune.
 5. Add `ConvexError({ code: "RATE_LIMIT_MINUTE" | "RATE_LIMIT_DAILY", retryAfterMs })` as the rate-limit rejection contract, with a note that `retryAfter` from `@convex-dev/rate-limiter` is in milliseconds (NOT seconds — pass through directly).
+
+---
+
+## 2026-04-30 — Read-only domain review: Bio tab + RAG ingestion proposal
+
+**Task**: Domain review of a proposed Bio-tab feature where work/education entries become RAG context for the clone-chat agent. No code changes — review only, with concrete file paths and severity-rated concerns.
+
+**Reuse audit**: knowledge.md "Architecture", "Data Flow & Contracts" (§streamResponse, §composeSystemPrompt), and "Wave 1 Constants" sections used directly — answered every question about chat-layer surface without re-deriving. Read only what knowledge.md didn't already pin down: `embeddings/schema.ts`, `embeddings/actions.ts`, `embeddings/mutations.ts`, `embeddings/queries.ts`, `embeddings/chunker.ts`, and one trigger callsite in `articles/mutations.ts`. ~7 reads for a cross-domain review — well under prior baselines.
+
+**Bottleneck**: Knowledge.md described the RAG read path in detail but did not mention the **write-side trigger pattern** (`ctx.scheduler.runAfter(0, internal.embeddings.actions.generateEmbedding, ...)` from owning mutations, with `deleteBySource` for delete/unpublish). Had to grep for the pattern across `articles/` and `posts/` mutations. Cost: 1 extra read pass to find the canonical example.
+
+**Counterfactual**: *"If knowledge.md had included a 'RAG ingestion (write-side)' subsection with the trigger pattern + idempotency contract (`deleteBySource → embedMany → insertChunks`) + the closed `sourceTable` validator gotcha, this review would have cost 1 fewer read pass, because I'd have known the extension shape and validator drift surface up front."*
+
+**Patch** (knowledge.md):
+
+1. Add a new subsection **"RAG ingestion (write-side, adjacent — not chat-owned)"** under "Architecture" capturing:
+   - Trigger pattern: `ctx.scheduler.runAfter(0, internal.embeddings.actions.generateEmbedding, { sourceTable, sourceId })` from owning create/update mutation; `internal.embeddings.mutations.deleteBySource` on delete/unpublish. Canonical examples: `articles/mutations.ts:62, :164, :193`; `posts/mutations.ts:75, :168, :176`.
+   - Idempotency: `generateEmbedding` itself calls `deleteBySource` then `insertChunks`, so re-runs are safe.
+   - **`sourceTable` is a closed `v.union(v.literal("articles"), v.literal("posts"))`** declared inline at six call sites (`embeddings/schema.ts:6`, `embeddings/queries.ts:9, :21, :24`, `embeddings/actions.ts:15`, `embeddings/mutations.ts:6, :29`). Adding a third source means editing all six places + `pnpm exec convex codegen`. Recommend extracting into a single shared validator if a third source ever lands.
+   - `chunkText` in `embeddings/chunker.ts` is paragraph/sentence-aware with `maxSize=2000, overlap=200` — built for prose. Short structured records should bypass it (one-chunk-per-record templated string) rather than feeding through the chunker.
+2. Add a **Cross-user retrieval invariant** bullet under "Gotchas & Edge Cases":
+   - The vector search filter `q.eq("userId", profileOwnerId)` at `chat/actions.ts:104` is the *only* line preventing cross-user leakage of any source in `contentEmbeddings`. Ingestion code MUST set `userId` from server-derived owner (never from a client arg). When adding a new `sourceTable`, add a regression test that asserts the filter is still pinned to `profileOwnerId` for that source.
+
+---
+
+## 2026-04-30 — Phase 4 review of bio-tab spec (post-draft)
+
+**Task**: Re-review the drafted `workspace/spec/2026-04-30-bio-tab-spec.md` for chat-domain regressions. Read-only, severity-rated concerns.
+
+**Reuse audit**: knowledge.md §"Architecture", §"Wave 1 Constants", §"convex-test harness gotchas" reused directly. Prior log (this same session, earlier) had the proposal-stage concerns; spec author folded most of them in. New reads only: `embeddings/queries.ts`, `embeddings/actions.ts`, `embeddings/mutations.ts`, `embeddings/schema.ts`, `chat/actions.ts`, `chat/__tests__/ragContext.test.ts`, `ls` of `chat/__tests__/`, two greps. ~6 reads — slightly higher than ideal, but all were verifying spec claims against real code (each read directly produced a citation).
+
+**Bottleneck**: The spec proposes `getContentForEmbedding` returns a unified shape `{ title, body, slug, userId, status }` for all sources, with bio's `body` being a serialized string. Verifying whether this works required reading both the validator (queries.ts:25-34) AND the consumer (actions.ts:35-37) — the validator accepts `v.any()` so it superficially looks fine, but `actions.ts:35` does `extractPlainText(content.body as JSONContent)` unconditionally, which will crash on a string. Spec says "bypass chunker" but didn't say "bypass extractPlainText" — that's the actual blocker. Cost: 2 reads to find vs. 1 if the spec had named the consumer.
+
+**Counterfactual**: *"If knowledge.md had a one-line note 'getContentForEmbedding's `body: v.any()` is consumed by extractPlainText which assumes JSONContent — string-body ingestion sources must branch the call site, not just the validator', the verification of spec concern #1 would have taken 1 read instead of 2, because I'd have known the trap up front."*
+
+**Patch** (knowledge.md):
+
+Add to §"Gotchas & Edge Cases" a bullet:
+
+- **`getContentForEmbedding` consumer asymmetry.** The validator returns `body: v.any()`, but `embeddings/actions.ts:35-37` consumes it as `extractPlainText(content.body as JSONContent)` — assumes a TipTap JSON tree. Adding an ingestion source whose `body` is a plain string MUST branch the actions.ts call site, not just widen the validator. Failing to do so produces a runtime crash inside `extractPlainText` walking `.content[]` on a string. The same branch is the natural place to bypass `chunkText` for short structured records.
+
+This patches the gap that cost a read this session, and pre-empts the same trap when the bio implementation lands.
+
+---
+
+## 2026-04-30 — Wave 1 executor: Bio backend + RAG plumbing (feature-socials)
+
+**Task**: Execute Wave 1 of `2026-04-30-bio-tab-spec.md` — Convex bio CRUD module, embeddings refactor (shared `embeddingSourceTableValidator`, optional slug, discriminated `kind` union, status-gate-by-kind), chat `actions.ts` header rename + `buildRagContext` widening, three new test files, vitest config glob widening, and a new `.claude/rules/embeddings.md` for the cross-user `userId` provenance rule.
+
+**Reuse audit**: knowledge.md §Architecture, §Wave 1 Constants, §"convex-test harness gotchas" reused directly — every convex-test scaffold (glob normalization, ConvexError JSON-string trap, Agent class shape, auth/client mock spec path, `ai`/`@ai-sdk/google` mocks) was applied on the first pass for three new test files. Prior 2026-04-30 review entry pre-empted the `extractPlainText` consumer asymmetry, so the bio branch was discriminated from the start. Net: zero rediscovered traps.
+
+**Evidence**:
+- `pnpm exec convex codegen --typecheck disable` (with `CONVEX_DEPLOYMENT=dev:quick-turtle-404`) exit 0
+- `pnpm --filter=@feel-good/convex test` exit 0 — **97/97 tests pass across 13 files** (was 21/4 pre-Wave-1; new: bio queries 5, bio mutations 13, bio serializeForEmbedding 12, embeddings/bio-source 9 incl. 3-table parameterized I5, chat/rag-cross-user 2, chat/ragContext +5 assertions for header literal + slug branches)
+- `pnpm build --filter=@feel-good/mirror` exit 0
+- `pnpm --filter=@feel-good/convex check-types` exit 0
+- `git diff packages/convex/convex/chat/actions.ts` — `finally`+`clearStreamingLock`+`expectedStartedAt` block intact at line 163; `console.error` RAG fallthrough intact at line 142
+
+**Bottleneck**: **Convex's module-name path constraint.** Created `bio/serialize-for-embedding.ts` (kebab-case) on first pass — TypeScript and Vitest were happy, but `convex codegen` rejected with `InvalidConfig: bio/serialize-for-embedding.js is not a valid path to a Convex module. Path component serialize-for-embedding.js can only contain alphanumeric characters, underscores, or periods.` Renamed to `serializeForEmbedding.ts` and updated the two import sites + the test file's relative import. Cost: 1 iteration. Otherwise, the whole 12-file Wave 1 landed clean on first try.
+
+Secondary bottleneck (worth 0.5 iteration): `pnpm exec convex codegen` requires `CONVEX_DEPLOYMENT` env to be set — the codegen needs a real deployment to upload functions to. Discovered via the first invocation hitting `✖ No CONVEX_DEPLOYMENT set`. Used `CONVEX_DEPLOYMENT=dev:quick-turtle-404` from `apps/mirror/.env.local` (only `CONVEX_DEPLOYMENT`, NOT `CONVEX_DEPLOY_KEY` — per the persistent memory entry, the latter overrides the former and silently routes to prod).
+
+**Counterfactual**: *"If knowledge.md had a 'Convex module-name constraint' subsection saying 'non-test files inside `convex/` MUST use camelCase or snake_case — kebab-case fails at codegen with InvalidConfig', this would have cost ~0 iterations instead of 1, because I'd have named the file `serializeForEmbedding.ts` from the start (matching `chat/tonePresets.ts`, `embeddings/textExtractor.ts`)."*
+
+**Patches applied**:
+
+1. (knowledge.md) New §"Convex module-name constraint (learned 2026-04-30)" — captures the kebab-case → InvalidConfig rule with the exact error message, the workaround (camelCase or snake_case), and the test-file exception (`__tests__/` directories aren't bundled).
+
+2. (knowledge.md) New §"RAG ingestion (write-side, adjacent — not chat-owned)" under §Architecture — captures: shared `embeddingSourceTableValidator`, three sources (articles/posts/bioEntries), trigger pattern + idempotency, discriminated-union shape (`kind: "doc" | "bio"`), `slug: v.optional(v.string())` with the iter2-Finding1 trap (fetchChunksByIds returns validator must also be optional, else bio chunks rejected on retrieval and silently swallowed by the catch in streamResponse), and the `userId` provenance rule with a forward reference to `.claude/rules/embeddings.md`.
+
+3. (knowledge.md §Gotchas) Updated `getContentForEmbedding` consumer-asymmetry bullet — reflects the now-implemented discriminated union; future ingestion sources should mirror the bio branch (single chunk, no extractPlainText, no chunker), not widen the doc branch.
+
+4. (knowledge.md §Wave 1 Constants) Added `RAG_CONTEXT_HEADER` literal and the `slug?` widening of `buildRagContext`'s parameter type — locks the bio link-omission semantics.
+
+5. (knowledge.md §Test runner) Updated the include-glob list to the current 5 globs (chat, betaAllowlist, waitlistRequests, bio, embeddings).
+
+6. (`.claude/rules/embeddings.md`, new file) The `userId from getAppUser only` rule, with the `by_embedding` userId-filter context and the canonical 5-step "adding a new ingestion source" checklist. Auto-loads under `packages/convex/convex/embeddings/**`.
+
+**Scope deviation**: None. The kebab-case rename was a forced fix (Convex constraint), not a deviation from the spec — the spec said the file lives in `packages/convex/convex/bio/` and the contents/exports/tests are unchanged. Updated all spec-mentioned imports and the test file's relative import to the new name; the public API (`serializeBioEntryForEmbedding`) is identical.
+
+**Open follow-ups**: None for Wave 1 backend. Wave 2 (frontend `features/profile-tabs`, `features/content`) and Wave 3 (`features/bio` + routes) are explicitly out of scope and untouched.
