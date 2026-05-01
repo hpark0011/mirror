@@ -16,25 +16,24 @@ export type BioDialogState =
   | { open: true; mode: "edit"; entry: BioEntry };
 
 /**
- * Drives `<BioPanel>`'s dialog + mutation flow. Surfaces create/update errors
- * via `formError` (rendered into the dialog's `errorSlot`) and delete errors
- * via toast — never via unhandled promise rejections.
+ * Drives `<BioPanel>`'s dialog + mutation flow. The dialog closes
+ * synchronously on submit — the list updates optimistically via
+ * `useBioEntries`'s `withOptimisticUpdate` wrappers, and any server
+ * rejection rolls the patch back and surfaces via toast. Client-side
+ * Zod validation in the form blocks invalid submits before the dialog
+ * closes, so server errors here are rare (e.g. 50-entry soft cap).
  */
 export function useBioPanelHandlers() {
   const { entries, createEntry, updateEntry, removeEntry } = useBioEntries();
   const [dialog, setDialog] = useState<BioDialogState>({ open: false });
-  const [formError, setFormError] = useState<string | null>(null);
 
   const openCreate = useCallback(() => {
-    setFormError(null);
     setDialog({ open: true, mode: "create" });
   }, []);
   const openEdit = useCallback((entry: BioEntry) => {
-    setFormError(null);
     setDialog({ open: true, mode: "edit", entry });
   }, []);
   const closeDialog = useCallback(() => {
-    setFormError(null);
     setDialog({ open: false });
   }, []);
 
@@ -52,17 +51,21 @@ export function useBioPanelHandlers() {
   const handleSubmit = useCallback(
     async (values: BioEntryFormValues) => {
       const args = toMutationArgs(values);
+      const editId =
+        dialog.open && dialog.mode === "edit" ? dialog.entry._id : null;
+
+      // Close dialog synchronously. The list update is already optimistic;
+      // a rejection rolls back the patch and surfaces via toast below.
+      setDialog({ open: false });
+
       try {
-        if (dialog.open && dialog.mode === "edit") {
-          await updateEntry({ id: dialog.entry._id, ...args });
+        if (editId !== null) {
+          await updateEntry({ id: editId, ...args });
         } else {
           await createEntry(args);
         }
-        setFormError(null);
-        setDialog({ open: false });
       } catch (err) {
-        // Keep dialog open so the user can adjust and retry.
-        setFormError(getMutationErrorMessage(err));
+        showToast({ type: "error", title: getMutationErrorMessage(err) });
       }
     },
     [createEntry, updateEntry, dialog],
@@ -71,7 +74,6 @@ export function useBioPanelHandlers() {
   return {
     entries,
     dialog,
-    formError,
     openCreate,
     openEdit,
     closeDialog,

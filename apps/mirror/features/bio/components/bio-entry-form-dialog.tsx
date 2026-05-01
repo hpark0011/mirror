@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import {
   Dialog,
   DialogBody,
@@ -22,7 +22,6 @@ type BioEntryFormDialogProps = {
   entry?: BioEntry;
   onOpenChange: (open: boolean) => void;
   onSubmit: (values: BioEntryFormValues) => Promise<void>;
-  errorSlot?: ReactNode;
 };
 
 // Cleared optional fields default to `""` (NOT `undefined`) so the Wave-1
@@ -44,7 +43,7 @@ function getDefaultValues(entry?: BioEntry): BioEntryFormValues {
 }
 
 export function BioEntryFormDialog(props: BioEntryFormDialogProps) {
-  const { open, mode, entry, onOpenChange, onSubmit, errorSlot } = props;
+  const { open, mode, entry, onOpenChange, onSubmit } = props;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function handleSubmit(values: BioEntryFormValues) {
@@ -71,7 +70,6 @@ export function BioEntryFormDialog(props: BioEntryFormDialogProps) {
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
         <DialogBody>
-          {errorSlot}
           <BioEntryForm
             // Re-mount the form when switching between entries so RHF resets.
             key={entry?._id ?? "new"}

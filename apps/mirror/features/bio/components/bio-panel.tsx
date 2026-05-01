@@ -5,14 +5,12 @@ import { useBioPanelHandlers } from "../hooks/use-bio-panel-handlers";
 import { BioEntryList } from "./bio-entry-list";
 import { BioAddEntryButton } from "./bio-add-entry-button";
 import { BioEntryFormDialog } from "./bio-entry-form-dialog";
-import { BioFormError } from "./bio-form-error";
 
 export function BioPanel() {
   const isOwner = useIsProfileOwner();
   const {
     entries,
     dialog,
-    formError,
     openCreate,
     openEdit,
     closeDialog,
@@ -57,7 +55,6 @@ export function BioPanel() {
             if (!open) closeDialog();
           }}
           onSubmit={handleSubmit}
-          errorSlot={<BioFormError message={formError} />}
         />
       ) : null}
     </div>

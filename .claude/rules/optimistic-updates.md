@@ -59,8 +59,31 @@ Reference: `apps/mirror/features/bio/hooks/use-bio-entries.ts`.
    No `sortAndCap` needed.
 9. **Soft caps (e.g. 50-entry limits) stay server-side.** Let the
    optimistic insert briefly exceed the cap; Convex auto-rolls-back when
-   the mutation throws and the existing error UI (toast / `formError`)
-   surfaces the message.
+   the mutation throws and the toast surfaces the message.
+
+## Submit-flow UX
+
+The point of optimism isn't just "list updates fast" — it's that the
+submit affordance can also resolve synchronously.
+
+- **Close the dialog/sheet/inline-editor synchronously on submit.** Do
+  NOT `await` the mutation before calling `setOpen(false)`. The list is
+  already optimistic; the user has nothing to wait for.
+- **Capture any state you need from the dialog (e.g. `editId`) into a
+  local variable BEFORE you call `setOpen(false)`** — once the close
+  fires, subsequent renders will see `dialog.open === false` and the
+  in-flight `await` may otherwise read stale closure state.
+- **Errors surface via toast, not inline.** With the dialog gone, an
+  inline `formError` slot is unreachable. Server-side rejections (rare
+  when client-side Zod validation is thorough) flow through `try/catch`
+  → `showToast({ type: "error", title: getMutationErrorMessage(err) })`.
+- **Trust client validation.** `react-hook-form` + `zodResolver` blocks
+  invalid submits before our handler runs, so server errors are limited
+  to soft caps and authorization edge cases — both fine for a toast.
+
+Reference: `apps/mirror/features/bio/hooks/use-bio-panel-handlers.ts`
+(the `handleSubmit` path closes the dialog before awaiting the
+mutation).
 
 ## Footguns
 

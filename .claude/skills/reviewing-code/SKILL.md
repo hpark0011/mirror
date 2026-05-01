@@ -23,7 +23,7 @@ Pause and surface instead of pressing on when:
 ```
 - [ ] 1. Ingest    — scope, changed files, untracked check, worktree-clean check, read each file fully, load matching rules
 - [ ] 2. Intent    — infer change type, goal, expected behavior, invariants, risk surface; grep workspace/lessons.md for past incidents
-- [ ] 3. Route     — pick reviewers based on the risk map (correctness/convention/tests/maintainability always)
+- [ ] 3. Route     — pick reviewers based on the risk map (correctness/convention/tests/maintainability/agent-native always)
 - [ ] 4. Review    — spawn selected reviewers AND run build+lint in parallel
 - [ ] 5. Normalize — validate, confidence-gate (0.60 / P0@0.50), fingerprint dedup, agreement boost, disagreement preservation, pre-existing partition
 - [ ] 6. Critique  — reject speculative/stylistic/misread findings; log reasons
@@ -82,7 +82,7 @@ Fill internally (will surface in the report header):
 
 ### Phase 3 — Risk route
 
-Pick which specialist reviewer agents to spawn. Ten specialists live in `.claude/agents/code-review/` — four run on every review, six are routed by the risk map from Phase 2.
+Pick which specialist reviewer agents to spawn. Eleven specialists live in `.claude/agents/code-review/` — five run on every review, six are routed by the risk map from Phase 2.
 
 | When | Agent |
 | ---- | ----- |
@@ -90,6 +90,7 @@ Pick which specialist reviewer agents to spawn. Ten specialists live in `.claude
 | **Always** | `code-review-convention` |
 | **Always** | `code-review-tests` |
 | **Always** | `code-review-maintainability` |
+| **Always** | `code-review-agent-native` |
 | locks, async state, streaming, queues, retries, cancellation, shared mutable state (module vars, refs, caches, datastore docs read-then-written), check-then-act shapes, idempotency surfaces, effect ordering assumptions | `code-review-concurrency` |
 | auth, permissions, trust boundaries, user input, secrets | `code-review-security` |
 | hot paths, render loops, N+1 access, large lists, database reads | `code-review-performance` |
@@ -97,9 +98,11 @@ Pick which specialist reviewer agents to spawn. Ten specialists live in `.claude
 | error handling, retries, timeouts, background jobs, external API calls, async work whose failure mode (vs. race) matters | `code-review-reliability` |
 | PR mode only — `gh pr view` returned review threads on this PR | `code-review-previous-comments` |
 
-Typical subset on a real PR: 4–7 agents total, cap at 8. Every agent spawn is tokens and wall-clock — do not route a conditional reviewer "just in case." If the diff has zero auth surface, do not spawn `code-review-security`.
+Typical subset on a real PR: 5–8 agents total, cap at 9. Every agent spawn is tokens and wall-clock — do not route a conditional reviewer "just in case." If the diff has zero auth surface, do not spawn `code-review-security`. The always-on `code-review-agent-native` self-suppresses on diffs with no user-facing surface (returns `[]`), so it's safe to keep on by default — Mirror is an agent product and parity drift is the most distinctive failure mode in this codebase.
 
-**Lane discipline.** Concurrency owns "what happens when two actors race"; reliability owns "what happens when one call fails." If you find yourself routing both, that's correct only when the diff has both surfaces — otherwise pick the one that matches the actual risk.
+**Lane discipline.**
+- Concurrency owns "what happens when two actors race"; reliability owns "what happens when one call fails." Route both only when both surfaces exist.
+- Agent-native owns "can the clone speak from / act on this?"; security owns "does this leak across users?" Both touch RAG ingestion — agent-native flags the *parity gap* (clone is blind to the new content type), security flags the *isolation gap* (a poisoned source surfaces in another user's chat). Cite both reviewers when one diff trips both.
 
 ## Finding schema
 
@@ -107,7 +110,7 @@ Cross-cutting contract used by every reviewer in Phase 4 and by Normalize, Criti
 
 ```
 id:                    short slug
-reviewer:              correctness | convention | tests | maintainability | concurrency | security | performance | data | reliability | previous-comments
+reviewer:              correctness | convention | tests | maintainability | agent-native | concurrency | security | performance | data | reliability | previous-comments
 title:                 one-line (must name the concrete failure mode or risk)
 location:              file:startLine-endLine
 priority:              P0 | P1 | P2 | P3
@@ -218,7 +221,14 @@ Invoke [`generate-issue-tickets`](../generate-issue-tickets/SKILL.md) for every 
 
 ### Phase 9 — Offer fixes
 
-End with: _"Want me to apply the blockers / should-fix items?"_ Do not fix preemptively. If the user says yes, apply edits and re-run build + lint.
+Build the action sets from the merged finding list:
+
+- **Fixer queue** — findings with `autofix_class: safe_auto` and `owner: review-fixer`. These are mechanical, behavior-preserving, scoped enough to apply without owner judgment.
+- **Gated queue** — findings with `autofix_class: gated_auto`. Concrete fix exists but it changes behavior, contracts, or permissions; needs user approval before applying.
+- **Manual queue** — `autofix_class: manual` findings handed off via Phase 8 tickets. Don't try to auto-resolve.
+- **Advisory** — `autofix_class: advisory` findings (e.g. `previous-comments` audit). Stay in the report; don't auto-act.
+
+End with: _"Want me to apply the safe fixes (N)? The gated fixes (M) need your approval per item."_ — wording adapted to whatever queues are non-empty. Do not fix preemptively. If the user agrees, apply only the safe queue (and any approved gated items), then re-run build + lint. If a finding has `requires_verification: true`, the round is incomplete until the targeted regression test runs and the report is updated.
 
 ## Report format
 
@@ -294,9 +304,10 @@ Want me to apply fixes for the P0/P1 items?
 **Intent:** Prevent the streaming lock from remaining stuck when a request is cancelled mid-stream
 **Verified:** build ✓ lint ✓
 
-**Reviewers:** correctness, convention, tests, maintainability, concurrency
+**Reviewers:** correctness, convention, tests, maintainability, agent-native, concurrency
 
 - concurrency -- lock lifecycle and cleanup paths in streaming code
+- agent-native -- chat-streaming change touches the clone agent surface; verify parity holds
 
 ### P0 — Critical (1)
 
