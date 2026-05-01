@@ -10,6 +10,9 @@
     "./convex/_generated/server": "./convex/_generated/server.js",
     "./convex/content/schema": "./convex/content/schema.ts",
     "./convex/content/slug": "./convex/content/slug.ts",
+    "./convex/content/storage-policy": "./convex/content/storage-policy.ts",
+    "./convex/content/body-walk": "./convex/content/body-walk.ts",
+    "./convex/content/safe-fetch": "./convex/content/safe-fetch.ts",
     "./convex/posts/categories": "./convex/posts/categories.ts",
     "./convex/*": "./convex/*",
     "./chat/tonePresets": {
@@ -33,6 +36,15 @@
       ],
       "convex/content/slug": [
         "./convex/content/slug.ts"
+      ],
+      "convex/content/storage-policy": [
+        "./convex/content/storage-policy.ts"
+      ],
+      "convex/content/body-walk": [
+        "./convex/content/body-walk.ts"
+      ],
+      "convex/content/safe-fetch": [
+        "./convex/content/safe-fetch.ts"
       ],
       "convex/posts/categories": [
         "./convex/posts/categories.ts"

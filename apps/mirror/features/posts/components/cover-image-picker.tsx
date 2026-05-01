@@ -1,8 +1,7 @@
 "use client";
 
 import { type ChangeEvent } from "react";
-
-const ACCEPTED_COVER_IMAGE_TYPES = "image/png,image/jpeg,image/webp";
+import { ALLOWED_INLINE_IMAGE_TYPES_ATTR } from "@/lib/media-policy";
 
 type CoverImagePickerProps = {
   preview: string | null;
@@ -26,7 +25,7 @@ export function CoverImagePicker({
       </label>
       <input
         type="file"
-        accept={ACCEPTED_COVER_IMAGE_TYPES}
+        accept={ALLOWED_INLINE_IMAGE_TYPES_ATTR}
         onChange={handleChange}
         data-testid="cover-image-input"
         className="block w-full text-sm text-foreground-muted file:mr-4 file:rounded-md file:border-0 file:bg-secondary file:px-4 file:py-2 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80 file:cursor-pointer"
