@@ -1,6 +1,6 @@
 # chat-backend-developer — Knowledge
 
-*Last updated: 2026-04-15*
+*Last updated: 2026-04-30*
 
 ## Architecture
 
@@ -91,6 +91,19 @@ Applied in BOTH branches of `sendMessage` (new + existing conversation) AND in `
 
 Do NOT inline throttles elsewhere.
 
+### RAG ingestion (write-side, adjacent — not chat-owned)
+
+Live as of 2026-04-30 with the bio source landed. Owns this surface only
+because it shapes what the chat agent's system prompt sees.
+
+- **Sources**: `articles`, `posts`, `bioEntries`. `embeddingSourceTableValidator` (in `embeddings/schema.ts`) is the **single shared validator** — no longer duplicated across six call sites. Adding a new source is one literal here + branches in `getContentForEmbedding` and `generateEmbedding`.
+- **Trigger pattern**: owning create/update mutation calls `ctx.scheduler.runAfter(0, internal.embeddings.actions.generateEmbedding, { sourceTable, sourceId })`; owning delete/unpublish calls `internal.embeddings.mutations.deleteBySource`. Canonical: `articles/mutations.ts`, `posts/mutations.ts`, `bio/mutations.ts`.
+- **Idempotency**: `generateEmbedding` itself runs `deleteBySource` then `insertChunks`, so re-runs are safe.
+- **Discriminated union**: `getContentForEmbedding` returns `{ kind: "doc", title, body, slug, userId, status }` for articles/posts, OR `{ kind: "bio", title, body, userId }` for bioEntries (no slug, no status). `generateEmbedding` discriminates on `content.kind` — the published-status gate runs only on `kind === "doc"`. **Do not fabricate `status: "published"` sentinels for new structured sources** — that's the trap C1 blocked.
+- **Slug**: `contentEmbeddings.slug` is `v.optional(v.string())`. Bio rows persist `slug: undefined`. `buildRagContext` skips the `[Read more]` link when slug is empty/undefined. The `fetchChunksByIds` returns validator MUST also have `slug: v.optional(v.string())` — else bio chunks are rejected on retrieval and the catch-block in `streamResponse` silently swallows them, making bio invisible to the agent (this was iter2-Finding1).
+- **`userId` provenance** (cross-user isolation): `userId` comes from `getAppUser(ctx, ctx.user._id)` ONLY. Never from a client-supplied arg. The vector-search filter `q.eq("userId", profileOwnerId)` at `chat/actions.ts` is the sole isolation barrier. See `.claude/rules/embeddings.md` for the canonical rule.
+- **Bio entries bypass the chunker** (single chunk, `chunkIndex: 0`). They're already short prose serialized via `bio/serializeForEmbedding.ts` — feeding them through `extractPlainText` would crash (string body not TipTap JSON), and `chunkText` would be a no-op anyway.
+
 ### Access control (queries.ts)
 
 Rules reused across `getConversation`, `getConversations`, `listThreadMessages`:
@@ -105,6 +118,7 @@ Rules reused across `getConversation`, `getConversations`, `listThreadMessages`:
 
 - `MAX_MESSAGE_LENGTH = 3000` — `mutations.ts`. Rejected with plain `Error` (not `ConvexError`) before any rate-limit call so oversize messages don't consume daily budget.
 - `RAG_CHUNK_MAX_CHARS = 800` / `RAG_CONTEXT_MAX_CHARS = 4000` — `actions.ts`, exported. `buildRagContext()` is the only assembly path; preserves input order, truncates each chunk then caps total.
+- `RAG_CONTEXT_HEADER = "\n\n## Relevant Background and Writing\n\n"` — `actions.ts`, exported (renamed 2026-04-30 from "Relevant Content from Your Writing" to cover bio + future structured sources). `buildRagContext` accepts `Array<{ title, chunkText, slug? }>` — the slug-stripping cast at the call site was removed when the bio source landed. Bio chunks have `slug: undefined` and skip the `[Read more](/<slug>)` link; articles/posts emit it.
 - `RAG_RESULT_LIMIT = 5`, `RAG_SCORE_THRESHOLD = 0.3` — unchanged from pre-Wave 1.
 - `SYSTEM_PROMPT_MAX_CHARS = 6000` — `helpers.ts`. `composeSystemPrompt` proportionally shrinks the bio/persona/topics sections when over budget. Safety prefix + tone clause are never truncated; section order (safety → tone → bio → persona → topics) is preserved.
 - `maxOutputTokens: 1024` — passed on BOTH branches of the `streamArgs` ternary in `actions.ts` → `thread.streamText`. Caps Anthropic output per turn.
@@ -119,6 +133,26 @@ Rules reused across `getConversation`, `getConversations`, `listThreadMessages`:
 - **`getConversation` public shape omits `streamingStartedAt`** (present only on `internalGetConversation`). Public clients cannot distinguish stuck from active.
 - **`agent.ts` instructions is `""`.** System prompt is injected per call. Any future `generateText` without an explicit `system:` will run un-prompted.
 - **Convex rules:** new function syntax, validators on args+returns, `withIndex` not `filter`, `"use node"` on `agent.ts` and `actions.ts` (both use Node modules), run `pnpm exec convex codegen` (not `npx`) after signature/schema changes.
+- **`getContentForEmbedding` is now a discriminated union (post-2026-04-30).** Returns `{ kind: "doc", body: <tiptap JSON>, slug, userId, status }` for articles/posts or `{ kind: "bio", body: <pre-serialized prose string>, userId }` for bioEntries. `generateEmbedding` branches on `kind` — `kind === "doc"` runs through `extractPlainText` + `chunkText`; `kind === "bio"` is fed straight to `embedMany` as a single chunk. When adding a new ingestion source, mirror the bio branch (skip extractPlainText + chunker for short structured records) — do NOT widen the doc branch's `body: v.any()` and let TipTap-walking crash on string bodies.
+
+## Convex module-name constraint (learned 2026-04-30)
+
+**Convex bundles `convex/**/*.ts` and rejects file paths with hyphens.** The
+exact error is `InvalidConfig: <path> is not a valid path to a Convex
+module. Path component <name>.js can only contain alphanumeric characters,
+underscores, or periods.`
+
+This means **non-test files inside `convex/` MUST use camelCase or
+snake_case file names** — not kebab-case. Test files in `__tests__/`
+directories are not bundled, so their names can use hyphens freely.
+
+If you create a new file like `serialize-for-embedding.ts` it will pass
+TypeScript and Vitest but fail at `convex codegen --typecheck disable`
+(runtime push). Catch this early by running codegen any time a new
+non-test file is added under `convex/`.
+
+The renamed pattern in this repo: `convex/bio/serializeForEmbedding.ts`
+(NOT `serialize-for-embedding.ts`).
 
 ## convex-test harness gotchas (learned Wave 1)
 
@@ -135,7 +169,7 @@ Writing integration tests for `chat/mutations.ts` via `convex-test` has several 
 ## Test runner
 
 - Vitest config: `packages/convex/vitest.config.ts`. Environment `node`. `server.deps.inline: ["convex-test"]` is set (required under pnpm's isolated layout; leave it even before the first `convex-test` call site exists).
-- **Include glob is intentionally narrow**: `convex/chat/**/*.test.ts`. Widening to `convex/**/*.test.ts` will break CI because `convex/users/__tests__/{getCurrentProfile,updatePersonaSettings}.test.ts` still import from `bun:test`. Widen only after those two files have been migrated to `vitest` by the users-domain owner.
+- **Include glob (as of 2026-04-30)**: `convex/chat/**/*.test.ts`, `convex/betaAllowlist/**/*.test.ts`, `convex/waitlistRequests/**/*.test.ts`, `convex/bio/**/*.test.ts`, `convex/embeddings/**/*.test.ts`. Do NOT widen to `convex/**/*.test.ts` — `convex/users/__tests__/{getCurrentProfile,updatePersonaSettings}.test.ts` still import from `bun:test`. Widen per-domain only after migration.
 - `convex-test@^0.0.48` is installed but not yet exercised by any test in `chat/__tests__/`. First usage just needs `convexTest(schema, import.meta.glob("./**/*.ts"))`.
 - `@feel-good/convex` has **no `build` script**. `pnpm --filter=@feel-good/convex build` is a turbo no-op and is not a real typecheck. The actual typecheck command is `pnpm --filter=@feel-good/convex check-types` (runs `tsc --noEmit -p convex/tsconfig.json`). Use that in verification, not `build`.
 - Run tests via `pnpm --filter=@feel-good/convex test` (script: `vitest run`).
