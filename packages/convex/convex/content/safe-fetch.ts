@@ -147,12 +147,11 @@ export async function safeFetchImage(url: string): Promise<Blob> {
       }
 
       const bytes = await readWithLimit(response, MAX_INLINE_IMAGE_BYTES);
-      // Cast to BlobPart-compatible view; Node's lib types narrow buffer to
-      // `ArrayBuffer | SharedArrayBuffer` while the DOM Blob expects
-      // `ArrayBuffer` only. The runtime accepts either.
-      return new Blob([bytes as unknown as ArrayBuffer], {
-        type: contentType,
-      });
+      // `bytes.buffer` is `ArrayBufferLike` per the Node lib, but DOM Blob's
+      // BlobPart expects `ArrayBuffer`. `readWithLimit` allocates with
+      // `new Uint8Array(total)`, which always backs onto a regular
+      // ArrayBuffer (not SharedArrayBuffer), so the narrow cast is safe.
+      return new Blob([bytes.buffer as ArrayBuffer], { type: contentType });
     }
 
     // Unreachable — the loop either returns, continues, or throws.

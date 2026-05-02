@@ -175,8 +175,15 @@ export const sweepOrphanedStorage = internalMutation({
     let deleted = 0;
     for (const entry of page.page) {
       if (referenced.has(entry._id)) continue;
-      await ctx.storage.delete(entry._id);
-      deleted += 1;
+      try {
+        await ctx.storage.delete(entry._id);
+        deleted += 1;
+      } catch {
+        // Ignore individual delete failures: a single bad blob must not
+        // abort the whole batch (rolling back this page's deletes AND the
+        // scheduler chain for subsequent pages). Unreferenced blobs that
+        // fail today will resurface on the next sweep.
+      }
     }
 
     if (!page.isDone) {

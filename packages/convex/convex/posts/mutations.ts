@@ -14,14 +14,11 @@ import {
   extractInlineImageStorageIds,
   multisetDifference,
 } from "../content/body-walk";
+import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storage-policy";
 import {
   getPostCategoryForSlug,
   MAX_POST_CATEGORY_LENGTH,
 } from "./categories";
-
-// Cap the number of inline storage deletes per `update` / `remove`
-// invocation. Excess removals are left for the cron sweep. (NFR-06.)
-const MAX_INLINE_DELETES_PER_INVOCATION = 50;
 
 type PostPatch = Partial<
   Omit<Doc<"posts">, "_id" | "_creationTime" | "userId" | "createdAt">
@@ -210,13 +207,19 @@ export const update = authMutation({
 
     // Delete inline storage IDs that are no longer referenced. Capped at
     // MAX_INLINE_DELETES_PER_INVOCATION; any excess is collected by the cron
-    // sweep (NFR-06).
+    // sweep (NFR-06). Each delete is guarded so a single failure can't roll
+    // back the patch we already committed.
     const toDelete = removedInlineIds.slice(
       0,
       MAX_INLINE_DELETES_PER_INVOCATION,
     );
     for (const id of toDelete) {
-      await ctx.storage.delete(id);
+      try {
+        await ctx.storage.delete(id);
+      } catch {
+        // Ignore: blob may already be gone, or invalid Id from a legacy
+        // body. The cron sweep is the safety net.
+      }
     }
 
     // Schedule embedding update based on status change

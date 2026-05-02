@@ -42,3 +42,12 @@ export const ALLOWED_INLINE_IMAGE_TYPES: ReadonlySet<string> = new Set([
  * request.
  */
 export const MAX_FETCH_REDIRECTS = 3;
+
+/**
+ * Per-mutation cap on inline storage deletes from `articles.update` /
+ * `articles.remove` and the post equivalents. Excess removed-set entries
+ * are left in `_storage` for the next cron sweep. Prevents a malicious or
+ * accidental large-body mutation from exhausting the mutation budget.
+ * (NFR-06.)
+ */
+export const MAX_INLINE_DELETES_PER_INVOCATION = 50;

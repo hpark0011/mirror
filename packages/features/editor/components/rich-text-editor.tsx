@@ -23,15 +23,20 @@ export function RichTextEditor({
   onImageUpload,
   className,
 }: RichTextEditorProps) {
-  // Ref-forwarding pattern: extensions are constructed once (the editor is a
-  // single long-lived instance), but uploads always invoke the LATEST
-  // `onImageUpload` reference. Without this, a parent re-render that swaps
-  // the upload handler (e.g. refreshed auth context) would silently keep
-  // calling the stale function captured at mount time.
+  // Ref-forwarding pattern: extensions and the `onUpdate` callback are
+  // constructed once (the editor is a single long-lived instance), but
+  // they always invoke the LATEST `onImageUpload` / `onChange` references.
+  // Without this, a parent re-render that swaps either handler would
+  // silently keep calling the stale function captured at mount time.
   const onImageUploadRef = useRef(onImageUpload);
   useEffect(() => {
     onImageUploadRef.current = onImageUpload;
   }, [onImageUpload]);
+
+  const onChangeRef = useRef(onChange);
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
 
   const extensions = useMemo<Extensions>(
     () => [
@@ -50,7 +55,7 @@ export function RichTextEditor({
     editable: true,
     immediatelyRender: false,
     onUpdate: ({ editor: instance }) => {
-      onChange(instance.getJSON());
+      onChangeRef.current(instance.getJSON());
     },
   });
 

@@ -73,9 +73,14 @@ export const importMarkdownInlineImages = internalAction({
       { storageId: Id<"_storage">; src: string }
     >();
     const failures: ImageFailure[] = [];
+    // Track every URL we've attempted (success OR failure). Without this,
+    // duplicate references to the same unreachable URL would each spend
+    // FETCH_TIMEOUT_MS — N×10s easily exceeds the action budget.
+    const tried = new Set<string>();
 
     for (const src of candidates) {
-      if (resolved.has(src)) continue; // already resolved this URL — reuse
+      if (resolved.has(src) || tried.has(src)) continue;
+      tried.add(src);
       try {
         const blob = await safeFetchImage(src);
         const storageId = await ctx.storage.store(blob);

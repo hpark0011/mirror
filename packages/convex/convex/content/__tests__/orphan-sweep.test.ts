@@ -93,11 +93,10 @@ describe("crons.sweepOrphanedStorage — FR-10", () => {
 
     vi.useRealTimers();
 
-    expect(result.deleted).toBeGreaterThanOrEqual(2);
+    // Exact-2 contract per spec FR-10 — anything else (including deleting
+    // `youngOrphan`) is a regression on the grace-window logic.
+    expect(result.deleted).toBe(2);
     expect(await blobExists(t, orphanA)).toBe(false);
-    // Stronger guard: an implementation that ignores the grace window would
-    // delete `youngOrphan` too. Pin survival explicitly so a regression on
-    // `ORPHAN_GRACE_MS` shows up here.
     expect(await blobExists(t, youngOrphan)).toBe(true);
     expect(await blobExists(t, orphanB)).toBe(false);
   });

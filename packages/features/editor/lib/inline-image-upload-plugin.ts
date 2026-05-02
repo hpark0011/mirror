@@ -198,13 +198,12 @@ export function createInlineImageUploadPlugin(
         return true;
       },
       handleDrop(view, event) {
-        const dragEvent = event as DragEvent;
-        const files = collectImageFiles(dragEvent.dataTransfer);
+        const files = collectImageFiles(event.dataTransfer);
         if (files.length === 0) return false;
         event.preventDefault();
         const coords = view.posAtCoords({
-          left: dragEvent.clientX,
-          top: dragEvent.clientY,
+          left: event.clientX,
+          top: event.clientY,
         });
         const pos = coords?.pos ?? view.state.selection.from;
         for (const file of files) {
