@@ -27,7 +27,10 @@ export function BioPanel() {
     : undefined;
 
   return (
-    <div data-testid="bio-panel" className="flex flex-col gap-4 p-4">
+    <div
+      data-testid="bio-panel"
+      className="flex flex-col gap-2 p-4 max-w-2xl mx-auto"
+    >
       <header className="flex items-center justify-between gap-4">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Bio</h2>
@@ -35,13 +38,15 @@ export function BioPanel() {
             Work and education history.
           </p>
         </div>
-        {isOwner ? (
-          <BioAddEntryButton
-            onClick={openCreate}
-            disabled={addDisabled}
-            disabledReason={addDisabledReason}
-          />
-        ) : null}
+        {isOwner
+          ? (
+            <BioAddEntryButton
+              onClick={openCreate}
+              disabled={addDisabled}
+              disabledReason={addDisabledReason}
+            />
+          )
+          : null}
       </header>
 
       <BioEntryList
@@ -50,8 +55,8 @@ export function BioPanel() {
         onEdit={openEdit}
         onDelete={handleDelete}
         pendingDeletes={pendingDeletes}
-        ownerEmptyAction={
-          isOwner ? (
+        ownerEmptyAction={isOwner
+          ? (
             <BioAddEntryButton
               onClick={openCreate}
               disabled={addDisabled}
@@ -59,23 +64,25 @@ export function BioPanel() {
             >
               Add your first entry
             </BioAddEntryButton>
-          ) : undefined
-        }
+          )
+          : undefined}
       />
 
-      {isOwner ? (
-        <BioEntryFormDialog
-          open={dialog.open}
-          mode={dialog.open ? dialog.mode : "create"}
-          entry={
-            dialog.open && dialog.mode === "edit" ? dialog.entry : undefined
-          }
-          onOpenChange={(open) => {
-            if (!open) closeDialog();
-          }}
-          onSubmit={handleSubmit}
-        />
-      ) : null}
+      {isOwner
+        ? (
+          <BioEntryFormDialog
+            open={dialog.open}
+            mode={dialog.open ? dialog.mode : "create"}
+            entry={dialog.open && dialog.mode === "edit"
+              ? dialog.entry
+              : undefined}
+            onOpenChange={(open) => {
+              if (!open) closeDialog();
+            }}
+            onSubmit={handleSubmit}
+          />
+        )
+        : null}
     </div>
   );
 }
