@@ -14,6 +14,10 @@ import {
   extractInlineImageStorageIds,
   multisetDifference,
 } from "../content/body-walk";
+import {
+  claimInlineImageOwnership,
+  filterCallerOwnedInlineIds,
+} from "../content/inlineImageOwnership";
 import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storage-policy";
 import {
   getPostCategoryForSlug,
@@ -76,6 +80,11 @@ export const create = authMutation({
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
+
+    // FG_091: claim ownership for every inline-image storageId committed in
+    // this body. First-commit-wins — see articles/mutations.ts for the
+    // attack rationale.
+    await claimInlineImageOwnership(ctx, args.body, appUser._id);
 
     if (args.status === "published") {
       await ctx.scheduler.runAfter(
@@ -205,14 +214,28 @@ export const update = authMutation({
       await ctx.storage.delete(post.coverImageStorageId);
     }
 
-    // Delete inline storage IDs that are no longer referenced. Capped at
-    // MAX_INLINE_DELETES_PER_INVOCATION; any excess is collected by the cron
-    // sweep (NFR-06). Each delete is guarded so a single failure can't roll
-    // back the patch we already committed.
-    const toDelete = removedInlineIds.slice(
-      0,
-      MAX_INLINE_DELETES_PER_INVOCATION,
+    // FG_091: claim ownership for any new inline-image storageIds in the
+    // committed body. Existing claims are left untouched (first-commit
+    // wins).
+    if (args.body !== undefined) {
+      await claimInlineImageOwnership(ctx, args.body, appUser._id);
+    }
+
+    // Delete inline storage IDs that are no longer referenced. FG_091:
+    // filter to IDs the ownership table attributes to the current caller —
+    // refuses to delete blobs introduced by another user (the cross-user
+    // storage-deletion attack). Legacy IDs (no ownership row) are silently
+    // skipped; the cron sweep is the safety net.
+    //
+    // Capped at MAX_INLINE_DELETES_PER_INVOCATION; any excess is collected
+    // by the cron sweep (NFR-06). Each delete is guarded so a single
+    // failure can't roll back the patch we already committed.
+    const callerOwned = await filterCallerOwnedInlineIds(
+      ctx,
+      removedInlineIds,
+      appUser._id,
     );
+    const toDelete = callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION);
     for (const id of toDelete) {
       try {
         await ctx.storage.delete(id);
@@ -278,9 +301,18 @@ export const remove = authMutation({
         await ctx.storage.delete(post.coverImageStorageId);
       }
 
+      // FG_091: filter inline IDs to ones the caller owns per the
+      // `inlineImageOwnership` table. Legacy IDs (no ownership row) are
+      // silently skipped — the cron sweep is the safety net.
+      //
       // Capped at MAX_INLINE_DELETES_PER_INVOCATION (NFR-06); excess is
       // collected by the cron sweep.
-      const inlineToDelete = inlineIds.slice(
+      const callerOwned = await filterCallerOwnedInlineIds(
+        ctx,
+        inlineIds,
+        appUser._id,
+      );
+      const inlineToDelete = callerOwned.slice(
         0,
         MAX_INLINE_DELETES_PER_INVOCATION,
       );

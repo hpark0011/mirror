@@ -7,6 +7,7 @@
 
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
+import { claimInlineImageOwnership } from "../content/inlineImageOwnership";
 
 export const _readArticleBody = internalQuery({
   args: { articleId: v.id("articles") },
@@ -32,6 +33,15 @@ export const _patchInlineImageBody = internalMutation({
   returns: v.null(),
   handler: async (ctx, args) => {
     await ctx.db.patch(args.articleId, { body: args.body });
+    // FG_091: the markdown-import action just stored fresh blobs and
+    // patched the body with their storageIds. Claim ownership for the
+    // article's owner so a later same-user removal will cascade-delete
+    // them. Look up the owner from the article doc — the action already
+    // verified ownership before invoking us.
+    const article = await ctx.db.get(args.articleId);
+    if (article) {
+      await claimInlineImageOwnership(ctx, args.body, article.userId);
+    }
     return null;
   },
 });

@@ -357,6 +357,227 @@ describe("articles.mutations.update — inline-image cascade (FR-06, NFR-06)", (
   });
 });
 
+// FG_091: cross-user storage-deletion attack. The vulnerability: a public
+// article body containing user A's storageId can be embedded in user B's
+// own draft body, and a follow-up `update` removing the storageId would
+// previously call `ctx.storage.delete(<A's blob>)` on A's behalf — A's
+// blob was permanently destroyed by B's mutation.
+//
+// Mitigation: the `inlineImageOwnership` table records who first
+// committed each storageId. `update` and `remove` filter the
+// removed-storage-IDs set to ones the table attributes to the current
+// caller. Legacy IDs (no ownership row) are silently skipped.
+describe("articles.mutations — cross-user inline-image deletion guard (FG_091)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("update: user B cannot delete user A's storage blob by embedding+removing A's storageId", async () => {
+    const t = makeT();
+
+    // User A creates an article whose body references storageId `sA`.
+    // Ownership of `sA` is claimed for A on commit.
+    const userAAppId = await insertAppUserAndSignIn(
+      t,
+      "auth_user_a",
+      "user-a@example.com",
+    );
+    const sA = await storeBlob(t, "user-a-blob");
+    const aArticleId = await t.mutation(api.articles.mutations.create, {
+      title: "User A's article",
+      category: "general",
+      body: bodyWithImages(sA),
+      status: "published",
+    });
+
+    // User B copies `sA` (read off A's published article body) into their
+    // own draft body. B's `create` does NOT transfer ownership — the
+    // ownership row for `sA` still attributes the blob to A.
+    const userBAppId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_user_b",
+        email: "user-b@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_user_b" };
+    const bArticleId = await t.mutation(api.articles.mutations.create, {
+      title: "User B's article",
+      category: "general",
+      body: bodyWithImages(sA),
+      status: "draft",
+    });
+
+    // User B updates their article with an empty body. Without the
+    // ownership guard, `removedInlineIds` would include `sA` and
+    // `ctx.storage.delete(sA)` would fire — destroying A's blob. With
+    // the guard, the filter drops `sA` because the table attributes it
+    // to A, not to B.
+    await t.mutation(api.articles.mutations.update, {
+      id: bArticleId,
+      body: bodyWithImages(),
+    });
+
+    // Assertion: A's blob still exists.
+    expect(await blobExists(t, sA)).toBe(true);
+
+    // A's article still references the blob; A can still resolve it.
+    const aArticleAfter = await t.run(async (ctx) =>
+      ctx.db.get(aArticleId),
+    );
+    expect(
+      extractInlineIdsFromArticleBody(aArticleAfter?.body),
+    ).toContain(sA);
+
+    // Sanity: ownership table still attributes `sA` to A.
+    const ownership = await t.run(async (ctx) =>
+      ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) => q.eq("storageId", sA))
+        .unique(),
+    );
+    expect(ownership?.userId).toBe(userAAppId);
+
+    // Defensive: confirm B's app user id is not the owner of `sA` (would
+    // mean ownership was overwritten — first-commit contract violated).
+    expect(ownership?.userId).not.toBe(userBAppId);
+  });
+
+  it("remove: user B deleting their own article (which referenced A's storageId) does not delete A's blob", async () => {
+    const t = makeT();
+
+    // User A claims `sA`.
+    await insertAppUserAndSignIn(t, "auth_user_a", "user-a@example.com");
+    const sA = await storeBlob(t, "user-a-blob");
+    await t.mutation(api.articles.mutations.create, {
+      title: "User A's article",
+      category: "general",
+      body: bodyWithImages(sA),
+      status: "published",
+    });
+
+    // User B creates an article referencing A's `sA`.
+    await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_user_b",
+        email: "user-b@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_user_b" };
+    const bArticleId = await t.mutation(api.articles.mutations.create, {
+      title: "User B's article",
+      category: "general",
+      body: bodyWithImages(sA),
+      status: "draft",
+    });
+
+    // B removes their article. The cascade-delete walks `sA` but the
+    // ownership table attributes it to A — guard drops it before the
+    // `ctx.storage.delete` call.
+    await t.mutation(api.articles.mutations.remove, { ids: [bArticleId] });
+
+    expect(await blobExists(t, sA)).toBe(true);
+  });
+
+  it("update: legitimate same-user removal still deletes the blob (regression)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const owned = await storeBlob(t, "owned");
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Same user",
+      category: "general",
+      body: bodyWithImages(owned),
+      status: "draft",
+    });
+
+    // Sanity: claim was recorded for the caller.
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) => q.eq("storageId", owned))
+        .unique();
+      expect(row).not.toBeNull();
+    });
+
+    await t.mutation(api.articles.mutations.update, {
+      id: articleId,
+      body: bodyWithImages(),
+    });
+
+    expect(await blobExists(t, owned)).toBe(false);
+  });
+
+  it("update: legacy storageId (no ownership row) is tolerated — silently skipped, not deleted", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    // Simulate a legacy body row by directly inserting a blob and an
+    // article whose body references it WITHOUT going through the
+    // mutation that would have claimed ownership.
+    const legacy = await storeBlob(t, "legacy");
+    const articleId = await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: (
+          await ctx.db
+            .query("users")
+            .withIndex("by_authId", (q) =>
+              q.eq("authId", "auth_articles_inline"),
+            )
+            .unique()
+        )!._id,
+        slug: "legacy-article",
+        title: "Legacy",
+        category: "general",
+        body: bodyWithImages(legacy),
+        status: "draft",
+        createdAt: Date.now(),
+      }),
+    );
+
+    // Confirm precondition: no ownership row exists.
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) => q.eq("storageId", legacy))
+        .unique();
+      expect(row).toBeNull();
+    });
+
+    await t.mutation(api.articles.mutations.update, {
+      id: articleId,
+      body: bodyWithImages(),
+    });
+
+    // Constraint: legacy bodies tolerated silently; blob NOT deleted by
+    // the cascade. Cron sweep is the safety net.
+    expect(await blobExists(t, legacy)).toBe(true);
+  });
+});
+
+// Local helper for the FG_091 test block. Returns the inline storageIds
+// in a stored article body without taking a dependency on the body-walk
+// helper at the test boundary (test-as-documentation).
+function extractInlineIdsFromArticleBody(body: unknown): string[] {
+  const out: string[] = [];
+  function walk(node: unknown): void {
+    if (!node || typeof node !== "object") return;
+    const n = node as Record<string, unknown>;
+    if (n.type === "image") {
+      const attrs = n.attrs as { storageId?: unknown } | undefined;
+      const id = attrs?.storageId;
+      if (typeof id === "string" && id.length > 0) out.push(id);
+    }
+    const children = n.content;
+    if (Array.isArray(children)) {
+      for (const c of children) walk(c);
+    }
+  }
+  walk(body);
+  return out;
+}
+
 describe("articles.mutations.remove — inline-image cascade (FR-07, NFR-06)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;

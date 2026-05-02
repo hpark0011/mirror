@@ -5,6 +5,7 @@ import { betaAllowlistTable } from "./betaAllowlist/schema";
 import { bioEntriesTable } from "./bio/schema";
 import { conversationsTable } from "./chat/schema";
 import { contentEmbeddingsTable } from "./embeddings/schema";
+import { inlineImageOwnershipTable } from "./content/inlineImageOwnershipSchema";
 import { postsTable } from "./posts/schema";
 import { usersTable } from "./users/schema";
 import { waitlistRequestsTable } from "./waitlistRequests/schema";
@@ -16,6 +17,7 @@ export default defineSchema({
   bioEntries: bioEntriesTable,
   conversations: conversationsTable,
   contentEmbeddings: contentEmbeddingsTable,
+  inlineImageOwnership: inlineImageOwnershipTable,
   betaAllowlist: betaAllowlistTable,
   waitlistRequests: waitlistRequestsTable,
 

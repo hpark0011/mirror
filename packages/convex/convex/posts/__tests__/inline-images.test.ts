@@ -330,6 +330,186 @@ describe("posts.mutations.update — inline-image cascade (FR-06, NFR-06)", () =
   });
 });
 
+// FG_091: cross-user storage-deletion attack — posts mirror.
+// See `articles/__tests__/inline-images.test.ts` for the full attack
+// description.
+describe("posts.mutations — cross-user inline-image deletion guard (FG_091)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("update: user B cannot delete user A's storage blob by embedding+removing A's storageId", async () => {
+    const t = makeT();
+
+    const userAAppId = await insertAppUserAndSignIn(
+      t,
+      "auth_user_a",
+      "user-a@example.com",
+    );
+    const sA = await storeBlob(t, "user-a-blob");
+    const aPostId = await t.mutation(api.posts.mutations.create, {
+      title: "User A's post",
+      category: "Creativity",
+      body: bodyWithImages(sA),
+      status: "published",
+    });
+
+    const userBAppId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_user_b",
+        email: "user-b@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_user_b" };
+    const bPostId = await t.mutation(api.posts.mutations.create, {
+      title: "User B's post",
+      category: "Creativity",
+      body: bodyWithImages(sA),
+      status: "draft",
+    });
+
+    await t.mutation(api.posts.mutations.update, {
+      id: bPostId,
+      body: bodyWithImages(),
+    });
+
+    expect(await blobExists(t, sA)).toBe(true);
+
+    const aPostAfter = await t.run(async (ctx) => ctx.db.get(aPostId));
+    expect(extractInlineIdsFromBody(aPostAfter?.body)).toContain(sA);
+
+    const ownership = await t.run(async (ctx) =>
+      ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) => q.eq("storageId", sA))
+        .unique(),
+    );
+    expect(ownership?.userId).toBe(userAAppId);
+    expect(ownership?.userId).not.toBe(userBAppId);
+  });
+
+  it("remove: user B deleting their own post (which referenced A's storageId) does not delete A's blob", async () => {
+    const t = makeT();
+
+    await insertAppUserAndSignIn(t, "auth_user_a", "user-a@example.com");
+    const sA = await storeBlob(t, "user-a-blob");
+    await t.mutation(api.posts.mutations.create, {
+      title: "User A's post",
+      category: "Creativity",
+      body: bodyWithImages(sA),
+      status: "published",
+    });
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_user_b",
+        email: "user-b@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_user_b" };
+    const bPostId = await t.mutation(api.posts.mutations.create, {
+      title: "User B's post",
+      category: "Creativity",
+      body: bodyWithImages(sA),
+      status: "draft",
+    });
+
+    await t.mutation(api.posts.mutations.remove, { ids: [bPostId] });
+
+    expect(await blobExists(t, sA)).toBe(true);
+  });
+
+  it("update: legitimate same-user removal still deletes the blob (regression)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const owned = await storeBlob(t, "owned");
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Same user",
+      category: "Creativity",
+      body: bodyWithImages(owned),
+      status: "draft",
+    });
+
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) => q.eq("storageId", owned))
+        .unique();
+      expect(row).not.toBeNull();
+    });
+
+    await t.mutation(api.posts.mutations.update, {
+      id: postId,
+      body: bodyWithImages(),
+    });
+
+    expect(await blobExists(t, owned)).toBe(false);
+  });
+
+  it("update: legacy storageId (no ownership row) is tolerated — silently skipped, not deleted", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const legacy = await storeBlob(t, "legacy");
+    const postId = await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: (
+          await ctx.db
+            .query("users")
+            .withIndex("by_authId", (q) =>
+              q.eq("authId", "auth_posts_inline"),
+            )
+            .unique()
+        )!._id,
+        slug: "legacy-post",
+        title: "Legacy",
+        category: "Creativity",
+        body: bodyWithImages(legacy),
+        status: "draft",
+        createdAt: Date.now(),
+      }),
+    );
+
+    await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) => q.eq("storageId", legacy))
+        .unique();
+      expect(row).toBeNull();
+    });
+
+    await t.mutation(api.posts.mutations.update, {
+      id: postId,
+      body: bodyWithImages(),
+    });
+
+    expect(await blobExists(t, legacy)).toBe(true);
+  });
+});
+
+// Local helper — see articles test for rationale.
+function extractInlineIdsFromBody(body: unknown): string[] {
+  const out: string[] = [];
+  function walk(node: unknown): void {
+    if (!node || typeof node !== "object") return;
+    const n = node as Record<string, unknown>;
+    if (n.type === "image") {
+      const attrs = n.attrs as { storageId?: unknown } | undefined;
+      const id = attrs?.storageId;
+      if (typeof id === "string" && id.length > 0) out.push(id);
+    }
+    const children = n.content;
+    if (Array.isArray(children)) {
+      for (const c of children) walk(c);
+    }
+  }
+  walk(body);
+  return out;
+}
+
 describe("posts.mutations.remove — inline-image cascade (FR-07, NFR-06)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;

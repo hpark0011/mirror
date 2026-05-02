@@ -3,7 +3,7 @@ id: FG_091
 title: "Update mutation refuses to delete inline storage IDs the caller didn't introduce"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "Any authenticated user can permanently delete another user's storage blob by reading a public article's body, embedding the victim's storageId into their own article body, and removing it in a follow-up update. The articles/posts update mutations call ctx.storage.delete on every storageId in the multiset diff with no proof that the caller ever uploaded those blobs. Convex storage deletes are irreversible — this is a real cross-user trust-boundary violation surfaced in the inline-image-lifecycle review."
 dependencies: []
