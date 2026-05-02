@@ -5,7 +5,7 @@ import { Tabs, TabsList, TabsTrigger } from "@feel-good/ui/primitives/tabs";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import {
   getProfileTabHref,
-  PROFILE_TAB_KINDS,
+  PROFILE_TAB_DISPLAY_ORDER,
   PROFILE_TAB_LABELS,
   type ProfileTabKind,
 } from "../types";
@@ -23,7 +23,7 @@ export function ProfileTabs({
 }: ProfileTabsProps) {
   const { buildChatAwareHref } = useChatSearchParams();
 
-  const visibleKinds = PROFILE_TAB_KINDS.filter(
+  const visibleKinds = PROFILE_TAB_DISPLAY_ORDER.filter(
     (kind) => kind !== "clone-settings" || isOwner,
   );
 

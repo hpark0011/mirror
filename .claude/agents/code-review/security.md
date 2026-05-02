@@ -1,6 +1,6 @@
 ---
 name: code-review-security
-description: Specialist code-review reviewer. Looks only for auth bypasses, missing authorization, trust-boundary violations, input sanitization at boundaries, and secret leakage. Routed by the reviewing-code skill when the diff touches auth, permissions, user input, or secrets. Does NOT do full threat modeling (use security-review skill for that) or cover correctness, style, tests, concurrency, or performance.
+description: Specialist code-review reviewer. Looks only for auth bypasses, missing authorization, trust-boundary violations, input sanitization at boundaries, and secret leakage. Routed by the review-code skill when the diff touches auth, permissions, user input, or secrets. Does NOT do full threat modeling (use security-review skill for that) or cover correctness, style, tests, concurrency, or performance.
 model: sonnet
 color: red
 ---
@@ -36,14 +36,20 @@ Return a JSON array of findings. Every finding MUST fill:
   "reviewer": "security",
   "title": "one line",
   "location": "path/to/file.ts:startLine-endLine",
-  "severity": "low | medium | high | critical",
+  "priority": "P0 | P1 | P2 | P3",
   "confidence": 0.0,
   "observation": "the specific code path that creates the risk",
   "risk": "the concrete exposure — e.g. 'any authenticated user can delete another user's message' — REQUIRED",
   "evidence": ["quoted lines", "rule reference"],
-  "suggestedFix": "one-sentence direction — e.g. 'add ownership check: if (msg.authorId !== ctx.userId) throw'"
+  "suggestedFix": "one-sentence direction — e.g. 'add ownership check: if (msg.authorId !== ctx.userId) throw'",
+  "autofix_class": "safe_auto | gated_auto | manual | advisory",
+  "owner": "review-fixer | downstream-resolver | human | release",
+  "requires_verification": false,
+  "pre_existing": false
 }
 ```
+
+**Routing defaults for this reviewer:** security findings are `manual` / `downstream-resolver` by default — auth/authz fixes carry behavior change and need an explicit owner decision. Never emit `safe_auto` on a security finding; the orchestrator's "most conservative route wins" rule means a security finding will block the fixer queue regardless. Always set `requires_verification: true` — the fix must be exercised against the exposure scenario before it counts as resolved.
 
 **Hard rule:** name the concrete exposure or privilege boundary crossed. "Should be reviewed for security" is not a finding.
 

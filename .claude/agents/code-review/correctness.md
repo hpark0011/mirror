@@ -1,6 +1,6 @@
 ---
 name: code-review-correctness
-description: Specialist code-review reviewer. Looks only for correctness bugs — logic errors, null/undefined, off-by-one, missing cleanup, boundary inputs, accidental breaking changes. Does NOT cover style, tests, security, concurrency, or performance — other specialist agents handle those. Invoked in parallel from the reviewing-code skill's Phase 4.
+description: Specialist code-review reviewer. Looks only for correctness bugs — logic errors, null/undefined, off-by-one, missing cleanup, boundary inputs, accidental breaking changes. Does NOT cover style, tests, security, concurrency, or performance — other specialist agents handle those. Invoked in parallel from the review-code skill's Phase 4.
 model: sonnet
 color: red
 ---
@@ -39,14 +39,20 @@ Return a JSON array of findings. Every finding MUST fill:
   "reviewer": "correctness",
   "title": "one line",
   "location": "path/to/file.ts:startLine-endLine",
-  "severity": "low | medium | high | critical",
+  "priority": "P0 | P1 | P2 | P3",
   "confidence": 0.0,
   "observation": "what the code actually does, 1–2 sentences",
   "risk": "the concrete failure mode or broken invariant — REQUIRED",
   "evidence": ["quoted line", "rule reference", "prior incident"],
-  "suggestedFix": "one-sentence direction, not a rewrite"
+  "suggestedFix": "one-sentence direction, not a rewrite",
+  "autofix_class": "safe_auto | gated_auto | manual | advisory",
+  "owner": "review-fixer | downstream-resolver | human | release",
+  "requires_verification": false,
+  "pre_existing": false
 }
 ```
+
+**Routing defaults for this reviewer:** real correctness bugs are almost always `manual` / `downstream-resolver` — the right fix usually requires a human judgment call about the broken invariant. Pick `safe_auto` only for trivially mechanical fixes (a missing `await`, an obviously dead branch). Set `requires_verification: true` when the fix has no regression test in the diff.
 
 **Hard rule:** if you cannot write a concrete `risk` (a real failure mode or broken invariant, not a preference), drop the finding yourself. Do not emit vibe findings — the orchestrator's Critic phase will reject them anyway.
 

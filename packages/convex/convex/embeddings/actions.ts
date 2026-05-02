@@ -8,11 +8,12 @@ import { internal } from "../_generated/api";
 import { extractPlainText } from "./textExtractor";
 import { chunkText } from "./chunker";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "./config";
-import type { JSONContent } from "./textExtractor";
+import { embeddingSourceTableValidator } from "./schema";
+import { type JSONContent } from "./textExtractor";
 
 export const generateEmbedding = internalAction({
   args: {
-    sourceTable: v.union(v.literal("articles"), v.literal("posts")),
+    sourceTable: embeddingSourceTableValidator,
     sourceId: v.string(),
   },
   returns: v.null(),
@@ -23,8 +24,9 @@ export const generateEmbedding = internalAction({
         { sourceTable, sourceId },
       );
 
-      if (!content || content.status !== "published") {
-        // Not published — clean up any existing embeddings
+      // Source row deleted between schedule and execution — clean up any
+      // stale embeddings.
+      if (!content) {
         await ctx.runMutation(internal.embeddings.mutations.deleteBySource, {
           sourceTable,
           sourceId,
@@ -32,14 +34,48 @@ export const generateEmbedding = internalAction({
         return null;
       }
 
-      const bodyText = content.body
-        ? extractPlainText(content.body as JSONContent).trim()
-        : "";
-      const fullText = bodyText
-        ? `# ${content.title}\n\n${bodyText}`
-        : `# ${content.title}`;
+      // Discriminate on kind (NOT on a sentinel `status: "published"` value).
+      // The published-status gate is conceptually about prose docs that have a
+      // draft/published lifecycle — bio entries don't, so we never trip the
+      // gate on them. A future real `status` field on bio would not silently
+      // bypass the gate because the discriminator is `kind`, not absence of
+      // a field.
+      if (content.kind === "doc" && content.status !== "published") {
+        await ctx.runMutation(internal.embeddings.mutations.deleteBySource, {
+          sourceTable,
+          sourceId,
+        });
+        return null;
+      }
 
-      const chunks = chunkText(fullText);
+      // Build the chunked text. `kind: "doc"` runs through TipTap-aware
+      // extraction + the paragraph/sentence chunker. `kind: "bio"` is
+      // already a short, pre-serialized prose blob and should NOT be fed
+      // through `extractPlainText` (would crash walking `.content[]` on a
+      // string) nor through `chunkText` (single chunk per entry is correct
+      // and keeps RAG retrieval tight).
+      let chunks: string[];
+      let title: string;
+      let userId;
+      let slug: string | undefined;
+
+      if (content.kind === "bio") {
+        chunks = [content.body];
+        title = content.title;
+        userId = content.userId;
+        slug = undefined;
+      } else {
+        const bodyText = content.body
+          ? extractPlainText(content.body as JSONContent).trim()
+          : "";
+        const fullText = bodyText
+          ? `# ${content.title}\n\n${bodyText}`
+          : `# ${content.title}`;
+        chunks = chunkText(fullText);
+        title = content.title;
+        userId = content.userId;
+        slug = content.slug;
+      }
 
       const { embeddings } = await embedMany({
         model: google.textEmbeddingModel(EMBEDDING_MODEL),
@@ -61,11 +97,11 @@ export const generateEmbedding = internalAction({
         chunks: embeddings.map((embedding, i) => ({
           sourceTable,
           sourceId,
-          userId: content.userId,
+          userId,
           chunkIndex: i,
           chunkText: chunks[i]!,
-          title: content.title,
-          slug: content.slug,
+          title,
+          slug,
           embedding,
           embeddingModel: EMBEDDING_MODEL,
           embeddedAt: now,
@@ -87,7 +123,7 @@ export const backfillEmbeddings = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    // Fetch all published articles and posts
+    // Fetch all published articles and posts, plus all bio entries.
     const articles = await ctx.runQuery(
       internal.embeddings.queries.listPublishedContent,
       { sourceTable: "articles" },
@@ -95,6 +131,10 @@ export const backfillEmbeddings = internalAction({
     const posts = await ctx.runQuery(
       internal.embeddings.queries.listPublishedContent,
       { sourceTable: "posts" },
+    );
+    const bioEntries = await ctx.runQuery(
+      internal.embeddings.queries.listPublishedContent,
+      { sourceTable: "bioEntries" },
     );
 
     // Fan out to independent scheduled actions to avoid timeout
@@ -110,6 +150,13 @@ export const backfillEmbeddings = internalAction({
         0,
         internal.embeddings.actions.generateEmbedding,
         { sourceTable: "posts", sourceId: id },
+      );
+    }
+    for (const id of bioEntries) {
+      await ctx.scheduler.runAfter(
+        0,
+        internal.embeddings.actions.generateEmbedding,
+        { sourceTable: "bioEntries", sourceId: id },
       );
     }
 

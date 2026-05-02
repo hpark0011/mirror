@@ -369,6 +369,91 @@ export const ensureTestArticleFixtures = internalMutation({
 });
 
 /**
+ * Idempotently seeds a configurable set of bioEntries rows for a test user,
+ * deleting any pre-existing rows for that user first so the canonical fixture
+ * state is reset on every call. Used by Wave-4 Playwright specs in
+ * `apps/mirror/e2e/bio/` to drive list rendering, ordering, and 50-cap tests
+ * deterministically.
+ *
+ * The shape of `entries` mirrors the public `bioEntries` schema (kind, title,
+ * startDate, endDate, description?, link?). The caller — not this helper —
+ * is responsible for picking start/end month-anchored epoch ms.
+ *
+ * NOTE: This intentionally bypasses the `bio.mutations.create` soft-cap so
+ * Playwright can seed exactly 51 entries to verify FR-10 (the public query
+ * caps reads at 50). Producing 51+ rows via the public mutation would race
+ * the soft-cap.
+ *
+ * NOTE: This does NOT schedule embedding generation. Bio fixture rows used
+ * by FR-12/FR-13 (RAG context) require additional fixture infrastructure
+ * (clone configuration + a deterministic embedding pipeline).
+ *
+ * WARNING: Only call from test infrastructure. Never expose as public API.
+ */
+export const ensureTestBioFixtures = internalMutation({
+  args: {
+    email: v.string(),
+    entries: v.array(
+      v.object({
+        kind: v.union(v.literal("work"), v.literal("education")),
+        title: v.string(),
+        startDate: v.number(),
+        endDate: v.union(v.number(), v.null()),
+        description: v.optional(v.string()),
+        link: v.optional(v.string()),
+      }),
+    ),
+  },
+  returns: v.object({
+    userId: v.id("users"),
+    insertedCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (!user) {
+      throw new Error(
+        `Test user with email ${args.email} not found. Call ensureTestUser first.`,
+      );
+    }
+
+    const userId = user._id;
+
+    // Wipe existing bioEntries for this user so each call resets to the
+    // canonical fixture state.
+    const existing = await ctx.db
+      .query("bioEntries")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+
+    for (const entry of args.entries) {
+      await ctx.db.insert("bioEntries", {
+        userId,
+        kind: entry.kind,
+        title: entry.title,
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+        description: entry.description,
+        link: entry.link,
+      });
+    }
+
+    return {
+      userId,
+      insertedCount: args.entries.length,
+    };
+  },
+});
+
+/**
  * Deletes testOtpStore rows older than TEST_OTP_TTL_MS. Scheduled from crons.ts
  * to keep the table from accumulating stale rows in dev/test environments.
  */
