@@ -27,20 +27,20 @@ export function BioEntryCard({
     <article
       data-testid="bio-entry-card"
       data-kind={entry.kind}
-      className="flex text-card-foreground gap-8"
+      className="flex text-card-foreground gap-4"
     >
-      <p className="text-[15px] text-foreground leading-[1.2] whitespace-nowrap max-w-[160px] w-full mt-[2px]">
+      <p className="text-[15px] text-foreground leading-[1.2] whitespace-nowrap max-w-[160px] w-full mt-px">
         {dateRange}
       </p>
       <div className="w-full flex flex-col">
-        <div className="flex items-baseline w-full justify-between">
-          <h3 className="text-lg font-medium leading-[1.2] text-foreground mb-2">
+        <div className="flex items-baseline w-full justify-between mb-2">
+          <h3 className="text-base font-medium leading-[1.2] text-foreground underline">
             {entry.title}
           </h3>
 
           {isOwner
             ? (
-              <div className="flex shrink-0 items-baseline gap-3">
+              <div className="flex shrink-0 items-center gap-1.5">
                 <Button
                   size="sm"
                   variant="link"
@@ -50,6 +50,7 @@ export function BioEntryCard({
                 >
                   Edit
                 </Button>
+                <span className="text-xs pb-0.5">/</span>
                 <Button
                   size="sm"
                   variant="link"
