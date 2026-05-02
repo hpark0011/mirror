@@ -37,11 +37,17 @@ export function ArticleEditor({ article, username, slug }: ArticleEditorProps) {
   // latest value the editor produced via `onChange`.
   const [body, setBody] = useState<JSONContent>(article.body);
   const [isSaving, setIsSaving] = useState(false);
+  // Mirrors the `inlineImageUploadPluginKey` DecorationSet emptiness — the
+  // editor's `onPendingUploadsChange` callback bubbles the boolean up so we
+  // can disable Save while a paste/drop upload is in flight (FG_092). A
+  // save during the upload window would persist a body without the image
+  // because `editor.getJSON()` does not serialize widget decorations.
+  const [hasPendingUploads, setHasPendingUploads] = useState(false);
 
   const readViewHref = `/@${username}/articles/${slug}`;
 
   const handleSave = useCallback(async () => {
-    if (isSaving) return;
+    if (isSaving || hasPendingUploads) return;
     setIsSaving(true);
     try {
       await update({ id: article._id, body });
@@ -62,7 +68,7 @@ export function ArticleEditor({ article, username, slug }: ArticleEditorProps) {
     } finally {
       setIsSaving(false);
     }
-  }, [article._id, body, isSaving, readViewHref, router, update]);
+  }, [article._id, body, hasPendingUploads, isSaving, readViewHref, router, update]);
 
   return (
     <div className="flex h-full flex-col">
@@ -77,7 +83,7 @@ export function ArticleEditor({ article, username, slug }: ArticleEditorProps) {
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || hasPendingUploads}
             data-testid="save-article-btn"
           >
             {isSaving ? "Saving..." : "Save"}
@@ -89,6 +95,7 @@ export function ArticleEditor({ article, username, slug }: ArticleEditorProps) {
           content={body}
           onChange={setBody}
           onImageUpload={upload}
+          onPendingUploadsChange={setHasPendingUploads}
           className="min-h-full"
         />
       </div>

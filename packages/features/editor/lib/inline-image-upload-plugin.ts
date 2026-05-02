@@ -56,6 +56,19 @@ export function findPlaceholder(
   return found.length > 0 ? found[0].from : null;
 }
 
+/**
+ * Returns true while at least one inline-image upload placeholder is live in
+ * the editor state. Save flows that snapshot `editor.getJSON()` should gate
+ * on this — widget decorations are not real ProseMirror nodes, so a save
+ * during the upload window would persist a body with the image missing
+ * (FG_092 / spec NFR-05). Boolean only — does not leak the DecorationSet.
+ */
+export function hasPendingUploads(state: EditorState): boolean {
+  const decorations = inlineImageUploadPluginKey.getState(state);
+  if (!decorations) return false;
+  return decorations.find().length > 0;
+}
+
 /** Pull `File` objects with an `image/*` MIME type out of a DataTransfer. */
 function collectImageFiles(dataTransfer: DataTransfer | null): File[] {
   if (!dataTransfer) return [];

@@ -7,6 +7,7 @@ import { cn } from "@feel-good/utils/cn";
 import { createArticleExtensions } from "../lib/extensions";
 import {
   createInlineImageUploadExtension,
+  hasPendingUploads,
   type InlineImageUploadResult,
 } from "../lib/inline-image-upload-plugin";
 
@@ -14,6 +15,12 @@ type RichTextEditorProps = {
   content: JSONContent;
   onChange: (next: JSONContent) => void;
   onImageUpload: (file: File) => Promise<InlineImageUploadResult>;
+  /**
+   * Fires when the inline-image upload placeholder count crosses the
+   * empty/non-empty boundary. Hosts use this to gate Save while uploads are
+   * in flight (FG_092). Boolean is dedup'd against the previous emission.
+   */
+  onPendingUploadsChange?: (hasPending: boolean) => void;
   className?: string;
 };
 
@@ -21,6 +28,7 @@ export function RichTextEditor({
   content,
   onChange,
   onImageUpload,
+  onPendingUploadsChange,
   className,
 }: RichTextEditorProps) {
   // Ref-forwarding pattern: extensions and the `onUpdate` callback are
@@ -37,6 +45,17 @@ export function RichTextEditor({
   useEffect(() => {
     onChangeRef.current = onChange;
   }, [onChange]);
+
+  const onPendingUploadsChangeRef = useRef(onPendingUploadsChange);
+  useEffect(() => {
+    onPendingUploadsChangeRef.current = onPendingUploadsChange;
+  }, [onPendingUploadsChange]);
+
+  // Tracks the most recently emitted boolean so we only call the host
+  // when the placeholder count crosses the empty/non-empty boundary —
+  // every transaction fires `onTransaction`, but the host only cares
+  // about state transitions.
+  const lastPendingRef = useRef(false);
 
   const extensions = useMemo<Extensions>(
     () => [
@@ -56,6 +75,17 @@ export function RichTextEditor({
     immediatelyRender: false,
     onUpdate: ({ editor: instance }) => {
       onChangeRef.current(instance.getJSON());
+    },
+    onTransaction: ({ editor: instance }) => {
+      // `onTransaction` fires for both doc-changing and meta-only
+      // transactions (the placeholder add/remove uses `setMeta`). Reading
+      // `hasPendingUploads` here is the only way to observe the
+      // DecorationSet flip — `onUpdate` would miss meta-only events.
+      const next = hasPendingUploads(instance.state);
+      if (next !== lastPendingRef.current) {
+        lastPendingRef.current = next;
+        onPendingUploadsChangeRef.current?.(next);
+      }
     },
   });
 

@@ -8,6 +8,7 @@ export {
   createInlineImageUploadExtension,
   inlineImageUploadPluginKey,
   findPlaceholder,
+  hasPendingUploads,
   type InlineImageUploadOptions,
   type InlineImageUploadResult,
 } from "./lib/inline-image-upload-plugin";

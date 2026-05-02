@@ -35,11 +35,17 @@ export function PostEditor({ post, username, slug }: PostEditorProps) {
   // value (the change handler fires on every keystroke).
   const [body, setBody] = useState<JSONContent>(post.body);
   const [isSaving, setIsSaving] = useState(false);
+  // Mirrors the `inlineImageUploadPluginKey` DecorationSet emptiness — the
+  // editor's `onPendingUploadsChange` callback bubbles the boolean up so we
+  // can disable Save while a paste/drop upload is in flight (FG_092). A
+  // save during the upload window would persist a body without the image
+  // because `editor.getJSON()` does not serialize widget decorations.
+  const [hasPendingUploads, setHasPendingUploads] = useState(false);
 
   const readViewHref = `/@${username}/posts/${slug}`;
 
   const handleSave = useCallback(async () => {
-    if (isSaving) return;
+    if (isSaving || hasPendingUploads) return;
     setIsSaving(true);
     try {
       await update({ id: post._id, body });
@@ -60,7 +66,7 @@ export function PostEditor({ post, username, slug }: PostEditorProps) {
     } finally {
       setIsSaving(false);
     }
-  }, [body, isSaving, post._id, readViewHref, router, update]);
+  }, [body, hasPendingUploads, isSaving, post._id, readViewHref, router, update]);
 
   return (
     <div className="flex h-full flex-col">
@@ -75,7 +81,7 @@ export function PostEditor({ post, username, slug }: PostEditorProps) {
           <Button
             size="sm"
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || hasPendingUploads}
             data-testid="save-post-btn"
           >
             {isSaving ? "Saving..." : "Save"}
@@ -87,6 +93,7 @@ export function PostEditor({ post, username, slug }: PostEditorProps) {
           content={body}
           onChange={setBody}
           onImageUpload={upload}
+          onPendingUploadsChange={setHasPendingUploads}
           className="min-h-full"
         />
       </div>

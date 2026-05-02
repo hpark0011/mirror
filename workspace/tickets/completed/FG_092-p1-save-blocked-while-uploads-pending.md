@@ -3,7 +3,7 @@ id: FG_092
 title: "Save button is disabled while inline-image uploads are still pending"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "ArticleEditor and PostEditor capture editor body via onChange on every keystroke. While an inline image is uploading the placeholder is a Decoration widget — not a real ProseMirror node — so editor.getJSON() returns a body with a gap where the image should be. If the user clicks Save during the upload window, the saved JSON loses the image even though the upload may succeed seconds later into a now-dead editor. The plugin already exposes its DecorationSet via inlineImageUploadPluginKey; gate Save on that being empty."
 dependencies: []

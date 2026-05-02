@@ -7,6 +7,7 @@ import { type DecorationSet } from "@tiptap/pm/view";
 import { createInlineImageExtension } from "../lib/inline-image-extension";
 import {
   createInlineImageUploadExtension,
+  hasPendingUploads,
   inlineImageUploadPluginKey,
 } from "../lib/inline-image-upload-plugin";
 
@@ -243,6 +244,29 @@ describe("inline image upload plugin", () => {
     // the lingering decoration is harmless. See production code comment
     // in inline-image-upload-plugin.ts ~line 92.
     expect(decorationCount(h.editor)).toBe(1);
+
+    h.destroy();
+  });
+
+  it("hasPendingUploads returns true while a placeholder is live and false after replacement", async () => {
+    const d = deferred();
+    const onUpload = vi.fn(() => d.promise);
+    const h = mountEditor(onUpload);
+
+    // No paste yet — empty DecorationSet.
+    expect(hasPendingUploads(h.editor.state)).toBe(false);
+
+    h.paste(h.fileFor());
+    // Placeholder is live during the upload window — Save must be gated.
+    expect(hasPendingUploads(h.editor.state)).toBe(true);
+
+    d.resolve({ storageId: "store-1", url: "https://cdn.example/1.png" });
+    await d.promise;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    // Placeholder replaced with a real image node — Save can proceed.
+    expect(hasPendingUploads(h.editor.state)).toBe(false);
 
     h.destroy();
   });
