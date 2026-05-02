@@ -267,6 +267,107 @@ export const ensureTestPostFixtures = internalMutation({
   },
 });
 
+const ARTICLE_DRAFT_FIXTURE_SLUG = "test-article-fixture-draft";
+const ARTICLE_PUBLISHED_FIXTURE_SLUG = "test-article-fixture-published";
+
+/**
+ * Idempotently creates one draft article and one published article owned by
+ * the test user. Mirrors `ensureTestPostFixtures` so e2e specs that exercise
+ * the article edit page (`[username]/articles/[slug]/edit`) can land on a
+ * fixture article without going through the article-create UI flow (which
+ * does not exist as a self-serve UI in Mirror today). Returns the slugs so
+ * tests can navigate directly.
+ *
+ * WARNING: Only call from test infrastructure. Never expose as public API.
+ */
+export const ensureTestArticleFixtures = internalMutation({
+  args: {
+    email: v.string(),
+  },
+  returns: v.object({
+    draftSlug: v.string(),
+    publishedSlug: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (!user) {
+      throw new Error(
+        `Test user with email ${args.email} not found. Call ensureTestUser first.`,
+      );
+    }
+
+    const userId = user._id;
+    const now = Date.now();
+    const emptyBody = { type: "doc", content: [{ type: "paragraph" }] };
+
+    // Upsert draft article
+    const existingDraft = await ctx.db
+      .query("articles")
+      .withIndex("by_userId_and_slug", (q) =>
+        q.eq("userId", userId).eq("slug", ARTICLE_DRAFT_FIXTURE_SLUG),
+      )
+      .unique();
+
+    if (existingDraft) {
+      await ctx.db.patch(existingDraft._id, {
+        status: "draft",
+        title: "Test Draft Article",
+        publishedAt: undefined,
+        body: existingDraft.body ?? emptyBody,
+      });
+    } else {
+      await ctx.db.insert("articles", {
+        userId,
+        slug: ARTICLE_DRAFT_FIXTURE_SLUG,
+        title: "Test Draft Article",
+        body: emptyBody,
+        category: "test",
+        createdAt: now,
+        status: "draft",
+      });
+    }
+
+    // Upsert published article
+    const existingPublished = await ctx.db
+      .query("articles")
+      .withIndex("by_userId_and_slug", (q) =>
+        q.eq("userId", userId).eq("slug", ARTICLE_PUBLISHED_FIXTURE_SLUG),
+      )
+      .unique();
+
+    if (existingPublished) {
+      await ctx.db.patch(existingPublished._id, {
+        status: "published",
+        title: "Test Published Article",
+        publishedAt: existingPublished.publishedAt ?? now,
+        body: existingPublished.body ?? emptyBody,
+      });
+    } else {
+      await ctx.db.insert("articles", {
+        userId,
+        slug: ARTICLE_PUBLISHED_FIXTURE_SLUG,
+        title: "Test Published Article",
+        body: emptyBody,
+        category: "test",
+        createdAt: now,
+        publishedAt: now,
+        status: "published",
+      });
+    }
+
+    return {
+      draftSlug: ARTICLE_DRAFT_FIXTURE_SLUG,
+      publishedSlug: ARTICLE_PUBLISHED_FIXTURE_SLUG,
+    };
+  },
+});
+
 /**
  * Deletes testOtpStore rows older than TEST_OTP_TTL_MS. Scheduled from crons.ts
  * to keep the table from accumulating stale rows in dev/test environments.
