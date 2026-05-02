@@ -3,7 +3,7 @@ id: FG_093
 title: "posts/getByUsername list query does not return stale Convex signed URLs in inline images"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "posts/getByUsername returns body verbatim, including image nodes whose src is a Convex signed URL captured at upload time. Convex signed URLs expire (~1 hour), so the post list view shows broken images for any post older than the URL TTL. The detail query getBySlug already rewrites src from storageId per FR-05; the list query was missed. The spec's user-facing promise — 'I never see a broken image on an old article because of an expired URL' — is violated for list contexts. Decide policy and apply."
 dependencies: []

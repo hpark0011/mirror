@@ -154,3 +154,57 @@ describe("posts.queries.getBySlug — inline image src rewrite (FR-05)", () => {
     expect(node.attrs.storageId).toBeUndefined();
   });
 });
+
+describe("posts.queries.getByUsername — inline image src rewrite (FG_093)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("rewrites image node src to a fresh Convex-served URL for posts in the list view", async () => {
+    const t = makeT();
+    await setupOwnerAndSignIn(t);
+    const storageId = await storeBlob(t, "img-list");
+
+    await t.mutation(api.posts.mutations.create, {
+      title: "List view image",
+      slug: "list-image",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { storageId, src: "stale://placeholder" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "published",
+    });
+
+    // Compute the fresh signed URL the query should produce.
+    const expectedUrl = await t.run(async (ctx) =>
+      ctx.storage.getUrl(storageId),
+    );
+    expect(typeof expectedUrl).toBe("string");
+
+    const list = await t.query(api.posts.queries.getByUsername, {
+      username: "owner",
+    });
+    expect(list).not.toBeNull();
+    expect(list!).toHaveLength(1);
+    const post = list![0]!;
+    const node = (
+      post.body as {
+        content: { content: { attrs: Record<string, unknown> }[] }[];
+      }
+    ).content[0].content[0];
+    expect(node.attrs.storageId).toBe(storageId);
+    expect(node.attrs.src).not.toBe("stale://placeholder");
+    expect(node.attrs.src).toBe(expectedUrl);
+  });
+});
