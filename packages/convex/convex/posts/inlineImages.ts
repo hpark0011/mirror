@@ -16,7 +16,10 @@
 // this query MUST be revisited and an ownership check added.
 
 import { v } from "convex/values";
+import { action, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { authMutation, authQuery } from "../lib/auth";
+import { authComponent } from "../auth/client";
 
 export const generatePostInlineImageUploadUrl = authMutation({
   args: {},
@@ -31,5 +34,74 @@ export const getPostInlineImageUrl = authQuery({
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, args) => {
     return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
+// Sibling internal helper. We can't reuse `_readPostBody` for ownership
+// because it strips `userId` from the doc. The action needs:
+//   - to confirm the post exists
+//   - to confirm the caller is the owner
+// before scheduling the SSRF-safe fetch + storage write. Returning a small
+// shape (rather than the whole doc) keeps the trust boundary tight.
+export const _getPostOwnership = internalQuery({
+  args: { postId: v.id("posts"), authId: v.string() },
+  returns: v.object({
+    postExists: v.boolean(),
+    isOwner: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const post = await ctx.db.get(args.postId);
+    if (!post) return { postExists: false, isOwner: false };
+    const appUser = await ctx.db
+      .query("users")
+      .withIndex("by_authId", (q) => q.eq("authId", args.authId))
+      .unique();
+    if (!appUser) return { postExists: true, isOwner: false };
+    return { postExists: true, isOwner: post.userId === appUser._id };
+  },
+});
+
+// Public wrapper for `internal.posts.actions.importMarkdownInlineImages`.
+// The internal action does the actual SSRF-safe fetch + storage write. This
+// wrapper enforces auth + ownership at the public-API boundary.
+//
+// FR-08 / FR-12: only the post's owner may trigger an inline-image import for
+// it. We can't use `authMutation` here (this is an action; mutations cannot
+// run "use node" code), so the auth + ownership check is open-coded against
+// `authComponent.getAuthUser(ctx)` followed by an internal-query lookup.
+export const importPostMarkdownInlineImages = action({
+  args: { postId: v.id("posts") },
+  returns: v.object({
+    imported: v.number(),
+    failed: v.number(),
+    failures: v.array(
+      v.object({ src: v.string(), reason: v.string() }),
+    ),
+  }),
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    imported: number;
+    failed: number;
+    failures: { src: string; reason: string }[];
+  }> => {
+    // `getAuthUser` throws "Not authenticated" when there is no session.
+    const authUser = await authComponent.getAuthUser(ctx);
+    const ownership: { postExists: boolean; isOwner: boolean } =
+      await ctx.runQuery(internal.posts.inlineImages._getPostOwnership, {
+        postId: args.postId,
+        authId: authUser._id as string,
+      });
+    if (!ownership.postExists) {
+      throw new Error("Post not found");
+    }
+    if (!ownership.isOwner) {
+      throw new Error("Not authorized to import images for this post");
+    }
+    return await ctx.runAction(
+      internal.posts.actions.importMarkdownInlineImages,
+      { postId: args.postId },
+    );
   },
 });

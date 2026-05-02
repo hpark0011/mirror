@@ -19,8 +19,14 @@ export function MarkdownUploadDialogConnector() {
     isParsing,
     reset: resetParser,
   } = useMarkdownFileParser();
-  const { createPost, isCreating, error: createError, reset: resetCreator } =
-    useCreatePostFromFile();
+  const {
+    createPost,
+    isCreating,
+    error: createError,
+    importStatus,
+    importResult,
+    reset: resetCreator,
+  } = useCreatePostFromFile();
 
   const isSubmittingRef = useRef(false);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -117,6 +123,8 @@ export function MarkdownUploadDialogConnector() {
       coverImagePreview={coverImagePreview}
       coverImageError={coverImageError}
       onCoverImageChange={handleCoverImageChange}
+      importStatus={importStatus}
+      importResult={importResult}
     />
   );
 }

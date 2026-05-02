@@ -527,6 +527,8 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
     expect(result.imported).toBe(0);
     expect(result.failed).toBe(1);
     expect(result.failures[0]?.reason).toBe("http-error");
+    // Pin the per-image identifier surfaced to the user. Mirrors posts test.
+    expect(result.failures[0]?.src).toBe("https://broken.example/missing.png");
 
     const after = await t.run(async (ctx) => ctx.db.get(articleId));
     const node = (
@@ -572,6 +574,104 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
 
     expect(result.imported).toBe(0);
     expect(result.failed).toBe(0);
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("articles.inlineImages.importArticleMarkdownInlineImages (FR-08, FR-12)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+    safeFetchMock.mockReset();
+  });
+
+  it("authed owner: action runs and returns the inner result shape", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    safeFetchMock.mockResolvedValueOnce(
+      new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], {
+        type: "image/png",
+      }),
+    );
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Owner Imports",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/owner.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const result = await t.action(
+      api.articles.inlineImages.importArticleMarkdownInlineImages,
+      { articleId },
+    );
+
+    expect(result).toEqual({
+      imported: 1,
+      failed: 0,
+      failures: [],
+    });
+  });
+
+  it("authed non-owner: rejects with 'Not authorized' before any side effect", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t, "auth_owner_a", "owner-a@example.com");
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Other Owner",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_intruder_a",
+        email: "intruder-a@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_intruder_a" };
+
+    await expect(
+      t.action(api.articles.inlineImages.importArticleMarkdownInlineImages, {
+        articleId,
+      }),
+    ).rejects.toThrow(/not authorized/i);
+
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("unauthed: rejects with 'Not authenticated'", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t, "auth_owner_b", "owner-b@example.com");
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Unauthed Probe",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    authState.currentAuthUser = null;
+
+    await expect(
+      t.action(api.articles.inlineImages.importArticleMarkdownInlineImages, {
+        articleId,
+      }),
+    ).rejects.toThrow(/not authenticated/i);
+
     expect(safeFetchMock).not.toHaveBeenCalled();
   });
 });

@@ -16,7 +16,10 @@
 // this query MUST be revisited and an ownership check added.
 
 import { v } from "convex/values";
+import { action, internalQuery } from "../_generated/server";
+import { internal } from "../_generated/api";
 import { authMutation, authQuery } from "../lib/auth";
+import { authComponent } from "../auth/client";
 
 export const generateArticleInlineImageUploadUrl = authMutation({
   args: {},
@@ -31,5 +34,71 @@ export const getArticleInlineImageUrl = authQuery({
   returns: v.union(v.string(), v.null()),
   handler: async (ctx, args) => {
     return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
+// Sibling internal helper. We can't reuse `_readArticleBody` for ownership
+// because it strips `userId` from the doc. The action needs:
+//   - to confirm the article exists
+//   - to confirm the caller is the owner
+// before scheduling the SSRF-safe fetch + storage write. Returning a small
+// shape (rather than the whole doc) keeps the trust boundary tight.
+export const _getArticleOwnership = internalQuery({
+  args: { articleId: v.id("articles"), authId: v.string() },
+  returns: v.object({
+    articleExists: v.boolean(),
+    isOwner: v.boolean(),
+  }),
+  handler: async (ctx, args) => {
+    const article = await ctx.db.get(args.articleId);
+    if (!article) return { articleExists: false, isOwner: false };
+    const appUser = await ctx.db
+      .query("users")
+      .withIndex("by_authId", (q) => q.eq("authId", args.authId))
+      .unique();
+    if (!appUser) return { articleExists: true, isOwner: false };
+    return { articleExists: true, isOwner: article.userId === appUser._id };
+  },
+});
+
+// Public wrapper for `internal.articles.actions.importMarkdownInlineImages`.
+// Same shape and rationale as `posts/inlineImages.ts` —
+// see that file for the full FR-08 / FR-12 reasoning.
+export const importArticleMarkdownInlineImages = action({
+  args: { articleId: v.id("articles") },
+  returns: v.object({
+    imported: v.number(),
+    failed: v.number(),
+    failures: v.array(
+      v.object({ src: v.string(), reason: v.string() }),
+    ),
+  }),
+  handler: async (
+    ctx,
+    args,
+  ): Promise<{
+    imported: number;
+    failed: number;
+    failures: { src: string; reason: string }[];
+  }> => {
+    const authUser = await authComponent.getAuthUser(ctx);
+    const ownership: { articleExists: boolean; isOwner: boolean } =
+      await ctx.runQuery(
+        internal.articles.inlineImages._getArticleOwnership,
+        {
+          articleId: args.articleId,
+          authId: authUser._id as string,
+        },
+      );
+    if (!ownership.articleExists) {
+      throw new Error("Article not found");
+    }
+    if (!ownership.isOwner) {
+      throw new Error("Not authorized to import images for this article");
+    }
+    return await ctx.runAction(
+      internal.articles.actions.importMarkdownInlineImages,
+      { articleId: args.articleId },
+    );
   },
 });

@@ -544,3 +544,106 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
     expect(safeFetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("posts.inlineImages.importPostMarkdownInlineImages (FR-08, FR-12)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+    safeFetchMock.mockReset();
+  });
+
+  it("authed owner: action runs and returns the inner result shape", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    safeFetchMock.mockResolvedValueOnce(
+      new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], {
+        type: "image/png",
+      }),
+    );
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Owner Imports",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/owner.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const result = await t.action(
+      api.posts.inlineImages.importPostMarkdownInlineImages,
+      { postId },
+    );
+
+    expect(result).toEqual({
+      imported: 1,
+      failed: 0,
+      failures: [],
+    });
+  });
+
+  it("authed non-owner: rejects with 'Not authorized' before any side effect", async () => {
+    const t = makeT();
+    // Owner creates the post.
+    await insertAppUserAndSignIn(t, "auth_owner_a", "owner-a@example.com");
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Other Owner",
+      category: "Creativity",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    // A different authed user attempts the import.
+    await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_intruder_a",
+        email: "intruder-a@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_intruder_a" };
+
+    await expect(
+      t.action(api.posts.inlineImages.importPostMarkdownInlineImages, {
+        postId,
+      }),
+    ).rejects.toThrow(/not authorized/i);
+
+    // Trust-boundary contract: no fetch was attempted.
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+
+  it("unauthed: rejects with 'Not authenticated'", async () => {
+    const t = makeT();
+    // Insert a post under some owner so the postId is real.
+    await insertAppUserAndSignIn(t, "auth_owner_b", "owner-b@example.com");
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Unauthed Probe",
+      category: "Creativity",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    // Drop the session.
+    authState.currentAuthUser = null;
+
+    await expect(
+      t.action(api.posts.inlineImages.importPostMarkdownInlineImages, {
+        postId,
+      }),
+    ).rejects.toThrow(/not authenticated/i);
+
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+});

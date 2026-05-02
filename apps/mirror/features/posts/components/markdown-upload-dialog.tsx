@@ -12,6 +12,10 @@ import {
 } from "@feel-good/ui/primitives/dialog";
 import { Button } from "@feel-good/ui/primitives/button";
 import { type ParsedMarkdownFile } from "../hooks/use-markdown-file-parser";
+import {
+  type ImportResult,
+  type ImportStatus,
+} from "../hooks/use-create-post-from-file";
 import { CoverImagePicker } from "./cover-image-picker";
 import { ParsedMetadataPreview } from "./parsed-metadata-preview";
 
@@ -28,6 +32,8 @@ type MarkdownUploadDialogProps = {
   coverImagePreview: string | null;
   coverImageError: string | null;
   onCoverImageChange: (file: File | null) => void;
+  importStatus?: ImportStatus;
+  importResult?: ImportResult | null;
 };
 
 export function MarkdownUploadDialog({
@@ -43,6 +49,8 @@ export function MarkdownUploadDialog({
   coverImagePreview,
   coverImageError,
   onCoverImageChange,
+  importStatus,
+  importResult,
 }: MarkdownUploadDialogProps) {
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -88,6 +96,30 @@ export function MarkdownUploadDialog({
             error={coverImageError}
             onChange={onCoverImageChange}
           />
+
+          {importStatus === "importing" && (
+            <p className="text-sm text-foreground-muted">
+              Importing inline images...
+            </p>
+          )}
+
+          {importStatus === "done" && importResult && (
+            <div className="space-y-1 text-sm">
+              <p className="text-foreground-muted">
+                Imported {importResult.imported} of{" "}
+                {importResult.imported + importResult.failed} images
+              </p>
+              {importResult.failures.length > 0 && (
+                <ul className="list-disc pl-5 text-destructive" role="alert">
+                  {importResult.failures.map((f) => (
+                    <li key={`${f.src}:${f.reason}`}>
+                      {f.src} — {f.reason}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
 
           {error && (
             <p className="text-sm text-destructive" role="alert">{error}</p>
