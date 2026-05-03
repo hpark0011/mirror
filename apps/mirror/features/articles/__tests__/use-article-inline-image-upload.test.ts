@@ -21,8 +21,11 @@ vi.mock("@/lib/upload-to-storage", () => ({
 }));
 
 // Import after mocks so the hook picks them up.
-const { useArticleInlineImageUpload, InlineImageValidationError } = await import(
+const { useArticleInlineImageUpload } = await import(
   "../hooks/use-article-inline-image-upload"
+);
+const { InlineImageValidationError } = await import(
+  "@/lib/inline-image-validation"
 );
 
 // ── Helpers ────────────────────────────────────────────────────────────────

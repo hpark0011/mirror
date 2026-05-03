@@ -3,7 +3,7 @@ id: FG_106
 title: "Inline-image upload validation error and hook scaffolding extracted to shared module"
 date: 2026-05-02
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "use-article-inline-image-upload and use-post-inline-image-upload define identical InlineImageValidationError classes and identical MIME/size validation logic. Catch sites that want to handle errors via instanceof must import from the correct namespace, and any change to the error shape or validation rules requires a two-place edit. Extract the error class and validation helper to a shared module under apps/mirror/lib/."
 dependencies: []
