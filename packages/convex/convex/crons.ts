@@ -13,8 +13,8 @@ import {
 } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { type Doc, type Id } from "./_generated/dataModel";
-import { ORPHAN_GRACE_MS } from "./content/storage-policy";
-import { extractInlineImageStorageIds } from "./content/body-walk";
+import { ORPHAN_GRACE_MS } from "./content/storagePolicy";
+import { extractInlineImageStorageIds } from "./content/bodyWalk";
 
 const STALE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 const SWEEP_PAGE_SIZE = 200;

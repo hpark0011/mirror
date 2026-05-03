@@ -28,7 +28,7 @@ vi.mock("../../auth/client", () => {
 });
 
 const safeFetchMock = vi.fn();
-vi.mock("../../content/safe-fetch", () => {
+vi.mock("../../content/safeFetch", () => {
   class SafeFetchError extends Error {
     code: string;
     constructor(code: string, message: string) {
@@ -449,6 +449,34 @@ describe("posts.mutations — cross-user inline-image deletion guard (FG_091)", 
     expect(await blobExists(t, owned)).toBe(false);
   });
 
+  it("update: same-user copied storageId is preserved while another post still references it", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const shared = await storeBlob(t, "shared");
+    const originalPostId = await t.mutation(api.posts.mutations.create, {
+      title: "Original",
+      category: "Creativity",
+      body: bodyWithImages(shared),
+      status: "draft",
+    });
+    const copiedPostId = await t.mutation(api.posts.mutations.create, {
+      title: "Copied",
+      category: "Creativity",
+      body: bodyWithImages(shared),
+      status: "draft",
+    });
+
+    await t.mutation(api.posts.mutations.update, {
+      id: copiedPostId,
+      body: bodyWithImages(),
+    });
+
+    expect(await blobExists(t, shared)).toBe(true);
+    const original = await t.run(async (ctx) => ctx.db.get(originalPostId));
+    expect(extractInlineIdsFromBody(original?.body)).toContain(shared);
+  });
+
   it("update: legacy storageId (no ownership row) is tolerated — silently skipped, not deleted", async () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
@@ -646,7 +674,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
     const t = makeT();
     const ownerId = await insertAppUserAndSignIn(t);
 
-    const { SafeFetchError } = await import("../../content/safe-fetch");
+    const { SafeFetchError } = await import("../../content/safeFetch");
     safeFetchMock.mockRejectedValueOnce(
       new SafeFetchError("http-error", "HTTP 404"),
     );
@@ -694,7 +722,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
     const ownerId = await insertAppUserAndSignIn(t);
 
     const { MAX_IMPORT_IMAGES_PER_ACTION } = await import(
-      "../../content/storage-policy"
+      "../../content/storagePolicy"
     );
     const total = MAX_IMPORT_IMAGES_PER_ACTION + 1;
 

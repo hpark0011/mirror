@@ -1,9 +1,8 @@
 "use node";
 
-// Pure module: no Convex function registrations (query/mutation/action/internal*)
-// allowed in this file because the filename contains a hyphen — Convex's dotted
-// internal.* router cannot resolve hyphenated paths. Add functions to
-// camelCase sibling files instead.
+// Renamed from `safe-fetch.ts` to `safeFetch.ts` per FG_117 — the Convex
+// 1.32.0 deploy server rejects hyphenated module paths regardless of
+// content. Sibling modules in `content/` follow the same camelCase rule.
 //
 // Best-effort SSRF-guarded fetch for inline image imports.
 //
@@ -32,7 +31,7 @@ import {
   ALLOWED_INLINE_IMAGE_TYPES,
   MAX_FETCH_REDIRECTS,
   MAX_INLINE_IMAGE_BYTES,
-} from "./storage-policy";
+} from "./storagePolicy";
 
 export const FETCH_TIMEOUT_MS = 10_000;
 

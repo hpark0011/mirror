@@ -8,10 +8,9 @@
 // markdown-import action). Pure module: no Convex runtime imports — safe to
 // import anywhere.
 //
-// Pure module: no Convex function registrations (query/mutation/action/internal*)
-// allowed in this file because the filename contains a hyphen — Convex's dotted
-// internal.* router cannot resolve hyphenated paths. Add functions to
-// camelCase sibling files instead.
+// Renamed from `body-walk.ts` to `bodyWalk.ts` per FG_117 — the Convex
+// 1.32.0 deploy server rejects hyphenated module paths regardless of
+// content. Sibling modules in `content/` follow the same camelCase rule.
 //
 // The local JSONContent shape mirrors the one used in
 // `embeddings/textExtractor.ts`, kept inline to avoid taking a dependency on
@@ -24,7 +23,7 @@
 import { type Id } from "../_generated/dataModel";
 
 /**
- * Minimal Tiptap JSONContent shape used by the body-walk helpers.
+ * Minimal Tiptap JSONContent shape used by the bodyWalk helpers.
  * Mirrors the shape declared in `embeddings/textExtractor.ts`.
  */
 export type JSONContent = {

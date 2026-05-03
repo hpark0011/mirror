@@ -12,12 +12,13 @@ import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
 import {
   extractInlineImageStorageIds,
   multisetDifference,
-} from "../content/body-walk";
+} from "../content/bodyWalk";
 import {
   claimInlineImageOwnership,
   filterCallerOwnedInlineIds,
+  filterUnreferencedStorageIds,
 } from "../content/inlineImageOwnership";
-import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storage-policy";
+import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
 
 const MAX_CATEGORY_LENGTH = 100;
 
@@ -231,7 +232,10 @@ export const update = authMutation({
       removedInlineIds,
       appUser._id,
     );
-    const toDelete = callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION);
+    const toDelete = await filterUnreferencedStorageIds(
+      ctx,
+      callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION),
+    );
     for (const id of toDelete) {
       try {
         await ctx.storage.delete(id);
@@ -308,9 +312,9 @@ export const remove = authMutation({
         inlineIds,
         appUser._id,
       );
-      const inlineToDelete = callerOwned.slice(
-        0,
-        MAX_INLINE_DELETES_PER_INVOCATION,
+      const inlineToDelete = await filterUnreferencedStorageIds(
+        ctx,
+        callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION),
       );
       for (const id of inlineToDelete) {
         try {

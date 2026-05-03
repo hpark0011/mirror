@@ -3,7 +3,7 @@ id: FG_117
 title: "Hyphenated Convex modules under content/ are renamed to camelCase so npx convex dev deploys"
 date: 2026-05-03
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "Three Convex modules introduced by the inline-image-lifecycle waves use hyphenated paths the Convex 1.32.0 deploy server rejects: content/storage-policy.ts, content/body-walk.ts, content/safe-fetch.ts. npx convex dev --once exits with InvalidConfig because path components must be alphanumeric/underscore/period. The dev backend (quick-turtle-404) is stuck on stale code without the wave-1 inline-image test fixture endpoints, which means all 8 inline-image E2E specs 404 at /test/ensure-article-fixtures and FG_094 cannot be reproduced or executed. Rename the three files to camelCase, update every importer, sync packages/convex/package.json's exports + typesVersions surfaces, and confirm convex dev --once deploys cleanly."
 dependencies: []

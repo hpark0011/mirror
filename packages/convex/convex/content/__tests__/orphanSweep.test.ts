@@ -13,7 +13,7 @@ import { convexTest } from "convex-test";
 import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import schema from "../../schema";
-import { ORPHAN_GRACE_MS } from "../storage-policy";
+import { ORPHAN_GRACE_MS } from "../storagePolicy";
 import { _internals, STORAGE_FIELD_REFERENCES } from "../../crons";
 
 vi.mock("../../auth/client", () => ({

@@ -30,9 +30,9 @@ vi.mock("../../auth/client", () => {
   };
 });
 
-// Mock safe-fetch so the action's external fetch is deterministic.
+// Mock safeFetch so the action's external fetch is deterministic.
 const safeFetchMock = vi.fn();
-vi.mock("../../content/safe-fetch", () => {
+vi.mock("../../content/safeFetch", () => {
   // Re-export `SafeFetchError` shape so the action's `instanceof` check still
   // works with thrown mock errors.
   class SafeFetchError extends Error {
@@ -509,6 +509,36 @@ describe("articles.mutations — cross-user inline-image deletion guard (FG_091)
     expect(await blobExists(t, owned)).toBe(false);
   });
 
+  it("update: same-user copied storageId is preserved while another article still references it", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const shared = await storeBlob(t, "shared");
+    const originalArticleId = await t.mutation(api.articles.mutations.create, {
+      title: "Original",
+      category: "general",
+      body: bodyWithImages(shared),
+      status: "draft",
+    });
+    const copiedArticleId = await t.mutation(api.articles.mutations.create, {
+      title: "Copied",
+      category: "general",
+      body: bodyWithImages(shared),
+      status: "draft",
+    });
+
+    await t.mutation(api.articles.mutations.update, {
+      id: copiedArticleId,
+      body: bodyWithImages(),
+    });
+
+    expect(await blobExists(t, shared)).toBe(true);
+    const original = await t.run(async (ctx) =>
+      ctx.db.get(originalArticleId),
+    );
+    expect(extractInlineIdsFromArticleBody(original?.body)).toContain(shared);
+  });
+
   it("update: legacy storageId (no ownership row) is tolerated — silently skipped, not deleted", async () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
@@ -557,7 +587,7 @@ describe("articles.mutations — cross-user inline-image deletion guard (FG_091)
 });
 
 // Local helper for the FG_091 test block. Returns the inline storageIds
-// in a stored article body without taking a dependency on the body-walk
+// in a stored article body without taking a dependency on the bodyWalk
 // helper at the test boundary (test-as-documentation).
 function extractInlineIdsFromArticleBody(body: unknown): string[] {
   const out: string[] = [];
@@ -715,7 +745,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
     const t = makeT();
     const ownerId = await insertAppUserAndSignIn(t);
 
-    const { SafeFetchError } = await import("../../content/safe-fetch");
+    const { SafeFetchError } = await import("../../content/safeFetch");
     safeFetchMock.mockRejectedValueOnce(
       new SafeFetchError("http-error", "HTTP 404"),
     );

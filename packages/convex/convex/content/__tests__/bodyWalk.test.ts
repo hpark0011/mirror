@@ -4,7 +4,7 @@ import {
   type JSONContent,
   extractInlineImageStorageIds,
   mapInlineImages,
-} from "../body-walk";
+} from "../bodyWalk";
 
 describe("extractInlineImageStorageIds", () => {
   it("returns empty array for null body", () => {

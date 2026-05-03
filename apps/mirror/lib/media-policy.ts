@@ -4,14 +4,14 @@
 // PNG/JPEG/WEBP). Both client validation sites (cover-image-picker,
 // markdown-upload-dialog-connector, the inline upload hook) MUST import
 // from this module so that the policy stays single-sourced from the
-// Convex-side `storage-policy` constants.
+// Convex-side `storagePolicy` constants.
 
-import { ALLOWED_INLINE_IMAGE_TYPES } from "@feel-good/convex/convex/content/storage-policy";
+import { ALLOWED_INLINE_IMAGE_TYPES } from "@feel-good/convex/convex/content/storagePolicy";
 
 export {
   ALLOWED_INLINE_IMAGE_TYPES,
   MAX_INLINE_IMAGE_BYTES,
-} from "@feel-good/convex/convex/content/storage-policy";
+} from "@feel-good/convex/convex/content/storagePolicy";
 
 /**
  * Comma-joined string suitable for the `accept` attribute of an

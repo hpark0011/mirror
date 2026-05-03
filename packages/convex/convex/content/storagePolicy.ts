@@ -2,15 +2,14 @@
 //
 // IMPORTANT: This is the single source of truth for size, MIME, redirect, and
 // orphan grace policies across the repo. Both the Convex backend and the
-// Next.js client import from this module via `@feel-good/convex/convex/content/storage-policy`.
+// Next.js client import from this module via `@feel-good/convex/convex/content/storagePolicy`.
 //
 // Pure module: no Convex runtime imports, so it is safe to import from both
 // the Convex backend and the Next.js client.
 //
-// Pure module: no Convex function registrations (query/mutation/action/internal*)
-// allowed in this file because the filename contains a hyphen — Convex's dotted
-// internal.* router cannot resolve hyphenated paths. Add functions to
-// camelCase sibling files instead.
+// Renamed from `storage-policy.ts` to `storagePolicy.ts` per FG_117 — the
+// Convex 1.32.0 deploy server rejects hyphenated module paths regardless of
+// content. Sibling modules in `content/` follow the same camelCase rule.
 
 /**
  * Grace period after which an unreferenced `_storage` blob is eligible for

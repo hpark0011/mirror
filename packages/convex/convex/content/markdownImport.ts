@@ -18,7 +18,7 @@
 // preserving any concurrent edits the user made during the multi-second
 // fetch window. See `articles/internalImages.ts:_patchInlineImageBody`.
 //
-// Why a separate file (vs. extending `body-walk.ts`): `body-walk.ts` is a
+// Why a separate file (vs. extending `bodyWalk.ts`): `bodyWalk.ts` is a
 // pure module (no Convex runtime imports). This helper calls
 // `ctx.storage.store`, `ctx.storage.getUrl`, and `safeFetchImage` (which
 // itself uses Node's `dns/promises` and runs under `"use node"`) — it is
@@ -34,9 +34,9 @@ import type { ActionCtx } from "../_generated/server";
 import {
   collectExternalImageSrcs,
   type JSONContent,
-} from "./body-walk";
-import { safeFetchImage, SafeFetchError } from "./safe-fetch";
-import { MAX_IMPORT_IMAGES_PER_ACTION } from "./storage-policy";
+} from "./bodyWalk";
+import { safeFetchImage, SafeFetchError } from "./safeFetch";
+import { MAX_IMPORT_IMAGES_PER_ACTION } from "./storagePolicy";
 import type { Id } from "../_generated/dataModel";
 
 export type ImageFailure = { src: string; reason: string };

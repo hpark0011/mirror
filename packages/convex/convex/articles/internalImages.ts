@@ -11,7 +11,7 @@ import { claimInlineImageOwnership } from "../content/inlineImageOwnership";
 import {
   mapInlineImages,
   type JSONContent,
-} from "../content/body-walk";
+} from "../content/bodyWalk";
 
 export const _readArticleBody = internalQuery({
   args: { articleId: v.id("articles") },

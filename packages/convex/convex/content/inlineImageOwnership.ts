@@ -27,7 +27,7 @@ import type { Id } from "../_generated/dataModel";
 import {
   extractInlineImageStorageIds,
   type JSONContent,
-} from "./body-walk";
+} from "./bodyWalk";
 
 /**
  * Insert an `inlineImageOwnership` row for every storageId in `body` that
@@ -88,4 +88,52 @@ export async function filterCallerOwnedInlineIds(
     out.push(storageId);
   }
   return out;
+}
+
+/**
+ * Return only IDs that are not referenced by any current storage-bearing
+ * document. Call this AFTER the article/post row has been patched or deleted:
+ * the scan intentionally reflects the committed state, so a blob copied into
+ * another article/post (or reused as a cover/avatar) is preserved.
+ */
+export async function filterUnreferencedStorageIds(
+  ctx: MutationCtx,
+  ids: Id<"_storage">[],
+): Promise<Id<"_storage">[]> {
+  if (ids.length === 0) return ids;
+
+  const candidates = new Set<string>(ids);
+  const referenced = new Set<string>();
+
+  const users = await ctx.db.query("users").collect();
+  for (const user of users) {
+    if (user.avatarStorageId && candidates.has(user.avatarStorageId)) {
+      referenced.add(user.avatarStorageId);
+    }
+  }
+
+  const articles = await ctx.db.query("articles").collect();
+  for (const article of articles) {
+    if (
+      article.coverImageStorageId &&
+      candidates.has(article.coverImageStorageId)
+    ) {
+      referenced.add(article.coverImageStorageId);
+    }
+    for (const id of extractInlineImageStorageIds(article.body)) {
+      if (candidates.has(id)) referenced.add(id);
+    }
+  }
+
+  const posts = await ctx.db.query("posts").collect();
+  for (const post of posts) {
+    if (post.coverImageStorageId && candidates.has(post.coverImageStorageId)) {
+      referenced.add(post.coverImageStorageId);
+    }
+    for (const id of extractInlineImageStorageIds(post.body)) {
+      if (candidates.has(id)) referenced.add(id);
+    }
+  }
+
+  return ids.filter((id) => !referenced.has(id));
 }

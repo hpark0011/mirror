@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-// Mock node:dns/promises BEFORE importing safe-fetch.
+// Mock node:dns/promises BEFORE importing safeFetch.
 const lookupMock = vi.fn();
 vi.mock("node:dns/promises", () => ({
   lookup: (...args: unknown[]) => lookupMock(...args),
@@ -25,8 +25,8 @@ import {
   FETCH_TIMEOUT_MS,
   safeFetchImage,
   SafeFetchError,
-} from "../safe-fetch";
-import { MAX_FETCH_REDIRECTS, MAX_INLINE_IMAGE_BYTES } from "../storage-policy";
+} from "../safeFetch";
+import { MAX_FETCH_REDIRECTS, MAX_INLINE_IMAGE_BYTES } from "../storagePolicy";
 
 function publicLookup() {
   return [{ address: "93.184.216.34", family: 4 }];

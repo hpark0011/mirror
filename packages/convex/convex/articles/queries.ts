@@ -13,7 +13,7 @@ import {
 import {
   extractInlineImageStorageIds,
   mapInlineImages,
-} from "../content/body-walk";
+} from "../content/bodyWalk";
 import type { Id } from "../_generated/dataModel";
 
 export const getByUsername = query({
