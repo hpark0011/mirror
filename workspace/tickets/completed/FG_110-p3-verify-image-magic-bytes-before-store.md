@@ -3,7 +3,7 @@ id: FG_110
 title: "safeFetchImage verifies image magic bytes before storing the blob"
 date: 2026-05-02
 type: improvement
-status: to-do
+status: completed
 priority: p3
 description: "safeFetchImage trusts the response Content-Type header verbatim. An attacker hosting a JS or HTML file with Content-Type: image/png can force arbitrary bytes into Convex storage, served back via the CDN with the attacker-controlled MIME. Browsers that sniff content can be tricked into executing or rendering polyglot payloads. Add a magic-byte check (PNG, JPEG, WEBP signatures) after readWithLimit and reject mismatches."
 dependencies: []

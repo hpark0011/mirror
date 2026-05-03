@@ -29,6 +29,8 @@ function formatFailureReason(reason: string): string {
   switch (reason) {
     case "import-cap-exceeded":
       return "Skipped — too many images in one import. Re-import to fetch the rest.";
+    case "invalid-magic-bytes":
+      return "Skipped — image bytes don't match declared format.";
     default:
       return reason;
   }

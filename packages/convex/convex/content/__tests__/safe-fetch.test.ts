@@ -32,9 +32,39 @@ function publicLookup() {
   return [{ address: "93.184.216.34", family: 4 }];
 }
 
-function makePngResponse(byteLength: number) {
+// 8-byte PNG signature per RFC 2083.
+const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+// JPEG SOI + first marker byte (FF D8 FF).
+const JPEG_MAGIC = [0xff, 0xd8, 0xff];
+// RIFF<4 size bytes>WEBP — 12 bytes total.
+const WEBP_MAGIC = [0x52, 0x49, 0x46, 0x46, 0, 0, 0, 0, 0x57, 0x45, 0x42, 0x50];
+
+function makePngBytes(byteLength: number): Uint8Array {
   const body = new Uint8Array(byteLength);
-  return new Response(body, {
+  for (let i = 0; i < PNG_MAGIC.length && i < byteLength; i++) {
+    body[i] = PNG_MAGIC[i]!;
+  }
+  return body;
+}
+
+function makeJpegBytes(byteLength: number): Uint8Array {
+  const body = new Uint8Array(byteLength);
+  for (let i = 0; i < JPEG_MAGIC.length && i < byteLength; i++) {
+    body[i] = JPEG_MAGIC[i]!;
+  }
+  return body;
+}
+
+function makeWebpBytes(byteLength: number): Uint8Array {
+  const body = new Uint8Array(byteLength);
+  for (let i = 0; i < WEBP_MAGIC.length && i < byteLength; i++) {
+    body[i] = WEBP_MAGIC[i]!;
+  }
+  return body;
+}
+
+function makePngResponse(byteLength: number) {
+  return new Response(makePngBytes(byteLength), {
     status: 200,
     headers: {
       "content-type": "image/png",
@@ -326,7 +356,7 @@ describe("safeFetchImage — content-type", () => {
   it("strips charset parameter and accepts image/png; charset=utf-8", async () => {
     lookupMock.mockResolvedValue(publicLookup());
     fetchMock.mockResolvedValueOnce(
-      new Response(new Uint8Array(8), {
+      new Response(makePngBytes(8), {
         status: 200,
         headers: {
           "content-type": "image/png; charset=binary",
@@ -352,7 +382,7 @@ describe("safeFetchImage — happy path", () => {
   it("accepts image/jpeg and image/webp", async () => {
     lookupMock.mockResolvedValue(publicLookup());
     fetchMock.mockResolvedValueOnce(
-      new Response(new Uint8Array(16), {
+      new Response(makeJpegBytes(16), {
         status: 200,
         headers: { "content-type": "image/jpeg", "content-length": "16" },
       }),
@@ -362,13 +392,61 @@ describe("safeFetchImage — happy path", () => {
 
     lookupMock.mockResolvedValue(publicLookup());
     fetchMock.mockResolvedValueOnce(
-      new Response(new Uint8Array(16), {
+      new Response(makeWebpBytes(16), {
         status: 200,
         headers: { "content-type": "image/webp", "content-length": "16" },
       }),
     );
     const webp = await safeFetchImage("https://example.com/a.webp");
     expect(webp.type).toBe("image/webp");
+  });
+});
+
+describe("safeFetchImage — magic bytes (FG_110)", () => {
+  it("rejects HTML bytes served as image/png", async () => {
+    lookupMock.mockResolvedValue(publicLookup());
+    const html = new TextEncoder().encode("<!DOCTYPE html><script>alert(1)");
+    fetchMock.mockResolvedValueOnce(
+      new Response(html, {
+        status: 200,
+        headers: {
+          "content-type": "image/png",
+          "content-length": String(html.byteLength),
+        },
+      }),
+    );
+    await expect(
+      safeFetchImage("https://attacker.example.com/payload.html"),
+    ).rejects.toMatchObject({
+      name: "SafeFetchError",
+      code: "invalid-magic-bytes",
+    });
+  });
+
+  it("rejects PNG bytes served as image/jpeg", async () => {
+    lookupMock.mockResolvedValue(publicLookup());
+    fetchMock.mockResolvedValueOnce(
+      new Response(makePngBytes(16), {
+        status: 200,
+        headers: { "content-type": "image/jpeg", "content-length": "16" },
+      }),
+    );
+    await expect(
+      safeFetchImage("https://example.com/mismatch.jpg"),
+    ).rejects.toMatchObject({ code: "invalid-magic-bytes" });
+  });
+
+  it("rejects empty body served as image/png", async () => {
+    lookupMock.mockResolvedValue(publicLookup());
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array(0), {
+        status: 200,
+        headers: { "content-type": "image/png", "content-length": "0" },
+      }),
+    );
+    await expect(
+      safeFetchImage("https://example.com/empty.png"),
+    ).rejects.toMatchObject({ code: "invalid-magic-bytes" });
   });
 });
 
@@ -492,8 +570,7 @@ describe("safeFetchImage — per-hop timeout (FG_109)", () => {
       })
       .mockImplementationOnce(async () => {
         await new Promise((resolve) => setTimeout(resolve, slowHopMs));
-        const body = new Uint8Array(16);
-        return new Response(body, {
+        return new Response(makePngBytes(16), {
           status: 200,
           headers: {
             "content-type": "image/png",
