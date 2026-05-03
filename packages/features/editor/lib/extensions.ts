@@ -1,20 +1,15 @@
 import StarterKit from "@tiptap/starter-kit";
-import Image from "@tiptap/extension-image";
 import Link from "@tiptap/extension-link";
 import { Markdown } from "tiptap-markdown";
 import type { Extensions } from "@tiptap/core";
+import { createInlineImageExtension } from "./inline-image-extension";
 
 export function createArticleExtensions(): Extensions {
   return [
     StarterKit.configure({
       heading: { levels: [2, 3, 4] },
     }),
-    Image.configure({
-      inline: false,
-      HTMLAttributes: {
-        loading: "lazy",
-      },
-    }),
+    createInlineImageExtension(),
     Link.configure({
       openOnClick: true,
       HTMLAttributes: {
@@ -30,6 +25,7 @@ export function createMarkdownExtensions(): Extensions {
     StarterKit.configure({
       heading: { levels: [1, 2, 3, 4, 5, 6] },
     }),
+    createInlineImageExtension(),
     Link.configure({
       openOnClick: false,
       HTMLAttributes: {

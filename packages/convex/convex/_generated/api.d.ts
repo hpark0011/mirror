@@ -8,7 +8,10 @@
  * @module
  */
 
+import type * as articles_actions from "../articles/actions.js";
 import type * as articles_helpers from "../articles/helpers.js";
+import type * as articles_inlineImages from "../articles/inlineImages.js";
+import type * as articles_internalImages from "../articles/internalImages.js";
 import type * as articles_mutations from "../articles/mutations.js";
 import type * as articles_queries from "../articles/queries.js";
 import type * as auth_client from "../auth/client.js";
@@ -30,8 +33,15 @@ import type * as chat_rateLimits from "../chat/rateLimits.js";
 import type * as chat_testHelpers from "../chat/testHelpers.js";
 import type * as chat_tonePresets from "../chat/tonePresets.js";
 import type * as content_backfill from "../content/backfill.js";
+import type * as content_bodyWalk from "../content/bodyWalk.js";
 import type * as content_helpers from "../content/helpers.js";
+import type * as content_inlineImageOwnership from "../content/inlineImageOwnership.js";
+import type * as content_inlineImageOwnershipSchema from "../content/inlineImageOwnershipSchema.js";
+import type * as content_markdownImport from "../content/markdownImport.js";
+import type * as content_safeFetch from "../content/safeFetch.js";
 import type * as content_slug from "../content/slug.js";
+import type * as content_storagePolicy from "../content/storagePolicy.js";
+import type * as content_storageRegistry from "../content/storageRegistry.js";
 import type * as crons from "../crons.js";
 import type * as email_actions from "../email/actions.js";
 import type * as embeddings_actions from "../embeddings/actions.js";
@@ -43,8 +53,11 @@ import type * as embeddings_textExtractor from "../embeddings/textExtractor.js";
 import type * as env from "../env.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as posts_actions from "../posts/actions.js";
 import type * as posts_categories from "../posts/categories.js";
 import type * as posts_helpers from "../posts/helpers.js";
+import type * as posts_inlineImages from "../posts/inlineImages.js";
+import type * as posts_internalImages from "../posts/internalImages.js";
 import type * as posts_mutations from "../posts/mutations.js";
 import type * as posts_queries from "../posts/queries.js";
 import type * as seed from "../seed.js";
@@ -63,7 +76,10 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "articles/actions": typeof articles_actions;
   "articles/helpers": typeof articles_helpers;
+  "articles/inlineImages": typeof articles_inlineImages;
+  "articles/internalImages": typeof articles_internalImages;
   "articles/mutations": typeof articles_mutations;
   "articles/queries": typeof articles_queries;
   "auth/client": typeof auth_client;
@@ -85,8 +101,15 @@ declare const fullApi: ApiFromModules<{
   "chat/testHelpers": typeof chat_testHelpers;
   "chat/tonePresets": typeof chat_tonePresets;
   "content/backfill": typeof content_backfill;
+  "content/bodyWalk": typeof content_bodyWalk;
   "content/helpers": typeof content_helpers;
+  "content/inlineImageOwnership": typeof content_inlineImageOwnership;
+  "content/inlineImageOwnershipSchema": typeof content_inlineImageOwnershipSchema;
+  "content/markdownImport": typeof content_markdownImport;
+  "content/safeFetch": typeof content_safeFetch;
   "content/slug": typeof content_slug;
+  "content/storagePolicy": typeof content_storagePolicy;
+  "content/storageRegistry": typeof content_storageRegistry;
   crons: typeof crons;
   "email/actions": typeof email_actions;
   "embeddings/actions": typeof embeddings_actions;
@@ -98,8 +121,11 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "posts/actions": typeof posts_actions;
   "posts/categories": typeof posts_categories;
   "posts/helpers": typeof posts_helpers;
+  "posts/inlineImages": typeof posts_inlineImages;
+  "posts/internalImages": typeof posts_internalImages;
   "posts/mutations": typeof posts_mutations;
   "posts/queries": typeof posts_queries;
   seed: typeof seed;

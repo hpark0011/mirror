@@ -6,6 +6,7 @@ import {
   ContentListFilterDropdown,
   ContentListSearchInput,
   ContentListSortDropdown,
+  ContentToolbarShell,
   type SortOrder,
   type UseContentSearchReturn,
 } from "@/features/content";
@@ -33,7 +34,7 @@ export function PostListToolbar({
   onUploadClick,
 }: PostListToolbarProps) {
   return (
-    <div className="flex h-9 gap-3 px-3.5 md:justify-start justify-end items-start bg-background relative border-b border-border-subtle">
+    <ContentToolbarShell>
       <PostCategoryFilterRow
         categories={categories}
         selectedCategories={filter.filterState.categories}
@@ -78,6 +79,6 @@ export function PostListToolbar({
           </Button>
         )}
       </div>
-    </div>
+    </ContentToolbarShell>
   );
 }

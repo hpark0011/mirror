@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { Doc } from "../_generated/dataModel";
+import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
@@ -10,6 +10,16 @@ import {
 } from "../content/helpers";
 import { assertValidSlug, generateSlug } from "../content/slug";
 import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
+import {
+  extractInlineImageStorageIds,
+  multisetDifference,
+} from "../content/bodyWalk";
+import {
+  claimInlineImageOwnership,
+  filterCallerOwnedInlineIds,
+  filterUnreferencedStorageIds,
+} from "../content/inlineImageOwnership";
+import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
 import {
   getPostCategoryForSlug,
   MAX_POST_CATEGORY_LENGTH,
@@ -71,6 +81,11 @@ export const create = authMutation({
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
+
+    // FG_091: claim ownership for every inline-image storageId committed in
+    // this body. First-commit-wins — see articles/mutations.ts for the
+    // attack rationale.
+    await claimInlineImageOwnership(ctx, args.body, appUser._id);
 
     if (args.status === "published") {
       await ctx.scheduler.runAfter(
@@ -139,6 +154,35 @@ export const update = authMutation({
       }
     }
 
+    // Compute inline-image diff BEFORE the patch (we need both old and new
+    // bodies). Actual `ctx.storage.delete` calls happen AFTER
+    // `ctx.db.patch` so a failed write can't leave the post pointing at
+    // deleted storage.
+    //
+    // The `.filter(id => !newSet.has(id))` line below is LOAD-BEARING — do
+    // NOT remove it.
+    //
+    // `multisetDifference` returns IDs whose count dropped, including IDs
+    // STILL PRESENT IN THE NEW BODY when `oldCount > newCount > 0`. Concrete
+    // example: `[a, a, a] - [a]` returns `[a, a]`. If we deleted those, we
+    // would delete a blob that the new body still references. The filter
+    // discards every ID that newIds still contains, leaving only blobs whose
+    // reference count fell to zero.
+    //
+    // The trailing `Array.from(new Set(diff))` deduplicates so the SAME
+    // truly-orphaned blob isn't passed to `ctx.storage.delete` more than
+    // once when it appeared multiple times in the old body.
+    const removedInlineIds: Id<"_storage">[] = (() => {
+      if (args.body === undefined) return [];
+      const oldIds = extractInlineImageStorageIds(post.body);
+      const newIds = extractInlineImageStorageIds(args.body);
+      const newSet = new Set(newIds);
+      const diff = multisetDifference(oldIds, newIds).filter(
+        (id) => !newSet.has(id),
+      );
+      return Array.from(new Set(diff)) as Id<"_storage">[];
+    })();
+
     const patch: PostPatch = {};
     if (args.title !== undefined) patch.title = args.title;
     // Only patch slug when it actually changes — avoids a redundant write and
@@ -162,13 +206,53 @@ export const update = authMutation({
     await ctx.db.patch(args.id, patch);
 
     // Clean up the previous cover image only after the DB patch succeeds, so a
-    // failed write can't leave the post pointing at deleted storage.
+    // failed write can't leave the post pointing at deleted storage. Best-effort:
+    // a missing or transient blob must not roll back a successful patch — the
+    // cron sweep collects any survivors.
     if (
       args.coverImageStorageId !== undefined &&
       args.coverImageStorageId !== post.coverImageStorageId &&
       post.coverImageStorageId
     ) {
-      await ctx.storage.delete(post.coverImageStorageId);
+      try {
+        await ctx.storage.delete(post.coverImageStorageId);
+      } catch {
+        // Cron sweep is the safety net.
+      }
+    }
+
+    // FG_091: claim ownership for any new inline-image storageIds in the
+    // committed body. Existing claims are left untouched (first-commit
+    // wins).
+    if (args.body !== undefined) {
+      await claimInlineImageOwnership(ctx, args.body, appUser._id);
+    }
+
+    // Delete inline storage IDs that are no longer referenced. FG_091:
+    // filter to IDs the ownership table attributes to the current caller —
+    // refuses to delete blobs introduced by another user (the cross-user
+    // storage-deletion attack). Legacy IDs (no ownership row) are silently
+    // skipped; the cron sweep is the safety net.
+    //
+    // Capped at MAX_INLINE_DELETES_PER_INVOCATION; any excess is collected
+    // by the cron sweep (NFR-06). Each delete is guarded so a single
+    // failure can't roll back the patch we already committed.
+    const callerOwned = await filterCallerOwnedInlineIds(
+      ctx,
+      removedInlineIds,
+      appUser._id,
+    );
+    const toDelete = await filterUnreferencedStorageIds(
+      ctx,
+      callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION),
+    );
+    for (const id of toDelete) {
+      try {
+        await ctx.storage.delete(id);
+      } catch {
+        // Ignore: blob may already be gone, or invalid Id from a legacy
+        // body. The cron sweep is the safety net.
+      }
     }
 
     // Schedule embedding update based on status change
@@ -212,12 +296,52 @@ export const remove = authMutation({
     );
 
     for (const post of owned) {
+      // Walk inline-image storage IDs BEFORE the row is deleted so we can
+      // cascade-delete them after. Dedup so we don't try to delete the same
+      // blob twice when the body referenced it more than once.
+      const inlineIds = Array.from(
+        new Set(extractInlineImageStorageIds(post.body)),
+      ) as Id<"_storage">[];
+
       await ctx.db.delete(post._id);
+
       // Delete storage after the DB row is gone so a failed delete can't
-      // leave a live post pointing at a missing asset.
+      // leave a live post pointing at a missing asset. Best-effort: a missing
+      // or transient blob must not abort the whole removal — the cron sweep
+      // collects any survivors.
       if (post.coverImageStorageId) {
-        await ctx.storage.delete(post.coverImageStorageId);
+        try {
+          await ctx.storage.delete(post.coverImageStorageId);
+        } catch {
+          // Cron sweep is the safety net.
+        }
       }
+
+      // FG_091: filter inline IDs to ones the caller owns per the
+      // `inlineImageOwnership` table. Legacy IDs (no ownership row) are
+      // silently skipped — the cron sweep is the safety net.
+      //
+      // Capped at MAX_INLINE_DELETES_PER_INVOCATION (NFR-06); excess is
+      // collected by the cron sweep.
+      const callerOwned = await filterCallerOwnedInlineIds(
+        ctx,
+        inlineIds,
+        appUser._id,
+      );
+      const inlineToDelete = await filterUnreferencedStorageIds(
+        ctx,
+        callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION),
+      );
+      for (const id of inlineToDelete) {
+        try {
+          await ctx.storage.delete(id);
+        } catch {
+          // Ignore: blob may not be a valid `_storage` Id (legacy bodies),
+          // or the blob may already be gone. Either way the cron sweep is
+          // the safety net.
+        }
+      }
+
       await ctx.scheduler.runAfter(
         0,
         internal.embeddings.mutations.deleteBySource,

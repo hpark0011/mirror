@@ -1,0 +1,65 @@
+// Shared storage-policy constants for inline image and orphan-sweep flows.
+//
+// IMPORTANT: This is the single source of truth for size, MIME, redirect, and
+// orphan grace policies across the repo. Both the Convex backend and the
+// Next.js client import from this module via `@feel-good/convex/convex/content/storagePolicy`.
+//
+// Pure module: no Convex runtime imports, so it is safe to import from both
+// the Convex backend and the Next.js client.
+//
+// Renamed from `storage-policy.ts` to `storagePolicy.ts` per FG_117 — the
+// Convex 1.32.0 deploy server rejects hyphenated module paths regardless of
+// content. Sibling modules in `content/` follow the same camelCase rule.
+
+/**
+ * Grace period after which an unreferenced `_storage` blob is eligible for
+ * cron sweeping. Strictly greater than Convex's 1-hour upload URL TTL plus
+ * any reasonable client retry window.
+ */
+export const ORPHAN_GRACE_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Maximum byte size of an inline image upload. Same value used for cover
+ * image uploads — these are deliberately the same policy.
+ */
+export const MAX_INLINE_IMAGE_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Allowed MIME types for inline image uploads (paste, drop, file picker) and
+ * markdown imports. Same set used for cover image uploads.
+ */
+export const ALLOWED_INLINE_IMAGE_TYPES: ReadonlySet<string> = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/webp",
+]);
+
+/**
+ * Maximum number of redirect hops `safeFetchImage` will follow when
+ * importing markdown image references. Each hop is re-resolved via DNS and
+ * its IP re-checked against the SSRF blocklist before initiating the next
+ * request.
+ */
+export const MAX_FETCH_REDIRECTS = 3;
+
+/**
+ * Per-mutation cap on inline storage deletes from `articles.update` /
+ * `articles.remove` and the post equivalents. Excess removed-set entries
+ * are left in `_storage` for the next cron sweep. Prevents a malicious or
+ * accidental large-body mutation from exhausting the mutation budget.
+ * (NFR-06.)
+ */
+export const MAX_INLINE_DELETES_PER_INVOCATION = 50;
+
+/**
+ * Per-action cap on the number of external image URLs the markdown-import
+ * flow (`importMarkdownInlineImagesCore`) will fetch in a single
+ * invocation. Each URL spends up to `FETCH_TIMEOUT_MS` (10s) on
+ * `safeFetchImage`, plus `ctx.storage.store` and `ctx.runMutation`
+ * overhead. Convex actions have a documented 10-minute budget, so 60 is
+ * the theoretical worst-case ceiling and 20 is a safe initial value that
+ * leaves headroom for slow networks and store overhead. URLs beyond the
+ * cap are reported in `failures[]` with `reason: "import-cap-exceeded"`;
+ * the user can re-invoke the import to pick up the rest. (FG_101.)
+ */
+export const MAX_IMPORT_IMAGES_PER_ACTION = 20;

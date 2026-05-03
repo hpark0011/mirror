@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, type ChangeEvent } from "react";
 import {
   Dialog,
   DialogContent,
@@ -12,8 +11,14 @@ import {
 } from "@feel-good/ui/primitives/dialog";
 import { Button } from "@feel-good/ui/primitives/button";
 import { type ParsedMarkdownFile } from "../hooks/use-markdown-file-parser";
+import {
+  type ImportResult,
+  type ImportStatus,
+} from "../hooks/use-create-post-from-file";
 import { CoverImagePicker } from "./cover-image-picker";
 import { ParsedMetadataPreview } from "./parsed-metadata-preview";
+import { ImportResultStatus } from "./import-result-status";
+import { MarkdownFileInput } from "./markdown-file-input";
 
 type MarkdownUploadDialogProps = {
   isOpen: boolean;
@@ -28,6 +33,8 @@ type MarkdownUploadDialogProps = {
   coverImagePreview: string | null;
   coverImageError: string | null;
   onCoverImageChange: (file: File | null) => void;
+  importStatus?: ImportStatus;
+  importResult?: ImportResult | null;
 };
 
 export function MarkdownUploadDialog({
@@ -43,16 +50,9 @@ export function MarkdownUploadDialog({
   coverImagePreview,
   coverImageError,
   onCoverImageChange,
+  importStatus,
+  importResult,
 }: MarkdownUploadDialogProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      onFileSelect(file);
-    }
-  }
-
   const error = parseError || createError;
   const isDisabled = isParsing || isCreating || !parsed;
 
@@ -67,19 +67,10 @@ export function MarkdownUploadDialog({
         </DialogHeader>
 
         <DialogBody className="space-y-4">
-          <div>
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".md"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-foreground-muted file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
-            />
-          </div>
-
-          {isParsing && (
-            <p className="text-sm text-foreground-muted">Parsing file...</p>
-          )}
+          <MarkdownFileInput
+            isParsing={isParsing}
+            onFileSelect={onFileSelect}
+          />
 
           {parsed && <ParsedMetadataPreview parsed={parsed} />}
 
@@ -87,6 +78,11 @@ export function MarkdownUploadDialog({
             preview={coverImagePreview}
             error={coverImageError}
             onChange={onCoverImageChange}
+          />
+
+          <ImportResultStatus
+            status={importStatus}
+            result={importResult}
           />
 
           {error && (

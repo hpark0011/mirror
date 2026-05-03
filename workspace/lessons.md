@@ -1,5 +1,10 @@
 # Lessons Learned
 
+## 2026-05-03
+
+- Inline storage cascade deletes must prove a blob is globally unreferenced after the write lands, not merely removed from the current body. Same-owner copy/paste can leave the same `storageId` in another article or post, so immediate cleanup needs a current article/post/user reference scan before `ctx.storage.delete`.
+- When a hook records a result in React state and the caller must branch on it immediately, return the result as well. Relying on just-set state from the connector can race the close/reset path and hide user-visible import failures.
+
 ## 2026-04-29
 
 ### `[username]/page.tsx` body is never executed — put bare-profile redirects in middleware

@@ -14,6 +14,8 @@ export {
   ContentListSearchInput,
   ContentListSortDropdown,
 } from "./components/list-toolbar";
+export { ContentBackLink } from "./components/back-link";
+export { ContentToolbarShell } from "./components/toolbar-shell";
 export {
   ScrollRootProvider,
   useScrollRoot,

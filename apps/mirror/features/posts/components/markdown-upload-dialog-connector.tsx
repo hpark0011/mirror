@@ -1,17 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef } from "react";
 import { usePostToolbar } from "../context/post-toolbar-context";
 import { useMarkdownFileParser } from "../hooks/use-markdown-file-parser";
 import { useCreatePostFromFile } from "../hooks/use-create-post-from-file";
+import { useCoverImageState } from "../hooks/use-cover-image-state";
 import { MarkdownUploadDialog } from "./markdown-upload-dialog";
-
-const MAX_COVER_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_COVER_IMAGE_TYPES = new Set([
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-]);
 
 export function MarkdownUploadDialogConnector() {
   const { isUploadDialogOpen, onCloseUploadDialog } = usePostToolbar();
@@ -22,74 +16,63 @@ export function MarkdownUploadDialogConnector() {
     isParsing,
     reset: resetParser,
   } = useMarkdownFileParser();
-  const { createPost, isCreating, error: createError, reset: resetCreator } =
-    useCreatePostFromFile();
+  const {
+    createPost,
+    cancelImport,
+    isCreating,
+    error: createError,
+    importStatus,
+    importResult,
+    reset: resetCreator,
+  } = useCreatePostFromFile();
 
   const isSubmittingRef = useRef(false);
-  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
-    null,
-  );
-  const [coverImageError, setCoverImageError] = useState<string | null>(null);
-
-  // Revoke any object URL when it changes or on unmount
-  useEffect(() => {
-    if (!coverImagePreview) return;
-    return () => URL.revokeObjectURL(coverImagePreview);
-  }, [coverImagePreview]);
-
-  const resetCoverImage = useCallback(() => {
-    setCoverImageFile(null);
-    setCoverImagePreview(null);
-    setCoverImageError(null);
-  }, []);
-
-  const handleCoverImageChange = useCallback((file: File | null) => {
-    setCoverImageError(null);
-
-    if (!file) {
-      setCoverImageFile(null);
-      setCoverImagePreview(null);
-      return;
-    }
-
-    if (!ALLOWED_COVER_IMAGE_TYPES.has(file.type)) {
-      setCoverImageFile(null);
-      setCoverImagePreview(null);
-      setCoverImageError("Cover image must be PNG, JPEG, or WEBP");
-      return;
-    }
-    if (file.size > MAX_COVER_IMAGE_BYTES) {
-      setCoverImageFile(null);
-      setCoverImagePreview(null);
-      setCoverImageError("Cover image must be smaller than 5 MB");
-      return;
-    }
-
-    setCoverImageFile(file);
-    setCoverImagePreview(URL.createObjectURL(file));
-  }, []);
+  const {
+    coverImageFile,
+    coverImagePreview,
+    coverImageError,
+    resetCoverImage,
+    handleCoverImageChange,
+  } = useCoverImageState();
 
   const handleClose = useCallback(() => {
     isSubmittingRef.current = false;
+    // Silence any in-flight import BEFORE resetting state — otherwise the
+    // pending action can resolve and write `importStatus: "done"` /
+    // `importResult` over the just-reset state, flashing stale UI past the
+    // user's cancel. See FG_100.
+    cancelImport();
     resetParser();
     resetCreator();
     resetCoverImage();
     onCloseUploadDialog();
-  }, [resetParser, resetCreator, resetCoverImage, onCloseUploadDialog]);
+  }, [
+    cancelImport,
+    resetParser,
+    resetCreator,
+    resetCoverImage,
+    onCloseUploadDialog,
+  ]);
 
   const handleConfirm = useCallback(async () => {
     if (isSubmittingRef.current || !parsedResult) return;
     isSubmittingRef.current = true;
     try {
-      await createPost({
+      const importResult = await createPost({
         title: parsedResult.metadata.title,
         slug: parsedResult.metadata.slug,
         category: parsedResult.metadata.category,
         body: parsedResult.jsonContent,
         coverImageFile,
       });
+      if (
+        importResult &&
+        (importResult.failed > 0 || importResult.failures.length > 0)
+      ) {
+        return;
+      }
       resetParser();
+      resetCreator();
       resetCoverImage();
       onCloseUploadDialog();
     } catch {
@@ -102,6 +85,7 @@ export function MarkdownUploadDialogConnector() {
     createPost,
     coverImageFile,
     resetParser,
+    resetCreator,
     resetCoverImage,
     onCloseUploadDialog,
   ]);
@@ -120,6 +104,8 @@ export function MarkdownUploadDialogConnector() {
       coverImagePreview={coverImagePreview}
       coverImageError={coverImageError}
       onCoverImageChange={handleCoverImageChange}
+      importStatus={importStatus}
+      importResult={importResult}
     />
   );
 }

@@ -10,6 +10,11 @@ import {
   filterVisibleContent,
   getUserAndContentAccess,
 } from "../content/helpers";
+import {
+  extractInlineImageStorageIds,
+  mapInlineImages,
+} from "../content/bodyWalk";
+import type { Id } from "../_generated/dataModel";
 
 export const getByUsername = query({
   args: { username: v.string() },
@@ -100,6 +105,35 @@ export const getBySlug = query({
       article.coverImageStorageId,
     );
 
+    // Rewrite inline image `src` from `storageId` so the body always renders
+    // with a fresh signed URL (FR-05). `mapInlineImages` is sync, so we
+    // pre-resolve every URL via Promise.all and stash them in a Map for the
+    // mapper to look up. Image nodes lacking a `storageId` keep their
+    // existing `src` (legacy external URLs).
+    const storageIds = extractInlineImageStorageIds(article.body);
+    const uniqueIds = Array.from(new Set(storageIds));
+    const urls = await Promise.all(
+      uniqueIds.map((id) => ctx.storage.getUrl(id as Id<"_storage">)),
+    );
+    const urlByStorageId = new Map<string, string | null>();
+    for (let i = 0; i < uniqueIds.length; i++) {
+      urlByStorageId.set(uniqueIds[i]!, urls[i] ?? null);
+    }
+    const rewrittenBody = mapInlineImages(article.body, (attrs) => {
+      if (!attrs) return attrs;
+      const sid = attrs.storageId;
+      if (typeof sid !== "string" || sid.length === 0) return attrs;
+      const resolved = urlByStorageId.get(sid);
+      if (resolved == null) {
+        // Missing blob: leave `src` empty so the <img> fails to load locally
+        // rather than rendering a stale signed URL. Spec edge-case:
+        // "ctx.storage.getUrl(storageId) returns null when blob is gone —
+        //  Query-time fallback: leave `src` empty."
+        return { ...attrs, src: "" };
+      }
+      return { ...attrs, src: resolved };
+    });
+
     return {
       _id: article._id,
       _creationTime: article._creationTime,
@@ -111,7 +145,7 @@ export const getBySlug = query({
       publishedAt: article.publishedAt,
       status: article.status,
       category: article.category,
-      body: article.body,
+      body: rewrittenBody,
     };
   },
 });

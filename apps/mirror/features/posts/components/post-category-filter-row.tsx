@@ -28,7 +28,7 @@ export function PostCategoryFilterRow({
         return (
           <label
             key={category.name}
-            className="h-9 pb-1.5 flex items-center gap-1 text-[13px] cursor-pointer select-none"
+            className="h-9 flex items-center gap-1 text-[13px] cursor-pointer select-none"
           >
             <Checkbox
               checked={isChecked}

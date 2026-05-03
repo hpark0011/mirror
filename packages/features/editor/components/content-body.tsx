@@ -14,9 +14,7 @@ export function ContentBody({ content, className }: ContentBodyProps) {
 
   return (
     <div className={className}>
-      {content.content.map((node, i) => (
-        <Node key={i} node={node} />
-      ))}
+      {content.content.map((node, i) => <Node key={i} node={node} />)}
     </div>
   );
 }
@@ -25,7 +23,7 @@ function Node({ node }: { node: JSONContent }) {
   switch (node.type) {
     case "paragraph":
       return (
-        <p>
+        <p className="mt-4">
           {node.content?.map((child, i) => <Inline key={i} node={child} />)}
         </p>
       );
