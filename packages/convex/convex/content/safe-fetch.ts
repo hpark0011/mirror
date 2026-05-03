@@ -253,6 +253,24 @@ function isBlockedIPv6(address: string): boolean {
     const v4 = `${v4MappedMatch[1]}.${v4MappedMatch[2]}.${v4MappedMatch[3]}.${v4MappedMatch[4]}`;
     return isBlockedIPv4(v4);
   }
+  // Compressed-hex IPv4-mapped form: ::ffff:HHHH:LLLL where each pair is a
+  // 16-bit hex group encoding two octets of the v4 address. RFC 4291 § 2.5.5.2
+  // permits both this and the dotted-decimal form for the same address; some
+  // resolvers may surface the hex form, so we fail-closed by parsing it the
+  // same way.
+  const hexV4Match = lower.match(
+    /^::ffff:([0-9a-f]{1,4}):([0-9a-f]{1,4})$/,
+  );
+  if (hexV4Match) {
+    const hi = Number.parseInt(hexV4Match[1]!, 16);
+    const lo = Number.parseInt(hexV4Match[2]!, 16);
+    if (!Number.isFinite(hi) || !Number.isFinite(lo)) {
+      // Fail-closed on parse failure.
+      return true;
+    }
+    const v4 = `${hi >> 8}.${hi & 0xff}.${lo >> 8}.${lo & 0xff}`;
+    return isBlockedIPv4(v4);
+  }
   // Link-local fe80::/10
   if (lower.startsWith("fe8") || lower.startsWith("fe9") ||
       lower.startsWith("fea") || lower.startsWith("feb")) {

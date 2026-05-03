@@ -3,7 +3,7 @@ id: FG_103
 title: "SSRF guard rejects IPv4-mapped IPv6 in compressed-hex form"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "isBlockedIPv6 in safe-fetch.ts only matches IPv4-mapped addresses in the dotted-decimal form (::ffff:a.b.c.d). The compressed-hex form ::ffff:7f00:1 (= ::ffff:127.0.0.1) bypasses the regex. Node's dns.lookup typically returns dotted-decimal on Linux/macOS, so the gap is not realized today, but the static check should be exhaustive — a future Convex Node-runtime change or a different libc could surface the bypass."
 dependencies: []

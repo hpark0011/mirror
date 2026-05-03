@@ -80,6 +80,41 @@ describe("safeFetchImage — scheme & DNS", () => {
     ).rejects.toMatchObject({ code: "blocked-ip" });
   });
 
+  // FG_103: compressed-hex IPv4-mapped form must be parsed the same as the
+  // dotted-decimal form. ::ffff:7f00:1 == ::ffff:127.0.0.1 (loopback).
+  it("rejects URLs that resolve to ::ffff:7f00:1 (IPv4-mapped loopback, hex form)", async () => {
+    lookupMock.mockResolvedValueOnce([
+      { address: "::ffff:7f00:1", family: 6 },
+    ]);
+    await expect(
+      safeFetchImage("https://attacker.example.com/x.png"),
+    ).rejects.toMatchObject({ code: "blocked-ip" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // FG_103: ::ffff:c0a8:0001 == ::ffff:192.168.0.1 (RFC1918 private).
+  it("rejects URLs that resolve to ::ffff:c0a8:0001 (IPv4-mapped RFC1918, hex form)", async () => {
+    lookupMock.mockResolvedValueOnce([
+      { address: "::ffff:c0a8:0001", family: 6 },
+    ]);
+    await expect(
+      safeFetchImage("https://attacker.example.com/x.png"),
+    ).rejects.toMatchObject({ code: "blocked-ip" });
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  // FG_103: ::ffff:0808:0808 == ::ffff:8.8.8.8 (public). Must NOT be blocked
+  // — proves the hex parser doesn't over-match and false-positive public IPs.
+  it("allows URLs that resolve to ::ffff:0808:0808 (IPv4-mapped public, hex form)", async () => {
+    lookupMock.mockResolvedValueOnce([
+      { address: "::ffff:0808:0808", family: 6 },
+    ]);
+    fetchMock.mockResolvedValueOnce(makePngResponse(16));
+    const blob = await safeFetchImage("https://public.example.com/x.png");
+    expect(blob.type).toBe("image/png");
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
   it("rejects URLs that resolve to 169.254.x.x (link-local)", async () => {
     lookupMock.mockResolvedValueOnce([{ address: "169.254.169.254", family: 4 }]);
     await expect(
