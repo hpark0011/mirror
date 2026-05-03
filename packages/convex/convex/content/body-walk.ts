@@ -3,7 +3,10 @@
 //
 // IMPORTANT: This is the single source of truth for inline-image traversal
 // across articles, posts, the cron sweep, and the markdown-import action.
-// Pure module: no Convex runtime imports — safe to import anywhere.
+// Exports cover BOTH directions: storage-id collection (used by the cron
+// sweep + delete-cascade) and external-URL collection (used by the
+// markdown-import action). Pure module: no Convex runtime imports — safe to
+// import anywhere.
 //
 // Pure module: no Convex function registrations (query/mutation/action/internal*)
 // allowed in this file because the filename contains a hyphen — Convex's dotted
@@ -152,4 +155,55 @@ export function multisetDifference<T extends string>(a: T[], b: T[]): T[] {
     }
   }
   return out;
+}
+
+/**
+ * Returns `true` iff `value` looks like an absolute http(s) URL. Used by the
+ * markdown-import action to filter image nodes whose `attrs.src` is an
+ * external URL (vs. a relative path or a `data:` URI).
+ */
+export function isAbsoluteHttpUrl(value: string): boolean {
+  return /^https?:\/\//i.test(value);
+}
+
+/**
+ * Walks `body` and returns every external (`http(s)://`) `attrs.src` found on
+ * an `image` node that does NOT already carry an `attrs.storageId`. Document
+ * order, duplicates preserved (caller dedupes via a `Set` if needed). Returns
+ * `[]` for null/undefined/empty bodies.
+ *
+ * Used by the markdown-import action to identify candidate inline images for
+ * fetch + storage rewrite. Image nodes that already have a storageId are
+ * skipped (the import is idempotent — a re-run is a no-op for them).
+ */
+export function collectExternalImageSrcs(
+  node: JSONContent | null | undefined,
+): string[] {
+  if (!node) return [];
+  const out: string[] = [];
+  collectExternalImageSrcsRec(node, out);
+  return out;
+}
+
+function collectExternalImageSrcsRec(
+  node: JSONContent,
+  out: string[],
+): void {
+  if (node.type === "image") {
+    const attrs = node.attrs;
+    const storageId = attrs?.storageId;
+    if (typeof storageId === "string" && storageId.length > 0) {
+      // Already imported; skip (idempotent).
+    } else {
+      const src = attrs?.src;
+      if (typeof src === "string" && isAbsoluteHttpUrl(src)) {
+        out.push(src);
+      }
+    }
+  }
+  const children = node.content;
+  if (!children) return;
+  for (const child of children) {
+    collectExternalImageSrcsRec(child, out);
+  }
 }

@@ -3,7 +3,7 @@ id: FG_095
 title: "Markdown-import action body and walk helpers are sourced from a shared content/ module"
 date: 2026-05-02
 type: refactor
-status: to-do
+status: completed
 priority: p1
 description: "articles/actions.ts and posts/actions.ts contain near-identical importMarkdownInlineImages handlers (~70 lines each) plus identical walk / collectExternalImageSrcs / isAbsoluteHttpUrl helpers (~30 lines each). Diff after entity-name normalization shows only comment-text differences. Every future change to the import logic — partial-failure handling, bytes-magic check, deduplication, retry — must be applied twice. Extract the import body and the walk helpers into a single shared content/ module so the article and post actions become thin wrappers."
 dependencies: []

@@ -13,6 +13,7 @@
     "./convex/content/storage-policy": "./convex/content/storage-policy.ts",
     "./convex/content/body-walk": "./convex/content/body-walk.ts",
     "./convex/content/safe-fetch": "./convex/content/safe-fetch.ts",
+    "./convex/content/markdownImport": "./convex/content/markdownImport.ts",
     "./convex/posts/categories": "./convex/posts/categories.ts",
     "./convex/*": "./convex/*",
     "./chat/tonePresets": {
@@ -45,6 +46,9 @@
       ],
       "convex/content/safe-fetch": [
         "./convex/content/safe-fetch.ts"
+      ],
+      "convex/content/markdownImport": [
+        "./convex/content/markdownImport.ts"
       ],
       "convex/posts/categories": [
         "./convex/posts/categories.ts"
