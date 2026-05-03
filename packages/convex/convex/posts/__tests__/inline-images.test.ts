@@ -889,6 +889,53 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
     expect(nodes[0]?.attrs.storageId).toBeUndefined();
     expect(nodes[1]?.attrs.storageId).toBeTypeOf("string");
   });
+
+  it("fetches multiple images concurrently (FG_112)", async () => {
+    const t = makeT();
+    const ownerId = await insertAppUserAndSignIn(t);
+
+    // Mock every fetch with a 100ms delay. Sequential = 5 × 100ms ≥ 500ms;
+    // parallel ≈ 100ms. Loose bound at 300ms catches the regression with
+    // headroom for CI variance.
+    const fetchDelayMs = 100;
+    safeFetchMock.mockImplementation(
+      async () => {
+        await new Promise((resolve) => setTimeout(resolve, fetchDelayMs));
+        return new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], {
+          type: "image/png",
+        });
+      },
+    );
+
+    const imageNodes = Array.from({ length: 5 }, (_, i) => ({
+      type: "image" as const,
+      attrs: { src: `https://parallel.example/img-${i}.png` },
+    }));
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Parallel import",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [{ type: "paragraph", content: imageNodes }],
+      },
+      status: "draft",
+    });
+
+    const start = Date.now();
+    const result = await t.action(
+      internal.posts.actions.importMarkdownInlineImages,
+      { postId, ownerId },
+    );
+    const duration = Date.now() - start;
+
+    expect(safeFetchMock).toHaveBeenCalledTimes(5);
+    expect(result.imported).toBe(5);
+    expect(result.failed).toBe(0);
+    // 5 × 100ms sequential = 500ms+; parallel should be ~100ms plus
+    // mutation/storage overhead. 300ms keeps headroom for CI noise.
+    expect(duration).toBeLessThan(300);
+  });
 });
 
 // FG_096: post-side mirror of the merge contract pinned for articles.

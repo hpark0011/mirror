@@ -3,7 +3,7 @@ id: FG_112
 title: "Markdown-import action fetches images concurrently with Promise.allSettled"
 date: 2026-05-02
 type: perf
-status: to-do
+status: completed
 priority: p3
 description: "importMarkdownInlineImages fetches each image sequentially via for-of + await safeFetchImage. For N=10 images at ~500ms each, total wall clock is 5s vs ~500ms with Promise.allSettled. Convex actions run in Node and support full concurrency. Parallelize the fetch loop while preserving the dedup-via-tried-Set behavior and per-image failure recording."
 dependencies: [FG_095, FG_101]

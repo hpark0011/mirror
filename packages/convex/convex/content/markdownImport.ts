@@ -115,33 +115,51 @@ export async function importMarkdownInlineImagesCore(
   for (const src of overflow) {
     failures.push({ src, reason: "import-cap-exceeded" });
   }
-  // Track every URL we've attempted (success OR failure). Without this,
-  // duplicate references to the same unreachable URL would each spend
-  // FETCH_TIMEOUT_MS — N×10s easily exceeds the action budget. With the
-  // dedup pass above this is now a defense-in-depth guard rather than
-  // the primary dedup mechanism.
-  const tried = new Set<string>();
 
-  for (const src of limited) {
-    if (resolved.has(src) || tried.has(src)) continue;
-    tried.add(src);
+  // Fan out the network fetches concurrently. `limited` is already
+  // deduped + capped at MAX_IMPORT_IMAGES_PER_ACTION, so the cap also
+  // caps concurrency. Sequential awaits used to make N × ~500ms wall
+  // clock; parallel makes it ~max(fetch_ms). (FG_112.)
+  //
+  // Stores run serially in the second pass because `ctx.storage.store`
+  // opens a transaction per call and Convex actions can't have two
+  // storage writes in flight simultaneously — `convex-test` surfaces
+  // this with "Write outside of transaction" if you try. The fetch is
+  // the slow step (network); the store is the fast step (memory write).
+  const fetched = await Promise.all(
+    limited.map(async (src) => {
+      try {
+        const blob = await safeFetchImage(src);
+        return { src, kind: "fetched" as const, blob };
+      } catch (err) {
+        const reason =
+          err instanceof SafeFetchError
+            ? err.code
+            : err instanceof Error
+              ? err.message || "unknown"
+              : "unknown";
+        return { src, kind: "failure" as const, reason };
+      }
+    }),
+  );
+
+  for (const entry of fetched) {
+    if (entry.kind === "failure") {
+      failures.push({ src: entry.src, reason: entry.reason });
+      continue;
+    }
     try {
-      const blob = await safeFetchImage(src);
-      const storageId = await ctx.storage.store(blob);
+      const storageId = await ctx.storage.store(entry.blob);
       const url = await ctx.storage.getUrl(storageId);
       if (!url) {
-        failures.push({ src, reason: "storage-getUrl-null" });
+        failures.push({ src: entry.src, reason: "storage-getUrl-null" });
         continue;
       }
-      resolved.set(src, { storageId, src: url });
+      resolved.set(entry.src, { storageId, src: url });
     } catch (err) {
       const reason =
-        err instanceof SafeFetchError
-          ? err.code
-          : err instanceof Error
-            ? err.message || "unknown"
-            : "unknown";
-      failures.push({ src, reason });
+        err instanceof Error ? err.message || "unknown" : "unknown";
+      failures.push({ src: entry.src, reason });
     }
   }
 
