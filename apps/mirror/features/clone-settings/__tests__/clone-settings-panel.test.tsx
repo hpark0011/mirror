@@ -1,21 +1,25 @@
 // UT-14: Save button disabled while mutation pending (FR-13)
 // UT-15: Form submits { tonePreset, personaPrompt, topicsToAvoid } (FR-11)
-import { describe, expect, it, mock, beforeEach } from "bun:test";
-import { render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
+import {
+  ToolbarSlotProvider,
+  ToolbarSlotTarget,
+} from "@/components/workspace-toolbar-slot";
 
 // Mock convex/react before importing the component
-const mockUseQuery = mock(() => null);
+const mockUseQuery = vi.fn(() => null);
 let mutationResolve: (() => void) | null = null;
-const mockMutationFn = mock(
+const mockMutationFn = vi.fn(
   () =>
     new Promise<null>((resolve) => {
       mutationResolve = () => resolve(null);
     }),
 );
-const mockUseMutation = mock(() => mockMutationFn);
+const mockUseMutation = vi.fn(() => mockMutationFn);
 
-mock.module("convex/react", () => ({
+vi.mock("convex/react", () => ({
   useQuery: mockUseQuery,
   useMutation: mockUseMutation,
 }));
@@ -25,6 +29,15 @@ const { CloneSettingsPanel } = await import(
   "@/features/clone-settings/components/clone-settings-panel"
 );
 
+function renderWithToolbarSlot(ui: React.ReactElement) {
+  return render(
+    <ToolbarSlotProvider>
+      <ToolbarSlotTarget />
+      {ui}
+    </ToolbarSlotProvider>,
+  );
+}
+
 describe("CloneSettingsPanel", () => {
   beforeEach(() => {
     mockMutationFn.mockReset();
@@ -33,8 +46,12 @@ describe("CloneSettingsPanel", () => {
     mockMutationFn.mockImplementation(() => Promise.resolve(null));
   });
 
+  afterEach(() => {
+    cleanup();
+  });
+
   it("renders save button enabled when not submitting", () => {
-    render(<CloneSettingsPanel />);
+    renderWithToolbarSlot(<CloneSettingsPanel />);
     const saveButton = screen.getByRole("button", { name: /save/i });
     expect(saveButton).toBeDefined();
     expect((saveButton as HTMLButtonElement).disabled).toBe(false);
@@ -49,7 +66,7 @@ describe("CloneSettingsPanel", () => {
         }),
     );
 
-    render(<CloneSettingsPanel />);
+    renderWithToolbarSlot(<CloneSettingsPanel />);
 
     const saveButton = screen.getByRole("button", { name: /save/i });
     await userEvent.click(saveButton);
@@ -66,7 +83,7 @@ describe("CloneSettingsPanel", () => {
 
   it("submits { tonePreset, personaPrompt, topicsToAvoid } on save (FR-11)", async () => {
     mockMutationFn.mockImplementation(() => Promise.resolve(null));
-    render(<CloneSettingsPanel />);
+    renderWithToolbarSlot(<CloneSettingsPanel />);
 
     const saveButton = screen.getByRole("button", { name: /save/i });
     await userEvent.click(saveButton);
