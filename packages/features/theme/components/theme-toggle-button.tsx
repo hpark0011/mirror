@@ -4,8 +4,6 @@ import { Icon } from "@feel-good/ui/components/icon";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-import { Switch } from "@feel-good/ui/primitives/switch";
-
 export function ThemeToggleButton() {
   const [mounted, setMounted] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
@@ -14,34 +12,23 @@ export function ThemeToggleButton() {
     setMounted(true);
   }, []);
 
-  const handleToggle = (checked: boolean) => {
-    setTheme(checked ? "dark" : "light");
-  };
-
   // Prevent hydration mismatch - render placeholder with same dimensions
   if (!mounted) {
     return <div className="flex h-5 w-20 items-center gap-2" />;
   }
 
+  const isDark = resolvedTheme === "dark";
+
   return (
-    <div className="flex items-center gap-0.5">
-      {
-        /* <div className="-mr-[1px]">
-        <Icon name="SunMaxFillIcon" className="size-5 text-icon" />
-      </div>
-      <Switch
-        checked={resolvedTheme === "dark"}
-        onCheckedChange={handleToggle}
-        variant="theme"
-        aria-label="Toggle dark mode"
-        size="sm"
-      /> */
-      }
-      <div className="size-5 flex items-center justify-center">
-        {resolvedTheme === "dark"
-          ? <Icon name="MoonFillIcon" className="size-4.5 text-icon" />
-          : <Icon name="SunMaxFillIcon" className="size-4.5 text-icon" />}
-      </div>
-    </div>
+    <button
+      type="button"
+      onClick={() => setTheme(isDark ? "light" : "dark")}
+      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      className="size-5 flex items-center justify-center cursor-pointer"
+    >
+      {isDark
+        ? <Icon name="MoonFillIcon" className="size-4.5 text-icon" />
+        : <Icon name="SunMaxFillIcon" className="size-4.5 text-icon" />}
+    </button>
   );
 }
