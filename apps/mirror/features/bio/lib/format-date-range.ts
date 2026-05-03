@@ -8,14 +8,14 @@
  * stored as Jan 2022 UTC could render as Dec 2021 for a user east of UTC.
  *
  * Output cases:
- * - `endDate === null`            → `"Jan 2022 – Present"`
- * - `start month === end month`   → `"Jan 2024"`           (single-month range)
- * - both set, different months    → `"Jan 2022 – Mar 2024"`
+ * - `endDate === null`            → `"01.2022 – Present"`
+ * - `start month === end month`   → `"01.2024"`           (single-month range)
+ * - both set, different months    → `"01.2022 – 03.2024"`
  */
 const MONTH_LABELS = [
   "01",
   "02",
-  "03 ",
+  "03",
   "04",
   "05",
   "06",

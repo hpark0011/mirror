@@ -27,7 +27,7 @@ export function BioEntryCard({
     <article
       data-testid="bio-entry-card"
       data-kind={entry.kind}
-      className="flex text-card-foreground gap-4 group"
+      className="flex text-foreground gap-4 group"
     >
       <p className="text-[15px] text-foreground leading-[1.2] whitespace-nowrap max-w-[160px] w-full mt-px">
         {dateRange}
@@ -46,7 +46,7 @@ export function BioEntryCard({
                   variant="link"
                   onClick={() => onEdit(entry)}
                   data-testid="bio-entry-edit"
-                  className="h-fit px-0"
+                  className="h-fit px-0 underline-offset-2 font-normal"
                 >
                   Edit
                 </Button>
@@ -57,7 +57,7 @@ export function BioEntryCard({
                   onClick={() => onDelete(entry)}
                   disabled={isDeleting}
                   data-testid="bio-entry-delete"
-                  className="h-fit px-0"
+                  className="h-fit px-0 underline-offset-2 font-normal"
                 >
                   Delete
                 </Button>
@@ -65,11 +65,6 @@ export function BioEntryCard({
             )
             : null}
         </div>
-        {
-          /* <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {KIND_LABELS[entry.kind]}
-          </span> */
-        }
 
         {description
           ? (

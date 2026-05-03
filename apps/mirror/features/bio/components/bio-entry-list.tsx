@@ -54,7 +54,7 @@ export function BioEntryList({
       {entries.map((entry) => (
         <li
           key={entry._id}
-          className="last:border-b-0 flex flex-col relative"
+          className="flex flex-col relative"
         >
           <BioEntryCard
             entry={entry}
