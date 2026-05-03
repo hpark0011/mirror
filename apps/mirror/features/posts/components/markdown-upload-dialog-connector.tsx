@@ -21,6 +21,7 @@ export function MarkdownUploadDialogConnector() {
   } = useMarkdownFileParser();
   const {
     createPost,
+    cancelImport,
     isCreating,
     error: createError,
     importStatus,
@@ -75,11 +76,22 @@ export function MarkdownUploadDialogConnector() {
 
   const handleClose = useCallback(() => {
     isSubmittingRef.current = false;
+    // Silence any in-flight import BEFORE resetting state — otherwise the
+    // pending action can resolve and write `importStatus: "done"` /
+    // `importResult` over the just-reset state, flashing stale UI past the
+    // user's cancel. See FG_100.
+    cancelImport();
     resetParser();
     resetCreator();
     resetCoverImage();
     onCloseUploadDialog();
-  }, [resetParser, resetCreator, resetCoverImage, onCloseUploadDialog]);
+  }, [
+    cancelImport,
+    resetParser,
+    resetCreator,
+    resetCoverImage,
+    onCloseUploadDialog,
+  ]);
 
   const handleConfirm = useCallback(async () => {
     if (isSubmittingRef.current || !parsedResult) return;

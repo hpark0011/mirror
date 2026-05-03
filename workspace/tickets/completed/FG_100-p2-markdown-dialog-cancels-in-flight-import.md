@@ -3,7 +3,7 @@ id: FG_100
 title: "Markdown-upload dialog cancels in-flight import or guards setState after close"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "markdown-upload-dialog-connector handleClose calls resetCreator() synchronously while handleConfirm may still be awaiting importMarkdownInlineImages. The action eventually resolves and calls setImportStatus('done') / setImportResult on the now-reset hook state, racing whatever the user did next. isSubmittingRef guards re-entry into handleConfirm but does not prevent the in-flight promise from continuing past close."
 dependencies: []

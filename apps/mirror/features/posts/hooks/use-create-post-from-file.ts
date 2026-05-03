@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useAction, useMutation } from "convex/react";
 import { type JSONContent } from "@feel-good/features/editor/types";
 import { api } from "@feel-good/convex/convex/_generated/api";
@@ -26,6 +26,7 @@ export type ImportStatus = "idle" | "importing" | "done";
 
 export type UseCreatePostFromFileReturn = {
   createPost: (args: CreatePostArgs) => Promise<void>;
+  cancelImport: () => void;
   isCreating: boolean;
   error: string | null;
   importStatus: ImportStatus;
@@ -61,6 +62,23 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle");
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
+  // Cancellation guard: any setState after an `await` in `createPost` must
+  // check this ref and bail out if true. The Convex action itself can't be
+  // aborted (no AbortController surface yet), so we silence client-side
+  // propagation when the dialog closes mid-import. The server-side import
+  // is fire-and-forget at that point — the cron sweep handles orphans.
+  const cancelledRef = useRef(false);
+
+  // Set on unmount so any in-flight `createPost` whose component unmounts
+  // mid-await also short-circuits its setStates. Paired with the explicit
+  // `cancelImport()` for the dialog-close case where the component stays
+  // mounted but logically wants the import abandoned.
+  useEffect(() => {
+    return () => {
+      cancelledRef.current = true;
+    };
+  }, []);
+
   const reset = useCallback(() => {
     setError(null);
     setIsCreating(false);
@@ -68,8 +86,17 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
     setImportResult(null);
   }, []);
 
+  const cancelImport = useCallback(() => {
+    cancelledRef.current = true;
+  }, []);
+
   const createPost = useCallback(
     async (args: CreatePostArgs) => {
+      // Reset the cancellation flag at the start of every createPost call.
+      // Without this, a hook instance that ran one cancelled import would
+      // permanently silence all subsequent imports — the dialog reopens and
+      // the next confirm would silently no-op past every await.
+      cancelledRef.current = false;
       setIsCreating(true);
       setError(null);
       setImportStatus("idle");
@@ -85,13 +112,16 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
           body: args.body,
           status: "draft",
         });
+        if (cancelledRef.current) return;
 
         // Cover-image upload still throws on failure (matches prior behavior).
         if (args.coverImageFile) {
           const coverImageStorageId = await uploadCoverImage(
             args.coverImageFile,
           );
+          if (cancelledRef.current) return;
           await update({ id: postId, coverImageStorageId });
+          if (cancelledRef.current) return;
         }
 
         // FR-08 inline-image import. Status stays `draft` either way — we
@@ -99,8 +129,10 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
         setImportStatus("importing");
         try {
           const result = await importMarkdownInlineImages({ postId });
+          if (cancelledRef.current) return;
           setImportResult(result);
         } catch (e) {
+          if (cancelledRef.current) return;
           // Action-level failure (auth, ownership, transport). Don't rethrow:
           // the post exists, it's in draft, the user just won't see images
           // materialized. Record one synthetic failure entry so the dialog
@@ -112,15 +144,20 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
             failures: [{ src: "(action error)", reason }],
           });
         } finally {
-          setImportStatus("done");
+          if (!cancelledRef.current) {
+            setImportStatus("done");
+          }
         }
       } catch (e) {
+        if (cancelledRef.current) return;
         const message =
           e instanceof Error ? e.message : "Failed to create post";
         setError(message);
         throw e;
       } finally {
-        setIsCreating(false);
+        if (!cancelledRef.current) {
+          setIsCreating(false);
+        }
       }
     },
     [create, importMarkdownInlineImages, update, uploadCoverImage],
@@ -128,6 +165,7 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
 
   return {
     createPost,
+    cancelImport,
     isCreating,
     error,
     importStatus,

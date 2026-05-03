@@ -223,4 +223,105 @@ describe("useCreatePostFromFile (FR-08)", () => {
       failures: [{ src: "(action error)", reason: "Not authorized" }],
     });
   });
+
+  // FG_100: closing the markdown-upload dialog mid-import must silence any
+  // setState calls that follow the in-flight `importMarkdownInlineImages`
+  // action. The Convex action itself can't be aborted, so cancellation is
+  // a client-side guard only — server-side completion still runs.
+  it("cancelImport() silences setImportResult/setImportStatus after the action resolves", async () => {
+    mockCreate.mockResolvedValue("post_id_cancel");
+
+    // Build a deferred so we control exactly when the action resolves.
+    let resolveAction: (value: {
+      imported: number;
+      failed: number;
+      failures: { src: string; reason: string }[];
+    }) => void = () => {};
+    mockImportAction.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveAction = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useCreatePostFromFile());
+
+    // Kick off createPost but DON'T await it inside `act` — we need it to
+    // hang on the action promise so we can assert mid-flight state.
+    let createPromise: Promise<void> = Promise.resolve();
+    await act(async () => {
+      createPromise = result.current.createPost({
+        title: "Cancelled",
+        slug: "cancelled",
+        category: "Other",
+        body: SAMPLE_BODY,
+      });
+      // Yield once so the synchronous setStates and the awaited
+      // `create` mock (a resolved promise) flush before we sample state.
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Mid-import: the hook should be in `importing` and have no result yet.
+    expect(result.current.importStatus).toBe("importing");
+    expect(result.current.importResult).toBeNull();
+
+    // Simulate the dialog's close path: cancel the in-flight import.
+    act(() => {
+      result.current.cancelImport();
+    });
+
+    // Now resolve the deferred action and let `createPost` unwind.
+    await act(async () => {
+      resolveAction({
+        imported: 5,
+        failed: 0,
+        failures: [],
+      });
+      await createPromise;
+    });
+
+    // Post-cancel assertions: neither the success setStates nor the
+    // `done` transition should have run. importStatus stays at the
+    // pre-cancel value (`importing`), importResult stays null.
+    expect(result.current.importResult).toBeNull();
+    expect(result.current.importStatus).not.toBe("done");
+  });
+
+  // Companion case: a second `createPost` after a cancellation must work
+  // — `cancelledRef` is reset at the start of every call. Without that
+  // reset, the post-cancel hook instance would silently drop every
+  // subsequent import.
+  it("createPost after cancelImport runs to completion (cancelledRef resets per call)", async () => {
+    mockCreate.mockResolvedValue("post_id_recovered");
+    mockImportAction.mockResolvedValue({
+      imported: 3,
+      failed: 0,
+      failures: [],
+    });
+
+    const { result } = renderHook(() => useCreatePostFromFile());
+
+    // First call: cancel before it can settle.
+    act(() => {
+      result.current.cancelImport();
+    });
+
+    // Second call: should reset the flag and complete normally.
+    await act(async () => {
+      await result.current.createPost({
+        title: "Recovered",
+        slug: "recovered",
+        category: "Other",
+        body: SAMPLE_BODY,
+      });
+    });
+
+    expect(result.current.importStatus).toBe("done");
+    expect(result.current.importResult).toEqual({
+      imported: 3,
+      failed: 0,
+      failures: [],
+    });
+  });
 });
