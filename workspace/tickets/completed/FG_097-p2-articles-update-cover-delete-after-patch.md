@@ -3,7 +3,7 @@ id: FG_097
 title: "articles.update deletes the previous cover blob after the DB patch succeeds"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "articles/mutations.ts update mutation deletes article.coverImageStorageId BEFORE ctx.db.patch. Convex storage operations are NOT part of the mutation transaction — if ctx.db.patch later fails (OCC conflict, validator throw), Convex rolls back the DB but cannot reverse the storage delete. Result: the article still references the old coverImageStorageId in the DB, but the blob is gone, and the cover renders broken. posts/mutations.ts already deletes after patch — articles is the outlier (a deliberate carve-out per FR-06). This ticket closes the carve-out."
 dependencies: []

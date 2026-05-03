@@ -142,18 +142,6 @@ export const update = authMutation({
       }
     }
 
-    // Clean up old cover image if being replaced
-    // NOTE: cover-image delete-before-patch ordering is preserved as-is per
-    // FR-06 (out of scope; would risk breaking existing mutations.test.ts).
-    // The inline-image cascade below uses the after-patch ordering.
-    if (
-      args.coverImageStorageId !== undefined &&
-      args.coverImageStorageId !== article.coverImageStorageId &&
-      article.coverImageStorageId
-    ) {
-      await ctx.storage.delete(article.coverImageStorageId);
-    }
-
     // Compute inline-image diff BEFORE the patch (we need both old and new
     // bodies). The actual `ctx.storage.delete` calls happen AFTER
     // `ctx.db.patch` so a failed write can't leave the article pointing at
@@ -204,6 +192,22 @@ export const update = authMutation({
     }
 
     await ctx.db.patch(args.id, patch);
+
+    // After the patch succeeds, delete the previous cover blob if it was
+    // replaced. `ctx.storage.delete` is not transactional, so a failure here
+    // must not roll back the patch above — wrap in try/catch and let the
+    // cron sweep be the safety net.
+    if (
+      args.coverImageStorageId !== undefined &&
+      args.coverImageStorageId !== article.coverImageStorageId &&
+      article.coverImageStorageId
+    ) {
+      try {
+        await ctx.storage.delete(article.coverImageStorageId);
+      } catch {
+        // Cron sweep is the safety net.
+      }
+    }
 
     // FG_091: claim ownership for any new inline-image storageIds in the
     // committed body. Existing claims are left untouched (first-commit
