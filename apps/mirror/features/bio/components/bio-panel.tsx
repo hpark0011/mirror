@@ -40,7 +40,7 @@ export function BioPanel() {
       </WorkspaceToolbar>
       <div
         data-testid="bio-panel"
-        className="flex flex-col gap-2 p-4 max-w-2xl mx-auto"
+        className="flex flex-col gap-2 p-4 max-w-2xl mx-auto py-6"
       >
         <BioEntryList
           entries={entries}
