@@ -44,6 +44,7 @@ Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` 
 - **[Providers](.claude/rules/providers.md)** — separate client singleton (`lib/<service>.ts`) from React provider (`providers/<service>-provider.tsx`); never `!` on `process.env`; lazy-init external clients.
 - **[Testing](.claude/rules/testing.md)** — **Playwright CLI only for e2e tests.** Never the Playwright MCP plugin or browser-automation MCP tools.
 - **[Dev process](.claude/rules/dev-process.md)** — session discipline, planning, problem-solving flow; **after any correction, update `workspace/lessons.md`.**
+- **[Worktrees](.claude/rules/worktrees.md)** — `apps/mirror/.env.local` is symlinked across worktrees; **never run `vercel <cmd> --yes` in an unlinked dir** (silently pulls env and clobbers the canonical file). Recovery: `./scripts/restore-env-local.sh`.
 - **[App-specific](.claude/rules/apps/)** — per-app topic rules (see `apps/mirror/` for current files).
 - **[Sentry](.claude/rules/sentry/)** — exception capture, tracing spans, and logger patterns for Next.js.
 
