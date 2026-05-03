@@ -20,8 +20,13 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-import { safeFetchImage, SafeFetchError } from "../safe-fetch";
-import { MAX_INLINE_IMAGE_BYTES } from "../storage-policy";
+import {
+  FETCH_PER_HOP_TIMEOUT_MS,
+  FETCH_TIMEOUT_MS,
+  safeFetchImage,
+  SafeFetchError,
+} from "../safe-fetch";
+import { MAX_FETCH_REDIRECTS, MAX_INLINE_IMAGE_BYTES } from "../storage-policy";
 
 function publicLookup() {
   return [{ address: "93.184.216.34", family: 4 }];
@@ -412,5 +417,102 @@ describe("safeFetchImage — errors", () => {
     await expect(
       safeFetchImage("https://nonexistent.invalid/x.png"),
     ).rejects.toMatchObject({ code: "dns-failure" });
+  });
+});
+
+// FG_109: per-hop timeout in addition to global budget.
+//
+// The pre-FG_109 implementation used a single AbortController whose 10s
+// timer started before the redirect loop. A slow first hop responding
+// near the global timeout left only the leftover budget for subsequent
+// hops + body read. Per-hop timer resets the inner deadline on each hop
+// while the global timer remains the outer cap.
+describe("safeFetchImage — per-hop timeout (FG_109)", () => {
+  it("FETCH_PER_HOP_TIMEOUT_MS divides the global budget across all hops", () => {
+    // Pins the formula so a future change to MAX_FETCH_REDIRECTS or the
+    // global timeout has to acknowledge the per-hop relationship.
+    expect(FETCH_PER_HOP_TIMEOUT_MS).toBe(
+      Math.floor(FETCH_TIMEOUT_MS / (MAX_FETCH_REDIRECTS + 1)),
+    );
+    // Sanity: per-hop strictly less than global, i.e. it can actually
+    // fire before the global timer.
+    expect(FETCH_PER_HOP_TIMEOUT_MS).toBeLessThan(FETCH_TIMEOUT_MS);
+  });
+
+  it("aborts a slow hop on the per-hop timer before the global budget elapses", async () => {
+    lookupMock.mockResolvedValue(publicLookup());
+    // Fetch never resolves on its own — only the abort signal can end it.
+    fetchMock.mockImplementationOnce((_url, init) => {
+      return new Promise((_resolve, reject) => {
+        const signal = (init as RequestInit | undefined)?.signal;
+        if (signal) {
+          if (signal.aborted) {
+            const err = new Error("aborted");
+            err.name = "AbortError";
+            reject(err);
+            return;
+          }
+          signal.addEventListener("abort", () => {
+            const err = new Error("aborted");
+            err.name = "AbortError";
+            reject(err);
+          });
+        }
+      });
+    });
+    vi.useFakeTimers();
+    const guarded = safeFetchImage("https://slow.example.com/x.png").catch(
+      (e) => e,
+    );
+    // Advance just past the per-hop budget but well under the global cap.
+    // If only the global timer fired, this would NOT trigger an abort.
+    await vi.advanceTimersByTimeAsync(FETCH_PER_HOP_TIMEOUT_MS + 100);
+    const err = await guarded;
+    expect(err).toBeInstanceOf(SafeFetchError);
+    expect(err).toMatchObject({ code: "timeout" });
+  });
+
+  it("does not let a slow first hop starve a fast subsequent hop's per-hop budget", async () => {
+    // Hop 0: 302 redirect that takes nearly the full per-hop budget to
+    // emit headers. Hop 1: terminal 200 PNG response that arrives after
+    // (FETCH_PER_HOP_TIMEOUT_MS - small slack). Pre-FG_109, the second
+    // hop would inherit only the leftover global budget; post-FG_109,
+    // hop 1 gets a fresh per-hop window, so the call succeeds.
+    lookupMock.mockResolvedValue(publicLookup());
+    const slowHopMs = FETCH_PER_HOP_TIMEOUT_MS - 200;
+    fetchMock
+      .mockImplementationOnce(async () => {
+        // Vitest fake timers: setTimeout-as-Promise resolves only when
+        // the fake clock is advanced past the delay.
+        await new Promise((resolve) => setTimeout(resolve, slowHopMs));
+        return new Response(null, {
+          status: 302,
+          headers: { location: "https://b.example.com/x.png" },
+        });
+      })
+      .mockImplementationOnce(async () => {
+        await new Promise((resolve) => setTimeout(resolve, slowHopMs));
+        const body = new Uint8Array(16);
+        return new Response(body, {
+          status: 200,
+          headers: {
+            "content-type": "image/png",
+            "content-length": "16",
+          },
+        });
+      });
+
+    vi.useFakeTimers();
+    const promise = safeFetchImage("https://a.example.com/x.png");
+    const guarded = promise.catch((e) => e);
+    // Advance enough to clear both hops with their internal delays
+    // (2 × slowHopMs ≈ 4.6s, comfortably under the 10s global cap but
+    // each hop individually under the per-hop cap).
+    await vi.advanceTimersByTimeAsync(2 * slowHopMs + 100);
+    const result = await guarded;
+    expect(result).not.toBeInstanceOf(Error);
+    // Returned a Blob with the validated content-type.
+    expect(result).toMatchObject({ type: "image/png" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });

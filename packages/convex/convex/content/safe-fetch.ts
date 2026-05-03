@@ -34,7 +34,18 @@ import {
   MAX_INLINE_IMAGE_BYTES,
 } from "./storage-policy";
 
-const FETCH_TIMEOUT_MS = 10_000;
+export const FETCH_TIMEOUT_MS = 10_000;
+
+/**
+ * Per-hop timeout. Bounds the time any single redirect hop (DNS + TCP +
+ * TLS + headers + body read) may consume independently of the global
+ * outer cap. Prevents a slow intermediate hop from starving the body-size
+ * check on the final hop. Computed so that a worst-case chain consuming
+ * its full per-hop budget on every hop still adds up to the global cap.
+ */
+export const FETCH_PER_HOP_TIMEOUT_MS = Math.floor(
+  FETCH_TIMEOUT_MS / (MAX_FETCH_REDIRECTS + 1),
+);
 
 export class SafeFetchError extends Error {
   readonly code: SafeFetchErrorCode;
@@ -63,8 +74,13 @@ export type SafeFetchErrorCode =
  * the validated content-type set.
  */
 export async function safeFetchImage(url: string): Promise<Blob> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  // Outer/global bound: a hard cap on the entire safeFetchImage call,
+  // regardless of how the redirect chain plays out.
+  const globalController = new AbortController();
+  const globalTimeout = setTimeout(
+    () => globalController.abort(),
+    FETCH_TIMEOUT_MS,
+  );
 
   try {
     let currentUrl = url;
@@ -73,11 +89,25 @@ export async function safeFetchImage(url: string): Promise<Blob> {
       const parsed = new URL(currentUrl);
       await assertHostnameNotBlocked(parsed.hostname);
 
+      // Inner/per-hop bound: a fresh per-hop timer prevents a slow
+      // intermediate hop from starving subsequent hops or the body-size
+      // check on the terminal hop. The combined signal aborts as soon as
+      // either the global or the per-hop timer fires.
+      const hopController = new AbortController();
+      const hopTimeout = setTimeout(
+        () => hopController.abort(),
+        FETCH_PER_HOP_TIMEOUT_MS,
+      );
+      const combinedSignal = AbortSignal.any([
+        globalController.signal,
+        hopController.signal,
+      ]);
+
       let response: Response;
       try {
         response = await fetch(currentUrl, {
           redirect: "manual",
-          signal: controller.signal,
+          signal: combinedSignal,
         });
       } catch (err) {
         if (
@@ -90,6 +120,8 @@ export async function safeFetchImage(url: string): Promise<Blob> {
           "network",
           `Network error: ${err instanceof Error ? err.message : String(err)}`,
         );
+      } finally {
+        clearTimeout(hopTimeout);
       }
 
       if (isRedirect(response.status)) {
@@ -160,7 +192,7 @@ export async function safeFetchImage(url: string): Promise<Blob> {
       `Exceeded ${MAX_FETCH_REDIRECTS} redirects`,
     );
   } finally {
-    clearTimeout(timeout);
+    clearTimeout(globalTimeout);
   }
 }
 

@@ -3,7 +3,7 @@ id: FG_109
 title: "safeFetchImage applies a per-hop timeout in addition to the global budget"
 date: 2026-05-02
 type: improvement
-status: to-do
+status: completed
 priority: p3
 description: "safeFetchImage uses a single AbortController whose 10s timer starts before the redirect loop. With MAX_FETCH_REDIRECTS=3, a slow first hop responding at 9.9s leaves only 100ms for subsequent hops + body read. An attacker controlling a slow-responding redirect target can starve the body-size check. Add a per-hop timeout in addition to the global cap."
 dependencies: []
