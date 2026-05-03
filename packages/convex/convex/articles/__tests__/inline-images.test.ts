@@ -799,6 +799,285 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
   });
 });
 
+// FG_096: the markdown-import action's `_patchInlineImageBody` mutation
+// must merge image-node updates into the CURRENT body (re-read inside
+// the mutation transaction) rather than overwriting wholesale with the
+// stale snapshot the action read seconds earlier. These tests pin the
+// merge contract directly by invoking the internal mutation with a
+// hand-crafted srcMap, then verifying that user edits intercepted into
+// the body between read and patch survive.
+describe("articles.internalImages._patchInlineImageBody — concurrent body edits (FG_096)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("user edit between read and patch survives: image src updates apply to surviving image nodes; concurrent paragraph addition is preserved", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    // Create article with a single external-URL image node. This is the
+    // body the action would have read in transaction 1.
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Concurrent edit",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    // Action stores a blob during the fetch window. Simulate the
+    // resolved entry the action would build from `safeFetchImage`.
+    const newStorageId = await storeBlob(t, "merged");
+
+    // Simulate the user editing the body MID-IMPORT: add a fresh
+    // paragraph after the image. Performed via a direct ctx.db.patch
+    // (proxy for any path that mutates the body — `articles.update`
+    // would behave the same).
+    await t.run(async (ctx) => {
+      await ctx.db.patch(articleId, {
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://external.example/hero.png" },
+                },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "user added during import" }],
+            },
+          ],
+        },
+      });
+    });
+
+    // Now run the patch with the srcMap derived from the stale
+    // (transaction-1) snapshot. The image src is still in the body, so
+    // the merge applies; the user's added paragraph must survive.
+    await t.mutation(
+      internal.articles.internalImages._patchInlineImageBody,
+      {
+        articleId,
+        srcMap: {
+          "https://external.example/hero.png": {
+            src: "https://convex.example/blob",
+            storageId: newStorageId,
+          },
+        },
+      },
+    );
+
+    const after = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(after?.body).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                src: "https://convex.example/blob",
+                storageId: newStorageId,
+              },
+            },
+          ],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "user added during import" }],
+        },
+      ],
+    });
+  });
+
+  it("image removed mid-import: srcMap entry whose src no longer appears in the body is silently skipped (no re-introduction; blob becomes orphan candidate)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Removed mid-import",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const orphanStorageId = await storeBlob(t, "orphan");
+
+    // User deletes the image node mid-import.
+    await t.run(async (ctx) => {
+      await ctx.db.patch(articleId, {
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "image gone" }],
+            },
+          ],
+        },
+      });
+    });
+
+    // Run the patch with a srcMap entry for the deleted image. Must not
+    // throw; must not re-introduce the image node.
+    await expect(
+      t.mutation(internal.articles.internalImages._patchInlineImageBody, {
+        articleId,
+        srcMap: {
+          "https://external.example/hero.png": {
+            src: "https://convex.example/blob",
+            storageId: orphanStorageId,
+          },
+        },
+      }),
+    ).resolves.toBeNull();
+
+    const after = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(after?.body).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "image gone" }],
+        },
+      ],
+    });
+
+    // Ownership is NOT claimed for the orphan storageId — the blob never
+    // landed in the body, so cron sweep is the safety net.
+    const ownership = await t.run(async (ctx) =>
+      ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) =>
+          q.eq("storageId", orphanStorageId),
+        )
+        .unique(),
+    );
+    expect(ownership).toBeNull();
+  });
+
+  it("image added mid-import (src not in srcMap): pass-through unchanged", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Added mid-import",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const heroStorageId = await storeBlob(t, "hero");
+
+    // User adds a second image node DURING the fetch window — its src
+    // is not in the action's srcMap (the action never saw it).
+    await t.run(async (ctx) => {
+      await ctx.db.patch(articleId, {
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://external.example/hero.png" },
+                },
+                {
+                  type: "image",
+                  attrs: { src: "https://external.example/added-later.png" },
+                },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    await t.mutation(
+      internal.articles.internalImages._patchInlineImageBody,
+      {
+        articleId,
+        srcMap: {
+          "https://external.example/hero.png": {
+            src: "https://convex.example/blob",
+            storageId: heroStorageId,
+          },
+        },
+      },
+    );
+
+    const after = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(after?.body).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                src: "https://convex.example/blob",
+                storageId: heroStorageId,
+              },
+            },
+            {
+              type: "image",
+              attrs: {
+                src: "https://external.example/added-later.png",
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+});
+
 describe("articles.inlineImages.importArticleMarkdownInlineImages (FR-08, FR-12)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;

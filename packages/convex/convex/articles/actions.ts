@@ -51,10 +51,10 @@ export const importMarkdownInlineImages = internalAction({
       return { imported: 0, failed: 0, failures: [] };
     }
     const body = (article.body ?? null) as JSONContent | null;
-    return importMarkdownInlineImagesCore(ctx, body, async (next) => {
+    return importMarkdownInlineImagesCore(ctx, body, async (srcMap) => {
       await ctx.runMutation(
         internal.articles.internalImages._patchInlineImageBody,
-        { articleId: args.articleId, body: next },
+        { articleId: args.articleId, srcMap },
       );
     });
   },

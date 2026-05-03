@@ -3,7 +3,7 @@ id: FG_096
 title: "_patchInlineImageBody preserves concurrent body edits during markdown import"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "importMarkdownInlineImages reads the article/post body in transaction 1, performs N external fetches that can take up to 10 seconds each, then patches the body in transaction 2. If the user edits the body between the read and the patch, those edits are silently overwritten with the action's stale version. There is no version check, no merge, no conflict signal — just last-write-wins. Replace the wholesale body replacement with a merge that only updates image-node src/storageId on already-existing image nodes."
 dependencies: [FG_095]

@@ -725,6 +725,256 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
   });
 });
 
+// FG_096: post-side mirror of the merge contract pinned for articles.
+// See `articles/__tests__/inline-images.test.ts` for the rationale.
+describe("posts.internalImages._patchInlineImageBody — concurrent body edits (FG_096)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("user edit between read and patch survives: image src updates apply to surviving image nodes; concurrent paragraph addition is preserved", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Concurrent edit",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const newStorageId = await storeBlob(t, "merged");
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(postId, {
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://external.example/hero.png" },
+                },
+              ],
+            },
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "user added during import" }],
+            },
+          ],
+        },
+      });
+    });
+
+    await t.mutation(internal.posts.internalImages._patchInlineImageBody, {
+      postId,
+      srcMap: {
+        "https://external.example/hero.png": {
+          src: "https://convex.example/blob",
+          storageId: newStorageId,
+        },
+      },
+    });
+
+    const after = await t.run(async (ctx) => ctx.db.get(postId));
+    expect(after?.body).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                src: "https://convex.example/blob",
+                storageId: newStorageId,
+              },
+            },
+          ],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "user added during import" }],
+        },
+      ],
+    });
+  });
+
+  it("image removed mid-import: srcMap entry whose src no longer appears in the body is silently skipped (no re-introduction; blob becomes orphan candidate)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Removed mid-import",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const orphanStorageId = await storeBlob(t, "orphan");
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(postId, {
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "image gone" }],
+            },
+          ],
+        },
+      });
+    });
+
+    await expect(
+      t.mutation(internal.posts.internalImages._patchInlineImageBody, {
+        postId,
+        srcMap: {
+          "https://external.example/hero.png": {
+            src: "https://convex.example/blob",
+            storageId: orphanStorageId,
+          },
+        },
+      }),
+    ).resolves.toBeNull();
+
+    const after = await t.run(async (ctx) => ctx.db.get(postId));
+    expect(after?.body).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "image gone" }],
+        },
+      ],
+    });
+
+    const ownership = await t.run(async (ctx) =>
+      ctx.db
+        .query("inlineImageOwnership")
+        .withIndex("by_storageId", (q) =>
+          q.eq("storageId", orphanStorageId),
+        )
+        .unique(),
+    );
+    expect(ownership).toBeNull();
+  });
+
+  it("image added mid-import (src not in srcMap): pass-through unchanged", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Added mid-import",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const heroStorageId = await storeBlob(t, "hero");
+
+    await t.run(async (ctx) => {
+      await ctx.db.patch(postId, {
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://external.example/hero.png" },
+                },
+                {
+                  type: "image",
+                  attrs: { src: "https://external.example/added-later.png" },
+                },
+              ],
+            },
+          ],
+        },
+      });
+    });
+
+    await t.mutation(internal.posts.internalImages._patchInlineImageBody, {
+      postId,
+      srcMap: {
+        "https://external.example/hero.png": {
+          src: "https://convex.example/blob",
+          storageId: heroStorageId,
+        },
+      },
+    });
+
+    const after = await t.run(async (ctx) => ctx.db.get(postId));
+    expect(after?.body).toEqual({
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [
+            {
+              type: "image",
+              attrs: {
+                src: "https://convex.example/blob",
+                storageId: heroStorageId,
+              },
+            },
+            {
+              type: "image",
+              attrs: {
+                src: "https://external.example/added-later.png",
+              },
+            },
+          ],
+        },
+      ],
+    });
+  });
+});
+
 describe("posts.inlineImages.importPostMarkdownInlineImages (FR-08, FR-12)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;

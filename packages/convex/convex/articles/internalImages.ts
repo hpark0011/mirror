@@ -8,6 +8,10 @@
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "../_generated/server";
 import { claimInlineImageOwnership } from "../content/inlineImageOwnership";
+import {
+  mapInlineImages,
+  type JSONContent,
+} from "../content/body-walk";
 
 export const _readArticleBody = internalQuery({
   args: { articleId: v.id("articles") },
@@ -25,23 +29,60 @@ export const _readArticleBody = internalQuery({
   },
 });
 
+// FG_096: merge-style patch instead of wholesale body replacement.
+//
+// The markdown-import action reads the body, performs N×up-to-10s external
+// fetches, then patches. If the user edits the body during that window, a
+// wholesale `ctx.db.patch(articleId, { body: stale })` silently overwrites
+// their edits. Instead, the action passes a `srcMap` of original-src →
+// `{ src, storageId }`; we re-read the CURRENT body inside the mutation
+// transaction and rewrite only the image nodes whose `attrs.src` still
+// matches a map entry.
+//
+// Image nodes whose original src is no longer in the body (user removed
+// them mid-import) are silently skipped — the stored blob becomes an
+// orphan candidate for the cron sweep. Image nodes added by the user
+// during the race (with src not in srcMap) pass through unchanged.
 export const _patchInlineImageBody = internalMutation({
   args: {
     articleId: v.id("articles"),
-    body: v.any(),
+    srcMap: v.record(
+      v.string(),
+      v.object({
+        src: v.string(),
+        storageId: v.id("_storage"),
+      }),
+    ),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    await ctx.db.patch(args.articleId, { body: args.body });
-    // FG_091: the markdown-import action just stored fresh blobs and
-    // patched the body with their storageIds. Claim ownership for the
-    // article's owner so a later same-user removal will cascade-delete
-    // them. Look up the owner from the article doc — the action already
-    // verified ownership before invoking us.
     const article = await ctx.db.get(args.articleId);
-    if (article) {
-      await claimInlineImageOwnership(ctx, args.body, article.userId);
-    }
+    if (!article) return null;
+
+    const current = (article.body ?? null) as JSONContent | null;
+    if (!current) return null;
+
+    const merged = mapInlineImages(current, (attrs) => {
+      if (!attrs) return attrs;
+      const existing = attrs.storageId;
+      if (typeof existing === "string" && existing.length > 0) {
+        // Already imported — leave untouched (idempotent).
+        return attrs;
+      }
+      const src = attrs.src;
+      if (typeof src !== "string") return attrs;
+      const update = args.srcMap[src];
+      if (!update) return attrs;
+      return { ...attrs, src: update.src, storageId: update.storageId };
+    }) as JSONContent;
+
+    await ctx.db.patch(args.articleId, { body: merged });
+    // FG_091: claim ownership for the article's owner so a later
+    // same-user removal will cascade-delete the new blobs. Pass the
+    // merged body so we only claim storageIds that actually landed —
+    // not the ones the action resolved but the body no longer
+    // references (those are orphan candidates).
+    await claimInlineImageOwnership(ctx, merged, article.userId);
     return null;
   },
 });

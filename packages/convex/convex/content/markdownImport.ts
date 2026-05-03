@@ -7,9 +7,16 @@
 // entity's body for image nodes whose `attrs.src` is an absolute external
 // URL with no `attrs.storageId`, fetches the bytes via `safeFetchImage`
 // (SSRF-guarded), stores them via `ctx.storage.store(blob)`, then patches
-// the body with a Convex-served URL and the new `storageId`. The two
-// per-entity actions used to contain near-identical handler bodies; this
-// module is the shared core they both delegate to (FG_095).
+// the body via the entity-specific `_patchInlineImageBody` mutation. The
+// two per-entity actions used to contain near-identical handler bodies;
+// this module is the shared core they both delegate to (FG_095).
+//
+// FG_096 changed the contract: this helper no longer hands the rewritten
+// body to the patch closure. Instead it hands the closure a `srcMap`
+// (`originalSrc → { src, storageId }`). The patch mutation re-reads the
+// CURRENT body inside its transaction and applies the map as a merge —
+// preserving any concurrent edits the user made during the multi-second
+// fetch window. See `articles/internalImages.ts:_patchInlineImageBody`.
 //
 // Why a separate file (vs. extending `body-walk.ts`): `body-walk.ts` is a
 // pure module (no Convex runtime imports). This helper calls
@@ -26,8 +33,6 @@
 import type { ActionCtx } from "../_generated/server";
 import {
   collectExternalImageSrcs,
-  isAbsoluteHttpUrl,
-  mapInlineImages,
   type JSONContent,
 } from "./body-walk";
 import { safeFetchImage, SafeFetchError } from "./safe-fetch";
@@ -42,18 +47,31 @@ export type ImportResult = {
 };
 
 /**
+ * `originalSrc → { src, storageId }`. Built by the helper from the
+ * `resolved` Map and handed to the entity-specific patch closure, which
+ * applies it as a merge against the current body.
+ */
+export type InlineImageSrcMap = Record<
+  string,
+  { src: string; storageId: Id<"_storage"> }
+>;
+
+/**
  * Fetch every external image URL in `body`, store the bytes via Convex
- * storage, and produce a rewritten body with `attrs.src` pointing at the
- * Convex-served URL and `attrs.storageId` set. The rewritten body is then
- * persisted via `patchBody`, which the caller wires to the entity-specific
- * `_patchInlineImageBody` mutation (closure captures the entity id).
+ * storage, and produce an `originalSrc → { src, storageId }` map. The map
+ * is then handed to `patchBody`, which the caller wires to the
+ * entity-specific `_patchInlineImageBody` mutation (closure captures the
+ * entity id). The mutation re-reads the current body inside its
+ * transaction and applies the map as a merge — preserving any concurrent
+ * edits made during the fetch window (FG_096).
  *
  * Returns `{ imported, failed, failures[] }`. The `imported` count is the
  * number of distinct URLs successfully resolved (multiple image nodes
  * referencing the same URL share one storage blob).
  *
- * Idempotent: image nodes that already have `attrs.storageId` are left
- * untouched. A re-run on a previously-imported body is a no-op.
+ * Idempotent: image nodes that already have `attrs.storageId` are
+ * skipped at collection time and never end up in the srcMap. A re-run on
+ * a previously-imported body is a no-op.
  *
  * Failures are collected per-URL — one bad URL does not abort the whole
  * import. The caller is responsible for any retry policy.
@@ -61,15 +79,14 @@ export type ImportResult = {
 export async function importMarkdownInlineImagesCore(
   ctx: ActionCtx,
   body: JSONContent | null,
-  patchBody: (next: JSONContent) => Promise<void>,
+  patchBody: (srcMap: InlineImageSrcMap) => Promise<void>,
 ): Promise<ImportResult> {
   if (!body) {
     return { imported: 0, failed: 0, failures: [] };
   }
 
   // First pass: identify each candidate image node and resolve it (if
-  // possible) into `{ src → { storageId, newSrc } }`. We do this BEFORE the
-  // tree rewrite so the synchronous mapper has all answers in hand.
+  // possible) into `{ src → { storageId, newSrc } }`.
   const candidates = collectExternalImageSrcs(body);
   const resolved = new Map<
     string,
@@ -104,24 +121,20 @@ export async function importMarkdownInlineImagesCore(
     }
   }
 
-  // Second pass: rewrite the body using the resolved map. Image nodes that
-  // failed (or already had a storageId) are left untouched.
-  const rewritten = mapInlineImages(body, (attrs) => {
-    if (!attrs) return attrs;
-    const existing = attrs.storageId;
-    if (typeof existing === "string" && existing.length > 0) {
-      return attrs; // already imported — idempotent
-    }
-    const src = attrs.src;
-    if (typeof src !== "string" || !isAbsoluteHttpUrl(src)) {
-      return attrs;
-    }
-    const hit = resolved.get(src);
-    if (!hit) return attrs;
-    return { ...attrs, src: hit.src, storageId: hit.storageId };
-  }) as JSONContent;
+  // Build the srcMap (plain object — Convex `v.record` validator) from
+  // the resolved entries. The patch mutation will re-read the body and
+  // only apply entries whose original src still appears in the (possibly
+  // edited) body.
+  const srcMap: InlineImageSrcMap = {};
+  for (const [originalSrc, hit] of resolved) {
+    srcMap[originalSrc] = { src: hit.src, storageId: hit.storageId };
+  }
 
-  await patchBody(rewritten);
+  // Skip the round-trip when there's nothing to apply. Saves a mutation
+  // call on the all-failures path.
+  if (Object.keys(srcMap).length > 0) {
+    await patchBody(srcMap);
+  }
 
   return {
     imported: resolved.size,
