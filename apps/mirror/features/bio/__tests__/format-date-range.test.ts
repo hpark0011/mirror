@@ -6,38 +6,38 @@ function utc(year: number, month1Indexed: number): number {
 }
 
 describe("formatDateRange", () => {
-  it("renders 'Jan 2022 – Present' when end is null", () => {
-    expect(formatDateRange(utc(2022, 1), null)).toBe("Jan 2022 – Present");
+  it("renders '01.2022 – Present' when end is null", () => {
+    expect(formatDateRange(utc(2022, 1), null)).toBe("01.2022 – Present");
   });
 
-  it("renders 'Jan 2022 – Mar 2024' when both set and different months", () => {
+  it("renders '01.2022 – 03.2024' when both set and different months", () => {
     expect(formatDateRange(utc(2022, 1), utc(2024, 3))).toBe(
-      "Jan 2022 – Mar 2024",
+      "01.2022 – 03.2024",
     );
   });
 
-  it("renders 'Jan 2024' when start === end (single-month range)", () => {
-    expect(formatDateRange(utc(2024, 1), utc(2024, 1))).toBe("Jan 2024");
+  it("renders '01.2024' when start === end (single-month range)", () => {
+    expect(formatDateRange(utc(2024, 1), utc(2024, 1))).toBe("01.2024");
   });
 
-  it("uses the correct three-letter abbreviation for all 12 months", () => {
+  it("uses the correct two-digit numeric label for all 12 months", () => {
     const expected = [
-      "Jan",
-      "Feb",
-      "Mar",
-      "Apr",
-      "May",
-      "Jun",
-      "Jul",
-      "Aug",
-      "Sep",
-      "Oct",
-      "Nov",
-      "Dec",
+      "01",
+      "02",
+      "03",
+      "04",
+      "05",
+      "06",
+      "07",
+      "08",
+      "09",
+      "10",
+      "11",
+      "12",
     ];
     for (let m = 1; m <= 12; m++) {
       expect(formatDateRange(utc(2020, m), null)).toBe(
-        `${expected[m - 1]} 2020 – Present`,
+        `${expected[m - 1]}.2020 – Present`,
       );
     }
   });
@@ -47,7 +47,7 @@ describe("formatDateRange", () => {
     // accidentally used `getMonth()` (local tz), east-of-UTC users would see
     // Dec 2021 for an entry stored as Jan 2022.
     const jan2022Utc = Date.UTC(2022, 0, 1, 0, 0, 0, 0);
-    expect(formatDateRange(jan2022Utc, null)).toBe("Jan 2022 – Present");
+    expect(formatDateRange(jan2022Utc, null)).toBe("01.2022 – Present");
 
     // Load-bearing UTC-anchor regression (issue L5): midnight-UTC on Jan 1 is
     // still Jan 1 in every UTC+ timezone, so the assertion above is vacuous on
@@ -57,17 +57,17 @@ describe("formatDateRange", () => {
     // returns 0 (Jan) on every runner.
     const jan2022UtcEarlyMorning = Date.UTC(2022, 0, 1, 4, 0, 0, 0);
     expect(formatDateRange(jan2022UtcEarlyMorning, null)).toBe(
-      "Jan 2022 – Present",
+      "01.2022 – Present",
     );
   });
 
   it("renders Dec correctly even when end is also Dec same year", () => {
-    expect(formatDateRange(utc(2023, 12), utc(2023, 12))).toBe("Dec 2023");
+    expect(formatDateRange(utc(2023, 12), utc(2023, 12))).toBe("12.2023");
   });
 
   it("renders cross-year ranges correctly", () => {
     expect(formatDateRange(utc(2014, 9), utc(2018, 5))).toBe(
-      "Sep 2014 – May 2018",
+      "09.2014 – 05.2018",
     );
   });
 });

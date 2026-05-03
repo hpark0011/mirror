@@ -8,23 +8,23 @@
  * stored as Jan 2022 UTC could render as Dec 2021 for a user east of UTC.
  *
  * Output cases:
- * - `endDate === null`            → `"Jan 2022 – Present"`
- * - `start month === end month`   → `"Jan 2024"`           (single-month range)
- * - both set, different months    → `"Jan 2022 – Mar 2024"`
+ * - `endDate === null`            → `"01.2022 – Present"`
+ * - `start month === end month`   → `"01.2024"`           (single-month range)
+ * - both set, different months    → `"01.2022 – 03.2024"`
  */
 const MONTH_LABELS = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+  "01",
+  "02",
+  "03",
+  "04",
+  "05",
+  "06",
+  "07",
+  "08",
+  "09",
+  "10",
+  "11",
+  "12",
 ] as const;
 
 const EN_DASH = "–";
@@ -33,7 +33,7 @@ function formatMonthYear(epochMs: number): string {
   const d = new Date(epochMs);
   const monthIdx = d.getUTCMonth();
   const year = d.getUTCFullYear();
-  return `${MONTH_LABELS[monthIdx]} ${year}`;
+  return `${MONTH_LABELS[monthIdx]}.${year}`;
 }
 
 function isSameMonthYear(a: number, b: number): boolean {

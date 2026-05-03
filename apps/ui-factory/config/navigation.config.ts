@@ -16,6 +16,7 @@ export const COMPONENT_NAV_ITEMS: NavItem[] = [
   { label: "Drawer", href: "/components/drawer" },
   { label: "Dropdown Menu", href: "/components/dropdown-menu" },
   { label: "Resizable", href: "/components/resizable" },
+  { label: "Select", href: "/components/select" },
   { label: "Sonner", href: "/components/sonner" },
 ];
 
