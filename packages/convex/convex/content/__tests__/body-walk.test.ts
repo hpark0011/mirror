@@ -207,3 +207,26 @@ describe("mapInlineImages", () => {
     expect(inner.attrs).toEqual({ src: "u" });
   });
 });
+
+describe("extractInlineImageStorageIds — NFR-03 perf", () => {
+  // Spec NFR-03: a 500-image-node body must complete the body walk in <50ms.
+  // Budget is intentionally loose — guards against quadratic regressions, not
+  // tuned to current hardware. Do not tighten without updating the spec.
+  it("completes <50ms on a 500-image-node body (NFR-03)", () => {
+    const content: Array<JSONContent> = Array.from(
+      { length: 500 },
+      (_, i): JSONContent => ({
+        type: "image",
+        attrs: { storageId: `mock-${i}` },
+      }),
+    );
+    const body: JSONContent = { type: "doc", content };
+
+    const start = performance.now();
+    const out = extractInlineImageStorageIds(body);
+    const duration = performance.now() - start;
+
+    expect(out.length).toBe(500);
+    expect(duration).toBeLessThan(50);
+  });
+});

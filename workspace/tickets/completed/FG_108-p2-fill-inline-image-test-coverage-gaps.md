@@ -3,7 +3,7 @@ id: FG_108
 title: "Inline-image test coverage gaps closed: NFR-03 perf, drop unit, posts upload hook"
 date: 2026-05-02
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "Three spec-mandated or pattern-mandated test files are missing or weak: NFR-03 requires a 500-node body-walk perf regression test (absent), the ProseMirror plugin handleDrop path has no unit test (different code path from handlePaste), and use-post-inline-image-upload has no test file mirroring the articles hook (FR-11 client validation only verified on articles surface). Add all three to close the testing-reviewer findings."
 dependencies: []

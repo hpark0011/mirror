@@ -31,6 +31,10 @@ type Harness = {
   editor: Editor;
   fileFor: (name?: string) => File;
   paste: (file: File | File[]) => boolean;
+  drop: (
+    fileOrFiles: File | File[],
+    coords: { clientX: number; clientY: number },
+  ) => boolean;
   destroy: () => void;
 };
 
@@ -61,10 +65,36 @@ function mountEditor(
     return editor.view.someProp("handlePaste", (handler) => handler(editor.view, event)) === true;
   };
 
+  // Build a real DOM-shaped DragEvent (happy-dom supports the constructor) and
+  // attach a populated DataTransfer + clientX/clientY via defineProperty —
+  // happy-dom's DragEvent constructor doesn't read those off `init`, so we
+  // attach them here. Mirrors the paste helper's clipboardData injection.
+  const drop = (
+    fileOrFiles: File | File[],
+    coords: { clientX: number; clientY: number },
+  ) => {
+    const files = Array.isArray(fileOrFiles) ? fileOrFiles : [fileOrFiles];
+    const dt = new DataTransfer();
+    for (const f of files) dt.items.add(f);
+    const event = new DragEvent("drop", {
+      bubbles: true,
+      cancelable: true,
+    }) as unknown as DragEvent;
+    Object.defineProperty(event, "dataTransfer", { value: dt });
+    Object.defineProperty(event, "clientX", { value: coords.clientX });
+    Object.defineProperty(event, "clientY", { value: coords.clientY });
+    return (
+      editor.view.someProp("handleDrop", (handler) =>
+        handler(editor.view, event, dt as unknown as DataTransfer, false),
+      ) === true
+    );
+  };
+
   return {
     editor,
     fileFor,
     paste,
+    drop,
     destroy: () => {
       editor.destroy();
       host.remove();
@@ -300,6 +330,55 @@ describe("inline image upload plugin", () => {
 
     // Placeholder replaced with a real image node — Save can proceed.
     expect(hasPendingUploads(h.editor.state)).toBe(false);
+
+    h.destroy();
+  });
+
+  it("inserts a placeholder via drop and resolves to an image at that pos (FG_094)", async () => {
+    // Drop covers `view.posAtCoords({ left: clientX, top: clientY })` —
+    // a meaningfully different code path from paste's `selection.from`.
+    // Stub `posAtCoords` to a deterministic doc position so the assertion
+    // doesn't depend on happy-dom's missing layout engine.
+    const d = deferred();
+    const onUpload = vi.fn(() => d.promise);
+    const h = mountEditor(onUpload);
+
+    // Pin the drop position to the end of "hello world" (pos 12 in a doc
+    // shaped <doc><p>hello world</p></doc>).
+    const dropPos = h.editor.state.doc.content.size - 1;
+    const posAtCoordsSpy = vi
+      .spyOn(h.editor.view, "posAtCoords")
+      .mockReturnValue({ pos: dropPos, inside: -1 });
+
+    const handled = h.drop(h.fileFor("dropped.png"), {
+      clientX: 50,
+      clientY: 100,
+    });
+
+    expect(handled).toBe(true);
+    expect(posAtCoordsSpy).toHaveBeenCalledWith({ left: 50, top: 100 });
+    expect(onUpload).toHaveBeenCalledTimes(1);
+
+    // Placeholder lives at the dropped pos.
+    const set = inlineImageUploadPluginKey.getState(h.editor.state) as
+      | DecorationSet
+      | undefined;
+    expect(set).toBeDefined();
+    const placeholders = set!.find();
+    expect(placeholders).toHaveLength(1);
+    expect(placeholders[0]?.from).toBe(dropPos);
+
+    // Resolve the upload — the image node should land at the same pos.
+    d.resolve({ storageId: "drop-store-1", url: "https://cdn.example/drop.png" });
+    await d.promise;
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(decorationCount(h.editor)).toBe(0);
+    const imgs = imageNodes(h.editor);
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]?.storageId).toBe("drop-store-1");
+    expect(imgs[0]?.src).toBe("https://cdn.example/drop.png");
 
     h.destroy();
   });
