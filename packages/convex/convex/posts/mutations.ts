@@ -206,13 +206,19 @@ export const update = authMutation({
     await ctx.db.patch(args.id, patch);
 
     // Clean up the previous cover image only after the DB patch succeeds, so a
-    // failed write can't leave the post pointing at deleted storage.
+    // failed write can't leave the post pointing at deleted storage. Best-effort:
+    // a missing or transient blob must not roll back a successful patch — the
+    // cron sweep collects any survivors.
     if (
       args.coverImageStorageId !== undefined &&
       args.coverImageStorageId !== post.coverImageStorageId &&
       post.coverImageStorageId
     ) {
-      await ctx.storage.delete(post.coverImageStorageId);
+      try {
+        await ctx.storage.delete(post.coverImageStorageId);
+      } catch {
+        // Cron sweep is the safety net.
+      }
     }
 
     // FG_091: claim ownership for any new inline-image storageIds in the
@@ -300,9 +306,15 @@ export const remove = authMutation({
       await ctx.db.delete(post._id);
 
       // Delete storage after the DB row is gone so a failed delete can't
-      // leave a live post pointing at a missing asset.
+      // leave a live post pointing at a missing asset. Best-effort: a missing
+      // or transient blob must not abort the whole removal — the cron sweep
+      // collects any survivors.
       if (post.coverImageStorageId) {
-        await ctx.storage.delete(post.coverImageStorageId);
+        try {
+          await ctx.storage.delete(post.coverImageStorageId);
+        } catch {
+          // Cron sweep is the safety net.
+        }
       }
 
       // FG_091: filter inline IDs to ones the caller owns per the

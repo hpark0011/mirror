@@ -41,6 +41,7 @@ import type * as content_markdownImport from "../content/markdownImport.js";
 import type * as content_safeFetch from "../content/safeFetch.js";
 import type * as content_slug from "../content/slug.js";
 import type * as content_storagePolicy from "../content/storagePolicy.js";
+import type * as content_storageRegistry from "../content/storageRegistry.js";
 import type * as crons from "../crons.js";
 import type * as email_actions from "../email/actions.js";
 import type * as embeddings_actions from "../embeddings/actions.js";
@@ -108,6 +109,7 @@ declare const fullApi: ApiFromModules<{
   "content/safeFetch": typeof content_safeFetch;
   "content/slug": typeof content_slug;
   "content/storagePolicy": typeof content_storagePolicy;
+  "content/storageRegistry": typeof content_storageRegistry;
   crons: typeof crons;
   "email/actions": typeof email_actions;
   "embeddings/actions": typeof embeddings_actions;

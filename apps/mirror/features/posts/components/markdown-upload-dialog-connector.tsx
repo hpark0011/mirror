@@ -72,6 +72,7 @@ export function MarkdownUploadDialogConnector() {
         return;
       }
       resetParser();
+      resetCreator();
       resetCoverImage();
       onCloseUploadDialog();
     } catch {
@@ -84,6 +85,7 @@ export function MarkdownUploadDialogConnector() {
     createPost,
     coverImageFile,
     resetParser,
+    resetCreator,
     resetCoverImage,
     onCloseUploadDialog,
   ]);

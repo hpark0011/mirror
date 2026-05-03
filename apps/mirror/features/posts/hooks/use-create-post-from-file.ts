@@ -88,6 +88,12 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
 
   const cancelImport = useCallback(() => {
     cancelledRef.current = true;
+    // The post-await early returns below all gate cleanup on
+    // `!cancelledRef.current`, so without resetting these here, an in-flight
+    // import that was just cancelled would leave the hook stuck with
+    // `isCreating: true` / `importStatus: "importing"` until reset() runs.
+    setIsCreating(false);
+    setImportStatus("idle");
   }, []);
 
   const createPost = useCallback(

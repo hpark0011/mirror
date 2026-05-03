@@ -296,9 +296,15 @@ export const remove = authMutation({
       await ctx.db.delete(article._id);
 
       // Delete cover after the row is gone so a failed delete can't leave a
-      // live article pointing at a missing asset.
+      // live article pointing at a missing asset. Best-effort: a missing or
+      // transient blob must not abort the whole removal — the cron sweep
+      // collects any survivors.
       if (article.coverImageStorageId) {
-        await ctx.storage.delete(article.coverImageStorageId);
+        try {
+          await ctx.storage.delete(article.coverImageStorageId);
+        } catch {
+          // Cron sweep is the safety net.
+        }
       }
 
       // FG_091: filter inline IDs to ones the caller owns per the

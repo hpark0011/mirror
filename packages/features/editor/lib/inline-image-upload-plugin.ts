@@ -134,6 +134,22 @@ function startUpload(
         view.dispatch(removeTr);
         return;
       }
+      // Defend against schema rejections at the resolved position — e.g. if
+      // the user moved the placeholder (or its parent paragraph) inside a
+      // code block while the upload was in flight. Without this guard,
+      // `replaceWith` would throw, leaking the placeholder decoration and
+      // never invoking `onError`.
+      const $pos = view.state.doc.resolve(finalPos);
+      const index = $pos.index();
+      if (!$pos.parent.canReplaceWith(index, index, imageType)) {
+        onError?.(
+          new Error(
+            "Images can't be inserted at the current cursor position",
+          ),
+        );
+        view.dispatch(removeTr);
+        return;
+      }
       const node = imageType.create({
         src: result.url,
         storageId: result.storageId,

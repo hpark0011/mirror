@@ -307,8 +307,12 @@ function findSchemaStorageRefs(): SchemaStorageRef[] {
     // the introspection set, opening the cron sweep to delete their blobs.
     const lines = text.split("\n");
     for (const line of lines) {
+      // Anchored to the line so we only match top-level schema fields —
+      // `<key>: v.id("_storage"),` — and reject inline shapes like
+      // `args: { storageId: v.id("_storage") }`. The optional `\)?` swallows
+      // the closing paren of `v.optional(...)`.
       const match = line.match(
-        /(\w+)\s*:\s*v\.(?:optional\(\s*v\.)?id\("_storage"\)/,
+        /^\s*(\w+)\s*:\s*v\.(?:optional\(\s*v\.)?id\("_storage"\)\)?\s*,?\s*$/,
       );
       if (match) {
         // Infer the table name from the directory the schema lives in.
@@ -375,18 +379,20 @@ describe("STORAGE_FIELD_REFERENCES — schema-introspection regression test (FR-
     // either form would pass the bidirectional check today (every current
     // field is optional) and silently fail the day someone adds a
     // required `v.id("_storage")` field.
-    const re = /(\w+)\s*:\s*v\.(?:optional\(\s*v\.)?id\("_storage"\)/;
+    const re =
+      /^\s*(\w+)\s*:\s*v\.(?:optional\(\s*v\.)?id\("_storage"\)\)?\s*,?\s*$/;
     expect(re.exec('  coverImageStorageId: v.id("_storage"),')?.[1]).toBe(
       "coverImageStorageId",
     );
     expect(
       re.exec('  coverImageStorageId: v.optional(v.id("_storage")),')?.[1],
     ).toBe("coverImageStorageId");
-    // Negative: function-arg shape (no leading field name + colon) should
-    // not match. The introspection harness already filters non-schema.ts
-    // files, but pinning the regex shape itself keeps it tight.
-    expect(re.exec('args: { storageId: v.id("_storage") }')?.[1]).toBe(
-      "storageId",
-    );
+    // Negative: function-arg shape (no leading field name + colon at the
+    // start of a line) should not match. The introspection harness already
+    // filters non-schema.ts files, but pinning the regex shape itself keeps
+    // it tight against future drift.
+    expect(
+      re.exec('args: { storageId: v.id("_storage") }')?.[1],
+    ).toBeUndefined();
   });
 });

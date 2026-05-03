@@ -179,6 +179,10 @@ export async function safeFetchImage(url: string): Promise<Blob> {
       }
 
       if (isRedirect(response.status)) {
+        // Drain the redirect response body so undici doesn't pin the
+        // connection across the next hop. Mirrors the pattern used on the
+        // !response.ok and bad-content-type paths below.
+        response.body?.cancel().catch(() => {});
         if (hop === MAX_FETCH_REDIRECTS) {
           throw new SafeFetchError(
             "redirect-overflow",
@@ -225,6 +229,9 @@ export async function safeFetchImage(url: string): Promise<Blob> {
           Number.isFinite(declared) &&
           declared > MAX_INLINE_IMAGE_BYTES
         ) {
+          // Drain the body so we don't leak an undici connection on the
+          // declared-too-big short-circuit (matches the pattern above).
+          response.body?.cancel().catch(() => {});
           throw new SafeFetchError(
             "size-limit",
             `Content-Length ${declared} exceeds ${MAX_INLINE_IMAGE_BYTES}`,

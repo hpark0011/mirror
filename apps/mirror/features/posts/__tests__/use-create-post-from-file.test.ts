@@ -286,32 +286,74 @@ describe("useCreatePostFromFile (FR-08)", () => {
     });
 
     // Post-cancel assertions: neither the success setStates nor the
-    // `done` transition should have run. importStatus stays at the
-    // pre-cancel value (`importing`), importResult stays null.
+    // `done` transition should have run. cancelImport itself resets
+    // `importStatus` to "idle" so the dialog doesn't get stuck on
+    // "importing"; importResult stays null because no post-await setStates
+    // ran after cancellation.
     expect(result.current.importResult).toBeNull();
-    expect(result.current.importStatus).not.toBe("done");
+    expect(result.current.importStatus).toBe("idle");
+    expect(result.current.isCreating).toBe(false);
   });
 
-  // Companion case: a second `createPost` after a cancellation must work
-  // — `cancelledRef` is reset at the start of every call. Without that
-  // reset, the post-cancel hook instance would silently drop every
-  // subsequent import.
-  it("createPost after cancelImport runs to completion (cancelledRef resets per call)", async () => {
+  // Companion case: after a real mid-flight cancellation, a SECOND
+  // `createPost` on the same hook instance must run to completion. The
+  // first call must actually be in flight when cancelImport fires —
+  // otherwise we'd only be testing the no-op pre-cancel path, not the
+  // cancelledRef-reset path that lets subsequent calls progress.
+  it("createPost after a real mid-flight cancelImport runs to completion (cancelledRef resets per call)", async () => {
     mockCreate.mockResolvedValue("post_id_recovered");
-    mockImportAction.mockResolvedValue({
+
+    // First call: action hangs on a deferred so we can cancel mid-flight.
+    let resolveFirst: (value: {
+      imported: number;
+      failed: number;
+      failures: { src: string; reason: string }[];
+    }) => void = () => {};
+    mockImportAction.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          resolveFirst = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useCreatePostFromFile());
+
+    // Kick off the first createPost; let it reach the awaiting-action state.
+    let firstPromise: Promise<unknown> = Promise.resolve();
+    await act(async () => {
+      firstPromise = result.current.createPost({
+        title: "Cancelled",
+        slug: "cancelled",
+        category: "Other",
+        body: SAMPLE_BODY,
+      });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    // Confirm we're actually mid-flight before cancelling — otherwise this
+    // test would silently degrade to the trivial pre-cancel case.
+    expect(result.current.importStatus).toBe("importing");
+
+    // Cancel mid-flight, then settle the first action so createPost
+    // unwinds without running its post-await setStates.
+    act(() => {
+      result.current.cancelImport();
+    });
+    await act(async () => {
+      resolveFirst({ imported: 0, failed: 0, failures: [] });
+      await firstPromise;
+    });
+
+    // Second call: a fresh action that resolves cleanly. cancelledRef must
+    // have been reset at the top of createPost, otherwise this call's
+    // post-await setStates are silently dropped.
+    mockImportAction.mockResolvedValueOnce({
       imported: 3,
       failed: 0,
       failures: [],
     });
 
-    const { result } = renderHook(() => useCreatePostFromFile());
-
-    // First call: cancel before it can settle.
-    act(() => {
-      result.current.cancelImport();
-    });
-
-    // Second call: should reset the flag and complete normally.
     await act(async () => {
       await result.current.createPost({
         title: "Recovered",
