@@ -123,7 +123,7 @@ export function ArticleListToolbar({
               size="xs"
               className="ml-2 has-[>svg]:gap-0.5 has-[>svg]:pl-1 has-[>svg]:pr-2"
             >
-              <Icon name="PlusIcon" className="text-icon-light size-4.5" />
+              <Icon name="PlusIcon" className="size-4 text-icon-light" />
               New
             </Button>
           )}

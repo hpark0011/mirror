@@ -1,5 +1,6 @@
 "use client";
 
+import { Icon } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
 import {
   Tooltip,
@@ -25,10 +26,12 @@ export function BioAddEntryButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      variant="default"
-      size="sm"
+      variant="primary"
+      size="xs"
+      className="ml-2 has-[>svg]:gap-0.5 has-[>svg]:pl-1 has-[>svg]:pr-2"
       data-testid="bio-add-entry-button"
     >
+      <Icon name="PlusIcon" className="size-4 text-icon-light" />
       {children ?? "Add entry"}
     </Button>
   );
