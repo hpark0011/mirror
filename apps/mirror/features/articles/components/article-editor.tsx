@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
-import { RichTextEditor } from "@feel-good/features/editor";
+import { RichTextEditor, createArticleExtensions } from "@feel-good/features/editor";
 import {
   type JSONContent,
 } from "@feel-good/features/editor/types";
@@ -96,6 +96,7 @@ export function ArticleEditor({ article, username, slug }: ArticleEditorProps) {
           onChange={setBody}
           onImageUpload={upload}
           onPendingUploadsChange={setHasPendingUploads}
+          extensions={createArticleExtensions}
           className="min-h-full"
         />
       </div>

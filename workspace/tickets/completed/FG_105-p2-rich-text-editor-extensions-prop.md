@@ -3,7 +3,7 @@ id: FG_105
 title: "RichTextEditor accepts an extensions prop instead of hardcoding article extensions"
 date: 2026-05-02
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "RichTextEditor in packages/features/editor/components/rich-text-editor.tsx hardcodes createArticleExtensions() at line 38, but the same component serves both article and post editors. PostEditor today is silently running articles' extension set. If posts ever need a different set (e.g., narrower toolbar, no headings, different code-block rules), the only path is forking the component. Accept extensions as a prop with a sensible default."
 dependencies: []

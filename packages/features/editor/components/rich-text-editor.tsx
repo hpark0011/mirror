@@ -22,6 +22,13 @@ type RichTextEditorProps = {
    */
   onPendingUploadsChange?: (hasPending: boolean) => void;
   className?: string;
+  /**
+   * Factory for the base Tiptap extensions. Defaults to
+   * `createArticleExtensions` so existing callers keep their behavior. The
+   * inline-image-upload extension is always appended on top so it retains
+   * its closure over `onImageUploadRef` (FG_105).
+   */
+  extensions?: () => Extensions;
 };
 
 export function RichTextEditor({
@@ -30,6 +37,7 @@ export function RichTextEditor({
   onImageUpload,
   onPendingUploadsChange,
   className,
+  extensions: extensionsFactory = createArticleExtensions,
 }: RichTextEditorProps) {
   // Ref-forwarding pattern: extensions and the `onUpdate` callback are
   // constructed once (the editor is a single long-lived instance), but
@@ -59,7 +67,7 @@ export function RichTextEditor({
 
   const extensions = useMemo<Extensions>(
     () => [
-      ...createArticleExtensions(),
+      ...extensionsFactory(),
       createInlineImageUploadExtension({
         onUpload: (file) => onImageUploadRef.current(file),
       }),
