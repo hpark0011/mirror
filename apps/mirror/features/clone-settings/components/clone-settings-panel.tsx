@@ -33,7 +33,6 @@ export function CloneSettingsPanel() {
         data-testid="clone-settings-panel"
         className="p-4 py-12 mx-auto w-full max-w-xl"
       >
-        <h2 className="text-lg font-semibold mb-1">Clone settings</h2>
         <p className="text-[15px] mb-4">
           Customize how your AI clone speaks.
         </p>

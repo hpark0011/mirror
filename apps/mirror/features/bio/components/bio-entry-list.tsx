@@ -49,7 +49,7 @@ export function BioEntryList({
   return (
     <ol
       data-testid="bio-entry-list"
-      className="flex flex-col list-none mt-10 gap-10"
+      className="flex flex-col list-none mt-8 gap-10"
     >
       {entries.map((entry) => (
         <li

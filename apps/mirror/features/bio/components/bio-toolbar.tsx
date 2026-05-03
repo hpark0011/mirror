@@ -18,6 +18,7 @@ export function BioToolbar({
 }: BioToolbarProps) {
   return (
     <ContentToolbarShell variant="detail">
+      <div />
       {isOwner
         ? (
           <BioAddEntryButton

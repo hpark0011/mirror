@@ -14,6 +14,7 @@ export function CloneSettingsToolbar({
 }: CloneSettingsToolbarProps) {
   return (
     <ContentToolbarShell variant="detail">
+      <div />
       <Button
         type="submit"
         form={formId}
