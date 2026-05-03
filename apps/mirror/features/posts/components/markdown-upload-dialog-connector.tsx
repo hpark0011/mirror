@@ -1,13 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  ALLOWED_INLINE_IMAGE_TYPES,
-  MAX_INLINE_IMAGE_BYTES,
-} from "@/lib/media-policy";
+import { useCallback, useRef } from "react";
 import { usePostToolbar } from "../context/post-toolbar-context";
 import { useMarkdownFileParser } from "../hooks/use-markdown-file-parser";
 import { useCreatePostFromFile } from "../hooks/use-create-post-from-file";
+import { useCoverImageState } from "../hooks/use-cover-image-state";
 import { MarkdownUploadDialog } from "./markdown-upload-dialog";
 
 export function MarkdownUploadDialogConnector() {
@@ -30,49 +27,13 @@ export function MarkdownUploadDialogConnector() {
   } = useCreatePostFromFile();
 
   const isSubmittingRef = useRef(false);
-  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
-  const [coverImagePreview, setCoverImagePreview] = useState<string | null>(
-    null,
-  );
-  const [coverImageError, setCoverImageError] = useState<string | null>(null);
-
-  // Revoke any object URL when it changes or on unmount
-  useEffect(() => {
-    if (!coverImagePreview) return;
-    return () => URL.revokeObjectURL(coverImagePreview);
-  }, [coverImagePreview]);
-
-  const resetCoverImage = useCallback(() => {
-    setCoverImageFile(null);
-    setCoverImagePreview(null);
-    setCoverImageError(null);
-  }, []);
-
-  const handleCoverImageChange = useCallback((file: File | null) => {
-    setCoverImageError(null);
-
-    if (!file) {
-      setCoverImageFile(null);
-      setCoverImagePreview(null);
-      return;
-    }
-
-    if (!ALLOWED_INLINE_IMAGE_TYPES.has(file.type)) {
-      setCoverImageFile(null);
-      setCoverImagePreview(null);
-      setCoverImageError("Cover image must be PNG, JPEG, or WEBP");
-      return;
-    }
-    if (file.size > MAX_INLINE_IMAGE_BYTES) {
-      setCoverImageFile(null);
-      setCoverImagePreview(null);
-      setCoverImageError("Cover image must be smaller than 5 MB");
-      return;
-    }
-
-    setCoverImageFile(file);
-    setCoverImagePreview(URL.createObjectURL(file));
-  }, []);
+  const {
+    coverImageFile,
+    coverImagePreview,
+    coverImageError,
+    resetCoverImage,
+    handleCoverImageChange,
+  } = useCoverImageState();
 
   const handleClose = useCallback(() => {
     isSubmittingRef.current = false;

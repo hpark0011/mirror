@@ -1,5 +1,4 @@
 import Image from "@tiptap/extension-image";
-import { type Node } from "@tiptap/core";
 
 /**
  * Custom Tiptap Image extension that adds a `storageId` attribute to track
@@ -11,8 +10,11 @@ import { type Node } from "@tiptap/core";
  * The base configuration mirrors the stock `Image.configure(...)` shape from
  * `extensions.ts:12-17` — `inline: false`, `loading: "lazy"` — so swapping
  * this extension in is behavior-preserving for the article viewer.
+ *
+ * Return type intentionally inferred (FG_116) — `Node` from `@tiptap/core`
+ * widens away the `Image.extend(...)` storage/options shape.
  */
-export function createInlineImageExtension(): Node {
+export function createInlineImageExtension() {
   return Image.extend({
     addAttributes() {
       return {

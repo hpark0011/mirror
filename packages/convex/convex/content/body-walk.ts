@@ -21,7 +21,7 @@
 // types only at compile-time and so this import does not pull in any Convex
 // runtime code.
 
-import type { Id } from "../_generated/dataModel";
+import { type Id } from "../_generated/dataModel";
 
 /**
  * Minimal Tiptap JSONContent shape used by the body-walk helpers.

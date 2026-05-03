@@ -12,7 +12,7 @@ import {
   type MutationCtx,
 } from "./_generated/server";
 import { internal } from "./_generated/api";
-import type { Doc, Id } from "./_generated/dataModel";
+import { type Doc, type Id } from "./_generated/dataModel";
 import { ORPHAN_GRACE_MS } from "./content/storage-policy";
 import { extractInlineImageStorageIds } from "./content/body-walk";
 

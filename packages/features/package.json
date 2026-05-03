@@ -34,6 +34,13 @@
     "./editor/types": "./editor/types.ts",
     "./editor/styles/tiptap-content.css": "./editor/styles/tiptap-content.css"
   },
+  "typesVersions": {
+    "*": {
+      "editor/components/rich-text-editor": [
+        "./editor/components/rich-text-editor.tsx"
+      ]
+    }
+  },
   "peerDependencies": {
     "@tailwindcss/typography": "^0.5.19",
     "next": "^16.0.0",

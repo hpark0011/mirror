@@ -3,7 +3,7 @@ id: FG_116
 title: "TypeScript style cleanup pass on inline-image lifecycle code"
 date: 2026-05-02
 type: chore
-status: to-do
+status: completed
 priority: p3
 description: "ce:review surfaced a batch of low-severity TypeScript style and shape findings across the inline-image lifecycle code: separate import-type statements that should be inline (project rule), authUser._id as string casts that erase the BetterAuth brand without comment, createInlineImageExtension return type widened to bare Node, two markdown-upload-dialog files at 130 and 145 lines (>100 guideline), apps/mirror/lib/media-policy.ts adding only one derived constant on top of storage-policy.ts, and missing typesVersions parity for packages/features's new editor export. Apply as a single style cleanup pass so each individual nit doesn't become its own PR."
 dependencies: []

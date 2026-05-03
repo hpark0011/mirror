@@ -6,7 +6,7 @@ import { api } from "@feel-good/convex/convex/_generated/api";
 import { type JSONContent } from "@feel-good/features/editor";
 import { ContentEditor } from "@/features/content/components/content-editor";
 import { useArticleInlineImageUpload } from "../hooks/use-article-inline-image-upload";
-import type { ArticleWithBody } from "../types";
+import { type ArticleWithBody } from "../types";
 
 type ArticleEditorProps = {
   article: ArticleWithBody;

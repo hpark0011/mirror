@@ -1,6 +1,5 @@
 "use client";
 
-import { useRef, type ChangeEvent } from "react";
 import {
   Dialog,
   DialogContent,
@@ -18,23 +17,8 @@ import {
 } from "../hooks/use-create-post-from-file";
 import { CoverImagePicker } from "./cover-image-picker";
 import { ParsedMetadataPreview } from "./parsed-metadata-preview";
-
-/**
- * Map known machine-readable failure reasons from
- * `importMarkdownInlineImagesCore` to user-facing copy. Unknown reasons
- * fall through verbatim so a future reason added on the backend still
- * renders something — just not as polished as the curated cases.
- */
-function formatFailureReason(reason: string): string {
-  switch (reason) {
-    case "import-cap-exceeded":
-      return "Skipped — too many images in one import. Re-import to fetch the rest.";
-    case "invalid-magic-bytes":
-      return "Skipped — image bytes don't match declared format.";
-    default:
-      return reason;
-  }
-}
+import { ImportResultStatus } from "./import-result-status";
+import { MarkdownFileInput } from "./markdown-file-input";
 
 type MarkdownUploadDialogProps = {
   isOpen: boolean;
@@ -69,15 +53,6 @@ export function MarkdownUploadDialog({
   importStatus,
   importResult,
 }: MarkdownUploadDialogProps) {
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      onFileSelect(file);
-    }
-  }
-
   const error = parseError || createError;
   const isDisabled = isParsing || isCreating || !parsed;
 
@@ -92,19 +67,10 @@ export function MarkdownUploadDialog({
         </DialogHeader>
 
         <DialogBody className="space-y-4">
-          <div>
-            <input
-              ref={inputRef}
-              type="file"
-              accept=".md"
-              onChange={handleFileChange}
-              className="block w-full text-sm text-foreground-muted file:mr-4 file:rounded-md file:border-0 file:bg-primary file:px-4 file:py-2 file:text-sm file:font-medium file:text-primary-foreground hover:file:bg-primary/90 file:cursor-pointer"
-            />
-          </div>
-
-          {isParsing && (
-            <p className="text-sm text-foreground-muted">Parsing file...</p>
-          )}
+          <MarkdownFileInput
+            isParsing={isParsing}
+            onFileSelect={onFileSelect}
+          />
 
           {parsed && <ParsedMetadataPreview parsed={parsed} />}
 
@@ -114,29 +80,10 @@ export function MarkdownUploadDialog({
             onChange={onCoverImageChange}
           />
 
-          {importStatus === "importing" && (
-            <p className="text-sm text-foreground-muted">
-              Importing inline images...
-            </p>
-          )}
-
-          {importStatus === "done" && importResult && (
-            <div className="space-y-1 text-sm">
-              <p className="text-foreground-muted">
-                Imported {importResult.imported} of{" "}
-                {importResult.imported + importResult.failed} images
-              </p>
-              {importResult.failures.length > 0 && (
-                <ul className="list-disc pl-5 text-destructive" role="alert">
-                  {importResult.failures.map((f) => (
-                    <li key={`${f.src}:${f.reason}`}>
-                      {f.src} — {formatFailureReason(f.reason)}
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
+          <ImportResultStatus
+            status={importStatus}
+            result={importResult}
+          />
 
           {error && (
             <p className="text-sm text-destructive" role="alert">{error}</p>

@@ -38,8 +38,8 @@ import {
   importMarkdownInlineImagesCore,
   type ImportResult,
 } from "../content/markdownImport";
-import type { JSONContent } from "../content/body-walk";
-import type { Id } from "../_generated/dataModel";
+import { type JSONContent } from "../content/body-walk";
+import { type Id } from "../_generated/dataModel";
 
 export const importMarkdownInlineImages = internalAction({
   args: {

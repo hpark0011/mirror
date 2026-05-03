@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { ArticleEditor } from "@/features/articles/components/article-editor";
-import type { ArticleWithBody } from "@/features/articles/types";
+import { type ArticleWithBody } from "@/features/articles/types";
 import { fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
 

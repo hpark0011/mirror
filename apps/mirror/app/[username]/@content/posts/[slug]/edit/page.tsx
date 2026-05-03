@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { PostEditor } from "@/features/posts/components/post-editor";
-import type { PostSummary } from "@/features/posts/types";
+import { type PostSummary } from "@/features/posts/types";
 import { fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
 
