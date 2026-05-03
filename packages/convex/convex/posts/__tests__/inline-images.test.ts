@@ -936,6 +936,49 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
     // mutation/storage overhead. 300ms keeps headroom for CI noise.
     expect(duration).toBeLessThan(300);
   });
+
+  it("imported/failed reflect node counts not unique URL counts (FG_115)", async () => {
+    const t = makeT();
+    const ownerId = await insertAppUserAndSignIn(t);
+
+    safeFetchMock.mockResolvedValueOnce(
+      new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" }),
+    );
+
+    // Three image nodes, all pointing at the same URL. The fetch happens
+    // once (dedup by URL), but the body has THREE nodes the user sees
+    // rendered. Pre-FG_115 the dialog said "Imported 1 of 1"; node counts
+    // produce the user-correct "Imported 3 of 3."
+    const sharedSrc = "https://shared.example/dup.png";
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Duplicates",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "image", attrs: { src: sharedSrc } },
+              { type: "image", attrs: { src: sharedSrc } },
+              { type: "image", attrs: { src: sharedSrc } },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const result = await t.action(
+      internal.posts.actions.importMarkdownInlineImages,
+      { postId, ownerId },
+    );
+
+    expect(safeFetchMock).toHaveBeenCalledTimes(1);
+    expect(result.imported).toBe(3);
+    expect(result.failed).toBe(0);
+    expect(result.failures).toEqual([]);
+  });
 });
 
 // FG_096: post-side mirror of the merge contract pinned for articles.

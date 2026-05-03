@@ -3,7 +3,7 @@ id: FG_115
 title: "ImportResult counts rewritten image nodes, not unique URLs"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "ImportResult.imported = resolved.size and ImportResult.failed = failures.length. When a body contains three image nodes pointing to the same external URL, resolved.size is 1 even though three nodes were rewritten — the dialog says 'Imported 1 of 1' instead of 'Imported 3 of 3'. Conversely with the deduped tried-Set fix (FG_014), three failing duplicates count as 1 in failures, but the user sees three broken images. Track node count, not URL count, for user-facing reporting."
 dependencies: [FG_095, FG_112]

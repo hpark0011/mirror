@@ -178,9 +178,30 @@ export async function importMarkdownInlineImagesCore(
     await patchBody(srcMap);
   }
 
+  // FG_115: count NODES, not unique URLs. A body with three image nodes
+  // pointing to the same URL renders three working images on success and
+  // three broken images on failure — so the dialog should report 3, not
+  // the deduped URL count of 1. Walk the original `candidates` list (the
+  // raw body order, before dedup) and bucket each occurrence by whether
+  // its src ended up in `resolved` (imported), in `failedSrcs` (failed),
+  // or — if the URL was beyond the cap and never attempted — counted
+  // against `failed` via the cap-overflow set. Concurrent edits during
+  // the action window are ignored on purpose: the count reflects the
+  // import the user submitted, which is what they expect to see.
+  const failedSrcs = new Set(failures.map((f) => f.src));
+  let imported = 0;
+  let failedNodes = 0;
+  for (const src of candidates) {
+    if (resolved.has(src)) {
+      imported += 1;
+    } else if (failedSrcs.has(src)) {
+      failedNodes += 1;
+    }
+  }
+
   return {
-    imported: resolved.size,
-    failed: failures.length,
+    imported,
+    failed: failedNodes,
     failures,
   };
 }
