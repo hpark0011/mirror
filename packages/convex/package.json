@@ -67,24 +67,24 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2",
-    "@ai-sdk/google": "^2",
-    "@ai-sdk/openai": "^2",
-    "@ai-sdk/provider-utils": "^3.0.7",
-    "@convex-dev/agent": "^0.3.2",
+    "@ai-sdk/anthropic": "^3.0.74",
+    "@ai-sdk/google": "^3.0.67",
+    "@ai-sdk/openai": "^3.0.58",
+    "@ai-sdk/provider-utils": "^4.0.26",
+    "@convex-dev/agent": "^0.6.1",
     "@convex-dev/better-auth": "catalog:",
     "@convex-dev/rate-limiter": "^0.3.2",
     "@convex-dev/resend": "catalog:",
-    "ai": "^5.0.29",
+    "ai": "^6.0.174",
     "better-auth": "catalog:",
-    "convex": "^1.32.0",
-    "convex-helpers": "^0.1.113",
+    "convex": "^1.37.0",
+    "convex-helpers": "^0.1.115",
     "zod": "catalog:"
   },
   "devDependencies": {
     "@feel-good/tsconfig": "workspace:*",
     "@types/node": "catalog:",
-    "convex-test": "^0.0.48",
+    "convex-test": "^0.0.51",
     "typescript": "catalog:",
     "vitest": "^2.1.9"
   }

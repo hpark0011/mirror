@@ -126,13 +126,13 @@ export const sendOTP = internalAction({
     otp: v.string(),
     type: v.union(
       v.literal("sign-in"),
-      v.literal("sign-up"),
       v.literal("email-verification"),
       v.literal("forget-password"),
+      v.literal("change-email"),
     ),
   },
   returns: v.null(),
-  handler: async (ctx, { to, otp, type }) => {
+  handler: async (ctx, { to, otp }) => {
     await resend.sendEmail(ctx, {
       from: EMAIL_FROM,
       to,
@@ -140,10 +140,7 @@ export const sendOTP = internalAction({
       html: createOTPEmailTemplate({
         title: "Your verification code",
         otp,
-        message:
-          type === "sign-up"
-            ? "Use the code below to complete your sign up."
-            : "Use the code below to sign in to your account.",
+        message: "Use the code below to sign in to your account.",
         footerText:
           "This code will expire in 5 minutes. If you didn't request this code, you can safely ignore this email.",
       }),
