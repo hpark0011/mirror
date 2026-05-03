@@ -2,6 +2,7 @@
 
 import { type BioEntry } from "../types";
 import { formatDateRange } from "../lib/format-date-range";
+import { safeHttpUrl } from "../lib/safe-http-url";
 import { Button } from "@feel-good/ui/primitives/button";
 
 type BioEntryCardProps = {
@@ -21,7 +22,7 @@ export function BioEntryCard({
 }: BioEntryCardProps) {
   const dateRange = formatDateRange(entry.startDate, entry.endDate);
   const description = entry.description?.trim();
-  const link = entry.link?.trim();
+  const link = safeHttpUrl(entry.link);
 
   return (
     <article
@@ -40,7 +41,7 @@ export function BioEntryCard({
 
           {isOwner
             ? (
-              <div className="hidden shrink-0 items-center gap-1.5 group-hover:flex h-[16px]">
+              <div className="hidden shrink-0 items-center gap-1.5 group-hover:flex group-focus-within:flex h-[16px]">
                 <Button
                   size="sm"
                   variant="link"
