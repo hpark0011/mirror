@@ -297,9 +297,19 @@ function findSchemaStorageRefs(): SchemaStorageRef[] {
 
     // Walk the file line-by-line; record `<key>: ... v.id("_storage")`
     // (also handles `v.optional(v.id("_storage"))`).
+    //
+    // FG_114: the optional group consumes the WHOLE `optional(\s*v.`
+    // prefix when present, so the literal `id("_storage")` is what
+    // follows in both required and optional forms. The previous regex
+    // (`v\.(?:optional\(\s*)?v\.id`) matched only the optional form
+    // because the trailing `v.` was unconditional — required fields
+    // (`coverImageStorageId: v.id("_storage")`) silently slipped past
+    // the introspection set, opening the cron sweep to delete their blobs.
     const lines = text.split("\n");
     for (const line of lines) {
-      const match = line.match(/(\w+)\s*:\s*v\.(?:optional\(\s*)?v\.id\("_storage"\)/);
+      const match = line.match(
+        /(\w+)\s*:\s*v\.(?:optional\(\s*v\.)?id\("_storage"\)/,
+      );
       if (match) {
         // Infer the table name from the directory the schema lives in.
         const tableDir = path.basename(path.dirname(file));
@@ -357,5 +367,26 @@ describe("STORAGE_FIELD_REFERENCES — schema-introspection regression test (FR-
       "articles.body inline image storageIds",
       "posts.body inline image storageIds",
     ]);
+  });
+
+  it("findSchemaStorageRefs regex matches both required and optional storage fields (FG_114)", () => {
+    // Test-of-the-test: pin the regex against the two source-line shapes
+    // schema files actually use. Without this, a regression that breaks
+    // either form would pass the bidirectional check today (every current
+    // field is optional) and silently fail the day someone adds a
+    // required `v.id("_storage")` field.
+    const re = /(\w+)\s*:\s*v\.(?:optional\(\s*v\.)?id\("_storage"\)/;
+    expect(re.exec('  coverImageStorageId: v.id("_storage"),')?.[1]).toBe(
+      "coverImageStorageId",
+    );
+    expect(
+      re.exec('  coverImageStorageId: v.optional(v.id("_storage")),')?.[1],
+    ).toBe("coverImageStorageId");
+    // Negative: function-arg shape (no leading field name + colon) should
+    // not match. The introspection harness already filters non-schema.ts
+    // files, but pinning the regex shape itself keeps it tight.
+    expect(re.exec('args: { storageId: v.id("_storage") }')?.[1]).toBe(
+      "storageId",
+    );
   });
 });

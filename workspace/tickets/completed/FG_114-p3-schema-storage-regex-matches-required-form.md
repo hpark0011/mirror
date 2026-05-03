@@ -3,7 +3,7 @@ id: FG_114
 title: "Schema-storage regex catches required v.id('_storage') fields, not just optional"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "The schema-introspection regression test in orphan-sweep.test.ts uses /(\\w+)\\s*:\\s*v\\.(?:optional\\(\\s*)?v\\.id\\(\"_storage\"\\)/ which only matches v.optional(v.id(\"_storage\")). Required fields like coverImageStorageId: v.id(\"_storage\") (no v.optional wrapper) are silently skipped — the test passes but the new field would not be in STORAGE_FIELD_REFERENCES, so cron sweep would delete its blob. All current schema fields use v.optional, so the gap is dormant — but it's a false-safety regression guard."
 dependencies: []
