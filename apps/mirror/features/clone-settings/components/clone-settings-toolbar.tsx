@@ -14,9 +14,6 @@ export function CloneSettingsToolbar({
 }: CloneSettingsToolbarProps) {
   return (
     <ContentToolbarShell variant="detail">
-      <h2 className="text-[13px] font-medium text-foreground">
-        Customize how your AI clone speaks.
-      </h2>
       <Button
         type="submit"
         form={formId}

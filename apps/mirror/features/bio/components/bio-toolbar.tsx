@@ -18,7 +18,6 @@ export function BioToolbar({
 }: BioToolbarProps) {
   return (
     <ContentToolbarShell variant="detail">
-      <div className="text-[13px]">Work and education history.</div>
       {isOwner
         ? (
           <BioAddEntryButton

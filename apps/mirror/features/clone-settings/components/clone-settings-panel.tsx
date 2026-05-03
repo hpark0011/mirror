@@ -33,6 +33,9 @@ export function CloneSettingsPanel() {
         data-testid="clone-settings-panel"
         className="p-4 py-12 mx-auto w-full max-w-xl"
       >
+        <p className="text-[15px] mb-4">
+          Customize how your AI clone speaks.
+        </p>
         <Form {...form}>
           <form
             id={CLONE_SETTINGS_FORM_ID}
