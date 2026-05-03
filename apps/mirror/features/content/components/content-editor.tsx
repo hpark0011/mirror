@@ -2,7 +2,6 @@
 
 import { useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import {
   RichTextEditor,
@@ -11,7 +10,6 @@ import {
   type InlineImageUploadResult,
 } from "@feel-good/features/editor";
 import { InlineImageValidationError } from "@/lib/inline-image-validation";
-import { Button } from "@feel-good/ui/primitives/button";
 import {
   Toast,
   ToastIcon,
@@ -20,6 +18,8 @@ import {
   ToastClose,
 } from "@feel-good/ui/components/toast";
 import { OctagonXIcon } from "lucide-react";
+import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
+import { ContentEditorToolbar } from "./content-editor-toolbar";
 
 type ContentEditorProps = {
   /** Editor entity title shown in the header bar. */
@@ -116,36 +116,31 @@ export function ContentEditor({
   }, [body, cancelHref, hasPendingUploads, isSaving, onSave, router, showErrorToast]);
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-2">
-        <h1 className="truncate text-sm font-medium text-foreground">
-          {title}
-        </h1>
-        <div className="flex items-center gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link href={cancelHref}>Cancel</Link>
-          </Button>
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving || hasPendingUploads}
-            data-testid={saveTestId}
-          >
-            {isSaving ? "Saving..." : saveLabel}
-          </Button>
+    <>
+      <WorkspaceToolbar>
+        <ContentEditorToolbar
+          title={title}
+          cancelHref={cancelHref}
+          isSaving={isSaving}
+          hasPendingUploads={hasPendingUploads}
+          saveLabel={saveLabel}
+          saveTestId={saveTestId}
+          onSave={handleSave}
+        />
+      </WorkspaceToolbar>
+      <div className="flex h-full flex-col">
+        <div className="flex-1 overflow-auto px-6 py-4">
+          <RichTextEditor
+            content={body}
+            onChange={setBody}
+            onImageUpload={onImageUpload}
+            onImageUploadError={handleImageUploadError}
+            onPendingUploadsChange={setHasPendingUploads}
+            extensions={createArticleExtensions}
+            className="min-h-full"
+          />
         </div>
       </div>
-      <div className="flex-1 overflow-auto px-6 py-4">
-        <RichTextEditor
-          content={body}
-          onChange={setBody}
-          onImageUpload={onImageUpload}
-          onImageUploadError={handleImageUploadError}
-          onPendingUploadsChange={setHasPendingUploads}
-          extensions={createArticleExtensions}
-          className="min-h-full"
-        />
-      </div>
-    </div>
+    </>
   );
 }

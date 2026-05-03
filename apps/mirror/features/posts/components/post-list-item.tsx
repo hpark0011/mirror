@@ -18,7 +18,7 @@ export function PostListItem({ post, username }: PostListItemProps) {
   const href = buildChatAwareHref(getContentHref(username, "posts", post.slug));
 
   return (
-    <article className="border-b border-border-subtle px-4.5 py-10 last:border-b-0">
+    <article className="border-b border-border-subtle px-4.5 py-12 last:border-b-0">
       <div className="flex flex-col md:flex-row  md:items-start md:justify-between gap-5 md:gap-12 w-full items-center justify-center">
         <div className="mt-0.5 md:max-w-22 w-full max-w-lg">
           <PostMetadata post={post} capitalizeCategory />
