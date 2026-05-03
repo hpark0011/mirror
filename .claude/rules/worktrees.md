@@ -2,21 +2,32 @@
 
 Rules for operating safely inside `.worktrees/<branch>/`.
 
-## `apps/mirror/.env.local` is symlinked across worktrees
+## Canonical `.env.local` set is symlinked across worktrees
 
-Every worktree's `apps/mirror/.env.local` is a symlink into the main repo:
+Two `.env.local` files are gitignored and live only in the main checkout. Every new worktree symlinks them in via `new-worktree.sh`:
+
+| File | How it gets seeded in main |
+|------|----------------------------|
+| `apps/mirror/.env.local` | manual — copy from `apps/mirror/.env.local.example` and fill values |
+| `packages/convex/.env.local` | `pnpm --filter=@feel-good/convex dev` once in main — the Convex CLI auto-writes it on first connect |
+
+Resulting symlink layout in each worktree:
 
 ```
 .worktrees/<branch>/apps/mirror/.env.local
   -> /Users/disquiet/Desktop/mirror/apps/mirror/.env.local
+.worktrees/<branch>/packages/convex/.env.local
+  -> /Users/disquiet/Desktop/mirror/packages/convex/.env.local
 ```
 
-This shares dev secrets across worktrees but makes the file a single global resource. **Any tool that writes to `apps/mirror/.env.local` from any worktree mutates the canonical file for every worktree.**
+This shares dev coordinates across worktrees but makes each file a single global resource. **Any tool that writes to either file from any worktree mutates the canonical file for every worktree.**
+
+`new-worktree.sh` enforces the canonical set: it refuses to create a worktree if either file is missing in main, with a per-file seed hint. If you ever see `convex dev` prompt "What would you like to configure?" or Next.js complain about a missing `NEXT_PUBLIC_CONVEX_URL` in a fresh worktree, that means a canonical file was deleted in main — fix it there, not in the worktree.
 
 Before running a tool that may touch `.env.local`:
 
 ```bash
-ls -la apps/mirror/.env.local
+ls -la apps/mirror/.env.local packages/convex/.env.local
 ```
 
 If output starts with `lrwxr` (symlink), treat the write as global.
