@@ -22,7 +22,6 @@ export function CloneSettingsToolbar({
         form={formId}
         variant="primary"
         size="xs"
-        className="ml-2"
         disabled={isPending}
       >
         {isPending ? "Saving..." : "Save"}

@@ -35,7 +35,6 @@ export function ContentEditorToolbar({
         <Button
           variant="primary"
           size="xs"
-          className="ml-2"
           onClick={onSave}
           disabled={isSaving || hasPendingUploads}
           data-testid={saveTestId}
