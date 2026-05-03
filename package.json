@@ -14,17 +14,8 @@
     "prettier": "^3.2.5",
     "turbo": "^2.3.3"
   },
-  "packageManager": "pnpm@11.0.4",
+  "packageManager": "pnpm@9.15.0",
   "engines": {
-    "node": ">=20.9.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@sentry/cli",
-      "esbuild",
-      "msw",
-      "sharp",
-      "unrs-resolver"
-    ]
+   "node": ">=20.9.0"
   }
 }
