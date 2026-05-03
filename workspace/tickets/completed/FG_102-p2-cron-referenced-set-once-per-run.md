@@ -3,7 +3,7 @@ id: FG_102
 title: "sweepOrphanedStorage computes the referenced-set once per run, not per page"
 date: 2026-05-02
 type: perf
-status: to-do
+status: completed
 priority: p2
 description: "buildReferencedStorageSet runs ctx.db.query('articles').collect() and posts/users equivalents on every paginated sweep page. The referenced-set is invariant across pages within a single sweep run — recomputing it P times is wasted work. Compute on the first invocation, serialize into the scheduler.runAfter args for continuation pages, and pass it forward."
 dependencies: []

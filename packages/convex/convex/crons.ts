@@ -122,7 +122,7 @@ export const STORAGE_FIELD_REFERENCES: ReadonlyArray<StorageFieldReference> = [
   },
 ];
 
-async function buildReferencedStorageSet(
+export async function buildReferencedStorageSet(
   ctx: MutationCtx,
 ): Promise<Set<string>> {
   const referenced = new Set<string>();
@@ -148,9 +148,29 @@ async function buildReferencedStorageSet(
   return referenced;
 }
 
+/**
+ * Test seam: the multi-page sweep test (FG_102) needs to assert that
+ * `buildReferencedStorageSet` runs exactly once across all paginated pages,
+ * not P times. ESM same-module identifier references are closed-over and
+ * cannot be intercepted by `vi.spyOn` on a re-exported binding. Routing the
+ * call through this object lets the test swap the implementation with a
+ * `vi.fn()` wrapper that still delegates to the real helper but counts
+ * invocations. Production code must always call
+ * `_internals.buildReferencedStorageSet` (NOT the bare function) so the
+ * indirection isn't accidentally bypassed.
+ */
+export const _internals = { buildReferencedStorageSet };
+
 export const sweepOrphanedStorage = internalMutation({
   args: {
     cursor: v.optional(v.union(v.string(), v.null())),
+    // Continuation pages receive the referenced-set computed on the FIRST
+    // invocation. The set is invariant within a single sweep run (no schema
+    // mutations land between scheduled pages), so recomputing it per page
+    // would re-scan the articles/posts/users tables P times for nothing.
+    // Absent on the cron-registered first call; present on every
+    // scheduler.runAfter continuation.
+    referencedIds: v.optional(v.array(v.string())),
   },
   returns: v.object({
     deleted: v.number(),
@@ -170,7 +190,14 @@ export const sweepOrphanedStorage = internalMutation({
         cursor: args.cursor ?? null,
       });
 
-    const referenced = await buildReferencedStorageSet(ctx);
+    // Compute the referenced-set only on the first page; subsequent pages
+    // reuse the snapshot threaded through scheduler args. This is the SAME
+    // set the first page used — even if articles/posts churn mid-sweep, the
+    // first-page snapshot wins (consistency invariant).
+    const referenced =
+      args.referencedIds !== undefined
+        ? new Set<string>(args.referencedIds)
+        : await _internals.buildReferencedStorageSet(ctx);
 
     let deleted = 0;
     for (const entry of page.page) {
@@ -190,7 +217,10 @@ export const sweepOrphanedStorage = internalMutation({
       await ctx.scheduler.runAfter(
         0,
         internal.crons.sweepOrphanedStorage,
-        { cursor: page.continueCursor },
+        {
+          cursor: page.continueCursor,
+          referencedIds: Array.from(referenced),
+        },
       );
     }
 

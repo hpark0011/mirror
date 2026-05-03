@@ -14,7 +14,7 @@ import { internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import schema from "../../schema";
 import { ORPHAN_GRACE_MS } from "../storage-policy";
-import { STORAGE_FIELD_REFERENCES } from "../../crons";
+import { _internals, STORAGE_FIELD_REFERENCES } from "../../crons";
 
 vi.mock("../../auth/client", () => ({
   authComponent: {
@@ -206,6 +206,44 @@ describe("crons.sweepOrphanedStorage — pagination (NFR-02)", () => {
       if (await blobExists(t, id)) alive += 1;
     }
     expect(alive).toBe(0);
+  }, 30_000);
+
+  // FG_102: the referenced-set is invariant within a single sweep run, so
+  // recomputing it for every paginated `_storage` page would wastefully
+  // re-scan the articles/posts/users tables P times. The first page should
+  // compute it once, then thread it forward through `scheduler.runAfter` args
+  // for continuation pages. This test seeds enough orphan blobs to guarantee
+  // multiple pages (SWEEP_PAGE_SIZE=200), wraps `buildReferencedStorageSet`
+  // with a counter, and asserts it ran exactly once across the entire
+  // multi-page sweep run.
+  it("computes the referenced-set exactly once across a multi-page sweep run", async () => {
+    const t = makeT();
+
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    // 500 orphans → 3 pages at SWEEP_PAGE_SIZE=200 → 1 first page + 2
+    // continuations. Pre-FG_102 this would invoke buildReferencedStorageSet 3
+    // times; post-FG_102, exactly once.
+    for (let i = 0; i < 500; i++) {
+      await storeBlob(t, `orphan-${i}`);
+    }
+
+    vi.setSystemTime(ORPHAN_GRACE_MS + 60 * 60 * 1000);
+
+    const realBuilder = _internals.buildReferencedStorageSet;
+    const builderSpy = vi.fn(realBuilder);
+    _internals.buildReferencedStorageSet = builderSpy;
+
+    try {
+      await t.mutation(internal.crons.sweepOrphanedStorage, {});
+      await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+    } finally {
+      _internals.buildReferencedStorageSet = realBuilder;
+      vi.useRealTimers();
+    }
+
+    expect(builderSpy).toHaveBeenCalledTimes(1);
   }, 30_000);
 });
 
