@@ -5,10 +5,15 @@
 #
 # Steps:
 #   1. Validate the branch-name argument.
-#   2. Create a fresh worktree under .worktrees/<branch-name> branched off main.
-#   3. Install dependencies with pnpm.
-#   4. Symlink every .env.local from the main repo into the new worktree
-#      (these files are gitignored, so worktrees don't get them automatically).
+#   2. Verify the canonical .env.local set is present in main. These files are
+#      gitignored, so they only live in the main checkout — the worktree
+#      inherits them via symlink in step 5. If any are missing in main, the
+#      worktree starts half-configured and dev tools (Next.js, Convex CLI)
+#      silently prompt or fail on first run. Bail loudly here so the missing
+#      file is fixed once in main, not rediscovered in every new worktree.
+#   3. Create a fresh worktree under .worktrees/<branch-name> branched off main.
+#   4. Install dependencies with pnpm.
+#   5. Symlink every .env.local from the main repo into the new worktree.
 
 set -e  # Exit immediately on any failed command.
 
@@ -24,7 +29,32 @@ WORKTREE_PATH="$GIT_ROOT/.worktrees/$BRANCH_NAME"
 # Bail out if a worktree already lives at the target path — never overwrite.
 [[ -d "$WORKTREE_PATH" ]] && echo "Error: worktree already exists at $WORKTREE_PATH" && exit 1
 
-# --- 2. Create the worktree --------------------------------------------------
+# --- 2. Verify canonical .env.local set is present in main ------------------
+# Each entry: <relative-path-from-repo-root>|<seed hint shown if missing>.
+
+REQUIRED_ENVS=(
+  "apps/mirror/.env.local|copy from apps/mirror/.env.local.example and fill in values"
+  "packages/convex/.env.local|run \`pnpm --filter=@feel-good/convex dev\` once in main to let the Convex CLI seed it"
+)
+
+MISSING=()
+for entry in "${REQUIRED_ENVS[@]}"; do
+  rel="${entry%%|*}"
+  [[ -f "$GIT_ROOT/$rel" ]] || MISSING+=("$entry")
+done
+
+if (( ${#MISSING[@]} > 0 )); then
+  echo "Error: required .env.local files are missing from main repo:" >&2
+  for entry in "${MISSING[@]}"; do
+    rel="${entry%%|*}"
+    hint="${entry#*|}"
+    echo "  $rel" >&2
+    echo "    seed: $hint" >&2
+  done
+  exit 1
+fi
+
+# --- 3. Create the worktree --------------------------------------------------
 
 # Ensure the .worktrees/ container directory exists.
 mkdir -p "$GIT_ROOT/.worktrees"
@@ -32,14 +62,16 @@ mkdir -p "$GIT_ROOT/.worktrees"
 # Create a new branch from main and check it out into the worktree path.
 git worktree add -b "$BRANCH_NAME" "$WORKTREE_PATH" main
 
-# --- 3. Install dependencies -------------------------------------------------
+# --- 4. Install dependencies -------------------------------------------------
 
 cd "$WORKTREE_PATH"
 pnpm install
 
-# --- 4. Symlink .env.local files --------------------------------------------
+# --- 5. Symlink .env.local files --------------------------------------------
 # .env.local is gitignored, so the worktree starts without any local secrets.
 # We symlink (not copy) so updates in the main checkout flow through automatically.
+# Step 2 already asserted the canonical set exists; this loop also picks up
+# any other .env.local files (e.g. future packages) on a best-effort basis.
 
 echo ""
 echo "Symlinking .env.local files..."
