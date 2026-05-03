@@ -689,6 +689,75 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
     expect(node.attrs.storageId).toBeUndefined();
   });
 
+  it("caps fetches at MAX_IMPORT_IMAGES_PER_ACTION; surplus URLs land in failures with 'import-cap-exceeded' (FG_101)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const { MAX_IMPORT_IMAGES_PER_ACTION } = await import(
+      "../../content/storage-policy"
+    );
+    const total = MAX_IMPORT_IMAGES_PER_ACTION + 1;
+
+    // Mock every fetch as success — the cap, not the network, is what
+    // produces the single failure entry below.
+    safeFetchMock.mockImplementation(
+      async () =>
+        new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], {
+          type: "image/png",
+        }),
+    );
+
+    const urls: string[] = [];
+    const imageNodes: Array<{
+      type: "image";
+      attrs: { src: string };
+    }> = [];
+    for (let i = 0; i < total; i++) {
+      const url = `https://external.example/img-${i}.png`;
+      urls.push(url);
+      imageNodes.push({ type: "image", attrs: { src: url } });
+    }
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Capped import",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [{ type: "paragraph", content: imageNodes }],
+      },
+      status: "draft",
+    });
+
+    const result = await t.action(
+      internal.posts.actions.importMarkdownInlineImages,
+      { postId },
+    );
+
+    expect(result.imported).toBe(MAX_IMPORT_IMAGES_PER_ACTION);
+    expect(result.failed).toBe(1);
+    expect(result.failures).toHaveLength(1);
+    expect(result.failures[0]?.reason).toBe("import-cap-exceeded");
+    // Surplus is the LAST URL in body order — the first N go through.
+    expect(result.failures[0]?.src).toBe(urls[urls.length - 1]);
+    expect(safeFetchMock).toHaveBeenCalledTimes(MAX_IMPORT_IMAGES_PER_ACTION);
+
+    // Body assertion: the first N image nodes were patched with a
+    // storageId; the (N+1)th still has only its original external src.
+    const after = await t.run(async (ctx) => ctx.db.get(postId));
+    const nodes = (
+      after?.body as {
+        content: { content: { attrs: Record<string, unknown> }[] }[];
+      }
+    ).content[0].content;
+    for (let i = 0; i < MAX_IMPORT_IMAGES_PER_ACTION; i++) {
+      expect(nodes[i].attrs.storageId).toBeTypeOf("string");
+    }
+    expect(nodes[MAX_IMPORT_IMAGES_PER_ACTION].attrs.storageId).toBeUndefined();
+    expect(nodes[MAX_IMPORT_IMAGES_PER_ACTION].attrs.src).toBe(
+      urls[urls.length - 1],
+    );
+  });
+
   it("idempotent: skips images that already have a storageId", async () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);

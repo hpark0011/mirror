@@ -51,3 +51,16 @@ export const MAX_FETCH_REDIRECTS = 3;
  * (NFR-06.)
  */
 export const MAX_INLINE_DELETES_PER_INVOCATION = 50;
+
+/**
+ * Per-action cap on the number of external image URLs the markdown-import
+ * flow (`importMarkdownInlineImagesCore`) will fetch in a single
+ * invocation. Each URL spends up to `FETCH_TIMEOUT_MS` (10s) on
+ * `safeFetchImage`, plus `ctx.storage.store` and `ctx.runMutation`
+ * overhead. Convex actions have a documented 10-minute budget, so 60 is
+ * the theoretical worst-case ceiling and 20 is a safe initial value that
+ * leaves headroom for slow networks and store overhead. URLs beyond the
+ * cap are reported in `failures[]` with `reason: "import-cap-exceeded"`;
+ * the user can re-invoke the import to pick up the rest. (FG_101.)
+ */
+export const MAX_IMPORT_IMAGES_PER_ACTION = 20;

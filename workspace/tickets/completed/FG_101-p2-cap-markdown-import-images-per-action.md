@@ -3,7 +3,7 @@ id: FG_101
 title: "Markdown-import action caps inline images per invocation"
 date: 2026-05-02
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "importMarkdownInlineImages walks the full body for image nodes with no count limit. Each candidate URL gets up to FETCH_TIMEOUT_MS (10s) of fetch budget. A body with 60+ unique slow URLs exceeds Convex's 10-minute action budget; the action fails mid-flight, leaving partial blobs and a confusing error. Add a MAX_IMPORT_IMAGES_PER_ACTION constant in storage-policy.ts and slice candidates before the fetch loop."
 dependencies: [FG_095]

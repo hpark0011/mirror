@@ -19,6 +19,21 @@ import {
 import { CoverImagePicker } from "./cover-image-picker";
 import { ParsedMetadataPreview } from "./parsed-metadata-preview";
 
+/**
+ * Map known machine-readable failure reasons from
+ * `importMarkdownInlineImagesCore` to user-facing copy. Unknown reasons
+ * fall through verbatim so a future reason added on the backend still
+ * renders something — just not as polished as the curated cases.
+ */
+function formatFailureReason(reason: string): string {
+  switch (reason) {
+    case "import-cap-exceeded":
+      return "Skipped — too many images in one import. Re-import to fetch the rest.";
+    default:
+      return reason;
+  }
+}
+
 type MarkdownUploadDialogProps = {
   isOpen: boolean;
   onClose: () => void;
@@ -113,7 +128,7 @@ export function MarkdownUploadDialog({
                 <ul className="list-disc pl-5 text-destructive" role="alert">
                   {importResult.failures.map((f) => (
                     <li key={`${f.src}:${f.reason}`}>
-                      {f.src} — {f.reason}
+                      {f.src} — {formatFailureReason(f.reason)}
                     </li>
                   ))}
                 </ul>

@@ -36,6 +36,7 @@ import {
   type JSONContent,
 } from "./body-walk";
 import { safeFetchImage, SafeFetchError } from "./safe-fetch";
+import { MAX_IMPORT_IMAGES_PER_ACTION } from "./storage-policy";
 import type { Id } from "../_generated/dataModel";
 
 export type ImageFailure = { src: string; reason: string };
@@ -88,17 +89,40 @@ export async function importMarkdownInlineImagesCore(
   // First pass: identify each candidate image node and resolve it (if
   // possible) into `{ src → { storageId, newSrc } }`.
   const candidates = collectExternalImageSrcs(body);
+
+  // Dedup unique URLs in body order, then cap to
+  // MAX_IMPORT_IMAGES_PER_ACTION. Surplus unique URLs are surfaced as
+  // failures with `reason: "import-cap-exceeded"` so the user knows what
+  // happened and can re-invoke the import. (FG_101.) Keeping the cap on
+  // unique URLs (not raw candidates) means a body with the same URL
+  // referenced 100 times still gets imported in one action — only
+  // distinct fetches count against the budget.
+  const uniqueCandidates: string[] = [];
+  const seen = new Set<string>();
+  for (const src of candidates) {
+    if (seen.has(src)) continue;
+    seen.add(src);
+    uniqueCandidates.push(src);
+  }
+  const limited = uniqueCandidates.slice(0, MAX_IMPORT_IMAGES_PER_ACTION);
+  const overflow = uniqueCandidates.slice(MAX_IMPORT_IMAGES_PER_ACTION);
+
   const resolved = new Map<
     string,
     { storageId: Id<"_storage">; src: string }
   >();
   const failures: ImageFailure[] = [];
+  for (const src of overflow) {
+    failures.push({ src, reason: "import-cap-exceeded" });
+  }
   // Track every URL we've attempted (success OR failure). Without this,
   // duplicate references to the same unreachable URL would each spend
-  // FETCH_TIMEOUT_MS — N×10s easily exceeds the action budget.
+  // FETCH_TIMEOUT_MS — N×10s easily exceeds the action budget. With the
+  // dedup pass above this is now a defense-in-depth guard rather than
+  // the primary dedup mechanism.
   const tried = new Set<string>();
 
-  for (const src of candidates) {
+  for (const src of limited) {
     if (resolved.has(src) || tried.has(src)) continue;
     tried.add(src);
     try {
