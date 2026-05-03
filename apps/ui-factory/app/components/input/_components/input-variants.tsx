@@ -30,6 +30,20 @@ export function InputVariants() {
       <Divider />
 
       <PageSection>
+        <PageSectionHeader>Size: Default</PageSectionHeader>
+        <Input size="default" placeholder="Default size" />
+      </PageSection>
+
+      <Divider />
+
+      <PageSection>
+        <PageSectionHeader>Size: Small</PageSectionHeader>
+        <Input size="sm" placeholder="Small size" />
+      </PageSection>
+
+      <Divider />
+
+      <PageSection>
         <PageSectionHeader>
           Invalid
         </PageSectionHeader>

@@ -156,6 +156,7 @@ export { TrayIcon } from "./components/tray";
 export { TrayFillIcon } from "./components/tray-fill";
 export { TrayFill1Icon } from "./components/tray-fill1";
 export { TriangleFillDownIcon } from "./components/triangle-fill-down";
+export { TriangleshapeDownFillIcon } from "./components/triangleshape-down-fill";
 export { TwoCircleFillIcon } from "./components/two-circle-fill";
 export { UnderlineIcon } from "./components/underline";
 export { UpvoteIcon } from "./components/upvote";

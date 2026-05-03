@@ -3,8 +3,55 @@
 import * as React from "react";
 import * as SelectPrimitive from "@radix-ui/react-select";
 import { CheckIcon, ChevronDownIcon, ChevronUpIcon } from "lucide-react";
+import { TriangleshapeDownFillIcon } from "@feel-good/icons";
+import { cva, type VariantProps } from "class-variance-authority";
 
 import { cn } from "../lib/utils";
+
+const selectTriggerVariants = cva(
+  cn(
+    // Layout & Sizing
+    "flex w-fit min-w-0 items-center justify-between gap-2 py-1 whitespace-nowrap",
+    // Background & Colors
+    "bg-transparent dark:bg-input/30 hover:bg-accent hover:border-accent dark:hover:bg-accent dark:hover:border-accent",
+    // Text & Typography
+    "text-base md:text-sm data-[placeholder]:text-muted-foreground",
+    // Interactive States
+    "outline-none transition-[color,box-shadow]",
+    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
+    // Invalid States
+    "aria-invalid:border-input-destructive aria-invalid:ring-input-destructive aria-invalid:ring-[2px] dark:aria-invalid:ring-input-destructive dark:aria-invalid:border-input-destructive",
+    // SelectValue and icon slot styling
+    "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",
+    "[&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  ),
+  {
+    variants: {
+      variant: {
+        default: cn(
+          "border border-input",
+          "rounded-lg px-2.5 data-[size=sm]:rounded-[6px] data-[size=sm]:px-2",
+          "focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-[2px]",
+        ),
+        underline: cn(
+          "border-b border-input",
+          "rounded-none px-1.5",
+          "focus-visible:ring-0 focus-visible:bg-accent focus-visible:border-accent",
+          "dark:bg-transparent dark:focus-visible:bg-accent",
+          "transition-all duration-100 ease-out focus-visible:rounded-lg focus-visible:px-2.5",
+        ),
+      },
+      size: {
+        default: "h-9",
+        sm: "h-7",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  },
+);
 
 function Select({
   ...props
@@ -27,41 +74,21 @@ function SelectValue({
 function SelectTrigger({
   className,
   size = "default",
+  variant = "default",
   children,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger> & {
-  size?: "sm" | "default";
-}) {
+}: React.ComponentProps<typeof SelectPrimitive.Trigger> &
+  VariantProps<typeof selectTriggerVariants>) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"
       data-size={size}
-      className={cn(
-        // Layout & Sizing
-        "flex w-fit min-w-0 items-center justify-between gap-2 px-2.5 py-1 whitespace-nowrap data-[size=default]:h-9 data-[size=sm]:h-8",
-        // Shape
-        "rounded-lg border border-input",
-        // Background & Colors
-        "bg-transparent dark:bg-input/30 hover:bg-accent hover:border-accent dark:hover:bg-accent dark:hover:border-accent",
-        // Text & Typography
-        "text-base md:text-sm data-[placeholder]:text-muted-foreground",
-        // Interactive States
-        "outline-none transition-[color,box-shadow]",
-        "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
-        // Focus States
-        "focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-[2px]",
-        // Invalid States
-        "aria-invalid:border-input-destructive aria-invalid:ring-input-destructive aria-invalid:ring-[2px] dark:aria-invalid:ring-input-destructive dark:aria-invalid:border-input-destructive",
-        // SelectValue and icon slot styling
-        "*:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-2",
-        "[&_svg:not([class*='text-'])]:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        className,
-      )}
+      className={cn(selectTriggerVariants({ variant, size }), className)}
       {...props}
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <ChevronDownIcon className="size-4 opacity-50" />
+        <TriangleshapeDownFillIcon className="size-3.5 opacity-50" />
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
