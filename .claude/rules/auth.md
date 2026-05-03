@@ -120,6 +120,16 @@ If you change Vercel's build command, the nested `cd` pattern must be preserved 
 
 Any new env var read by either Next or Convex must also be added to `turbo.json`'s `globalEnv` array — otherwise turbo filters it out before the build subprocess sees it.
 
+### `CONVEX_DEPLOY_KEY` stays out of `.env.local`
+
+Do **not** put `CONVEX_DEPLOY_KEY` in `apps/mirror/.env.local` (or any other `.env*` file the Convex CLI reads). The Convex CLI treats `CONVEX_DEPLOY_KEY` as authoritative and silently overrides `CONVEX_DEPLOYMENT`, which means every `npx convex dev` invocation gets routed at whichever deployment the key targets — for a `prod:` key, that's production, even though `CONVEX_DEPLOYMENT=dev:…` says otherwise. The CLI prints no warning.
+
+Where `CONVEX_DEPLOY_KEY` SHOULD live:
+- **Vercel project env vars** — the only place a `prod:` (or `preview:`) key belongs in this monorepo. The build command at the top of this section reads it from there.
+- **Shell-scoped, single-command export** for ad-hoc local manual deploys against prod, e.g. `CONVEX_DEPLOY_KEY=prod:… npx convex deploy`. Do not persist it in any file the Convex CLI auto-loads.
+
+If you ever need to verify `npx convex dev` is targeting dev and not prod, `grep CONVEX_DEPLOY_KEY apps/mirror/.env.local` should return zero matches.
+
 ## Preview deployments on Vercel
 
 Vercel builds every PR as a Preview. The build command invokes `npx convex deploy` unconditionally — which means a PR build that isn't set up for previews fails hard (exit 1, `no Convex deployment configuration found`). This whole setup is a one-time ops chore, but easy to get wrong in subtle ways.

@@ -3,7 +3,7 @@ id: FG_118
 title: "apps/mirror/.env.local does not contain CONVEX_DEPLOY_KEY so convex dev targets dev"
 date: 2026-05-03
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "apps/mirror/.env.local contains a CONVEX_DEPLOY_KEY=prod:famous-cricket-102|... value that silently overrides CONVEX_DEPLOYMENT and routes every npx convex dev invocation at the production deployment, even when the developer thinks they are targeting dev. Discovered during the FG_094 / FG_117 investigation when the executor had to work around the override with env -u CONVEX_DEPLOY_KEY. This is a per-developer footgun (the file is git-ignored so the prod key doesn't ship to other contributors), but every fresh clone that copies this pattern will route convex dev to prod by accident. Remove the line, document the correct home for the deploy key (Vercel build env per AGENTS.md, or per-developer secrets store outside the repo), and add a guard note to .claude/rules/auth.md or packages/convex/AGENTS.md so future contributors don't reintroduce the override."
 dependencies: []
