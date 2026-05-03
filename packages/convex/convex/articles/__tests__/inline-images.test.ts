@@ -670,7 +670,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
 
   it("external URL → fetched blob stored, body patched with new storageId", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    const ownerId = await insertAppUserAndSignIn(t);
 
     safeFetchMock.mockResolvedValueOnce(
       new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" }),
@@ -698,7 +698,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
 
     const result = await t.action(
       internal.articles.actions.importMarkdownInlineImages,
-      { articleId },
+      { articleId, ownerId },
     );
 
     expect(result.imported).toBe(1);
@@ -713,7 +713,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
 
   it("404/network failure → original src preserved, action does not throw", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    const ownerId = await insertAppUserAndSignIn(t);
 
     const { SafeFetchError } = await import("../../content/safe-fetch");
     safeFetchMock.mockRejectedValueOnce(
@@ -742,7 +742,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
 
     const result = await t.action(
       internal.articles.actions.importMarkdownInlineImages,
-      { articleId },
+      { articleId, ownerId },
     );
 
     expect(result.imported).toBe(0);
@@ -761,7 +761,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
 
   it("idempotent: skips images that already have a storageId", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    const ownerId = await insertAppUserAndSignIn(t);
 
     const existing = await storeBlob(t, "already");
 
@@ -790,11 +790,59 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
 
     const result = await t.action(
       internal.articles.actions.importMarkdownInlineImages,
-      { articleId },
+      { articleId, ownerId },
     );
 
     expect(result.imported).toBe(0);
     expect(result.failed).toBe(0);
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+
+  // FG_104: defense-in-depth ownership re-check on the internal action.
+  // The public wrapper already enforces ownership, but the internal action
+  // must also reject mismatched `ownerId` so a future internal caller that
+  // bypasses the wrapper cannot silently process another user's article.
+  it("rejects mismatched ownerId (FG_104)", async () => {
+    const t = makeT();
+    const ownerId = await insertAppUserAndSignIn(t);
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Owned",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    // A second app user not associated with the article.
+    const strangerId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_stranger",
+        email: "stranger@example.com",
+        onboardingComplete: true,
+      }),
+    );
+
+    expect(strangerId).not.toBe(ownerId);
+
+    await expect(
+      t.action(internal.articles.actions.importMarkdownInlineImages, {
+        articleId,
+        ownerId: strangerId,
+      }),
+    ).rejects.toThrow(/Not the owner/);
     expect(safeFetchMock).not.toHaveBeenCalled();
   });
 });

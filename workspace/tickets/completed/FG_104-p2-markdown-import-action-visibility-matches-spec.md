@@ -3,7 +3,7 @@ id: FG_104
 title: "Markdown-import action visibility matches spec FR-12 (internalAction or documented public)"
 date: 2026-05-02
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "Spec FR-12 says 'the markdown-import action and cron sweep run as internalAction / internalMutation and are not exposed to the public API.' Implementation registers importArticleMarkdownInlineImages and importPostMarkdownInlineImages in inlineImages.ts as public action() (with manual auth + ownership checks). Either revise the implementation to internalAction (with a separate thin public wrapper if the client needs it), or update the spec to document the public-action pattern explicitly. Today's gap is silent — a future reviewer will hit the same finding."
 dependencies: []

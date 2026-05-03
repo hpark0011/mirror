@@ -20,6 +20,7 @@ import { action, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { authMutation, authQuery } from "../lib/auth";
 import { authComponent } from "../auth/client";
+import { type Id } from "../_generated/dataModel";
 
 export const generateArticleInlineImageUploadUrl = authMutation({
   args: {},
@@ -41,6 +42,8 @@ export const getArticleInlineImageUrl = authQuery({
 // because it strips `userId` from the doc. The action needs:
 //   - to confirm the article exists
 //   - to confirm the caller is the owner
+//   - the caller's app-user `_id` to pass through as the internal action's
+//     `ownerId` arg (FG_104 defense-in-depth re-check)
 // before scheduling the SSRF-safe fetch + storage write. Returning a small
 // shape (rather than the whole doc) keeps the trust boundary tight.
 export const _getArticleOwnership = internalQuery({
@@ -48,16 +51,25 @@ export const _getArticleOwnership = internalQuery({
   returns: v.object({
     articleExists: v.boolean(),
     isOwner: v.boolean(),
+    appUserId: v.union(v.id("users"), v.null()),
   }),
   handler: async (ctx, args) => {
     const article = await ctx.db.get(args.articleId);
-    if (!article) return { articleExists: false, isOwner: false };
+    if (!article) {
+      return { articleExists: false, isOwner: false, appUserId: null };
+    }
     const appUser = await ctx.db
       .query("users")
       .withIndex("by_authId", (q) => q.eq("authId", args.authId))
       .unique();
-    if (!appUser) return { articleExists: true, isOwner: false };
-    return { articleExists: true, isOwner: article.userId === appUser._id };
+    if (!appUser) {
+      return { articleExists: true, isOwner: false, appUserId: null };
+    }
+    return {
+      articleExists: true,
+      isOwner: article.userId === appUser._id,
+      appUserId: appUser._id,
+    };
   },
 });
 
@@ -82,23 +94,31 @@ export const importArticleMarkdownInlineImages = action({
     failures: { src: string; reason: string }[];
   }> => {
     const authUser = await authComponent.getAuthUser(ctx);
-    const ownership: { articleExists: boolean; isOwner: boolean } =
-      await ctx.runQuery(
-        internal.articles.inlineImages._getArticleOwnership,
-        {
-          articleId: args.articleId,
-          authId: authUser._id as string,
-        },
-      );
+    const ownership: {
+      articleExists: boolean;
+      isOwner: boolean;
+      appUserId: Id<"users"> | null;
+    } = await ctx.runQuery(
+      internal.articles.inlineImages._getArticleOwnership,
+      {
+        articleId: args.articleId,
+        authId: authUser._id as string,
+      },
+    );
     if (!ownership.articleExists) {
       throw new Error("Article not found");
     }
-    if (!ownership.isOwner) {
+    if (!ownership.isOwner || ownership.appUserId === null) {
       throw new Error("Not authorized to import images for this article");
     }
     return await ctx.runAction(
       internal.articles.actions.importMarkdownInlineImages,
-      { articleId: args.articleId },
+      {
+        articleId: args.articleId,
+        // FG_104: pass the verified owner so the internal action can
+        // re-check defensively against the article row's userId.
+        ownerId: ownership.appUserId,
+      },
     );
   },
 });

@@ -2,6 +2,18 @@
 
 // Internal action `importMarkdownInlineImages` for the markdown-import flow.
 //
+// PRECONDITION: caller has verified the authenticated user owns
+// `args.postId`. The public wrapper in `posts/inlineImages.ts`
+// (`importPostMarkdownInlineImages`) is the only safe entrypoint — it
+// performs the auth + ownership check via `authComponent.getAuthUser` +
+// `_getPostOwnership`, then delegates here.
+//
+// Defense in depth (FG_104): this action ALSO takes an `ownerId: v.id("users")`
+// arg and re-verifies that the loaded post's `userId` matches before
+// proceeding. The public wrapper passes the verified owner through. If a
+// future internal caller bypasses the wrapper without re-deriving the owner,
+// the mismatch throws.
+//
 // Thin wrapper around `importMarkdownInlineImagesCore` (FG_095). The shared
 // helper is entity-agnostic: this file is responsible only for reading the
 // post body via the V8-runtime `_readPostBody` query and wiring the
@@ -30,7 +42,10 @@ import type { JSONContent } from "../content/body-walk";
 import type { Id } from "../_generated/dataModel";
 
 export const importMarkdownInlineImages = internalAction({
-  args: { postId: v.id("posts") },
+  args: {
+    postId: v.id("posts"),
+    ownerId: v.id("users"),
+  },
   returns: v.object({
     imported: v.number(),
     failed: v.number(),
@@ -42,13 +57,22 @@ export const importMarkdownInlineImages = internalAction({
     ),
   }),
   handler: async (ctx, args): Promise<ImportResult> => {
-    const post: { _id: Id<"posts">; body: unknown } | null =
-      await ctx.runQuery(
-        internal.posts.internalImages._readPostBody,
-        { postId: args.postId },
-      );
+    const post: {
+      _id: Id<"posts">;
+      userId: Id<"users">;
+      body: unknown;
+    } | null = await ctx.runQuery(
+      internal.posts.internalImages._readPostBody,
+      { postId: args.postId },
+    );
     if (!post) {
       return { imported: 0, failed: 0, failures: [] };
+    }
+    // Defense in depth: the public wrapper already verified ownership, but
+    // re-check here so a future internal caller that bypasses the wrapper
+    // cannot silently process another user's post.
+    if (post.userId !== args.ownerId) {
+      throw new Error("Not the owner");
     }
     const body = (post.body ?? null) as JSONContent | null;
     return importMarkdownInlineImagesCore(ctx, body, async (srcMap) => {

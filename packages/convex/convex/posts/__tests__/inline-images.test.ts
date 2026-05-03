@@ -602,7 +602,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
   it("external URL → fetched blob stored, body patched", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    const ownerId = await insertAppUserAndSignIn(t);
 
     safeFetchMock.mockResolvedValueOnce(
       new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" }),
@@ -630,7 +630,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
     const result = await t.action(
       internal.posts.actions.importMarkdownInlineImages,
-      { postId },
+      { postId, ownerId },
     );
 
     expect(result.imported).toBe(1);
@@ -644,7 +644,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
   it("404/network failure → original src preserved", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    const ownerId = await insertAppUserAndSignIn(t);
 
     const { SafeFetchError } = await import("../../content/safe-fetch");
     safeFetchMock.mockRejectedValueOnce(
@@ -673,7 +673,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
     const result = await t.action(
       internal.posts.actions.importMarkdownInlineImages,
-      { postId },
+      { postId, ownerId },
     );
 
     expect(result.imported).toBe(0);
@@ -691,7 +691,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
   it("caps fetches at MAX_IMPORT_IMAGES_PER_ACTION; surplus URLs land in failures with 'import-cap-exceeded' (FG_101)", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    const ownerId = await insertAppUserAndSignIn(t);
 
     const { MAX_IMPORT_IMAGES_PER_ACTION } = await import(
       "../../content/storage-policy"
@@ -730,7 +730,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
     const result = await t.action(
       internal.posts.actions.importMarkdownInlineImages,
-      { postId },
+      { postId, ownerId },
     );
 
     expect(result.imported).toBe(MAX_IMPORT_IMAGES_PER_ACTION);
@@ -760,7 +760,7 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
   it("idempotent: skips images that already have a storageId", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    const ownerId = await insertAppUserAndSignIn(t);
 
     const existing = await storeBlob(t, "already");
 
@@ -786,10 +786,57 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
 
     const result = await t.action(
       internal.posts.actions.importMarkdownInlineImages,
-      { postId },
+      { postId, ownerId },
     );
 
     expect(result.imported).toBe(0);
+    expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+
+  // FG_104: defense-in-depth ownership re-check on the internal action.
+  // The public wrapper already enforces ownership, but the internal action
+  // must also reject mismatched `ownerId` so a future internal caller that
+  // bypasses the wrapper cannot silently process another user's post.
+  it("rejects mismatched ownerId (FG_104)", async () => {
+    const t = makeT();
+    const ownerId = await insertAppUserAndSignIn(t);
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Owned",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { src: "https://external.example/hero.png" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const strangerId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_stranger_post",
+        email: "stranger-post@example.com",
+        onboardingComplete: true,
+      }),
+    );
+
+    expect(strangerId).not.toBe(ownerId);
+
+    await expect(
+      t.action(internal.posts.actions.importMarkdownInlineImages, {
+        postId,
+        ownerId: strangerId,
+      }),
+    ).rejects.toThrow(/Not the owner/);
     expect(safeFetchMock).not.toHaveBeenCalled();
   });
 });

@@ -18,6 +18,7 @@ export const _readPostBody = internalQuery({
   returns: v.union(
     v.object({
       _id: v.id("posts"),
+      userId: v.id("users"),
       body: v.any(),
     }),
     v.null(),
@@ -25,7 +26,9 @@ export const _readPostBody = internalQuery({
   handler: async (ctx, args) => {
     const post = await ctx.db.get(args.postId);
     if (!post) return null;
-    return { _id: post._id, body: post.body };
+    // FG_104: surface `userId` so the markdown-import action can re-verify
+    // ownership against the `ownerId` arg passed by the public wrapper.
+    return { _id: post._id, userId: post.userId, body: post.body };
   },
 });
 

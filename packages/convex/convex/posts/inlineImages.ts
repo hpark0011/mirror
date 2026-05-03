@@ -20,6 +20,7 @@ import { action, internalQuery } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { authMutation, authQuery } from "../lib/auth";
 import { authComponent } from "../auth/client";
+import { type Id } from "../_generated/dataModel";
 
 export const generatePostInlineImageUploadUrl = authMutation({
   args: {},
@@ -41,6 +42,8 @@ export const getPostInlineImageUrl = authQuery({
 // because it strips `userId` from the doc. The action needs:
 //   - to confirm the post exists
 //   - to confirm the caller is the owner
+//   - the caller's app-user `_id` to pass through as the internal action's
+//     `ownerId` arg (FG_104 defense-in-depth re-check)
 // before scheduling the SSRF-safe fetch + storage write. Returning a small
 // shape (rather than the whole doc) keeps the trust boundary tight.
 export const _getPostOwnership = internalQuery({
@@ -48,16 +51,25 @@ export const _getPostOwnership = internalQuery({
   returns: v.object({
     postExists: v.boolean(),
     isOwner: v.boolean(),
+    appUserId: v.union(v.id("users"), v.null()),
   }),
   handler: async (ctx, args) => {
     const post = await ctx.db.get(args.postId);
-    if (!post) return { postExists: false, isOwner: false };
+    if (!post) {
+      return { postExists: false, isOwner: false, appUserId: null };
+    }
     const appUser = await ctx.db
       .query("users")
       .withIndex("by_authId", (q) => q.eq("authId", args.authId))
       .unique();
-    if (!appUser) return { postExists: true, isOwner: false };
-    return { postExists: true, isOwner: post.userId === appUser._id };
+    if (!appUser) {
+      return { postExists: true, isOwner: false, appUserId: null };
+    }
+    return {
+      postExists: true,
+      isOwner: post.userId === appUser._id,
+      appUserId: appUser._id,
+    };
   },
 });
 
@@ -88,20 +100,28 @@ export const importPostMarkdownInlineImages = action({
   }> => {
     // `getAuthUser` throws "Not authenticated" when there is no session.
     const authUser = await authComponent.getAuthUser(ctx);
-    const ownership: { postExists: boolean; isOwner: boolean } =
-      await ctx.runQuery(internal.posts.inlineImages._getPostOwnership, {
-        postId: args.postId,
-        authId: authUser._id as string,
-      });
+    const ownership: {
+      postExists: boolean;
+      isOwner: boolean;
+      appUserId: Id<"users"> | null;
+    } = await ctx.runQuery(internal.posts.inlineImages._getPostOwnership, {
+      postId: args.postId,
+      authId: authUser._id as string,
+    });
     if (!ownership.postExists) {
       throw new Error("Post not found");
     }
-    if (!ownership.isOwner) {
+    if (!ownership.isOwner || ownership.appUserId === null) {
       throw new Error("Not authorized to import images for this post");
     }
     return await ctx.runAction(
       internal.posts.actions.importMarkdownInlineImages,
-      { postId: args.postId },
+      {
+        postId: args.postId,
+        // FG_104: pass the verified owner so the internal action can
+        // re-check defensively against the post row's userId.
+        ownerId: ownership.appUserId,
+      },
     );
   },
 });
