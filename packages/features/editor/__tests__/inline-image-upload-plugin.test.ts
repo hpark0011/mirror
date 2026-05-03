@@ -40,6 +40,7 @@ type Harness = {
 
 function mountEditor(
   onUpload: (file: File) => Promise<{ storageId: string; url: string }>,
+  onError?: (err: unknown) => void,
 ): Harness {
   const host = document.createElement("div");
   document.body.appendChild(host);
@@ -48,7 +49,7 @@ function mountEditor(
     extensions: [
       StarterKit,
       createInlineImageExtension(),
-      createInlineImageUploadExtension({ onUpload }),
+      createInlineImageUploadExtension({ onUpload, onError }),
     ],
     content: "<p>hello world</p>",
   });
@@ -174,6 +175,27 @@ describe("inline image upload plugin", () => {
     expect(decorationCount(h.editor)).toBe(0);
     expect(imageNodes(h.editor)).toHaveLength(0);
     expect(errorSpy).toHaveBeenCalled();
+
+    h.destroy();
+  });
+
+  it("invokes onError with the rejection reason when upload fails (FG_113)", async () => {
+    const d = deferred();
+    const onUpload = vi.fn(() => d.promise);
+    const onError = vi.fn();
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const h = mountEditor(onUpload, onError);
+    h.paste(h.fileFor());
+
+    const failure = new Error("upload server 502");
+    d.reject(failure);
+    await d.promise.catch(() => {});
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(onError).toHaveBeenCalledTimes(1);
+    expect(onError).toHaveBeenCalledWith(failure);
+    expect(decorationCount(h.editor)).toBe(0);
 
     h.destroy();
   });

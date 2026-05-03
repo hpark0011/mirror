@@ -14,6 +14,14 @@ export type InlineImageUploadResult = {
 
 export type InlineImageUploadOptions = {
   onUpload: (file: File) => Promise<InlineImageUploadResult>;
+  /**
+   * Called when `onUpload` rejects, before the placeholder is removed.
+   * The host wires this to a toast (or other UX) so the user sees that
+   * their paste/drop didn't land — not just a vanished placeholder.
+   * Validation errors (`InlineImageValidationError`) and network errors
+   * both flow through here; the host decides how to surface each.
+   */
+  onError?: (err: unknown) => void;
 };
 
 /** Plugin key — exported for tests and consumers needing to inspect state. */
@@ -92,6 +100,7 @@ function startUpload(
   pos: number,
   file: File,
   onUpload: (file: File) => Promise<InlineImageUploadResult>,
+  onError?: (err: unknown) => void,
 ): void {
   const id: PlaceholderId = Object.freeze({});
   const tr = view.state.tr.setMeta(inlineImageUploadPluginKey, {
@@ -133,6 +142,11 @@ function startUpload(
     },
     (error) => {
       console.error("[inline-image-upload-plugin] upload failed", error);
+      // Surface to the host (toast, banner, etc.) BEFORE the unmount
+      // check — the user clicked away or navigated, but they still
+      // benefit from seeing their failed paste reflected somewhere if
+      // the host's onError chooses to.
+      onError?.(error);
       // Editor unmounted before reject handled — skip dispatch (see resolve
       // path comment above for rationale). Decoration leak is harmless.
       if (!view.dom.isConnected) return;
@@ -160,7 +174,7 @@ function startUpload(
 export function createInlineImageUploadPlugin(
   options: InlineImageUploadOptions,
 ): Plugin<DecorationSet> {
-  const { onUpload } = options;
+  const { onUpload, onError } = options;
 
   return new Plugin<DecorationSet>({
     key: inlineImageUploadPluginKey,
@@ -214,7 +228,7 @@ export function createInlineImageUploadPlugin(
         let insertPos = view.state.selection.from;
         for (const file of files) {
           const safePos = Math.min(insertPos, view.state.doc.content.size);
-          startUpload(view, safePos, file, onUpload);
+          startUpload(view, safePos, file, onUpload, onError);
           insertPos = safePos + 1;
         }
         return true;
@@ -234,7 +248,7 @@ export function createInlineImageUploadPlugin(
         let insertPos = coords?.pos ?? view.state.selection.from;
         for (const file of files) {
           const safePos = Math.min(insertPos, view.state.doc.content.size);
-          startUpload(view, safePos, file, onUpload);
+          startUpload(view, safePos, file, onUpload, onError);
           insertPos = safePos + 1;
         }
         return true;

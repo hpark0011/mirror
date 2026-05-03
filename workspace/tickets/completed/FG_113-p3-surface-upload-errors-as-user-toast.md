@@ -3,7 +3,7 @@ id: FG_113
 title: "Inline-image upload failures surface to the user via toast or inline error"
 date: 2026-05-02
 type: improvement
-status: to-do
+status: completed
 priority: p3
 description: "When the inline-image upload plugin's onUpload rejects, the only feedback is console.error. The placeholder vanishes silently — the user may not notice the upload failed and proceed to save the article with a missing image. Add an onError callback to the plugin (or wrap the upload hooks to toast on failure) so the user sees a clear, actionable error."
 dependencies: []

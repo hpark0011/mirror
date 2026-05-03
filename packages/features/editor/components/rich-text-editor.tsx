@@ -21,6 +21,13 @@ type RichTextEditorProps = {
    * in flight (FG_092). Boolean is dedup'd against the previous emission.
    */
   onPendingUploadsChange?: (hasPending: boolean) => void;
+  /**
+   * Fires when `onImageUpload` rejects for any reason — validation errors
+   * (`InlineImageValidationError`) or network/server failures. Hosts wire
+   * this to a toast so a failed paste/drop surfaces visibly instead of
+   * just removing the placeholder silently (FG_113).
+   */
+  onImageUploadError?: (err: unknown) => void;
   className?: string;
   /**
    * Factory for the base Tiptap extensions. Defaults to
@@ -36,6 +43,7 @@ export function RichTextEditor({
   onChange,
   onImageUpload,
   onPendingUploadsChange,
+  onImageUploadError,
   className,
   extensions: extensionsFactory = createArticleExtensions,
 }: RichTextEditorProps) {
@@ -59,6 +67,11 @@ export function RichTextEditor({
     onPendingUploadsChangeRef.current = onPendingUploadsChange;
   }, [onPendingUploadsChange]);
 
+  const onImageUploadErrorRef = useRef(onImageUploadError);
+  useEffect(() => {
+    onImageUploadErrorRef.current = onImageUploadError;
+  }, [onImageUploadError]);
+
   // Tracks the most recently emitted boolean so we only call the host
   // when the placeholder count crosses the empty/non-empty boundary —
   // every transaction fires `onTransaction`, but the host only cares
@@ -70,6 +83,7 @@ export function RichTextEditor({
       ...extensionsFactory(),
       createInlineImageUploadExtension({
         onUpload: (file) => onImageUploadRef.current(file),
+        onError: (err) => onImageUploadErrorRef.current?.(err),
       }),
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -10,6 +10,7 @@ import {
   type JSONContent,
   type InlineImageUploadResult,
 } from "@feel-good/features/editor";
+import { InlineImageValidationError } from "@/lib/inline-image-validation";
 import { Button } from "@feel-good/ui/primitives/button";
 import {
   Toast,
@@ -70,6 +71,36 @@ export function ContentEditor({
   // because `editor.getJSON()` does not serialize widget decorations.
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
 
+  const showErrorToast = useCallback((message: string) => {
+    toast.custom((t) => (
+      <Toast id={t}>
+        <ToastIcon className="text-red-9">
+          <OctagonXIcon />
+        </ToastIcon>
+        <ToastHeader>
+          <ToastTitle>{message}</ToastTitle>
+        </ToastHeader>
+        <ToastClose />
+      </Toast>
+    ));
+  }, []);
+
+  // Surface inline-image upload failures (validation OR network) as a
+  // toast. Without this, a failed paste/drop just removes the placeholder
+  // silently — the user might save the article thinking the image was
+  // included (FG_113). `InlineImageValidationError` carries a clear,
+  // actionable message; everything else gets a generic copy.
+  const handleImageUploadError = useCallback(
+    (err: unknown) => {
+      const message =
+        err instanceof InlineImageValidationError
+          ? err.message
+          : "Image upload failed. Please try again.";
+      showErrorToast(message);
+    },
+    [showErrorToast],
+  );
+
   const handleSave = useCallback(async () => {
     if (isSaving || hasPendingUploads) return;
     setIsSaving(true);
@@ -78,21 +109,11 @@ export function ContentEditor({
       router.push(cancelHref);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save";
-      toast.custom((t) => (
-        <Toast id={t}>
-          <ToastIcon className="text-red-9">
-            <OctagonXIcon />
-          </ToastIcon>
-          <ToastHeader>
-            <ToastTitle>{message}</ToastTitle>
-          </ToastHeader>
-          <ToastClose />
-        </Toast>
-      ));
+      showErrorToast(message);
     } finally {
       setIsSaving(false);
     }
-  }, [body, cancelHref, hasPendingUploads, isSaving, onSave, router]);
+  }, [body, cancelHref, hasPendingUploads, isSaving, onSave, router, showErrorToast]);
 
   return (
     <div className="flex h-full flex-col">
@@ -119,6 +140,7 @@ export function ContentEditor({
           content={body}
           onChange={setBody}
           onImageUpload={onImageUpload}
+          onImageUploadError={handleImageUploadError}
           onPendingUploadsChange={setHasPendingUploads}
           extensions={createArticleExtensions}
           className="min-h-full"
