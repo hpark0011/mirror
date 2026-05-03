@@ -3,7 +3,7 @@ id: FG_098
 title: "articles.remove cover-delete ordering matches the spec or the spec is updated"
 date: 2026-05-02
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "Spec FR-06 says 'cover-image ordering for articles is NOT changed by this spec'. The implementation in articles/mutations.ts remove DID change ordering — cover delete now runs AFTER ctx.db.delete (matching the inline-image cascade pattern), where it used to run BEFORE. The new ordering is actually safer (cron sweep handles a failed cover delete vs. leaving a live row pointing at a missing asset). Decide policy: either restore the original ordering for articles.remove, or update the spec to acknowledge that the carve-out was intentionally closed for this surface too."
 dependencies: []
