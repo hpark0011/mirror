@@ -3,7 +3,7 @@ id: FG_107
 title: "ArticleEditor and PostEditor share a single content-editor shell component"
 date: 2026-05-02
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "ArticleEditor (97 lines) and PostEditor (95 lines) are structurally identical: same body state shape, same handleSave pattern, same toast error UI, same RichTextEditor wiring. The only differences are the prop entity type, the mutation called, and the upload hook. Both components are at the project's soft 100-line ceiling. Extract a generic content-editor shell so each domain editor becomes a thin adapter."
 dependencies: [FG_092]
