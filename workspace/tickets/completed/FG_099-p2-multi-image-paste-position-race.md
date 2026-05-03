@@ -3,7 +3,7 @@ id: FG_099
 title: "Multi-image paste and drop chain placeholders at distinct document positions"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "handlePaste and handleDrop in inline-image-upload-plugin sample view.state.selection.from once before the loop, then call startUpload(view, pos, file) for every file with the same stale pos. Each startUpload synchronously dispatches a placeholder at that position, advancing the document — so the second and subsequent placeholders land on top of the first. When uploads resolve, the images all collapse to the same position. Re-read the insertion position after each dispatch."
 dependencies: []

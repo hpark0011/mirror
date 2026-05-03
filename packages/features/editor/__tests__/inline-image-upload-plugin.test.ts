@@ -189,6 +189,39 @@ describe("inline image upload plugin", () => {
     h.destroy();
   });
 
+  it("chains placeholders at distinct positions when a single paste carries multiple files (FG_099)", () => {
+    // Single ClipboardEvent carrying TWO image Files — the production shape
+    // when a user pastes a multi-image clipboard payload. The previous bug:
+    // both placeholders landed at the same pos because `view.state.selection.from`
+    // was sampled once outside the loop and `setMeta(add)` for a widget
+    // decoration does not advance the selection.
+    const d1 = deferred();
+    const d2 = deferred();
+    const queue = [d1, d2];
+    const onUpload = vi.fn(() => queue.shift()!.promise);
+    const h = mountEditor(onUpload);
+
+    // Single paste event with two files via a real DataTransfer.
+    const handled = h.paste([h.fileFor("first.png"), h.fileFor("second.png")]);
+    expect(handled).toBe(true);
+    expect(onUpload).toHaveBeenCalledTimes(2);
+
+    const set = inlineImageUploadPluginKey.getState(h.editor.state) as
+      | DecorationSet
+      | undefined;
+    expect(set).toBeDefined();
+    const placeholders = set!.find();
+    expect(placeholders).toHaveLength(2);
+
+    // Distinct, sequentially-chained positions — NOT both at the same pos.
+    const positions = placeholders.map((p) => p.from);
+    expect(new Set(positions).size).toBe(2);
+    const sorted = [...positions].sort((a, b) => a - b);
+    expect(sorted[1]! - sorted[0]!).toBe(1);
+
+    h.destroy();
+  });
+
   it("silently discards when the user deletes the placeholder region during upload", async () => {
     const d = deferred();
     const onUpload = vi.fn(() => d.promise);

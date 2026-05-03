@@ -204,9 +204,18 @@ export function createInlineImageUploadPlugin(
         const files = collectImageFiles(event.clipboardData);
         if (files.length === 0) return false;
         event.preventDefault();
-        const pos = view.state.selection.from;
+        // Chain placeholders at distinct, sequentially-incrementing positions
+        // (FG_099). `setMeta(add)` does not modify the document or selection,
+        // so re-reading `view.state.selection.from` would yield the same value
+        // for every iteration. Manually advance the local `insertPos` so each
+        // placeholder is anchored to its own document position. Clamp to the
+        // current doc size so an end-of-doc caret with multiple files does not
+        // produce out-of-range positions.
+        let insertPos = view.state.selection.from;
         for (const file of files) {
-          startUpload(view, pos, file, onUpload);
+          const safePos = Math.min(insertPos, view.state.doc.content.size);
+          startUpload(view, safePos, file, onUpload);
+          insertPos = safePos + 1;
         }
         return true;
       },
@@ -218,9 +227,15 @@ export function createInlineImageUploadPlugin(
           left: event.clientX,
           top: event.clientY,
         });
-        const pos = coords?.pos ?? view.state.selection.from;
+        // Same chaining strategy as handlePaste — placeholder dispatches do
+        // not advance the selection or document, so we maintain `insertPos`
+        // locally and bump it by 1 per iteration to keep placeholders
+        // sequentially distinct.
+        let insertPos = coords?.pos ?? view.state.selection.from;
         for (const file of files) {
-          startUpload(view, pos, file, onUpload);
+          const safePos = Math.min(insertPos, view.state.doc.content.size);
+          startUpload(view, safePos, file, onUpload);
+          insertPos = safePos + 1;
         }
         return true;
       },
