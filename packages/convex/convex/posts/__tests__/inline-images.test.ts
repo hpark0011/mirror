@@ -839,6 +839,56 @@ describe("posts.actions.importMarkdownInlineImages (FR-08)", () => {
     ).rejects.toThrow(/Not the owner/);
     expect(safeFetchMock).not.toHaveBeenCalled();
   });
+
+  it("http:// references are skipped silently, not recorded as failures (FG_111)", async () => {
+    const t = makeT();
+    const ownerId = await insertAppUserAndSignIn(t);
+
+    safeFetchMock.mockResolvedValueOnce(
+      new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" }),
+    );
+
+    const httpSrc = "http://insecure.example/old.png";
+    const httpsSrc = "https://secure.example/new.png";
+
+    const postId = await t.mutation(api.posts.mutations.create, {
+      title: "Mixed schemes",
+      category: "Creativity",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              { type: "image", attrs: { src: httpSrc } },
+              { type: "image", attrs: { src: httpsSrc } },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const result = await t.action(
+      internal.posts.actions.importMarkdownInlineImages,
+      { postId, ownerId },
+    );
+
+    expect(result.imported).toBe(1);
+    expect(result.failed).toBe(0);
+    expect(result.failures).toEqual([]);
+    expect(safeFetchMock).toHaveBeenCalledTimes(1);
+    expect(safeFetchMock).toHaveBeenCalledWith(httpsSrc);
+
+    const after = await t.run(async (ctx) => ctx.db.get(postId));
+    const nodes = (
+      after?.body as { content: { content: { attrs: Record<string, unknown> }[] }[] }
+    ).content[0].content;
+    // http:// node passes through unrewritten; https:// node gets a storageId.
+    expect(nodes[0]?.attrs.src).toBe(httpSrc);
+    expect(nodes[0]?.attrs.storageId).toBeUndefined();
+    expect(nodes[1]?.attrs.storageId).toBeTypeOf("string");
+  });
 });
 
 // FG_096: post-side mirror of the merge contract pinned for articles.

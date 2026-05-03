@@ -3,7 +3,7 @@ id: FG_111
 title: "Markdown-import action filters out http:// URLs at the boundary instead of failing per-image"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "isAbsoluteHttpUrl in articles/actions.ts and posts/actions.ts uses /^https?:\\/\\//i, accepting http:// URLs as candidates. safeFetchImage correctly rejects them via assertHttps (no SSRF), but each http:// reference becomes a per-image failure recorded in the ImportResult — confusing UX. Tighten the regex to https-only so http:// references are silently skipped (left unrewritten in the body) like data: or relative URLs."
 dependencies: [FG_095]

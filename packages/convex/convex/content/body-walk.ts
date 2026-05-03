@@ -158,12 +158,19 @@ export function multisetDifference<T extends string>(a: T[], b: T[]): T[] {
 }
 
 /**
- * Returns `true` iff `value` looks like an absolute http(s) URL. Used by the
+ * Returns `true` iff `value` looks like an absolute https URL. Used by the
  * markdown-import action to filter image nodes whose `attrs.src` is an
- * external URL (vs. a relative path or a `data:` URI).
+ * external URL we will attempt to fetch (vs. a relative path, a `data:`
+ * URI, or an `http://` URL — all left unrewritten in the body).
+ *
+ * `http://` is intentionally excluded: `safeFetchImage`'s `assertHttps`
+ * would throw `"invalid-scheme"` on every http:// reference and the
+ * action would record each as a per-image failure. Filtering at the
+ * candidate boundary keeps the failure list scoped to genuine
+ * fetch-and-failed cases.
  */
-export function isAbsoluteHttpUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value);
+export function isAbsoluteHttpsUrl(value: string): boolean {
+  return /^https:\/\//i.test(value);
 }
 
 /**
@@ -196,7 +203,7 @@ function collectExternalImageSrcsRec(
       // Already imported; skip (idempotent).
     } else {
       const src = attrs?.src;
-      if (typeof src === "string" && isAbsoluteHttpUrl(src)) {
+      if (typeof src === "string" && isAbsoluteHttpsUrl(src)) {
         out.push(src);
       }
     }
