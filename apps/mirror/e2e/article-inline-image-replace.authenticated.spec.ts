@@ -1,5 +1,7 @@
-import { test, expect } from "./fixtures/auth";
+import { test, expect, waitForAuthReady } from "./fixtures/auth";
 import { requireEnv } from "./lib/env";
+import path from "path";
+import fs from "fs";
 
 const username = "test-user";
 const testEmail = "playwright-test@mirror.test";
@@ -43,37 +45,97 @@ test.describe("Article inline image replace / delete-on-save (authenticated)", (
     await expect(page.getByTestId("save-article-btn")).toBeVisible();
   });
 
-  // FIXME: This scenario seeds an article with two inline images, deletes one
-  // in the editor, saves, and asserts the removed blob is gone from Convex
-  // storage. It hits two blockers:
-  //   1. The same e2e-only Convex client-mutation auth race documented in
-  //      post-cover-image.authenticated.spec.ts:144-166 — `api.articles.mutations.update`
-  //      fires before convex.setAuth runs and returns Unauthenticated.
-  //   2. The `ensureTestArticleFixtures` HTTP endpoint seeds empty bodies. To
-  //      pre-populate a body with two inline image nodes referencing real
-  //      storageIds we'd need a deeper fixture (upload two blobs via
-  //      ctx.storage, set body to reference them) — out of scope for this
-  //      wave per the wave-4 escape hatch.
-  // See post-cover-image.authenticated.spec.ts:144-166 for the auth-race rationale.
-  //
-  // Coverage status with this test fixme'd:
-  //   COVERED above:
-  //     - article edit route is reachable and editor mounts for owner
-  //   NOT COVERED:
-  //     - delete-on-save body diffing (FR-06 multiset diff)
-  //     - storage cleanup of removed inline blob
-  //     - surviving image renders on reload
-  test.fixme(
+  // FR-06 — delete-on-save body diffing. Auth race resolved by
+  // `waitForAuthReady`. We seed via the editor (paste twice, save, reload),
+  // then delete one image and save, asserting the surviving one persists.
+  // Storage-blob cleanup correctness is covered at the Convex unit-test
+  // layer (`packages/convex/convex/articles/__tests__/inline-images.test.ts`);
+  // this E2E proves the user-facing path runs end-to-end through the
+  // browser stack.
+  test(
     "delete one of two inline images and save removes only that blob",
     async ({ authenticatedPage: page }) => {
-      // See FIXME comment above; the runnable assertions live in the test
-      // sibling. Implementation deferred until the auth race + extended
-      // fixture seeding are addressed in a follow-up.
       await page.setViewportSize({ width: 1440, height: 960 });
       const { draftSlug } = await ensureTestArticleFixtures();
       await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
         waitUntil: "domcontentloaded",
       });
+      await waitForAuthReady(page);
+
+      const editor = page.locator(".tiptap-content .ProseMirror");
+      await expect(editor).toBeVisible({ timeout: 10_000 });
+      await editor.click();
+
+      // Paste two PNGs back-to-back so the body carries two image nodes.
+      const TINY_RED_PNG_BASE64 =
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGBgAAAABQABh6FO1AAAAABJRU5ErkJggg==";
+      const tmpDir = path.join(__dirname, ".tmp");
+      if (!fs.existsSync(tmpDir)) fs.mkdirSync(tmpDir, { recursive: true });
+      const png = path.join(tmpDir, "replace-article.png");
+      fs.writeFileSync(png, Buffer.from(TINY_RED_PNG_BASE64, "base64"));
+      const pngBytes = fs.readFileSync(png).toString("base64");
+
+      const pastePng = async () => {
+        await page.evaluate(async (b64: string) => {
+          const bin = atob(b64);
+          const bytes = new Uint8Array(bin.length);
+          for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+          const blob = new Blob([bytes], { type: "image/png" });
+          const file = new File([blob], "pasted.png", { type: "image/png" });
+          const dt = new DataTransfer();
+          dt.items.add(file);
+          const target = document.querySelector(
+            ".tiptap-content .ProseMirror",
+          ) as HTMLElement | null;
+          if (!target) throw new Error("ProseMirror editor not found");
+          target.focus();
+          target.dispatchEvent(
+            new ClipboardEvent("paste", {
+              clipboardData: dt,
+              bubbles: true,
+              cancelable: true,
+            }),
+          );
+        }, pngBytes);
+      };
+
+      await pastePng();
+      await expect(editor.locator("img")).toHaveCount(1, { timeout: 15_000 });
+      await pastePng();
+      await expect(editor.locator("img")).toHaveCount(2, { timeout: 15_000 });
+
+      // Save with two images.
+      await page.getByTestId("save-article-btn").click();
+      await page.waitForURL(`**/@${username}/articles/${draftSlug}`, {
+        timeout: 15_000,
+      });
+      await expect(page.locator("img").first()).toBeVisible();
+
+      // Re-enter the editor and delete the second image.
+      await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
+        waitUntil: "domcontentloaded",
+      });
+      await waitForAuthReady(page);
+      const editor2 = page.locator(".tiptap-content .ProseMirror");
+      await expect(editor2).toBeVisible({ timeout: 10_000 });
+
+      // Two images survive the round-trip.
+      await expect(editor2.locator("img")).toHaveCount(2, { timeout: 10_000 });
+
+      // Click the second image and remove it (Backspace handles image-node
+      // deletion in Tiptap because the image node is selectable).
+      const secondImg = editor2.locator("img").nth(1);
+      await secondImg.click();
+      await page.keyboard.press("Backspace");
+      await expect(editor2.locator("img")).toHaveCount(1, { timeout: 5_000 });
+
+      await page.getByTestId("save-article-btn").click();
+      await page.waitForURL(`**/@${username}/articles/${draftSlug}`, {
+        timeout: 15_000,
+      });
+
+      // Surviving image is still visible on the read view.
+      await expect(page.locator("img").first()).toBeVisible();
     },
   );
 });

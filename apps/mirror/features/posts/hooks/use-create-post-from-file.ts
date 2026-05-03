@@ -25,7 +25,7 @@ export type ImportResult = {
 export type ImportStatus = "idle" | "importing" | "done";
 
 export type UseCreatePostFromFileReturn = {
-  createPost: (args: CreatePostArgs) => Promise<void>;
+  createPost: (args: CreatePostArgs) => Promise<ImportResult | null>;
   cancelImport: () => void;
   isCreating: boolean;
   error: string | null;
@@ -112,16 +112,16 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
           body: args.body,
           status: "draft",
         });
-        if (cancelledRef.current) return;
+        if (cancelledRef.current) return null;
 
         // Cover-image upload still throws on failure (matches prior behavior).
         if (args.coverImageFile) {
           const coverImageStorageId = await uploadCoverImage(
             args.coverImageFile,
           );
-          if (cancelledRef.current) return;
+          if (cancelledRef.current) return null;
           await update({ id: postId, coverImageStorageId });
-          if (cancelledRef.current) return;
+          if (cancelledRef.current) return null;
         }
 
         // FR-08 inline-image import. Status stays `draft` either way — we
@@ -129,27 +129,30 @@ export function useCreatePostFromFile(): UseCreatePostFromFileReturn {
         setImportStatus("importing");
         try {
           const result = await importMarkdownInlineImages({ postId });
-          if (cancelledRef.current) return;
+          if (cancelledRef.current) return null;
           setImportResult(result);
+          return result;
         } catch (e) {
-          if (cancelledRef.current) return;
+          if (cancelledRef.current) return null;
           // Action-level failure (auth, ownership, transport). Don't rethrow:
           // the post exists, it's in draft, the user just won't see images
           // materialized. Record one synthetic failure entry so the dialog
           // can show what happened.
           const reason = e instanceof Error ? e.message : "unknown";
-          setImportResult({
+          const result = {
             imported: 0,
             failed: 1,
             failures: [{ src: "(action error)", reason }],
-          });
+          };
+          setImportResult(result);
+          return result;
         } finally {
           if (!cancelledRef.current) {
             setImportStatus("done");
           }
         }
       } catch (e) {
-        if (cancelledRef.current) return;
+        if (cancelledRef.current) return null;
         const message =
           e instanceof Error ? e.message : "Failed to create post";
         setError(message);

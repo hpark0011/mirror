@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures/auth";
+import { test, expect, waitForAuthReady } from "./fixtures/auth";
 import { requireEnv } from "./lib/env";
 import path from "path";
 import fs from "fs";
@@ -59,23 +59,9 @@ test.describe("Post inline image paste (authenticated)", () => {
     await expect(page.getByTestId("save-post-btn")).toBeVisible();
   });
 
-  // FIXME: Same e2e-only Convex client-mutation auth race as
-  // post-cover-image.authenticated.spec.ts:144-166. The post inline-image
-  // paste flow calls `useMutation(api.posts.inlineImages.generatePostInlineImageUploadUrl)`
-  // immediately and `api.posts.mutations.update` on save — both fire before
-  // convex.setAuth runs and return Unauthenticated.
-  // See post-cover-image.authenticated.spec.ts:144-166 for the auth-race rationale.
-  //
-  // Coverage status with this test fixme'd:
-  //   COVERED above:
-  //     - server-component owner-only auth gate on post edit route
-  //     - RichTextEditor mounts on a post and the ProseMirror contenteditable renders
-  //     - Save button renders
-  //   NOT COVERED:
-  //     - paste -> upload-url mutation -> POST -> getUrl roundtrip on a post
-  //     - body persistence after save
-  //     - inline image survives reload (via getBySlug src rewrite from storageId)
-  test.fixme(
+  // FR-01/02/03 mirror on the posts surface. Auth race resolved by
+  // `waitForAuthReady(page)`.
+  test(
     "paste a PNG into the post editor renders inline and persists on save",
     async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 1440, height: 960 });
@@ -83,6 +69,7 @@ test.describe("Post inline image paste (authenticated)", () => {
       await page.goto(`/@${username}/posts/${draftSlug}/edit`, {
         waitUntil: "domcontentloaded",
       });
+      await waitForAuthReady(page);
 
       const editor = page.locator(".tiptap-content .ProseMirror");
       await expect(editor).toBeVisible({ timeout: 10_000 });

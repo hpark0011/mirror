@@ -178,8 +178,9 @@ describe("useCreatePostFromFile (FR-08)", () => {
 
     const { result } = renderHook(() => useCreatePostFromFile());
 
+    let returned: Awaited<ReturnType<typeof result.current.createPost>> = null;
     await act(async () => {
-      await result.current.createPost({
+      returned = await result.current.createPost({
         title: "Partial",
         slug: "partial",
         category: "Other",
@@ -193,6 +194,7 @@ describe("useCreatePostFromFile (FR-08)", () => {
       failed: 1,
       failures: [{ src: "https://broken.example/x.png", reason: "http-error" }],
     });
+    expect(returned).toEqual(result.current.importResult);
   });
 
   it("when the action itself throws, createPost does NOT throw — synthetic failure recorded", async () => {
@@ -202,9 +204,10 @@ describe("useCreatePostFromFile (FR-08)", () => {
     const { result } = renderHook(() => useCreatePostFromFile());
 
     let didThrow = false;
+    let returned: Awaited<ReturnType<typeof result.current.createPost>> = null;
     await act(async () => {
       try {
-        await result.current.createPost({
+        returned = await result.current.createPost({
           title: "Action Failure",
           slug: "action-failure",
           category: "Other",
@@ -222,6 +225,7 @@ describe("useCreatePostFromFile (FR-08)", () => {
       failed: 1,
       failures: [{ src: "(action error)", reason: "Not authorized" }],
     });
+    expect(returned).toEqual(result.current.importResult);
   });
 
   // FG_100: closing the markdown-upload dialog mid-import must silence any

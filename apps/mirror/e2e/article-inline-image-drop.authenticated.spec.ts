@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures/auth";
+import { test, expect, waitForAuthReady } from "./fixtures/auth";
 import { requireEnv } from "./lib/env";
 import path from "path";
 import fs from "fs";
@@ -71,22 +71,10 @@ test.describe("Article inline image drop (authenticated)", () => {
     await expect(editor).toContainText("hello drop");
   });
 
-  // FIXME: Same e2e-only Convex client-mutation auth race as
-  // post-cover-image.authenticated.spec.ts:144-166. Drop fires
-  // `useMutation(api.articles.inlineImages.generateArticleInlineImageUploadUrl)`
-  // before convex.setAuth runs and returns Unauthenticated; save then hits
-  // the same race on `api.articles.mutations.update`.
-  // See post-cover-image.authenticated.spec.ts:144-166 for the auth-race rationale.
-  //
-  // Coverage status with this test fixme'd:
-  //   COVERED above:
-  //     - server-component owner-only auth gate on edit route
-  //     - editor mounts and accepts keyboard input
-  //   NOT COVERED:
-  //     - drop -> upload-url generation -> POST WEBP -> getUrl roundtrip
-  //     - placeholder decoration replaced by image node carrying storageId + src
-  //     - body persistence after save
-  test.fixme(
+  // FR-01/02/03 (drop variant). Synthesizes a drop event carrying a WEBP and
+  // asserts the inline-image upload pipeline + save round-trip. The previous
+  // Convex client-auth race is now resolved by `waitForAuthReady(page)`.
+  test(
     "drop a WEBP onto the editor inserts the image node",
     async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 1440, height: 960 });
@@ -94,6 +82,7 @@ test.describe("Article inline image drop (authenticated)", () => {
       await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
         waitUntil: "domcontentloaded",
       });
+      await waitForAuthReady(page);
 
       const editor = page.locator(".tiptap-content .ProseMirror");
       await expect(editor).toBeVisible({ timeout: 10_000 });

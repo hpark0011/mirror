@@ -58,13 +58,19 @@ export function MarkdownUploadDialogConnector() {
     if (isSubmittingRef.current || !parsedResult) return;
     isSubmittingRef.current = true;
     try {
-      await createPost({
+      const importResult = await createPost({
         title: parsedResult.metadata.title,
         slug: parsedResult.metadata.slug,
         category: parsedResult.metadata.category,
         body: parsedResult.jsonContent,
         coverImageFile,
       });
+      if (
+        importResult &&
+        (importResult.failed > 0 || importResult.failures.length > 0)
+      ) {
+        return;
+      }
       resetParser();
       resetCoverImage();
       onCloseUploadDialog();

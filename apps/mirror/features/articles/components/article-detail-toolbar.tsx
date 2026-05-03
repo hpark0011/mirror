@@ -8,7 +8,7 @@ type ArticleDetailToolbarProps = {
 
 export function ArticleDetailToolbar({ username }: ArticleDetailToolbarProps) {
   return (
-    <ContentToolbarShell>
+    <ContentToolbarShell variant="detail">
       <ContentBackLink username={username} kind="articles" />
     </ContentToolbarShell>
   );

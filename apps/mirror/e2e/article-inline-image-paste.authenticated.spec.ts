@@ -1,4 +1,4 @@
-import { test, expect } from "./fixtures/auth";
+import { test, expect, waitForAuthReady } from "./fixtures/auth";
 import { requireEnv } from "./lib/env";
 import path from "path";
 import fs from "fs";
@@ -66,26 +66,11 @@ test.describe("Article inline image paste (authenticated)", () => {
     await expect(page.getByTestId("save-article-btn")).toBeVisible();
   });
 
-  // FIXME: This test exercises the full paste-and-save flow but hits the same
-  // e2e-only Convex client-mutation auth race documented in
-  // post-cover-image.authenticated.spec.ts:144-166. The inline-image paste
-  // path calls `useMutation(api.articles.inlineImages.generateArticleInlineImageUploadUrl)`
-  // immediately, then `api.articles.mutations.update` on save — both fire
-  // before convex.setAuth installs the JWT and return Unauthenticated.
-  // See post-cover-image.authenticated.spec.ts:144-166 for the auth-race rationale.
-  //
-  // Coverage status with this test fixme'd:
-  //   COVERED above:
-  //     - server-component auth gate on the article edit route resolves
-  //       (fetchAuthQuery for article + profile owner-check)
-  //     - RichTextEditor mounts and the ProseMirror contenteditable renders
-  //     - Save button renders
-  //   NOT COVERED:
-  //     - paste -> inline-image upload-url generation -> POST -> getUrl roundtrip
-  //     - placeholder decoration replaced by image node carrying storageId + src
-  //     - api.articles.mutations.update with body containing the storageId
-  //     - persistence of inline image node on reload
-  test.fixme(
+  // FR-01/02/03 — paste a PNG, the inline-image upload pipeline runs,
+  // the editor renders the Convex-served URL, and `update` persists the
+  // node on save. The previous Convex client-auth race is now resolved
+  // by `waitForAuthReady(page)` (see fixtures/auth.ts).
+  test(
     "paste a PNG into the editor renders inline and persists on save",
     async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 1440, height: 960 });
@@ -93,6 +78,7 @@ test.describe("Article inline image paste (authenticated)", () => {
       await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
         waitUntil: "domcontentloaded",
       });
+      await waitForAuthReady(page);
 
       const editor = page.locator(".tiptap-content .ProseMirror");
       await expect(editor).toBeVisible({ timeout: 10_000 });

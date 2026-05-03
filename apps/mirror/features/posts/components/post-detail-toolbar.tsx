@@ -11,7 +11,7 @@ type PostDetailToolbarProps = {
 
 export function PostDetailToolbar({ username, post }: PostDetailToolbarProps) {
   return (
-    <ContentToolbarShell>
+    <ContentToolbarShell variant="detail">
       <ContentBackLink username={username} kind="posts" />
       <PublishToggleConnector post={post} />
     </ContentToolbarShell>
