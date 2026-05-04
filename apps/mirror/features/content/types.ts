@@ -23,6 +23,11 @@ export function isContentKind(
   return value === "articles" || value === "posts";
 }
 
+// Mirror of `buildContentHref` in
+// `packages/convex/convex/chat/toolQueries.ts`. Both must produce the
+// same canonical `/@<username>/<kind>/<slug>` shape — `useAgentIntentWatcher`
+// trusts the server-built `href` and the user-UI list items call
+// `getContentHref` directly. Tests on both sides pin the format.
 export function getContentHref(
   username: string,
   kind: ContentKind,

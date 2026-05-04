@@ -7,6 +7,7 @@ import { fetchAuthQuery, preloadAuthQuery } from "@/lib/auth-server";
 import { enforceOnboardingGate } from "@/lib/route-guards";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { ProfileRouteDataProvider } from "./_providers/profile-route-data-context";
+import { CloneActionsProvider } from "./_providers/clone-actions-context";
 import { ChatRouteController } from "./_providers/chat-route-controller";
 import { WorkspaceShell } from "./_components/workspace-shell";
 
@@ -88,9 +89,11 @@ export default async function ProfileLayout({
       preloadedProfile={preloadedProfile}
       isOwner={isOwner}
     >
-      <ChatRouteController>
-        <WorkspaceShell interaction={interaction} content={content} />
-      </ChatRouteController>
+      <CloneActionsProvider>
+        <ChatRouteController>
+          <WorkspaceShell interaction={interaction} content={content} />
+        </ChatRouteController>
+      </CloneActionsProvider>
     </ProfileRouteDataProvider>
   );
 }

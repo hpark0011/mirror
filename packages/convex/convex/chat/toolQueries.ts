@@ -30,6 +30,13 @@ import type { Id } from "../_generated/dataModel";
  *
  * Format: `/@<username>/<articles|posts>/<slug>` — must stay aligned with the
  * Next.js route at `apps/mirror/app/[username]/<kind>/[slug]/page.tsx`.
+ *
+ * Mirror of `getContentHref` in
+ * `apps/mirror/features/content/types.ts`. Both must produce the same
+ * canonical `/@<username>/<kind>/<slug>` shape — the client's
+ * `useAgentIntentWatcher` trusts the server-built `href` from this
+ * helper, and the user-UI list items call `getContentHref` directly.
+ * Tests on both sides pin the format.
  */
 export function buildContentHref(
   username: string,
