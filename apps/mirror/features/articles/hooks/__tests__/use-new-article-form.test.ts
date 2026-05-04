@@ -137,7 +137,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     );
   });
 
-  it("forwards status='published' so the server sets publishedAt", async () => {
+  it("togglePublish flips draft→published and forwards status='published' to create", async () => {
     mockCreate.mockResolvedValue("article_id_3");
     const { result } = renderHook(() =>
       useNewArticleForm({ username: "test-user" }),
@@ -146,11 +146,10 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     act(() => {
       result.current.setTitle("Publish Me");
       result.current.setCategory("Process");
-      result.current.setStatus("published");
     });
 
     await act(async () => {
-      await result.current.save();
+      await result.current.togglePublish();
     });
 
     expect(mockCreate.mock.calls[0]![0]).toMatchObject({

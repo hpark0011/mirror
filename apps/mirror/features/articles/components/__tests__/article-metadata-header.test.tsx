@@ -3,8 +3,8 @@
 //   - slug auto-derives from title via generateSlug() unless the user has
 //     manually edited the slug input ("dirty" sticky behavior)
 //   - clearing the slug input re-enables auto-derivation
-//   - status select shows the current status; changing it bubbles up
 //   - cover image picker calls into the upload callback and renders preview
+// Publish/unpublish lives in the workspace toolbar, not here.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
@@ -40,14 +40,12 @@ const baseProps = {
   title: "",
   slug: "",
   category: "",
-  status: "draft" as const,
   coverImageUrl: null,
   createdAt: null as number | null,
   publishedAt: null as number | null,
   onTitleChange: vi.fn(),
   onSlugChange: vi.fn(),
   onCategoryChange: vi.fn(),
-  onStatusChange: vi.fn(),
   onCoverImageUpload: noopUpload,
   onCoverImageClear: vi.fn(),
 };
@@ -63,7 +61,6 @@ describe("ArticleMetadataHeader", () => {
     expect(screen.getByTestId("article-title-input")).toBeTruthy();
     expect(screen.getByTestId("article-slug-input")).toBeTruthy();
     expect(screen.getByTestId("article-category-input")).toBeTruthy();
-    expect(screen.getByTestId("article-status-select")).toBeTruthy();
     expect(screen.getByTestId("article-cover-image-picker")).toBeTruthy();
     expect(screen.getByTestId("article-published-at")).toBeTruthy();
     expect(screen.getByTestId("article-created-at")).toBeTruthy();

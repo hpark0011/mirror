@@ -29,7 +29,6 @@ export function ArticleEditor({ article, username }: ArticleEditorProps) {
       onTitleChange={form.setTitle}
       onSlugChange={form.setSlug}
       onCategoryChange={form.setCategory}
-      onStatusChange={form.setStatus}
       onCoverImageUpload={form.handleCoverImageUpload}
       onCoverImageClear={form.handleCoverImageClear}
       body={form.body}

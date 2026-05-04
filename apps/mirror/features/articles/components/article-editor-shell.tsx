@@ -30,7 +30,6 @@ export interface ArticleEditorShellProps {
   onTitleChange: (value: string) => void;
   onSlugChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
-  onStatusChange: (value: ArticleStatus) => void;
   onCoverImageUpload: (file: File) => Promise<{
     storageId: string;
     url: string;
@@ -69,6 +68,7 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
     onCancel,
     isSaving,
     hasPendingUploads,
+    status,
     ...metadata
   } = props;
 
@@ -88,7 +88,7 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
             </Button>
           )}
           <ArticlePublishToggle
-            status={metadata.status}
+            status={status}
             isPending={isSaving}
             disabled={isSaving || hasPendingUploads}
             onConfirm={onPublishToggle}

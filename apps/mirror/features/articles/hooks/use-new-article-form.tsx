@@ -171,7 +171,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     setTitle,
     setSlug,
     setCategory,
-    setStatus,
     setBody,
     setHasPendingUploads,
     handleCoverImageUpload,

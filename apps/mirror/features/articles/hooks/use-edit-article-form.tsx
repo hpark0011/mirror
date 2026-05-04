@@ -180,7 +180,6 @@ export function useEditArticleForm({
     setTitle,
     setSlug,
     setCategory,
-    setStatus,
     setBody,
     setHasPendingUploads,
     handleCoverImageUpload,

@@ -6,36 +6,27 @@
 //   - slug input that auto-derives from title until the user manually edits
 //     it; clearing it re-enables auto-derive
 //   - category text input
-//   - status select (Draft / Published) — toggling to Published reveals
-//     a populated `publishedAt` after the next save (server-set, FR-08)
 //   - cover image picker (file input → presigned upload → preview)
 //   - read-only created/published timestamps
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@feel-good/ui/primitives/select";
+//
+// Publish/unpublish lives in the workspace toolbar (`ArticlePublishToggle`),
+// not here.
 import { Input } from "@feel-good/ui/primitives/input";
 import { Label } from "@feel-good/ui/primitives/label";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import { useCallback, useId, useRef } from "react";
-import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
 import { CoverImagePicker } from "./cover-image-picker";
 
 export interface ArticleMetadataHeaderProps {
   title: string;
   slug: string;
   category: string;
-  status: ArticleStatus;
   coverImageUrl: string | null;
   createdAt: number | null;
   publishedAt: number | null;
   onTitleChange: (value: string) => void;
   onSlugChange: (value: string) => void;
   onCategoryChange: (value: string) => void;
-  onStatusChange: (value: ArticleStatus) => void;
   onCoverImageUpload: (file: File) => Promise<{
     storageId: string;
     url: string;
@@ -52,21 +43,18 @@ export function ArticleMetadataHeader({
   title,
   slug,
   category,
-  status,
   coverImageUrl,
   createdAt,
   publishedAt,
   onTitleChange,
   onSlugChange,
   onCategoryChange,
-  onStatusChange,
   onCoverImageUpload,
   onCoverImageClear,
 }: ArticleMetadataHeaderProps) {
   const titleId = useId();
   const slugId = useId();
   const categoryId = useId();
-  const statusId = useId();
 
   // Track whether the slug has been manually edited so subsequent title
   // changes don't overwrite the user's choice. Reset to "auto-derive" when
@@ -101,7 +89,7 @@ export function ArticleMetadataHeader({
   );
 
   return (
-    <div className="flex flex-col gap-7 py-12 pb-7">
+    <div className="flex flex-col gap-7 py-8 pb-7">
       <Input
         id={titleId}
         data-testid="article-title-input"
@@ -159,34 +147,6 @@ export function ArticleMetadataHeader({
               className="border-transparent"
               size="sm"
             />
-          </div>
-          <div className="flex items-center gap-1">
-            <Label
-              htmlFor={statusId}
-              className="text-[13px] text-muted-foreground w-30"
-            >
-              Status
-            </Label>
-            <div className="w-full">
-              <Select
-                value={status}
-                onValueChange={(value: ArticleStatus) => onStatusChange(value)}
-              >
-                <SelectTrigger
-                  id={statusId}
-                  data-testid="article-status-select"
-                  variant="underline"
-                  size="sm"
-                  className="w-fit border-transparent"
-                >
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="published">Published</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
         </div>
 

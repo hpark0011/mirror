@@ -75,7 +75,7 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     });
     await expect(page.getByTestId("article-slug-input")).toBeVisible();
     await expect(page.getByTestId("article-category-input")).toBeVisible();
-    await expect(page.getByTestId("article-status-select")).toBeVisible();
+    await expect(page.getByTestId("article-publish-toggle")).toBeVisible();
     await expect(page.getByTestId("article-cover-image-picker")).toBeVisible();
     await expect(page.locator(".tiptap-content .ProseMirror")).toBeVisible({
       timeout: 10_000,
@@ -279,7 +279,7 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     ).toBeVisible({ timeout: 10_000 });
   });
 
-  test("toggling status to Published auto-sets publishedAt (FR-08, mutations.ts:190)", async ({
+  test("Publish toggle commits status='published' and auto-sets publishedAt (FR-08, mutations.ts:190)", async ({
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -294,31 +294,33 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     await editor.click();
     await typeIntoEditor(page, "Body of a soon-to-be published article.");
 
-    // Status starts as Draft → publishedAt slot is empty
+    // Status starts as Draft → publishedAt slot is empty, button reads "Publish"
     const publishedAt = page.getByTestId("article-published-at");
     await expect(publishedAt).toHaveText(/—|Not yet|Unpublished/i);
+    const publishToggle = page.getByTestId("article-publish-toggle");
+    await expect(publishToggle).toHaveText(/^Publish$/);
 
-    await page.getByTestId("article-status-select").click();
-    await page
-      .getByRole("option", { name: /^Published/i })
-      .click();
+    await publishToggle.click();
+    const confirmDialog = page.getByRole("alertdialog");
+    await confirmDialog.getByRole("button", { name: /^Publish$/ }).click();
 
-    await page.getByTestId("save-article-btn").click();
     await expect(page).toHaveURL(
       new RegExp(`/@${username}/articles/publish-me/edit$`),
       { timeout: 15_000 },
     );
 
-    // publishedAt now shows a real timestamp
+    // publishedAt now shows a real timestamp; toggle now reads "Unpublish"
     await expect(publishedAt).not.toHaveText(/—|Not yet|Unpublished/i, {
       timeout: 10_000,
     });
+    await expect(publishToggle).toHaveText(/^Unpublish$/);
 
     // Round-trips
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(publishedAt).not.toHaveText(/—|Not yet|Unpublished/i, {
       timeout: 10_000,
     });
+    await expect(publishToggle).toHaveText(/^Unpublish$/);
   });
 });
 
@@ -338,8 +340,8 @@ test.describe("Article editor — edit existing article (FR-09)", () => {
       timeout: 10_000,
     });
     await expect(page.getByTestId("article-slug-input")).toHaveValue(draftSlug);
-    await expect(page.getByTestId("article-status-select")).toContainText(
-      /Draft/i,
+    await expect(page.getByTestId("article-publish-toggle")).toHaveText(
+      /^Publish$/,
     );
 
     // Edit title and save → URL stays on the SAME slug (slug field unchanged)
