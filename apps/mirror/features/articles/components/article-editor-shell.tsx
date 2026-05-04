@@ -75,7 +75,7 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       <WorkspaceToolbar>
-        <div className="flex h-9 w-full items-center justify-end gap-2 border-b border-border-subtle px-3.5 pb-1.5">
+        <div className="flex h-9 w-full items-center justify-between gap-2 border-b border-border-subtle px-3.5 pb-1.5">
           {onCancel && (
             <Button
               type="button"
@@ -87,23 +87,25 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
               Cancel
             </Button>
           )}
-          <ArticlePublishToggle
-            status={status}
-            isPending={isSaving}
-            disabled={isSaving || hasPendingUploads}
-            onConfirm={onPublishToggle}
-          />
-          <Button
-            type="button"
-            variant="primary"
-            size="xs"
-            data-testid="save-article-btn"
-            className="w-12"
-            onClick={() => void onSave()}
-            disabled={isSaving || hasPendingUploads}
-          >
-            {isSaving ? "Saving…" : "Save"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <ArticlePublishToggle
+              status={status}
+              isPending={isSaving}
+              disabled={isSaving || hasPendingUploads}
+              onConfirm={onPublishToggle}
+            />
+            <Button
+              type="button"
+              variant="primary"
+              size="xs"
+              data-testid="save-article-btn"
+              className="w-12"
+              onClick={() => void onSave()}
+              disabled={isSaving || hasPendingUploads}
+            >
+              {isSaving ? "Saving…" : "Save"}
+            </Button>
+          </div>
         </div>
       </WorkspaceToolbar>
       <div className="flex-1 overflow-auto">
