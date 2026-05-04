@@ -51,10 +51,10 @@ catalog:
   "@tailwindcss/postcss": "^4"
 
   # Backend & Auth
-  convex: "^1.32.0"
-  convex-helpers: "^0.1.113"
-  better-auth: "1.4.9"
-  "@convex-dev/better-auth": "^0.10.10"
+  convex: "^1.37.0"
+  convex-helpers: "^0.1.115"
+  better-auth: "1.6.9"
+  "@convex-dev/better-auth": "^0.12.1"
   "@convex-dev/resend": "^0.2.3"
 
   # ESLint

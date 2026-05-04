@@ -58,7 +58,7 @@
     "@tiptap/react": "^3.19.0",
     "@tiptap/starter-kit": "^3.19.0",
     "better-auth": "catalog:",
-    "convex": "^1.31.7",
+    "convex": "^1.37.0",
     "convex-helpers": "catalog:",
     "next-themes": "catalog:",
     "tiptap-markdown": "^0.9.0",
