@@ -6,6 +6,7 @@ import { google } from "@ai-sdk/google";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { cloneAgent } from "./agent";
+import { buildCloneTools } from "./tools";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "../embeddings/config";
 
 const RAG_RESULT_LIMIT = 5;
@@ -150,9 +151,13 @@ export const streamResponse = internalAction({
       // Empty or undefined promptMessageId = retry: respond to latest user message.
       // `maxOutputTokens` comes from `CHAT_MAX_OUTPUT_TOKENS` so both paths
       // stay pinned to the same per-turn Anthropic cap (FR-01).
+      // Tools attach per-call (not on the singleton agent) because they need
+      // `profileOwnerId` in closure for cross-user isolation — the LLM-visible
+      // input schemas have no `userId`; the factory binds it server-side.
       const streamArgs = {
         system: fullSystemPrompt,
         maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
+        tools: buildCloneTools(profileOwnerId),
         ...(promptMessageId ? { promptMessageId } : {}),
       };
 

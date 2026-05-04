@@ -77,6 +77,12 @@ vi.mock("@convex-dev/agent", () => {
         };
       }
     },
+    // `createTool` is imported by `chat/tools.ts:buildCloneTools`, which
+    // `actions.ts:streamResponse` calls per-request. The identity stub
+    // (return `def` as-is) is enough — these tests don't exercise tool
+    // execution; they assert on `streamArgs` shape captured by the
+    // `cloneAgent` mock below.
+    createTool: vi.fn((def: unknown) => def),
   };
 });
 

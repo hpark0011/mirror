@@ -44,7 +44,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // Segment 5: topics
     expect(segments[5]).toBe("Avoid discussing: politics");
 
-    expect(segments).toHaveLength(6);
+    // Segment 6: tools-vocabulary (always present — tool surface is identical
+    // across users, only `profileOwnerId` is bound per-request).
+    expect(segments[6]).toContain("getLatestPublished");
+    expect(segments[6]).toContain("navigateToContent");
+
+    expect(segments).toHaveLength(7);
   });
 
   // UT-03: omits tone clause when tonePreset is null
@@ -63,9 +68,11 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     }
 
     const segments = result.split("\n\n");
-    // SAFETY_PREFIX, STYLE_RULES, bio, persona — no tone, no topics
-    expect(segments).toHaveLength(4);
+    // SAFETY_PREFIX, STYLE_RULES, bio, persona, tools-vocabulary
+    // — no tone, no topics
+    expect(segments).toHaveLength(5);
     expect(segments[1]).toContain(STYLE_RULES);
+    expect(segments[4]).toContain("navigateToContent");
   });
 
   it("always includes STYLE_RULES even when persona is custom and no tone is set", () => {
@@ -195,7 +202,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(result).toContain("digital clone of Alice");
     });
 
-    it("preserves section order (safety → style → tone → bio → persona → topics) when under budget", () => {
+    it("preserves section order (safety → style → tone → bio → persona → topics → tools) when under budget", () => {
       const result = composeSystemPrompt({
         name: "Alice",
         bio: "Writer from Oakland",
@@ -210,6 +217,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       const bioIdx = result.indexOf("Bio: Writer from Oakland");
       const personaIdx = result.indexOf("Persona body");
       const topicsIdx = result.indexOf("Avoid discussing: politics");
+      const toolsIdx = result.indexOf("navigateToContent");
 
       expect(safetyIdx).toBeGreaterThanOrEqual(0);
       expect(styleIdx).toBeGreaterThan(safetyIdx);
@@ -217,6 +225,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(bioIdx).toBeGreaterThan(toneIdx);
       expect(personaIdx).toBeGreaterThan(bioIdx);
       expect(topicsIdx).toBeGreaterThan(personaIdx);
+      expect(toolsIdx).toBeGreaterThan(topicsIdx);
     });
   });
 

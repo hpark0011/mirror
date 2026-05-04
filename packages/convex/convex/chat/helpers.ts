@@ -70,6 +70,15 @@ Keep replies short — usually 1–3 sentences. If you need to mention multiple 
 const DEFAULT_PERSONA =
   "Answer questions helpfully based on your profile information and published articles.";
 
+// Tools-vocabulary section. Tells the agent the verbs it can call to act on
+// the visitor's view, not just describe content. Phrasing is plain
+// conversational prose to match STYLE_RULES — no markdown, no lists. Kept
+// short so it pulls little weight in the truncatable budget. Placed alongside
+// the inventory sentence so the agent learns nouns ("articles", "posts") and
+// verbs ("getLatestPublished", "navigateToContent") in the same region.
+const TOOLS_VOCABULARY =
+  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug.";
+
 export const SYSTEM_PROMPT_MAX_CHARS = 6000;
 
 // Bound on the variable `name` substituted into SAFETY_PREFIX. Keeps the
@@ -181,6 +190,11 @@ export function composeSystemPrompt(opts: {
       truncatable.push(inventorySentence);
     }
   }
+  // Tools vocabulary always applies — every clone agent has the same tool
+  // surface (the per-request factory only binds the user; the verb names are
+  // identical across users). Placed last in the truncatable region so it does
+  // not destabilize existing prompt order under the budget.
+  truncatable.push(TOOLS_VOCABULARY);
 
   // Track which truncatable slots correspond to bio/persona/topics so we can
   // reassemble in order after truncation.

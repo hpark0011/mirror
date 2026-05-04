@@ -160,3 +160,39 @@ Secondary bottleneck (worth 0.5 iteration): `pnpm exec convex codegen` requires 
 **Scope deviation**: None. The kebab-case rename was a forced fix (Convex constraint), not a deviation from the spec — the spec said the file lives in `packages/convex/convex/bio/` and the contents/exports/tests are unchanged. Updated all spec-mentioned imports and the test file's relative import to the new name; the public API (`serializeBioEntryForEmbedding`) is identical.
 
 **Open follow-ups**: None for Wave 1 backend. Wave 2 (frontend `features/profile-tabs`, `features/content`) and Wave 3 (`features/bio` + routes) are explicitly out of scope and untouched.
+
+---
+
+## 2026-05-04 — Wave 1 executor: agent-UI parity backend (feature-agent-parity-architecture)
+
+**Task**: Wave 1 of `docs/plans/2026-05-04-feat-agent-ui-parity-plan.md` — Convex backend for agent-UI parity. New files `chat/tools.ts` (factory using `createTool` from `@convex-dev/agent` v0.6.0+) and `chat/toolQueries.ts` (internal queries `queryLatestPublished` and `resolveBySlug` filtered to `status === "published"`); modify `chat/actions.ts` to pass `tools: buildCloneTools(profileOwnerId)` per-call into `thread.streamText`; extend `composeSystemPrompt` with a tools-vocabulary section in the truncatable region; new `chat/__tests__/tools.test.ts` and a cross-user `resolveBySlug` assertion in `rag-cross-user.test.ts`.
+
+**Reuse audit**: knowledge.md §Architecture, §"composeSystemPrompt section order", §"convex-test harness gotchas" (especially the glob normalization helper, `Agent`-class shape, and `auth/client` mock spec path) reused directly. Three test files mocking `@convex-dev/agent` already followed the canonical shape — only needed to add `createTool: vi.fn((def) => def)` to the existing factories. Prior 2026-04-30 entry on the cross-user `userId` provenance rule (`.claude/rules/embeddings.md`) gave me the isolation contract for tools (no `userId` in `inputSchema`, factory closes over `profileOwnerId`).
+
+**Evidence**:
+- `pnpm --filter=@feel-good/convex test` exit 0 — **272/272 tests pass across 25 files** (was 270/24; +8 new in `tools.test.ts`, +1 new `it` in `rag-cross-user.test.ts` extending it from 2 → 3 tests, +1 new assertion in `helpers.test.ts` UT-02 segment count).
+- `pnpm --filter=@feel-good/convex exec convex codegen` exit 0 — generated `chat/toolQueries` and `chat/tools` API entries at `_generated/api.d.ts:35-36, 105-106`.
+- `pnpm build --filter=@feel-good/mirror` exit 0 (23.2s — full Next build).
+- `pnpm --filter=@feel-good/convex check-types` exit 0.
+- Greppable invariant `grep -nE "userId\s*:" packages/convex/convex/chat/tools.ts | grep -v profileOwnerId` exit 1 (zero hits — no LLM-visible `userId`).
+- Greppable invariant `grep -nE "args\s*:|handler\s*:" packages/convex/convex/chat/tools.ts` exit 1 (zero hits — no deprecated v0.5.x API surface).
+- `chat/actions.ts:163` `finally` block still calls `clearStreamingLock` with `expectedStartedAt: lockStartedAt`. RAG fall-through at `chat/actions.ts:142` (`console.error` + empty `ragContext`) intact.
+
+**Bottleneck**: `rateLimits.test.ts` already mocks `@convex-dev/agent` at module load. After my change, `chat/actions.ts:streamResponse` imports `buildCloneTools` (which calls `createTool`) and the mock didn't include it — `vitest` threw `No "createTool" export is defined on the "@convex-dev/agent" mock`. Caught on the first test run. One-line fix per file (`createTool: vi.fn((def) => def)`). Cost ~1 iteration to diagnose + fix across 2 mock factories (rateLimits + rag-cross-user).
+
+Secondary friction: needed to update three existing `helpers.test.ts` assertions that pinned segment counts (UT-02 expected 6, UT-03 expected 4) and the section-order test. Easy because the spec calls out "update the unit tests in `__tests__/` together with any change" to system-prompt order — followed it on the first pass.
+
+**Counterfactual**: *"If knowledge.md had spelled out '@convex-dev/agent v0.6.0+ uses inputSchema/execute, NOT args/handler — and any test file mocking @convex-dev/agent at module level must include `createTool` once a tool factory exists upstream', this would have cost ~0 iterations instead of 1, because I'd have added `createTool: vi.fn((def) => def)` to both pre-existing mock factories on the first edit pass without needing the test failure to discover them."*
+
+**Patches applied**:
+
+1. (knowledge.md §"composeSystemPrompt section order") Updated to reflect 8 sections (added `STYLE_RULES` as #2 and `TOOLS_VOCABULARY` as #8). Order is now: safety → style → tone → bio → persona → topics → inventory → tools. Note added: order changes MUST update segment-count tests AND the section-order test together.
+
+2. (knowledge.md, new §"Agent tools (learned Wave 1 — agent-UI parity)") Captures: (a) `createTool` v0.6.0 API contract (`inputSchema`/`execute`, not `args`/`handler` — the legacy keys surface as TypeScript error-message strings); (b) cross-user isolation invariant — LLM-visible `inputSchema` MUST NOT contain `userId`, factory closes over `profileOwnerId`, with the canonical greppable invariant; (c) test-mocking trap — any test file mocking `@convex-dev/agent` AND loading `chat/tools.ts` transitively MUST stub `createTool` (rateLimits + rag-cross-user + tools); (d) why `tools.ts` is `"use node"` while `toolQueries.ts` stays V8; (e) `users.username` is `v.optional(v.string())` — `resolveBySlug` guards against missing username so it never emits a malformed `/@/<kind>/<slug>` href.
+
+**Scope deviation**: None. Followed the prompt verbatim including the deviation flagged by the orchestrator (the plan's pseudocode used the deprecated `args:`/`handler:` keys; I used `inputSchema:`/`execute:` per the v0.6.0 type signatures). Added 3 tests beyond the listed minimum:
+- `queryLatestPublished` returns null when the user has no rows at all (edge case companion to "zero published items").
+- `resolveBySlug` returns null for a slug that does not exist for the user (separate from the cross-user case).
+- `resolveBySlug` scopes posts independently from articles when a user has the same slug across both kinds (defensive — prevents future regression if anyone unifies the lookup).
+
+**Open follow-ups**: None for Wave 1 backend. Wave 2 (mirror-frontend dispatcher + intent watcher) and Wave 3 (project rules) are explicitly out of scope and untouched.
