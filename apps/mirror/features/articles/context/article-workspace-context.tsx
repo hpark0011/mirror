@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { useRouter } from "next/navigation";
 import { useMutation, usePreloadedQuery } from "convex/react";
 import type { Preloaded } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
@@ -43,6 +44,7 @@ export function ArticleWorkspaceProvider({
   username,
   children,
 }: ArticleWorkspaceProviderProps) {
+  const router = useRouter();
   const reactiveArticles = usePreloadedQuery(preloadedArticles);
   const articles = useMemo(
     () => ((reactiveArticles ?? []) as ArticleSummary[]),
@@ -124,6 +126,10 @@ export function ArticleWorkspaceProvider({
     [setSortOrder, clearSelection],
   );
 
+  const handleNew = useCallback(() => {
+    router.push(`/@${username}/articles/new`);
+  }, [router, username]);
+
   const handleDelete = useCallback(() => {
     const currentSelection = selectedSlugsRef.current;
     const visibleSlugs = new Set(allSlugs);
@@ -162,6 +168,7 @@ export function ArticleWorkspaceProvider({
       categories: uniqueCategories,
       selectedCount: selectedSlugs.size,
       onDelete: handleDelete,
+      onNew: handleNew,
     }),
     [
       isOwner,
@@ -172,6 +179,7 @@ export function ArticleWorkspaceProvider({
       uniqueCategories,
       selectedSlugs.size,
       handleDelete,
+      handleNew,
     ],
   );
 
