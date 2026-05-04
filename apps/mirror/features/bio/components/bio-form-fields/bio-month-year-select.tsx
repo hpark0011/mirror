@@ -32,7 +32,11 @@ export function BioMonthYearSelect({
       value={value === null ? EMPTY : String(value)}
       onValueChange={(v) => onChange(v === EMPTY ? null : Number(v))}
     >
-      <SelectTrigger className="w-full">
+      <SelectTrigger
+        className="w-full border-border-subtle px-1 dark:border-border"
+        size="sm"
+        variant="underline"
+      >
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>

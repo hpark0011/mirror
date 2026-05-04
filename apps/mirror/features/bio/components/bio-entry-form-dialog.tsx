@@ -45,18 +45,19 @@ export function BioEntryFormDialog(props: BioEntryFormDialogProps) {
   const { open, mode, entry, onOpenChange, onSubmit } = props;
 
   const title = mode === "create" ? "Add bio entry" : "Edit bio entry";
-  const description =
-    mode === "create"
-      ? "Add a work or education entry to your bio."
-      : "Update this work or education entry.";
+  const description = mode === "create"
+    ? "Add a work or education entry to your bio."
+    : "Update this work or education entry.";
   const submitLabel = mode === "create" ? "Add" : "Save";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+      <DialogContent className="sm:max-w-lg p-4 pt-3">
+        <DialogHeader className="mb-6 gap-0">
+          <DialogTitle className="text-base">{title}</DialogTitle>
+          <DialogDescription className="text-[13px]">
+            {description}
+          </DialogDescription>
         </DialogHeader>
         <DialogBody>
           <BioEntryForm

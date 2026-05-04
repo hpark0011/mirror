@@ -23,13 +23,21 @@ export function BioTextFields({ control }: BioTextFieldsProps) {
         control={control}
         name="title"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel>Title</FormLabel>
+          <FormItem className="flex">
+            <FormLabel className="w-40 gap-0.5">
+              Title
+              <span aria-hidden="true" className="text-destructive">
+                *
+              </span>
+            </FormLabel>
             <FormControl>
               <Input
                 {...field}
                 placeholder="Senior Engineer at Acme"
                 autoComplete="off"
+                size="sm"
+                className="border-border-subtle dark:border-border px-1 focus-visible:bg-gray-4 focus-visible:rounded-md"
+                variant="underline"
               />
             </FormControl>
             <FormMessage />
@@ -41,13 +49,13 @@ export function BioTextFields({ control }: BioTextFieldsProps) {
         control={control}
         name="description"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel>Description (optional)</FormLabel>
+          <FormItem className="flex items-start py-4 pb-2">
+            <FormLabel className="w-40 pt-1.5">Description</FormLabel>
             <FormControl>
               <Textarea
                 {...field}
                 placeholder="Short description of what you did or studied."
-                rows={3}
+                className="border-border-subtle dark:border-border min-h-[120px] max-h-[120px] rounded-[10px] resize-none"
               />
             </FormControl>
             <FormMessage />
@@ -59,14 +67,17 @@ export function BioTextFields({ control }: BioTextFieldsProps) {
         control={control}
         name="link"
         render={({ field }) => (
-          <FormItem>
-            <FormLabel>Link (optional)</FormLabel>
+          <FormItem className="flex">
+            <FormLabel className="w-40">Link</FormLabel>
             <FormControl>
               <Input
                 {...field}
                 inputMode="url"
                 placeholder="https://example.com"
                 autoComplete="off"
+                className="border-border-subtle dark:border-border px-1 focus-visible:bg-gray-4 focus-visible:rounded-md"
+                size="sm"
+                variant="underline"
               />
             </FormControl>
             <FormMessage />

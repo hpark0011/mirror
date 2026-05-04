@@ -1,7 +1,7 @@
 /*
-* input.css
+* select.css
 *
-* Input-specific styles and CSS variables
+* Select styles and CSS variables
 */
 
 :root {
@@ -9,8 +9,6 @@
   --input: var(--gray-7);
   --input-foreground: var(--gray-12);
   --input-destructive: var(--red-8);
-  --input-border: var(--border);
-  --caret: var(--color-blue-400);
 }
 
 .dark {
@@ -18,8 +16,6 @@
   --input: var(--gray-3);
   --input-foreground: var(--gray-12);
   --input-destructive: var(--red-6);
-  --input-border: var(--border);
-  --caret: var(--color-blue-400);
 }
 
 @theme inline {
@@ -27,7 +23,4 @@
   --color-input: var(--input);
   --color-input-foreground: var(--input-foreground);
   --color-input-destructive: var(--input-destructive);
-  --color-input-border: var(--input-border);
-  --color-input-border-hover: var(--border-subtle);
-  --color-caret: var(--caret);
 }

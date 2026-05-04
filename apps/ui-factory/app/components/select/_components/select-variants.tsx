@@ -38,6 +38,22 @@ export function SelectVariants() {
       <Divider />
 
       <PageSection>
+        <PageSectionHeader>Variant: Underline</PageSectionHeader>
+        <Select>
+          <SelectTrigger variant="underline" className="w-[200px]">
+            <SelectValue placeholder="Select a fruit" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="apple">Apple</SelectItem>
+            <SelectItem value="banana">Banana</SelectItem>
+            <SelectItem value="grapes">Grapes</SelectItem>
+          </SelectContent>
+        </Select>
+      </PageSection>
+
+      <Divider />
+
+      <PageSection>
         <PageSectionHeader>Size: Default</PageSectionHeader>
         <Select>
           <SelectTrigger size="default" className="w-[200px]">

@@ -84,9 +84,9 @@ const chatMessageBubbleVariants = cva(
     variants: {
       variant: {
         sent:
-          "bg-blue-11 text-primary-foreground py-[7px] px-3 leading-[1.3] text-[15px]",
+          "bg-blue-11 text-primary-foreground py-[7px] px-3 leading-[1.2] text-[15px]",
         received:
-          "bg-secondary text-foreground leading-[1.3] shadow-[0px_8px_16px_-8px_rgba(0,0,0,0.1)] border border-white dark:border-accent",
+          "bg-secondary text-foreground leading-[1.2] shadow-[0px_8px_16px_-8px_rgba(0,0,0,0.1)] border border-white dark:border-accent",
       },
     },
     defaultVariants: {

@@ -5,8 +5,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@feel-good/ui/primitives/form";
 import { Button } from "@feel-good/ui/primitives/button";
 import {
-  bioEntrySchema,
   type BioEntryFormValues,
+  bioEntrySchema,
 } from "../lib/schemas/bio-entry.schema";
 import { BioKindField } from "./bio-form-fields/bio-kind-field";
 import { BioMonthYearField } from "./bio-form-fields/bio-month-year-field";
@@ -44,22 +44,33 @@ export function BioEntryForm({
           yearName="startYear"
           label="Start"
           allowEmpty={false}
+          required
         />
         <BioMonthYearField
           control={form.control}
           monthName="endMonth"
           yearName="endYear"
-          label="End (leave empty for Present)"
+          label="End"
           allowEmpty
         />
 
-        <div className="flex items-center justify-end gap-2 pt-2">
-          {onCancel ? (
-            <Button type="button" variant="outline" onClick={onCancel}>
-              Cancel
-            </Button>
-          ) : null}
-          <Button type="submit">{submitLabel}</Button>
+        <div className="flex items-center justify-end gap-1 pt-2">
+          {onCancel
+            ? (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={onCancel}
+                className="bg-dialog w-14"
+                size="xs"
+              >
+                Cancel
+              </Button>
+            )
+            : null}
+          <Button type="submit" variant="primary" className="w-14" size="xs">
+            {submitLabel}
+          </Button>
         </div>
       </form>
     </Form>
