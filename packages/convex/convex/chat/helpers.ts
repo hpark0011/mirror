@@ -4,6 +4,61 @@ import { internalQuery } from "../_generated/server";
 import { components } from "../_generated/api";
 import { TONE_PRESETS, type TonePreset } from "./tonePresets";
 
+/**
+ * Inventory of which structured RAG-ingestion sources the profile owner has
+ * populated. Keys MUST stay in sync with `embeddingSourceTableValidator` in
+ * `packages/convex/convex/embeddings/schema.ts` — when a literal is added
+ * there, add the key here so the compiler forces a corresponding update to
+ * `composeSystemPrompt`'s inventory sentence.
+ */
+export type ContentInventory = {
+  articles: boolean;
+  posts: boolean;
+  bioEntries: boolean;
+};
+
+// Human-readable label for each kind in the inventory sentence. Phrasing is
+// plain conversational prose to match STYLE_RULES — the agent copies the
+// register from the system prompt.
+const CONTENT_INVENTORY_LABELS: Record<keyof ContentInventory, string> = {
+  bioEntries: "bio entries (work history, education)",
+  posts: "published posts",
+  articles: "published articles",
+};
+
+// Order in which kinds appear in the inventory sentence. Listed bio-first
+// because that is the kind least likely to be obvious from the visitor's
+// message, so naming it proactively has the most impact.
+const CONTENT_INVENTORY_ORDER: ReadonlyArray<keyof ContentInventory> = [
+  "bioEntries",
+  "posts",
+  "articles",
+];
+
+/**
+ * Build the inventory sentence for the system prompt. Returns `null` when no
+ * kinds are populated so the caller can omit the section entirely (preserves
+ * backward compatibility for users with no structured content).
+ *
+ * Exported so the unit tests can target the phrasing directly.
+ */
+export function buildContentInventorySentence(
+  inventory: ContentInventory,
+): string | null {
+  const present = CONTENT_INVENTORY_ORDER.filter((key) => inventory[key]);
+  if (present.length === 0) return null;
+
+  const labels = present.map((key) => CONTENT_INVENTORY_LABELS[key]);
+  const list =
+    labels.length === 1
+      ? labels[0]
+      : labels.length === 2
+        ? `${labels[0]} and ${labels[1]}`
+        : `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+
+  return `You can speak from this person's ${list} when relevant.`;
+}
+
 const SAFETY_PREFIX = (name: string) =>
   `You are a digital clone of ${name}. You represent their ideas and perspectives based on their writing and profile.
 You must never: claim to be human, share private information not in your context, make commitments on behalf of the real person, or provide medical/legal/financial advice.`;
@@ -89,6 +144,7 @@ export function composeSystemPrompt(opts: {
   personaPrompt?: string | null;
   tonePreset?: TonePreset | null;
   topicsToAvoid?: string | null;
+  contentInventory?: ContentInventory | null;
 }): string {
   // Bound name up front so a pathologically long value cannot force the
   // final backstop slice to cut into SAFETY_PREFIX or the tone clause.
@@ -105,8 +161,10 @@ export function composeSystemPrompt(opts: {
     fixed.push(TONE_PRESETS[opts.tonePreset].clause);
   }
 
-  // Truncatable sections — bio, persona, topics. Order matches existing
-  // section order (safety → style → tone → bio → persona → topics).
+  // Truncatable sections — bio, persona, topics, inventory. Order:
+  // safety → style → tone → bio → persona → topics → inventory. The
+  // inventory sentence is appended last so it does not destabilize existing
+  // prompt ordering for users without structured content.
   const truncatable: Array<string> = [];
   if (opts.bio) {
     truncatable.push(`Bio: ${opts.bio}`);
@@ -114,6 +172,14 @@ export function composeSystemPrompt(opts: {
   truncatable.push(opts.personaPrompt || DEFAULT_PERSONA);
   if (opts.topicsToAvoid) {
     truncatable.push(`Avoid discussing: ${opts.topicsToAvoid}`);
+  }
+  if (opts.contentInventory) {
+    const inventorySentence = buildContentInventorySentence(
+      opts.contentInventory,
+    );
+    if (inventorySentence) {
+      truncatable.push(inventorySentence);
+    }
   }
 
   // Track which truncatable slots correspond to bio/persona/topics so we can
@@ -153,6 +219,33 @@ export const loadStreamingContext = internalQuery({
       throw new Error("Profile owner not found");
     }
 
+    // Inventory of structured content the profile owner has populated.
+    // Each query is a `take(1)` against `by_userId` for a presence check.
+    // Articles and posts must be filtered to `status === "published"` so
+    // unpublished drafts (which are not retrieval-eligible — see
+    // `embeddings/getContentForEmbedding`) do not get mentioned in the
+    // prompt. Bio entries have no draft lifecycle, so any row counts.
+    const articleRow = await ctx.db
+      .query("articles")
+      .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
+      .filter((q) => q.eq(q.field("status"), "published"))
+      .take(1);
+    const postRow = await ctx.db
+      .query("posts")
+      .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
+      .filter((q) => q.eq(q.field("status"), "published"))
+      .take(1);
+    const bioEntryRow = await ctx.db
+      .query("bioEntries")
+      .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
+      .take(1);
+
+    const contentInventory: ContentInventory = {
+      articles: articleRow.length > 0,
+      posts: postRow.length > 0,
+      bioEntries: bioEntryRow.length > 0,
+    };
+
     return {
       threadId: conversation.threadId,
       systemPrompt: composeSystemPrompt({
@@ -161,6 +254,7 @@ export const loadStreamingContext = internalQuery({
         personaPrompt: profileOwner.personaPrompt,
         tonePreset: profileOwner.tonePreset as TonePreset | null | undefined,
         topicsToAvoid: profileOwner.topicsToAvoid,
+        contentInventory,
       }),
     };
   },

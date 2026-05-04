@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { TONE_PRESETS, type TonePreset } from "../tonePresets";
 import {
+  buildContentInventorySentence,
   composeSystemPrompt,
   STYLE_RULES,
   SYSTEM_PROMPT_MAX_CHARS,
+  type ContentInventory,
 } from "../helpers";
 
 const SAFETY_PREFIX_START = "You are a digital clone of ";
@@ -215,6 +217,132 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(bioIdx).toBeGreaterThan(toneIdx);
       expect(personaIdx).toBeGreaterThan(bioIdx);
       expect(topicsIdx).toBeGreaterThan(personaIdx);
+    });
+  });
+
+  // FG_124: contentInventory section
+  describe("contentInventory (FG_124: clone declares structured content kinds)", () => {
+    const allFalse: ContentInventory = {
+      articles: false,
+      posts: false,
+      bioEntries: false,
+    };
+
+    it("includes the 'bio entries' phrase when contentInventory.bioEntries is true", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        contentInventory: { ...allFalse, bioEntries: true },
+      });
+
+      // The phrase "bio entries" must appear so the agent has proactive
+      // vocabulary for the noun, not only when the visitor's message
+      // lexically matches retrieval.
+      expect(result).toContain("bio entries");
+    });
+
+    it("does NOT include the 'bio entries' phrase when contentInventory.bioEntries is false", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        contentInventory: allFalse,
+      });
+
+      expect(result).not.toContain("bio entries");
+    });
+
+    it("omits the inventory sentence entirely when no kinds are populated", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        contentInventory: allFalse,
+      });
+
+      // No kinds → no "You can speak from this person's …" sentence at all,
+      // preserving prompt shape for users with no structured content.
+      expect(result).not.toContain("You can speak from this person's");
+    });
+
+    it("omits the inventory sentence when contentInventory is undefined (backward compat)", () => {
+      const result = composeSystemPrompt({ name: "Alice" });
+      expect(result).not.toContain("You can speak from this person's");
+    });
+
+    it("lists only populated kinds — bio + posts but not articles", () => {
+      // Override personaPrompt because DEFAULT_PERSONA itself contains the
+      // phrase "published articles" — we need to assert on the inventory
+      // sentence specifically, not the surrounding prompt.
+      const result = composeSystemPrompt({
+        name: "Alice",
+        personaPrompt: "Custom persona text without article keywords.",
+        contentInventory: { articles: false, posts: true, bioEntries: true },
+      });
+
+      // Inventory sentence appears verbatim with the populated kinds joined
+      // and an "and" before the last item.
+      expect(result).toContain(
+        "You can speak from this person's bio entries (work history, education) and published posts when relevant.",
+      );
+      // The omitted kind is not in the inventory sentence — the persona was
+      // overridden so any remaining "published articles" substring would
+      // come from the inventory section we're testing against.
+      expect(result).not.toContain("published articles");
+    });
+
+    it("places the inventory sentence in the truncatable region (after topics)", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        bio: "Writer",
+        personaPrompt: "Persona body",
+        tonePreset: "friendly",
+        topicsToAvoid: "politics",
+        contentInventory: { articles: true, posts: true, bioEntries: true },
+      });
+
+      const topicsIdx = result.indexOf("Avoid discussing: politics");
+      const inventoryIdx = result.indexOf("You can speak from this person's");
+
+      expect(topicsIdx).toBeGreaterThanOrEqual(0);
+      expect(inventoryIdx).toBeGreaterThan(topicsIdx);
+    });
+
+    it("phrasing is plain conversational prose (no markdown / lists / headers)", () => {
+      const sentence = buildContentInventorySentence({
+        articles: true,
+        posts: true,
+        bioEntries: true,
+      });
+
+      // STYLE_RULES forbids **, *, _, backticks, bullets, headers — the
+      // inventory sentence must not introduce any of those markers.
+      expect(sentence).not.toBeNull();
+      expect(sentence!).not.toMatch(/\*\*|\*[^*]|_[^_]|`/);
+      expect(sentence!).not.toMatch(/^\s*[-•]/m);
+      expect(sentence!).not.toMatch(/^#/m);
+    });
+
+    it("buildContentInventorySentence returns null when nothing populated", () => {
+      expect(buildContentInventorySentence(allFalse)).toBeNull();
+    });
+
+    it("FR-09 truncation budget still holds with full inventory + oversize fields", () => {
+      // Confirms acceptance criterion: the existing truncation logic still
+      // enforces SYSTEM_PROMPT_MAX_CHARS even when contentInventory pushes
+      // the truncatable list to its longest plausible shape.
+      const hugePersona = "p".repeat(SYSTEM_PROMPT_MAX_CHARS * 2);
+      const hugeBio = "b".repeat(SYSTEM_PROMPT_MAX_CHARS);
+      const hugeTopics = "t".repeat(SYSTEM_PROMPT_MAX_CHARS);
+
+      const result = composeSystemPrompt({
+        name: "Alice",
+        bio: hugeBio,
+        personaPrompt: hugePersona,
+        tonePreset: "friendly",
+        topicsToAvoid: hugeTopics,
+        contentInventory: { articles: true, posts: true, bioEntries: true },
+      });
+
+      expect(result.length).toBeLessThanOrEqual(SYSTEM_PROMPT_MAX_CHARS);
+      // Fixed sections still survive proportional truncation verbatim.
+      expect(result).toContain(STYLE_RULES);
+      expect(result).toContain(TONE_PRESETS.friendly.clause);
     });
   });
 });
