@@ -57,6 +57,11 @@ export function useEditArticleForm({
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
     initial.coverImageUrl ?? null,
   );
+  // True when the user clicked Remove on the existing cover. Distinct
+  // from "no change" (`coverImageStorageId === null` on mount) — without
+  // this flag the patch payload omits the field and the server cover
+  // never clears. Reset on a successful save and on a fresh upload.
+  const [isCoverCleared, setIsCoverCleared] = useState(false);
   const [publishedAt, setPublishedAt] = useState<number | null>(
     initial.publishedAt ?? null,
   );
@@ -89,6 +94,8 @@ export function useEditArticleForm({
       const objectUrl = URL.createObjectURL(file);
       setCoverImageStorageId(storageId);
       setCoverImageUrl(objectUrl);
+      // A fresh upload supersedes any prior clear in the same session.
+      setIsCoverCleared(false);
       return { storageId: storageId as string, url: objectUrl };
     },
     [uploadCover],
@@ -97,6 +104,7 @@ export function useEditArticleForm({
   const handleCoverImageClear = useCallback(() => {
     setCoverImageStorageId(null);
     setCoverImageUrl(null);
+    setIsCoverCleared(true);
   }, []);
 
   const persist = useCallback(
@@ -108,12 +116,23 @@ export function useEditArticleForm({
         category: category.trim(),
         body,
         status: targetStatus,
-        coverImageStorageId: coverImageStorageId ?? undefined,
+        // Send the storage ID only when the user uploaded a new cover in
+        // this session. Omit (undefined) means "no change". An explicit
+        // clear travels through `clearCoverImage: true` instead.
+        coverImageStorageId:
+          coverImageStorageId !== null ? coverImageStorageId : undefined,
+        clearCoverImage: isCoverCleared ? true : undefined,
       });
       // Optimistically reflect the server-side publishedAt assignment so
       // the UI doesn't wait for the next reactive query tick.
       if (targetStatus === "published" && !publishedAt) {
         setPublishedAt(Date.now());
+      }
+      // After a successful save, the next reactive `getBySlug` tick
+      // reflects the cleared cover; reset the flag so subsequent saves
+      // don't re-clear an already-empty field.
+      if (isCoverCleared) {
+        setIsCoverCleared(false);
       }
       router.refresh();
     },
@@ -122,6 +141,7 @@ export function useEditArticleForm({
       category,
       coverImageStorageId,
       initial._id,
+      isCoverCleared,
       publishedAt,
       router,
       slug,
