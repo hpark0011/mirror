@@ -33,6 +33,7 @@ type BioMonthYearFieldProps = {
   yearName: "startYear" | "endYear";
   label: string;
   allowEmpty: boolean;
+  required?: boolean;
 };
 
 export function BioMonthYearField({
@@ -41,6 +42,7 @@ export function BioMonthYearField({
   yearName,
   label,
   allowEmpty,
+  required = false,
 }: BioMonthYearFieldProps) {
   const yearOptions = useMemo(() => {
     const max = new Date().getUTCFullYear() + 1;
@@ -50,9 +52,18 @@ export function BioMonthYearField({
   }, []);
 
   return (
-    <FormItem>
-      <FormLabel>{label}</FormLabel>
-      <div className="grid grid-cols-2 gap-2">
+    <FormItem className="flex items-baseline gap-1.5">
+      <FormLabel className="w-40 gap-0.5">
+        {label}
+        {required
+          ? (
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+          )
+          : null}
+      </FormLabel>
+      <div className="grid grid-cols-2 gap-3 w-full">
         <FormField
           control={control}
           name={monthName}

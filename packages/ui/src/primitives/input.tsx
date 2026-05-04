@@ -7,9 +7,9 @@ const inputVariants = cva(
   cn( // Layout & Sizing
     "w-full min-w-0 py-1",
     // Background & Colors
-    "bg-transparent dark:bg-input/30  hover:bg-accent hover:border-accent dark:hover:bg-accent dark:hover:border-accent",
+    "bg-transparent dark:bg-input/30  hover:bg-accent hover:border-border/70 dark:hover:bg-accent dark:hover:border-accent",
     // Text & Typography
-    "text-base md:text-sm placeholder:text-muted-foreground",
+    "text-base md:text-sm placeholder:text-muted-foreground data-[size=sm]:text-[13px]",
     "selection:bg-primary selection:text-primary-foreground",
     // File Input Styles
     "file:inline-flex file:h-7 file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground",
@@ -25,8 +25,8 @@ const inputVariants = cva(
     variants: {
       variant: {
         default: cn(
-          "border border-input",
-          "rounded-lg px-2.5 data-[size=sm]:rounded-[6px] data-[size=sm]:px-2",
+          "border border-input-border",
+          "rounded-lg px-2.5 data-[size=sm]:rounded-[7px] data-[size=sm]:px-2 [corner-shape:superellipse(1.2)]",
           "focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-[2px]",
         ),
         underline: cn(

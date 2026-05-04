@@ -52,10 +52,12 @@ export function BioEntryFormDialog(props: BioEntryFormDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
+      <DialogContent className="sm:max-w-lg p-4 pt-3">
+        <DialogHeader className="mb-6 gap-0">
+          <DialogTitle className="text-base">{title}</DialogTitle>
+          <DialogDescription className="text-[13px]">
+            {description}
+          </DialogDescription>
         </DialogHeader>
         <DialogBody>
           <BioEntryForm

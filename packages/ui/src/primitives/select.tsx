@@ -13,9 +13,9 @@ const selectTriggerVariants = cva(
     // Layout & Sizing
     "flex w-fit min-w-0 items-center justify-between gap-2 py-1 whitespace-nowrap",
     // Background & Colors
-    "bg-transparent dark:bg-input/30 hover:bg-accent hover:border-accent dark:hover:bg-accent dark:hover:border-accent",
+    "bg-transparent dark:bg-input/30 hover:bg-accent hover:border-border/70 dark:hover:bg-accent dark:hover:border-accent",
     // Text & Typography
-    "text-base md:text-sm data-[placeholder]:text-muted-foreground",
+    "text-base data-[size=sm]:text-[13px] data-[placeholder]:text-muted-foreground",
     // Interactive States
     "outline-none transition-[color,box-shadow]",
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50",
@@ -30,7 +30,7 @@ const selectTriggerVariants = cva(
       variant: {
         default: cn(
           "border border-input",
-          "rounded-lg px-2.5 data-[size=sm]:rounded-[6px] data-[size=sm]:px-2",
+          "rounded-lg px-2.5 data-[size=sm]:rounded-[7px] data-[size=sm]:px-2 data-[size=sm]:pr-1.5 [corner-shape:superellipse(1.2)]",
           "focus-visible:border-ring focus-visible:ring-ring focus-visible:ring-[2px]",
         ),
         underline: cn(
@@ -77,8 +77,9 @@ function SelectTrigger({
   variant = "default",
   children,
   ...props
-}: React.ComponentProps<typeof SelectPrimitive.Trigger> &
-  VariantProps<typeof selectTriggerVariants>) {
+}:
+  & React.ComponentProps<typeof SelectPrimitive.Trigger>
+  & VariantProps<typeof selectTriggerVariants>) {
   return (
     <SelectPrimitive.Trigger
       data-slot="select-trigger"

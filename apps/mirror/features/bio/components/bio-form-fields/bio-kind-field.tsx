@@ -27,11 +27,20 @@ export function BioKindField({ control }: BioKindFieldProps) {
       control={control}
       name="kind"
       render={({ field }) => (
-        <FormItem>
-          <FormLabel>Kind</FormLabel>
+        <FormItem className="flex">
+          <FormLabel className="w-40 gap-0.5">
+            Kind
+            <span aria-hidden="true" className="text-destructive">
+              *
+            </span>
+          </FormLabel>
           <FormControl>
             <Select value={field.value} onValueChange={field.onChange}>
-              <SelectTrigger className="w-full">
+              <SelectTrigger
+                className="w-full border-border-subtle dark:border-border px-1"
+                size="sm"
+                variant="underline"
+              >
                 <SelectValue placeholder="Select kind" />
               </SelectTrigger>
               <SelectContent>

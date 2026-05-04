@@ -1,9 +1,9 @@
 "use client";
 
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { XIcon } from "lucide-react";
 import * as React from "react";
 
+import { XIcon } from "lucide-react";
 import { cn } from "../lib/utils";
 import { Button } from "./button";
 
@@ -75,7 +75,7 @@ function DialogContent({
           // layout
           "flex flex-col p-4",
           // shape
-          "[corner-shape:superellipse(1.1)] rounded-[22px] outline-none border border-dialog-border",
+          "[corner-shape:superellipse(1.2)] rounded-[22px] outline-none border border-dialog-border",
           // background & shadow
           "bg-dialog shadow-dialog-shadow",
           // state animations
@@ -106,10 +106,10 @@ function DialogContent({
               "disabled:pointer-events-none",
               // svg
               "[&_svg]:pointer-events-none [&_svg]:shrink-0",
-              "[&_svg:not([class*='size-'])]:size-4",
+              "[&_svg:not([class*='size-'])]:size-3.5",
             )}
           >
-            <XIcon />
+            <XIcon className="size-3.5 text-icon" />
             <span className="sr-only">Close</span>
           </DialogPrimitive.Close>
         )}
@@ -124,7 +124,7 @@ function DialogHeader({ className, ...props }: React.ComponentProps<"div">) {
       data-slot="dialog-header"
       className={cn(
         // layout
-        "flex flex-col gap-3",
+        "flex flex-col gap-2",
         // text
         "text-center sm:text-left",
         className,
