@@ -96,12 +96,21 @@ export const TextBubbleMenu = memo(function TextBubbleMenu({
       editor={editor}
       pluginKey="textBubbleMenu"
       updateDelay={150}
+      // Portal to <body> — without this the menu inherits the workspace
+      // panel's stacking + clipping context, so a centered (`placement:
+      // "top"`) menu can render across the panel separator and visually
+      // sit "behind" the divider.
+      appendTo={() => editor.view.dom.ownerDocument.body}
       shouldShow={shouldShowTextMenu}
       getReferencedVirtualElement={() =>
         getTextSelectionVirtualElement(editor)
       }
       options={{
-        placement: "top",
+        // `top-start` anchors the menu's left edge to the selection's left
+        // edge instead of centering it. Selections at the very left of the
+        // editor (e.g. a single `/` after slash-menu dismissal) no longer
+        // overflow into the adjacent panel.
+        placement: "top-start",
         offset: { mainAxis: 8 },
         flip: true,
         shift: { padding: 8 },

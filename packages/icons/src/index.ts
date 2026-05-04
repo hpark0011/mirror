@@ -23,6 +23,8 @@ export { ArrowUpIcon } from "./components/arrow-up";
 export { ArrowUpAndDownIcon } from "./components/arrow-up-and-down";
 export { ArrowUpRightIcon } from "./components/arrow-up-right";
 export { ArrowUpToLineCompactIcon } from "./components/arrow-up-to-line-compact";
+export { ArrowshapeLeftFillIcon } from "./components/arrowshape-left-fill";
+export { ArrowshapeRightFillIcon } from "./components/arrowshape-right-fill";
 export { ArrowshapeTurnUpRightFillIcon } from "./components/arrowshape-turn-up-right-fill";
 export { ArrowshapeUpFillIcon } from "./components/arrowshape-up-fill";
 export { BellFillIcon } from "./components/bell-fill";

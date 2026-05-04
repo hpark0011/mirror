@@ -6,8 +6,8 @@
 //
 // Designed to be portaled into the workspace toolbar slot by the host.
 import {
-  ArrowBackwardIcon,
-  ArrowForwardIcon,
+  ArrowshapeLeftFillIcon,
+  ArrowshapeRightFillIcon,
   MinusSmallIcon,
   PhotoFillIcon,
 } from "@feel-good/icons";
@@ -57,14 +57,14 @@ export function EditorToolbar({
         onClick={() => editor.chain().focus().undo().run()}
         disabled={!editor.can().undo()}
       >
-        <ArrowBackwardIcon className="size-4" />
+        <ArrowshapeLeftFillIcon className="size-4" />
       </ToolbarButton>
       <ToolbarButton
         label="Redo"
         onClick={() => editor.chain().focus().redo().run()}
         disabled={!editor.can().redo()}
       >
-        <ArrowForwardIcon className="size-4" />
+        <ArrowshapeRightFillIcon className="size-4" />
       </ToolbarButton>
 
       <ToolbarSeparator />

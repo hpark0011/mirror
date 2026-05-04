@@ -77,7 +77,7 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
           onPendingUploadsChange={onPendingUploadsChange}
           renderToolbar={({ editor, pickInlineImage }) => (
             <WorkspaceToolbar>
-              <div className="flex w-full items-center justify-between gap-2">
+              <div className="flex w-full h-9 items-center justify-between gap-2 border-b border-border-subtle px-3.5 pl-1.5 pb-1.5">
                 <EditorToolbar
                   editor={editor}
                   onInsertImage={pickInlineImage}
@@ -100,6 +100,7 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
                     variant="primary"
                     size="xs"
                     data-testid="save-article-btn"
+                    className="w-12"
                     onClick={() => void onSave()}
                     disabled={isSaving || hasPendingUploads}
                   >

@@ -37,7 +37,11 @@ export function ToolbarButton({
       <TooltipTrigger asChild>
         <button
           type="button"
-          className={cn("tiptap-toolbar-btn", className)}
+          className={cn(
+            "tiptap-toolbar-btn",
+            "[corner-shape:superellipse(1.3)]",
+            className,
+          )}
           aria-label={label}
           aria-pressed={isActive}
           aria-disabled={disabled || undefined}
