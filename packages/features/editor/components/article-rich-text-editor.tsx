@@ -143,7 +143,7 @@ export function ArticleRichTextEditor({
     return (
       <div
         className={cn(
-          "tiptap-editor tiptap-content prose dark:prose-invert max-w-none min-h-[200px]",
+          "tiptap-editor tiptap-content max-w-none min-h-[200px]",
           className,
         )}
       />
@@ -156,7 +156,7 @@ export function ArticleRichTextEditor({
       <EditorContent
         editor={editor}
         className={cn(
-          "tiptap-content prose dark:prose-invert max-w-none",
+          "tiptap-content max-w-none",
           className,
         )}
       />

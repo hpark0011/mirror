@@ -101,90 +101,107 @@ export function ArticleMetadataHeader({
   );
 
   return (
-    <div className="flex flex-col gap-4 pb-4">
-      <CoverImagePicker
-        url={coverImageUrl}
-        onUpload={onCoverImageUpload}
-        onClear={onCoverImageClear}
-      />
-
+    <div className="flex flex-col gap-4 py-12">
       <Input
         id={titleId}
         data-testid="article-title-input"
         value={title}
         onChange={(e) => handleTitleChange(e.target.value)}
-        placeholder="Untitled article"
+        placeholder="Article Title"
         aria-label="Title"
-        className="h-12 border-0 px-0 text-3xl font-medium shadow-none focus-visible:ring-0"
+        className="h-fit border-0 p-0 text-2xl font-medium shadow-none focus-visible:ring-0 md:text-2xl rounded-none hover:bg-transparent"
       />
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="flex flex-col gap-2 pb-8 border-b border-border-subtle">
         <div className="flex flex-col gap-1">
-          <Label htmlFor={slugId} className="text-xs text-muted-foreground">
-            Slug
-          </Label>
-          <Input
-            id={slugId}
-            data-testid="article-slug-input"
-            value={slug}
-            onChange={(e) => handleSlugChange(e.target.value)}
-            placeholder="auto-from-title"
-            className="h-9"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label
-            htmlFor={categoryId}
-            className="text-xs text-muted-foreground"
-          >
-            Category
-          </Label>
-          <Input
-            id={categoryId}
-            data-testid="article-category-input"
-            value={category}
-            onChange={(e) => onCategoryChange(e.target.value)}
-            placeholder="e.g. Process, Inspiration"
-            className="h-9"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <Label
-            htmlFor={statusId}
-            className="text-xs text-muted-foreground"
-          >
-            Status
-          </Label>
-          <Select
-            value={status}
-            onValueChange={(value: ArticleStatus) => onStatusChange(value)}
-          >
-            <SelectTrigger
-              id={statusId}
-              data-testid="article-status-select"
-              className="h-9"
+          <div className="flex gap-1 items-start">
+            <span className="text-[13px] text-muted-foreground w-30 pt-1">
+              Cover Image
+            </span>
+            <CoverImagePicker
+              url={coverImageUrl}
+              onUpload={onCoverImageUpload}
+              onClear={onCoverImageClear}
+            />
+          </div>
+          <div className="flex gap-1 items-center">
+            <Label
+              htmlFor={slugId}
+              className="text-[13px] text-muted-foreground w-30"
             >
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-        <div>
-          <div>Created</div>
-          <div data-testid="article-created-at" className="text-foreground">
-            {formatTimestamp(createdAt)}
+              Slug
+            </Label>
+            <Input
+              id={slugId}
+              data-testid="article-slug-input"
+              value={slug}
+              onChange={(e) => handleSlugChange(e.target.value)}
+              placeholder="auto-from-title"
+              variant="underline"
+              className="border-transparent"
+              size="sm"
+            />
+          </div>
+          <div className="flex gap-1 items-center">
+            <Label
+              htmlFor={categoryId}
+              className="text-[13px] text-muted-foreground w-30"
+            >
+              Category
+            </Label>
+            <Input
+              id={categoryId}
+              data-testid="article-category-input"
+              value={category}
+              onChange={(e) => onCategoryChange(e.target.value)}
+              placeholder="e.g. Process, Inspiration"
+              variant="underline"
+              className="border-transparent"
+              size="sm"
+            />
+          </div>
+          <div className="flex items-center gap-1">
+            <Label
+              htmlFor={statusId}
+              className="text-[13px] text-muted-foreground w-30"
+            >
+              Status
+            </Label>
+            <div className="w-full">
+              <Select
+                value={status}
+                onValueChange={(value: ArticleStatus) => onStatusChange(value)}
+              >
+                <SelectTrigger
+                  id={statusId}
+                  data-testid="article-status-select"
+                  variant="underline"
+                  size="sm"
+                  className="w-fit border-transparent"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="published">Published</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </div>
-        <div>
-          <div>Published</div>
-          <div data-testid="article-published-at" className="text-foreground">
-            {publishedAt ? formatTimestamp(publishedAt) : "Not yet"}
+
+        <div className="grid grid-cols-2 gap-3 text-[13px] text-muted-foreground">
+          <div className="flex flex-col gap-1">
+            <div>Created</div>
+            <div data-testid="article-created-at" className="text-foreground">
+              {formatTimestamp(createdAt)}
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <div>Published</div>
+            <div data-testid="article-published-at" className="text-foreground">
+              {publishedAt ? formatTimestamp(publishedAt) : "Not yet"}
+            </div>
           </div>
         </div>
       </div>

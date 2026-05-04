@@ -13,7 +13,7 @@ import { markContentPanelRendered } from "@/lib/perf/content-panel-open";
 // Bottom padding reserved inside the scroll container so content clears the
 // chat input / sticky footer that floats above it. Pairs with the chat input
 // height — bump this if that surface grows.
-const SCROLL_FOOTER_PAD_PX = 64;
+// const SCROLL_FOOTER_PAD_PX = 64;
 // Height of the top fade-mask gradient that softens content scrolling under
 // the WorkspaceNavbar + ToolbarSlotTarget. Pairs with the navbar/toolbar
 // stack — adjust if either grows or the fade should reach further.
@@ -63,7 +63,7 @@ export function ContentPanel({
           <div
             ref={setScrollRoot}
             className="overflow-y-auto h-full pt-0"
-            style={{ paddingBottom: SCROLL_FOOTER_PAD_PX }}
+            // style={{ paddingBottom: SCROLL_FOOTER_PAD_PX }}
           >
             <ScrollRootProvider value={scrollRoot}>
               {children}

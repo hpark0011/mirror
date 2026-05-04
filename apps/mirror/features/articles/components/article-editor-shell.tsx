@@ -66,8 +66,8 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
   } = props;
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex-1 overflow-auto px-6 py-4">
+    <div className="flex h-full flex-col overflow-auto">
+      <div className="flex flex-col  px-6 py-4 max-w-xl mx-auto w-full">
         <ArticleMetadataHeader {...metadata} />
         <ArticleRichTextEditor
           content={body}
