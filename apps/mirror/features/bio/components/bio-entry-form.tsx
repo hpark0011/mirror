@@ -34,7 +34,7 @@ export function BioEntryForm({
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="flex flex-col gap-2"
+        className="flex flex-col gap-4"
       >
         <BioKindField control={form.control} />
         <BioTextFields control={form.control} />

@@ -31,10 +31,10 @@ const inputVariants = cva(
         ),
         underline: cn(
           "border-b border-input",
-          "rounded-none px-1.5",
+          "rounded-none rounded-t-md px-1.5",
           "focus-visible:ring-0 focus-visible:bg-accent focus-visible:border-accent",
           "dark:bg-transparent dark:focus-visible:bg-accent",
-          "transition-all duration-100 ease-out focus-visible:rounded-lg focus-visible:px-2.5",
+          "transition-all duration-100 ease-out focus-visible:rounded-md focus-visible:px-1.5",
         ),
       },
       size: {

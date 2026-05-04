@@ -36,7 +36,7 @@ export function BioTextFields({ control }: BioTextFieldsProps) {
                 placeholder="Senior Engineer at Acme"
                 autoComplete="off"
                 size="sm"
-                className="border-border-subtle dark:border-border px-1"
+                className="border-border-subtle dark:border-border px-1 focus-visible:bg-gray-4 focus-visible:rounded-md"
                 variant="underline"
               />
             </FormControl>
@@ -75,7 +75,7 @@ export function BioTextFields({ control }: BioTextFieldsProps) {
                 inputMode="url"
                 placeholder="https://example.com"
                 autoComplete="off"
-                className="border-border-subtle px-1 dark:border-border"
+                className="border-border-subtle dark:border-border px-1 focus-visible:bg-gray-4 focus-visible:rounded-md"
                 size="sm"
                 variant="underline"
               />
