@@ -38,6 +38,7 @@ export function ArticleEditor({ article, username }: ArticleEditorProps) {
       onInlineImageError={form.onInlineImageError}
       onPendingUploadsChange={form.setHasPendingUploads}
       onSave={form.save}
+      onPublishToggle={form.togglePublish}
       onCancel={form.cancel}
       isSaving={form.isSaving}
       hasPendingUploads={form.hasPendingUploads}

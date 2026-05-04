@@ -47,7 +47,7 @@ export function EditorToolbar({
 
   return (
     <div
-      className="tiptap-toolbar"
+      className="tiptap-toolbar [corner-shape:superellipse(1.3)]"
       data-testid="article-editor-fixed-toolbar"
       role="toolbar"
       aria-label="Article formatting"

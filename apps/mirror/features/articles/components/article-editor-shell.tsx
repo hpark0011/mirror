@@ -15,6 +15,7 @@ import { Button } from "@feel-good/ui/primitives/button";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import type { InlineImageUploadResult } from "@feel-good/features/editor";
 import { ArticleMetadataHeader } from "./article-metadata-header";
+import { ArticlePublishToggle } from "./article-publish-toggle";
 import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
 
 export interface ArticleEditorShellProps {
@@ -45,6 +46,11 @@ export interface ArticleEditorShellProps {
 
   // Save flow
   onSave: () => void | Promise<void>;
+  /**
+   * Persists the article with the toggled publish status. Throws on failure
+   * so the publish-confirmation dialog can stay open and the user can retry.
+   */
+  onPublishToggle: () => Promise<void>;
   onCancel?: () => void;
   isSaving: boolean;
   hasPendingUploads: boolean;
@@ -59,6 +65,7 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
     onInlineImageError,
     onPendingUploadsChange,
     onSave,
+    onPublishToggle,
     onCancel,
     isSaving,
     hasPendingUploads,
@@ -66,51 +73,59 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
   } = props;
 
   return (
-    <div className="flex h-full flex-col overflow-auto">
-      <div className="flex flex-col  px-6 py-4 max-w-xl mx-auto w-full">
-        <ArticleMetadataHeader {...metadata} />
-        <ArticleRichTextEditor
-          content={body}
-          onChange={onBodyChange}
-          onImageUpload={onInlineImageUpload}
-          onImageUploadError={onInlineImageError}
-          onPendingUploadsChange={onPendingUploadsChange}
-          renderToolbar={({ editor, pickInlineImage }) => (
-            <WorkspaceToolbar>
-              <div className="flex w-full h-9 items-center justify-between gap-2 border-b border-border-subtle px-3.5 pl-1.5 pb-1.5">
+    <div className="relative flex h-full flex-col overflow-hidden">
+      <WorkspaceToolbar>
+        <div className="flex h-9 w-full items-center justify-end gap-2 border-b border-border-subtle px-3.5 pb-1.5">
+          {onCancel && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              onClick={onCancel}
+              disabled={isSaving}
+            >
+              Cancel
+            </Button>
+          )}
+          <ArticlePublishToggle
+            status={metadata.status}
+            isPending={isSaving}
+            disabled={isSaving || hasPendingUploads}
+            onConfirm={onPublishToggle}
+          />
+          <Button
+            type="button"
+            variant="primary"
+            size="xs"
+            data-testid="save-article-btn"
+            className="w-12"
+            onClick={() => void onSave()}
+            disabled={isSaving || hasPendingUploads}
+          >
+            {isSaving ? "Saving…" : "Save"}
+          </Button>
+        </div>
+      </WorkspaceToolbar>
+      <div className="flex-1 overflow-auto">
+        <div className="mx-auto flex w-full max-w-xl flex-col px-6 pt-4 pb-20">
+          <ArticleMetadataHeader {...metadata} />
+          <ArticleRichTextEditor
+            content={body}
+            onChange={onBodyChange}
+            onImageUpload={onInlineImageUpload}
+            onImageUploadError={onInlineImageError}
+            onPendingUploadsChange={onPendingUploadsChange}
+            renderToolbar={({ editor, pickInlineImage }) => (
+              <div className="absolute bottom-6 inset-x-0 z-10 mx-auto flex w-fit justify-center">
                 <EditorToolbar
                   editor={editor}
                   onInsertImage={pickInlineImage}
                   onError={(msg) => onInlineImageError?.(new Error(msg))}
                 />
-                <div className="flex items-center gap-2">
-                  {onCancel && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="xs"
-                      onClick={onCancel}
-                      disabled={isSaving}
-                    >
-                      Cancel
-                    </Button>
-                  )}
-                  <Button
-                    type="button"
-                    variant="primary"
-                    size="xs"
-                    data-testid="save-article-btn"
-                    className="w-12"
-                    onClick={() => void onSave()}
-                    disabled={isSaving || hasPendingUploads}
-                  >
-                    {isSaving ? "Saving…" : "Save"}
-                  </Button>
-                </div>
               </div>
-            </WorkspaceToolbar>
-          )}
-        />
+            )}
+          />
+        </div>
       </div>
     </div>
   );

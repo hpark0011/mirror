@@ -99,25 +99,42 @@ export function useEditArticleForm({
     setCoverImageUrl(null);
   }, []);
 
-  const save = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
-    setIsSaving(true);
-    try {
+  const persist = useCallback(
+    async (targetStatus: ArticleStatus) => {
       await update({
         id: initial._id,
         title: title.trim(),
         slug: slug.trim() ? slug : undefined,
         category: category.trim(),
         body,
-        status,
+        status: targetStatus,
         coverImageStorageId: coverImageStorageId ?? undefined,
       });
       // Optimistically reflect the server-side publishedAt assignment so
       // the UI doesn't wait for the next reactive query tick.
-      if (status === "published" && !publishedAt) {
+      if (targetStatus === "published" && !publishedAt) {
         setPublishedAt(Date.now());
       }
       router.refresh();
+    },
+    [
+      body,
+      category,
+      coverImageStorageId,
+      initial._id,
+      publishedAt,
+      router,
+      slug,
+      title,
+      update,
+    ],
+  );
+
+  const save = useCallback(async () => {
+    if (isSaving || hasPendingUploads) return;
+    setIsSaving(true);
+    try {
+      await persist(status);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save article";
@@ -125,21 +142,25 @@ export function useEditArticleForm({
     } finally {
       setIsSaving(false);
     }
-  }, [
-    body,
-    category,
-    coverImageStorageId,
-    hasPendingUploads,
-    initial._id,
-    isSaving,
-    publishedAt,
-    router,
-    showErrorToast,
-    slug,
-    status,
-    title,
-    update,
-  ]);
+  }, [hasPendingUploads, isSaving, persist, showErrorToast, status]);
+
+  const togglePublish = useCallback(async () => {
+    if (isSaving || hasPendingUploads) return;
+    const nextStatus: ArticleStatus =
+      status === "draft" ? "published" : "draft";
+    setIsSaving(true);
+    try {
+      await persist(nextStatus);
+      setStatus(nextStatus);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save article";
+      showErrorToast(message);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [hasPendingUploads, isSaving, persist, showErrorToast, status]);
 
   const cancel = useCallback(() => {
     router.push(`/@${username}/articles/${initial.slug}`);
@@ -169,6 +190,7 @@ export function useEditArticleForm({
     ) => Promise<InlineImageUploadResult>,
     onInlineImageError: showErrorToast,
     save,
+    togglePublish,
     cancel,
   };
 }

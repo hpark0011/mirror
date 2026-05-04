@@ -101,7 +101,7 @@ export function ArticleMetadataHeader({
   );
 
   return (
-    <div className="flex flex-col gap-4 py-12">
+    <div className="flex flex-col gap-7 py-12 pb-7">
       <Input
         id={titleId}
         data-testid="article-title-input"
@@ -112,7 +112,7 @@ export function ArticleMetadataHeader({
         className="h-fit border-0 p-0 text-2xl font-medium shadow-none focus-visible:ring-0 md:text-2xl rounded-none hover:bg-transparent"
       />
 
-      <div className="flex flex-col gap-2 pb-8 border-b border-border-subtle">
+      <div className="flex flex-col gap-2 pb-9 border-b border-border-subtle">
         <div className="flex flex-col gap-1">
           <div className="flex gap-1 items-start">
             <span className="text-[13px] text-muted-foreground w-30 pt-1">

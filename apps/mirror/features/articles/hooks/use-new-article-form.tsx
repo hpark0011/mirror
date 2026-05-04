@@ -91,18 +91,14 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     setCoverImageUrl(null);
   }, []);
 
-  const save = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
-    if (!title.trim()) {
-      showErrorToast("Title is required");
-      return;
-    }
-    if (!category.trim()) {
-      showErrorToast("Category is required");
-      return;
-    }
-    setIsSaving(true);
-    try {
+  const persist = useCallback(
+    async (targetStatus: ArticleStatus) => {
+      if (!title.trim()) {
+        throw new Error("Title is required");
+      }
+      if (!category.trim()) {
+        throw new Error("Category is required");
+      }
       const slugSource = slug.trim() ? slug : title;
       const finalSlug = generateSlug(slugSource);
       await create({
@@ -110,12 +106,28 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
         slug: finalSlug,
         category: category.trim(),
         body,
-        status,
-        ...(coverImageStorageId
-          ? { coverImageStorageId }
-          : {}),
+        status: targetStatus,
+        ...(coverImageStorageId ? { coverImageStorageId } : {}),
       });
       router.replace(`/@${username}/articles/${finalSlug}/edit`);
+    },
+    [
+      body,
+      category,
+      coverImageStorageId,
+      create,
+      router,
+      slug,
+      title,
+      username,
+    ],
+  );
+
+  const save = useCallback(async () => {
+    if (isSaving || hasPendingUploads) return;
+    setIsSaving(true);
+    try {
+      await persist(status);
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Failed to save article";
@@ -123,20 +135,25 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     } finally {
       setIsSaving(false);
     }
-  }, [
-    body,
-    category,
-    coverImageStorageId,
-    create,
-    hasPendingUploads,
-    isSaving,
-    router,
-    showErrorToast,
-    slug,
-    status,
-    title,
-    username,
-  ]);
+  }, [hasPendingUploads, isSaving, persist, showErrorToast, status]);
+
+  const togglePublish = useCallback(async () => {
+    if (isSaving || hasPendingUploads) return;
+    const nextStatus: ArticleStatus =
+      status === "draft" ? "published" : "draft";
+    setIsSaving(true);
+    try {
+      await persist(nextStatus);
+      setStatus(nextStatus);
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : "Failed to save article";
+      showErrorToast(message);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  }, [hasPendingUploads, isSaving, persist, showErrorToast, status]);
 
   return {
     // Metadata getters
@@ -164,5 +181,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     ) => Promise<InlineImageUploadResult>,
     onInlineImageError: showErrorToast,
     save,
+    togglePublish,
   };
 }
