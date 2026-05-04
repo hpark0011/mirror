@@ -8,7 +8,7 @@
 // (server-bound). The form hooks pass identical props.
 import {
   ArticleRichTextEditor,
-  EditorFixedToolbar,
+  EditorToolbar,
   type JSONContent,
 } from "@feel-good/features/editor";
 import { Button } from "@feel-good/ui/primitives/button";
@@ -78,7 +78,7 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
           renderToolbar={({ editor, pickInlineImage }) => (
             <WorkspaceToolbar>
               <div className="flex w-full items-center justify-between gap-2">
-                <EditorFixedToolbar
+                <EditorToolbar
                   editor={editor}
                   onInsertImage={pickInlineImage}
                   onError={(msg) => onInlineImageError?.(new Error(msg))}

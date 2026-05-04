@@ -20,10 +20,10 @@ import {
   useRef,
   useState,
 } from "react";
-import { FormatGroup } from "./toolbar/format-group";
-import { TextStylePicker } from "./toolbar/text-style-picker";
-import { ToolbarButton } from "./toolbar/toolbar-button";
-import { ToolbarSeparator } from "./toolbar/toolbar-separator";
+import { FormatGroup } from "../toolbar/format-group";
+import { TextStylePicker } from "../toolbar/text-style-picker";
+import { ToolbarButton } from "../toolbar/toolbar-button";
+import { ToolbarSeparator } from "../toolbar/toolbar-separator";
 
 interface TextBubbleMenuProps {
   editor: Editor;
@@ -45,6 +45,27 @@ function shouldShowTextMenu({
   const node = $from.node($from.depth);
   if (node?.type.name === "image") return false;
   return true;
+}
+
+// Mirror greyboard: pin the floating menu to the live DOM selection rect.
+// Without this `BubbleMenu` falls back to the editor root's bounding box
+// and the menu lands at the left edge instead of above the highlighted
+// text. Returns null when there's no usable selection so Tiptap hides it.
+function getTextSelectionVirtualElement(editor: Editor) {
+  const selection = editor.view.dom.ownerDocument.getSelection();
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+    return null;
+  }
+  const range = selection.getRangeAt(0);
+  const root =
+    range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+      ? range.commonAncestorContainer
+      : range.commonAncestorContainer.parentNode;
+  if (!root || !editor.view.dom.contains(root)) return null;
+  return {
+    getBoundingClientRect: () => range.getBoundingClientRect(),
+    getClientRects: () => Array.from(range.getClientRects()),
+  };
 }
 
 export const TextBubbleMenu = memo(function TextBubbleMenu({
@@ -76,11 +97,15 @@ export const TextBubbleMenu = memo(function TextBubbleMenu({
       pluginKey="textBubbleMenu"
       updateDelay={150}
       shouldShow={shouldShowTextMenu}
+      getReferencedVirtualElement={() =>
+        getTextSelectionVirtualElement(editor)
+      }
       options={{
         placement: "top",
         offset: { mainAxis: 8 },
         flip: true,
         shift: { padding: 8 },
+        inline: true,
         strategy: "fixed",
       }}
     >

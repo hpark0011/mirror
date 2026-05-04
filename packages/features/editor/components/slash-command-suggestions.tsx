@@ -16,7 +16,7 @@ import type React from "react";
 import { useImperativeHandle, useRef } from "react";
 import type { SlashCommandItem } from "../extensions/slash-command";
 
-interface SlashCommandMenuProps {
+interface SlashCommandSuggestionsProps {
   items: SlashCommandItem[];
   command: (item: SlashCommandItem) => void;
   ref?: React.Ref<{
@@ -46,11 +46,11 @@ function forwardKeyToCmdk(
   return false;
 }
 
-export function SlashCommandMenu({
+export function SlashCommandSuggestions({
   items,
   command,
   ref,
-}: SlashCommandMenuProps) {
+}: SlashCommandSuggestionsProps) {
   const commandRef = useRef<HTMLDivElement>(null);
 
   useImperativeHandle(ref, () => ({

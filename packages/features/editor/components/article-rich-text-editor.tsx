@@ -19,7 +19,7 @@ import {
   hasPendingUploads,
   type InlineImageUploadResult,
 } from "../lib/inline-image-upload-plugin";
-import { TextBubbleMenu } from "./text-bubble-menu";
+import { TextBubbleMenu } from "./bubble-menu/text-bubble-menu";
 
 type ArticleRichTextEditorProps = {
   content: JSONContent;
@@ -121,7 +121,11 @@ export function ArticleRichTextEditor({
     editable: true,
     immediatelyRender: false,
     editorProps: {
-      attributes: { class: "tiptap" },
+      // Greyboard convention: the contenteditable carries `tiptap-prose` so
+      // the placeholder rule (.tiptap-editor .tiptap-prose p.is-editor-empty)
+      // and prose typography both bind to it. Wrapping ancestor adds
+      // `tiptap-editor` so the design tokens scope correctly.
+      attributes: { class: "tiptap-prose" },
     },
     onUpdate: ({ editor: instance }) => {
       onChangeRef.current(instance.getJSON());
@@ -139,7 +143,7 @@ export function ArticleRichTextEditor({
     return (
       <div
         className={cn(
-          "tiptap-content prose dark:prose-invert max-w-none min-h-[200px]",
+          "tiptap-editor tiptap-content prose dark:prose-invert max-w-none min-h-[200px]",
           className,
         )}
       />
@@ -147,7 +151,7 @@ export function ArticleRichTextEditor({
   }
 
   return (
-    <>
+    <div className="tiptap-editor">
       {renderToolbar?.({ editor, pickInlineImage })}
       <EditorContent
         editor={editor}
@@ -157,6 +161,6 @@ export function ArticleRichTextEditor({
         )}
       />
       <TextBubbleMenu editor={editor} />
-    </>
+    </div>
   );
 }

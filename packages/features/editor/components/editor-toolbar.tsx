@@ -20,7 +20,7 @@ import { TextStylePicker } from "./toolbar/text-style-picker";
 import { ToolbarButton } from "./toolbar/toolbar-button";
 import { ToolbarSeparator } from "./toolbar/toolbar-separator";
 
-interface EditorFixedToolbarProps {
+interface EditorToolbarProps {
   editor: Editor;
   /** Optional handler to insert an inline image via the app's upload flow. */
   onInsertImage?: () => Promise<{ src: string } | null>;
@@ -28,11 +28,11 @@ interface EditorFixedToolbarProps {
   onError?: (message: string) => void;
 }
 
-export function EditorFixedToolbar({
+export function EditorToolbar({
   editor,
   onInsertImage,
   onError,
-}: EditorFixedToolbarProps) {
+}: EditorToolbarProps) {
   async function handleInsertImage() {
     if (!onInsertImage) return;
     try {

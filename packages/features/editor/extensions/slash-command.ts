@@ -1,7 +1,8 @@
 // Slash command extension — typing "/" at the start of an empty paragraph
 // (or after another empty paragraph) opens the slash menu, which is rendered
-// by `SlashCommandMenu` via `createSuggestionRenderer`. Items + their commands
-// live as plain data so unit tests can assert the list shape directly.
+// by `SlashCommandSuggestions` via `createSuggestionRenderer`. Items + their
+// commands live as plain data so unit tests can assert the list shape
+// directly.
 //
 // Ported from greyboard/packages/features/editor/src/extensions/slash-command.ts.
 import {
@@ -21,7 +22,7 @@ import { PluginKey } from "@tiptap/pm/state";
 import Suggestion from "@tiptap/suggestion";
 import type { ComponentType } from "react";
 
-import { SlashCommandMenu } from "../components/slash-command-menu";
+import { SlashCommandSuggestions } from "../components/slash-command-suggestions";
 import { createSuggestionRenderer } from "../utils/suggestion-popup";
 
 export interface SlashCommandItem {
@@ -249,7 +250,7 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
         command: ({ editor, range, props: item }) => {
           item.command(editor, range);
         },
-        render: createSuggestionRenderer(SlashCommandMenu),
+        render: createSuggestionRenderer(SlashCommandSuggestions),
       }),
     ];
   },
