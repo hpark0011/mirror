@@ -1,5 +1,38 @@
 # Lessons Learned
 
+## 2026-05-05
+
+### Authenticated Playwright specs need a deterministic ConvexAuth-ready signal
+
+`ConvexBetterAuthProvider` installs the JWT in a *post-mount* effect:
+`authClient.useSession()` resolves → `fetchAccessToken()` round-trips
+`/api/auth/convex/token` → `client.setAuth(...)` flips
+`useConvexAuth().isAuthenticated` to `true`. Any `useMutation(...)` fired
+during those microtasks (the inline-image upload-URL generator, the
+post-create mutation, etc.) hits `Unauthenticated` even though the
+session cookie is already set on the browser. Pre-warming
+`/api/auth/convex/token` via `app/api/test/session` does NOT help — the
+cookie is already present; the gap is the client-side effect, not the
+network.
+
+The fix is one inert probe + one fixture helper, applied uniformly:
+
+- `apps/mirror/providers/convex-auth-probe.tsx` mounts a hidden `<span
+  data-testid="convex-auth-state" data-authenticated="…">` that mirrors
+  `useConvexAuth()`. It's `aria-hidden` and `display:none` so the
+  production cost is one tiny element render.
+- `apps/mirror/e2e/fixtures/auth.ts` exports `waitForAuthReady(page)`,
+  which waits for `[data-authenticated="true"]` to attach. Authenticated
+  specs call it AFTER `page.goto(...)` and BEFORE the first interaction
+  that triggers a `useMutation(...)` (paste, drop, save, dialog submit).
+
+When you add a new authenticated spec that interacts with a Convex
+mutation: import `waitForAuthReady` from `./fixtures/auth`, call it once
+per page navigation, and you're safe. Don't try to re-derive readiness
+from network requests — the token cookie may already be set, so no
+second `/api/auth/convex/token` request fires; the only deterministic
+signal is the `useConvexAuth` boolean mirrored into the DOM.
+
 ## 2026-05-03
 
 - Inline storage cascade deletes must prove a blob is globally unreferenced after the write lands, not merely removed from the current body. Same-owner copy/paste can leave the same `storageId` in another article or post, so immediate cleanup needs a current article/post/user reference scan before `ctx.storage.delete`.
