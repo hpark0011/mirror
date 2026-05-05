@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import type { UIMessage } from "@convex-dev/agent/react";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { isContentKind, type ContentKind } from "@/features/content";
@@ -30,23 +30,48 @@ import { isContentKind, type ContentKind } from "@/features/content";
  * input doesn't fire navigation prematurely, and an `output-error` is
  * left for the LLM's text recovery.
  *
- * Idempotency: `handledToolCallIds` tracks the toolCallIds we've already
- * dispatched. The same UIMessage re-renders many times during streaming
- * and after persistence; without this ref, we'd navigate on every render
- * the moment a tool result lands.
- *
- * Lifecycle limitation (Phase 1): this hook is mounted only while the
- * chat panel is visible (it lives inside `ChatActiveThread`, which is
- * inside `ChatPanel`, which renders only when `isChatOpen === true`).
- * If the user manually closes the chat panel between when the agent
- * emits a `navigateToContent` tool result and when this watcher
- * processes it, the navigation is dropped. The dominant flow
- * (user asks → agent navigates → chat stays open via `?chat=1`)
- * is unaffected. Phase 2 will move the watcher to a permanent mount
- * with a shared message-state subscription so closing the panel
- * mid-stream no longer drops the navigation.
+ * Idempotency is conversation-scoped, not mount-scoped. The
+ * `handledByConversation` Map at module scope persists the
+ * `Set<toolCallId>` for each conversationId across mounts of the
+ * watcher — so closing and reopening the chat panel, switching to an
+ * existing conversation, or any future mount migration cannot re-fire
+ * a historical tool result that's already been dispatched.
  */
 const NAVIGATE_TO_CONTENT_TYPE = "tool-navigateToContent";
+
+/**
+ * Module-level Map of conversationId → set of dispatched toolCallIds.
+ *
+ * This is a deliberate exception to `.claude/rules/state-management.md`'s
+ * three-tier hierarchy (useState → useLocalStorage → React Context).
+ * Cross-mount persistence is the requirement: when `ChatActiveThread`
+ * unmounts on chat-panel close and remounts on reopen, a per-mount ref
+ * loses its handled-toolCallId set and the persisted UIMessages
+ * re-dispatch every historical navigation. Module scope outlives mounts
+ * (and React Context would re-create the Set on its own provider's
+ * unmount), so the Map lives here.
+ *
+ * Memory bound: each toolCallId is ~36 chars (UUID). 1000 tool calls
+ * across all conversations ≈ 36 KB. Acceptable for a tab's lifetime.
+ *
+ * Exported for unit tests so they can clear it between test cases.
+ */
+export const handledByConversation = new Map<string, Set<string>>();
+
+function getHandledSet(conversationId: string | null): Set<string> {
+  // Treat a null conversationId (a brand-new thread the user hasn't sent
+  // a message in yet) as its own bucket. The first send creates the
+  // conversation row and the next render flips this to a real id; any
+  // toolCallIds collected under "null" are functionally orphaned because
+  // the watcher won't see them again — that's fine.
+  const key = conversationId ?? "__null__";
+  let set = handledByConversation.get(key);
+  if (!set) {
+    set = new Set<string>();
+    handledByConversation.set(key, set);
+  }
+  return set;
+}
 
 type NavigateOutput = {
   kind: ContentKind;
@@ -66,12 +91,16 @@ function isNavigateOutput(output: unknown): output is NavigateOutput {
   );
 }
 
-export function useAgentIntentWatcher(messages: UIMessage[]) {
+export function useAgentIntentWatcher(
+  messages: UIMessage[],
+  conversationId: string | null,
+) {
   const { navigateToContent } = useCloneActions();
-  const handledToolCallIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (messages.length === 0) return;
+
+    const handled = getHandledSet(conversationId);
 
     // Walk the assistant messages in order; tool calls can land in any
     // assistant message and the order is preserved by `combineUIMessages`.
@@ -89,10 +118,10 @@ export function useAgentIntentWatcher(messages: UIMessage[]) {
           output?: unknown;
         };
         if (toolPart.state !== "output-available") continue;
-        if (handledToolCallIdsRef.current.has(toolPart.toolCallId)) continue;
+        if (handled.has(toolPart.toolCallId)) continue;
         if (!isNavigateOutput(toolPart.output)) continue;
 
-        handledToolCallIdsRef.current.add(toolPart.toolCallId);
+        handled.add(toolPart.toolCallId);
         navigateToContent({
           kind: toolPart.output.kind,
           slug: toolPart.output.slug,
@@ -103,5 +132,5 @@ export function useAgentIntentWatcher(messages: UIMessage[]) {
         });
       }
     }
-  }, [messages, navigateToContent]);
+  }, [messages, navigateToContent, conversationId]);
 }

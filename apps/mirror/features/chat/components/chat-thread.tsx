@@ -101,7 +101,10 @@ function ChatActiveThread() {
   // Watch for agent tool-results that drive UI navigation (the agent half
   // of the "two routes, one dispatcher" pattern — see
   // `app/[username]/_providers/clone-actions-context.tsx`).
-  useAgentIntentWatcher(messages);
+  // `conversationId` keys the module-level idempotency Map, so the
+  // handled-toolCallId set survives chat-panel close/reopen and
+  // conversation switches.
+  useAgentIntentWatcher(messages, conversationId);
 
   // Conversation deleted after route resolved — show error state
   if (conversationNotFound) {
