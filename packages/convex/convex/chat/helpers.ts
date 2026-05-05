@@ -4,6 +4,61 @@ import { internalQuery } from "../_generated/server";
 import { components } from "../_generated/api";
 import { TONE_PRESETS, type TonePreset } from "./tonePresets";
 
+/**
+ * Inventory of which structured RAG-ingestion sources the profile owner has
+ * populated. Keys MUST stay in sync with `embeddingSourceTableValidator` in
+ * `packages/convex/convex/embeddings/schema.ts` — when a literal is added
+ * there, add the key here so the compiler forces a corresponding update to
+ * `composeSystemPrompt`'s inventory sentence.
+ */
+export type ContentInventory = {
+  articles: boolean;
+  posts: boolean;
+  bioEntries: boolean;
+};
+
+// Human-readable label for each kind in the inventory sentence. Phrasing is
+// plain conversational prose to match STYLE_RULES — the agent copies the
+// register from the system prompt.
+const CONTENT_INVENTORY_LABELS: Record<keyof ContentInventory, string> = {
+  bioEntries: "bio entries (work history, education)",
+  posts: "published posts",
+  articles: "published articles",
+};
+
+// Order in which kinds appear in the inventory sentence. Listed bio-first
+// because that is the kind least likely to be obvious from the visitor's
+// message, so naming it proactively has the most impact.
+const CONTENT_INVENTORY_ORDER: ReadonlyArray<keyof ContentInventory> = [
+  "bioEntries",
+  "posts",
+  "articles",
+];
+
+/**
+ * Build the inventory sentence for the system prompt. Returns `null` when no
+ * kinds are populated so the caller can omit the section entirely (preserves
+ * backward compatibility for users with no structured content).
+ *
+ * Exported so the unit tests can target the phrasing directly.
+ */
+export function buildContentInventorySentence(
+  inventory: ContentInventory,
+): string | null {
+  const present = CONTENT_INVENTORY_ORDER.filter((key) => inventory[key]);
+  if (present.length === 0) return null;
+
+  const labels = present.map((key) => CONTENT_INVENTORY_LABELS[key]);
+  const list =
+    labels.length === 1
+      ? labels[0]
+      : labels.length === 2
+        ? `${labels[0]} and ${labels[1]}`
+        : `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+
+  return `You can speak from this person's ${list} when relevant.`;
+}
+
 const SAFETY_PREFIX = (name: string) =>
   `You are a digital clone of ${name}. You represent their ideas and perspectives based on their writing and profile.
 You must never: claim to be human, share private information not in your context, make commitments on behalf of the real person, or provide medical/legal/financial advice.`;
@@ -14,6 +69,15 @@ Keep replies short — usually 1–3 sentences. If you need to mention multiple 
 
 const DEFAULT_PERSONA =
   "Answer questions helpfully based on your profile information and published articles.";
+
+// Tools-vocabulary section. Tells the agent the verbs it can call to act on
+// the visitor's view, not just describe content. Phrasing is plain
+// conversational prose to match STYLE_RULES — no markdown, no lists. Kept
+// short so it pulls little weight in the truncatable budget. Placed alongside
+// the inventory sentence so the agent learns nouns ("articles", "posts") and
+// verbs ("getLatestPublished", "navigateToContent") in the same region.
+const TOOLS_VOCABULARY =
+  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug.";
 
 export const SYSTEM_PROMPT_MAX_CHARS = 6000;
 
@@ -39,7 +103,12 @@ const SEPARATOR = "\n\n";
  * the model contract (≤ 6000 chars) always holds, at the cost of cutting
  * into the safety prefix. That is the lesser evil vs. blowing the cap.
  *
- * Section ORDER is preserved: safety → style → tone → bio → persona → topics.
+ * Section ORDER is preserved:
+ *   safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+ * The first four are fixed (load-bearing) — safety prefix, style rules, the
+ * optional tone clause, and TOOLS_VOCABULARY (the only place the system
+ * prompt names `getLatestPublished` / `navigateToContent`). The rest are
+ * truncatable.
  */
 function truncateToBudget(
   fixedParts: Array<string>,
@@ -89,6 +158,7 @@ export function composeSystemPrompt(opts: {
   personaPrompt?: string | null;
   tonePreset?: TonePreset | null;
   topicsToAvoid?: string | null;
+  contentInventory?: ContentInventory | null;
 }): string {
   // Bound name up front so a pathologically long value cannot force the
   // final backstop slice to cut into SAFETY_PREFIX or the tone clause.
@@ -97,16 +167,27 @@ export function composeSystemPrompt(opts: {
     rawName.length > MAX_NAME_CHARS ? rawName.slice(0, MAX_NAME_CHARS) : rawName;
 
   // Fixed (non-truncatable) sections — always preserved verbatim.
-  // Order: safety → style → tone(optional). Style rules are product-wide
-  // (the chat UI renders plain text, not markdown), so they apply regardless
-  // of tone preset or persona prompt.
+  // Order: safety → style → tone(optional) → tools-vocab. Style rules are
+  // product-wide (the chat UI renders plain text, not markdown), so they
+  // apply regardless of tone preset or persona prompt. TOOLS_VOCABULARY is
+  // load-bearing too — it is the only place the system prompt names
+  // `getLatestPublished` / `navigateToContent`, so under budget pressure
+  // (verbose persona + bio + topics) it must not be proportionally shrunk
+  // away. The verb names are identical across users — the per-request
+  // factory only binds `profileOwnerId`, never tool args — so the line is
+  // a constant, not user-derived content.
   const fixed: Array<string> = [SAFETY_PREFIX(name), STYLE_RULES];
   if (opts.tonePreset && opts.tonePreset in TONE_PRESETS) {
     fixed.push(TONE_PRESETS[opts.tonePreset].clause);
   }
+  fixed.push(TOOLS_VOCABULARY);
 
-  // Truncatable sections — bio, persona, topics. Order matches existing
-  // section order (safety → style → tone → bio → persona → topics).
+  // Truncatable sections — bio, persona, topics, inventory. Order:
+  // safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+  // The inventory sentence is appended last so it does not destabilize
+  // existing prompt ordering for users without structured content; it is
+  // genuinely user-derived (depends on which kinds the owner has populated)
+  // and may legitimately compress if context budget runs tight.
   const truncatable: Array<string> = [];
   if (opts.bio) {
     truncatable.push(`Bio: ${opts.bio}`);
@@ -114,6 +195,14 @@ export function composeSystemPrompt(opts: {
   truncatable.push(opts.personaPrompt || DEFAULT_PERSONA);
   if (opts.topicsToAvoid) {
     truncatable.push(`Avoid discussing: ${opts.topicsToAvoid}`);
+  }
+  if (opts.contentInventory) {
+    const inventorySentence = buildContentInventorySentence(
+      opts.contentInventory,
+    );
+    if (inventorySentence) {
+      truncatable.push(inventorySentence);
+    }
   }
 
   // Track which truncatable slots correspond to bio/persona/topics so we can
@@ -153,6 +242,42 @@ export const loadStreamingContext = internalQuery({
       throw new Error("Profile owner not found");
     }
 
+    // Inventory of structured content the profile owner has populated.
+    // Each query is a `take(1)` against an index for a presence check.
+    // Articles and posts use the compound `by_userId_and_status` index so the
+    // scan is bounded to published rows only — `.filter()` is forbidden by
+    // `.claude/rules/convex.md` because Convex applies it AFTER the index
+    // scan, meaning N drafts before any published row would read N documents.
+    // Drafts are not retrieval-eligible (see
+    // `embeddings/getContentForEmbedding`) and must not be mentioned in the
+    // prompt. Bio entries have no draft lifecycle, so any row counts and the
+    // simpler `by_userId` index is sufficient. The three reads are
+    // independent presence checks so they run concurrently via `Promise.all`.
+    const [articleRow, postRow, bioEntryRow] = await Promise.all([
+      ctx.db
+        .query("articles")
+        .withIndex("by_userId_and_status", (q) =>
+          q.eq("userId", profileOwnerId).eq("status", "published"),
+        )
+        .take(1),
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId_and_status", (q) =>
+          q.eq("userId", profileOwnerId).eq("status", "published"),
+        )
+        .take(1),
+      ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
+        .take(1),
+    ]);
+
+    const contentInventory: ContentInventory = {
+      articles: articleRow.length > 0,
+      posts: postRow.length > 0,
+      bioEntries: bioEntryRow.length > 0,
+    };
+
     return {
       threadId: conversation.threadId,
       systemPrompt: composeSystemPrompt({
@@ -161,6 +286,7 @@ export const loadStreamingContext = internalQuery({
         personaPrompt: profileOwner.personaPrompt,
         tonePreset: profileOwner.tonePreset as TonePreset | null | undefined,
         topicsToAvoid: profileOwner.topicsToAvoid,
+        contentInventory,
       }),
     };
   },

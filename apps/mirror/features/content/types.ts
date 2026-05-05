@@ -1,6 +1,18 @@
-export const CONTENT_KINDS = ["posts", "articles"] as const;
+// Re-export the canonical href builder from the shared `@feel-good/convex`
+// helper so both the Next.js client and the Convex backend share one source
+// of truth for the `/@<username>/<kind>/<slug>` URL shape. Legacy callers
+// (`article-list-item.tsx`, `post-list-item.tsx`, `clone-actions-context.tsx`,
+// `back-link.tsx`, `use-profile-workspace-route-data.ts`) keep importing
+// `getContentHref` from `@/features/content`. See
+// `.claude/rules/agent-parity.md` § Href-parity invariant.
+import { type ContentKind } from "@feel-good/convex/convex/content/href";
 
-export type ContentKind = (typeof CONTENT_KINDS)[number];
+export {
+  buildContentHref as getContentHref,
+  type ContentKind,
+} from "@feel-good/convex/convex/content/href";
+
+export const CONTENT_KINDS = ["posts", "articles"] as const;
 
 export const DEFAULT_PROFILE_CONTENT_KIND: ContentKind = "posts";
 
@@ -21,15 +33,6 @@ export function isContentKind(
   value: string | null | undefined,
 ): value is ContentKind {
   return value === "articles" || value === "posts";
-}
-
-export function getContentHref(
-  username: string,
-  kind: ContentKind,
-  slug?: string,
-) {
-  const basePath = `/@${username}/${kind}`;
-  return slug ? `${basePath}/${slug}` : basePath;
 }
 
 export function getContentRouteState(

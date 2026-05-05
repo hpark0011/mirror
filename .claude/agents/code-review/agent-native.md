@@ -61,6 +61,29 @@ A new content kind added to RAG without a corresponding system-prompt mention is
 - Tool inputs are data, not decisions (e.g. `store_item({key, value})`, not `process_feedback({message})` that hides categorize/prioritize/notify)?
 - **Exception:** tools that wrap atomic safety-critical sequences (a payment + record + receipt) or external-system orchestration the agent shouldn't choreograph step-by-step are acceptable; flag for review but don't treat as a defect if the encapsulation is justified.
 
+**Concrete checklist (Mirror has tools now — `chat/tools.ts:buildCloneTools` is the canonical example):**
+
+- `inputSchema` MUST NOT include any user identifier (`userId`,
+  `user_id`, `ownerId`, etc.). The cross-user boundary is the closure-bound
+  `profileOwnerId`, not a tool arg. Canonical example:
+  `packages/convex/convex/chat/tools.ts:buildCloneTools`. The unit-level
+  enforcement lives in
+  `packages/convex/convex/chat/__tests__/tools.test.ts`'s
+  `inputSchema invariants` describe block — every new tool needs the
+  matching assertion before the PR lands.
+- Tool data resolution must pin to `profileOwnerId` (or the equivalent
+  server-derived owner) via the per-request factory closure — never via
+  tool args. The handler's `ctx.runQuery(...)` calls pass the closure
+  variable; the LLM cannot influence which user's rows it reads.
+- A new user-facing verb requires the four-step checklist from
+  `.claude/rules/agent-parity.md`: dispatcher verb in `useCloneActions`,
+  matching tool in `buildCloneTools`, system-prompt mention in
+  `TOOLS_VOCABULARY`, owner pin in the resolution path.
+- The system prompt's `TOOLS_VOCABULARY` (assembled in
+  `packages/convex/convex/chat/helpers.ts:composeSystemPrompt`) must
+  mention every new tool — a registered tool the LLM doesn't know exists
+  is a discoverability gap, not a feature.
+
 ### 5. Shared workspace
 
 - Agent-side reads and user-side reads hit the same tables, not a separate mirror?

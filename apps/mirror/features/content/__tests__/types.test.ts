@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getContentRouteState, isContentKind } from "../types";
+import { getContentHref, getContentRouteState, isContentKind } from "../types";
 
 describe("getContentRouteState", () => {
   it("returns a route state for the 'posts' content kind", () => {
@@ -37,6 +37,28 @@ describe("getContentRouteState", () => {
 
   it("returns null for an empty segments array", () => {
     expect(getContentRouteState([])).toBeNull();
+  });
+});
+
+// Pins the canonical href shape `/@<username>/<kind>/<slug>`. The Convex
+// side has an identical helper at `packages/convex/convex/chat/toolQueries.ts`
+// (`buildContentHref`) feeding the `navigateToContent` agent tool's result.
+// Both must produce byte-identical strings — drift between them silently
+// breaks `useAgentIntentWatcher`'s assumption that the server-built `href`
+// matches the client's user-UI navigation. Each side has its own test.
+describe("getContentHref", () => {
+  it("builds /@<username>/<kind>/<slug>", () => {
+    expect(getContentHref("alice", "articles", "hello-world")).toBe(
+      "/@alice/articles/hello-world",
+    );
+    expect(getContentHref("bob", "posts", "first-post")).toBe(
+      "/@bob/posts/first-post",
+    );
+  });
+
+  it("omits slug when not provided", () => {
+    expect(getContentHref("alice", "articles")).toBe("/@alice/articles");
+    expect(getContentHref("bob", "posts")).toBe("/@bob/posts");
   });
 });
 

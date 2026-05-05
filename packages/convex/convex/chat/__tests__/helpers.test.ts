@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { TONE_PRESETS, type TonePreset } from "../tonePresets";
 import {
+  buildContentInventorySentence,
   composeSystemPrompt,
   STYLE_RULES,
   SYSTEM_PROMPT_MAX_CHARS,
+  type ContentInventory,
 } from "../helpers";
 
 const SAFETY_PREFIX_START = "You are a digital clone of ";
@@ -33,16 +35,23 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // Segment 2: tone clause (friendly)
     expect(segments[2]).toBe(TONE_PRESETS.friendly.clause);
 
-    // Segment 3: bio
-    expect(segments[3]).toBe("Bio: A writer");
+    // Segment 3: tools-vocabulary (always present — tool surface is identical
+    // across users, only `profileOwnerId` is bound per-request). Now in the
+    // fixed region so it cannot be proportionally shrunk away under budget
+    // pressure (FG_126).
+    expect(segments[3]).toContain("getLatestPublished");
+    expect(segments[3]).toContain("navigateToContent");
 
-    // Segment 4: persona
-    expect(segments[4]).toBe("My custom persona");
+    // Segment 4: bio
+    expect(segments[4]).toBe("Bio: A writer");
 
-    // Segment 5: topics
-    expect(segments[5]).toBe("Avoid discussing: politics");
+    // Segment 5: persona
+    expect(segments[5]).toBe("My custom persona");
 
-    expect(segments).toHaveLength(6);
+    // Segment 6: topics
+    expect(segments[6]).toBe("Avoid discussing: politics");
+
+    expect(segments).toHaveLength(7);
   });
 
   // UT-03: omits tone clause when tonePreset is null
@@ -61,9 +70,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     }
 
     const segments = result.split("\n\n");
-    // SAFETY_PREFIX, STYLE_RULES, bio, persona — no tone, no topics
-    expect(segments).toHaveLength(4);
+    // SAFETY_PREFIX, STYLE_RULES, tools-vocabulary, bio, persona
+    // — no tone, no topics. Tools-vocabulary now sits in the fixed region
+    // immediately after the (omitted) tone slot.
+    expect(segments).toHaveLength(5);
     expect(segments[1]).toContain(STYLE_RULES);
+    expect(segments[2]).toContain("navigateToContent");
   });
 
   it("always includes STYLE_RULES even when persona is custom and no tone is set", () => {
@@ -84,6 +96,11 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // a field being present, this test catches the regression.
     const result = composeSystemPrompt({ name: "Frank" });
     expect(result).toContain(STYLE_RULES);
+    // FG_126: TOOLS_VOCABULARY must survive even when the only input is
+    // `name` — the tool surface is constant per-user, so the line is in
+    // the fixed (non-truncatable) region.
+    expect(result).toContain("navigateToContent");
+    expect(result).toContain("getLatestPublished");
   });
 
   // UT-04: omits topics line when topicsToAvoid is null
@@ -132,6 +149,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       });
 
       expect(result.length).toBeLessThanOrEqual(SYSTEM_PROMPT_MAX_CHARS);
+      // FG_126: TOOLS_VOCABULARY moved into the fixed region so it cannot
+      // be proportionally shrunk to nothing under budget pressure. Both
+      // tool names must appear verbatim even when persona+bio+topics are
+      // each oversize.
+      expect(result).toContain("getLatestPublished");
+      expect(result).toContain("navigateToContent");
     });
 
     it("preserves the safety-prefix substring verbatim at the start after truncation", () => {
@@ -149,6 +172,10 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(result).toContain("digital clone of Alice");
       // Tone clause also preserved verbatim.
       expect(result).toContain(TONE_PRESETS.friendly.clause);
+      // FG_126: TOOLS_VOCABULARY also in the fixed region — both tool
+      // names must survive proportional truncation verbatim.
+      expect(result).toContain("getLatestPublished");
+      expect(result).toContain("navigateToContent");
     });
 
     it("Finding A: enormous name producing a huge safety prefix still caps at SYSTEM_PROMPT_MAX_CHARS", () => {
@@ -168,6 +195,11 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // ensures the safety prefix never starves the budget — so the style
       // clause must survive verbatim even in the pathological-name path.
       expect(result).toContain(STYLE_RULES);
+      // FG_126: TOOLS_VOCABULARY is in the same fixed region — the
+      // MAX_NAME_CHARS cap keeps the fixed total well under budget so
+      // both tool names survive even when the input name is oversize.
+      expect(result).toContain("getLatestPublished");
+      expect(result).toContain("navigateToContent");
     });
 
     it("Finding A: 5500-char bio keeps FULL tone clause verbatim and stays ≤ 6000 chars", () => {
@@ -191,9 +223,13 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // Safety prefix also preserved verbatim at the start.
       expect(result.startsWith(SAFETY_PREFIX_START)).toBe(true);
       expect(result).toContain("digital clone of Alice");
+      // FG_126: TOOLS_VOCABULARY in the fixed region survives a 5500-char
+      // bio — both tool names appear verbatim.
+      expect(result).toContain("getLatestPublished");
+      expect(result).toContain("navigateToContent");
     });
 
-    it("preserves section order (safety → style → tone → bio → persona → topics) when under budget", () => {
+    it("preserves section order (safety → style → tone → tools → bio → persona → topics) when under budget", () => {
       const result = composeSystemPrompt({
         name: "Alice",
         bio: "Writer from Oakland",
@@ -205,16 +241,146 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       const safetyIdx = result.indexOf("digital clone of Alice");
       const styleIdx = result.indexOf(STYLE_RULES);
       const toneIdx = result.indexOf(TONE_PRESETS.friendly.clause);
+      const toolsIdx = result.indexOf("navigateToContent");
       const bioIdx = result.indexOf("Bio: Writer from Oakland");
       const personaIdx = result.indexOf("Persona body");
       const topicsIdx = result.indexOf("Avoid discussing: politics");
 
+      // FG_126: TOOLS_VOCABULARY moved into the fixed region, so it now
+      // appears AFTER the tone clause and BEFORE bio/persona/topics.
       expect(safetyIdx).toBeGreaterThanOrEqual(0);
       expect(styleIdx).toBeGreaterThan(safetyIdx);
       expect(toneIdx).toBeGreaterThan(styleIdx);
-      expect(bioIdx).toBeGreaterThan(toneIdx);
+      expect(toolsIdx).toBeGreaterThan(toneIdx);
+      expect(bioIdx).toBeGreaterThan(toolsIdx);
       expect(personaIdx).toBeGreaterThan(bioIdx);
       expect(topicsIdx).toBeGreaterThan(personaIdx);
+    });
+  });
+
+  // FG_124: contentInventory section
+  describe("contentInventory (FG_124: clone declares structured content kinds)", () => {
+    const allFalse: ContentInventory = {
+      articles: false,
+      posts: false,
+      bioEntries: false,
+    };
+
+    it("includes the 'bio entries' phrase when contentInventory.bioEntries is true", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        contentInventory: { ...allFalse, bioEntries: true },
+      });
+
+      // The phrase "bio entries" must appear so the agent has proactive
+      // vocabulary for the noun, not only when the visitor's message
+      // lexically matches retrieval.
+      expect(result).toContain("bio entries");
+    });
+
+    it("does NOT include the 'bio entries' phrase when contentInventory.bioEntries is false", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        contentInventory: allFalse,
+      });
+
+      expect(result).not.toContain("bio entries");
+    });
+
+    it("omits the inventory sentence entirely when no kinds are populated", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        contentInventory: allFalse,
+      });
+
+      // No kinds → no "You can speak from this person's …" sentence at all,
+      // preserving prompt shape for users with no structured content.
+      expect(result).not.toContain("You can speak from this person's");
+    });
+
+    it("omits the inventory sentence when contentInventory is undefined (backward compat)", () => {
+      const result = composeSystemPrompt({ name: "Alice" });
+      expect(result).not.toContain("You can speak from this person's");
+    });
+
+    it("lists only populated kinds — bio + posts but not articles", () => {
+      // Override personaPrompt because DEFAULT_PERSONA itself contains the
+      // phrase "published articles" — we need to assert on the inventory
+      // sentence specifically, not the surrounding prompt.
+      const result = composeSystemPrompt({
+        name: "Alice",
+        personaPrompt: "Custom persona text without article keywords.",
+        contentInventory: { articles: false, posts: true, bioEntries: true },
+      });
+
+      // Inventory sentence appears verbatim with the populated kinds joined
+      // and an "and" before the last item.
+      expect(result).toContain(
+        "You can speak from this person's bio entries (work history, education) and published posts when relevant.",
+      );
+      // The omitted kind is not in the inventory sentence — the persona was
+      // overridden so any remaining "published articles" substring would
+      // come from the inventory section we're testing against.
+      expect(result).not.toContain("published articles");
+    });
+
+    it("places the inventory sentence in the truncatable region (after topics)", () => {
+      const result = composeSystemPrompt({
+        name: "Alice",
+        bio: "Writer",
+        personaPrompt: "Persona body",
+        tonePreset: "friendly",
+        topicsToAvoid: "politics",
+        contentInventory: { articles: true, posts: true, bioEntries: true },
+      });
+
+      const topicsIdx = result.indexOf("Avoid discussing: politics");
+      const inventoryIdx = result.indexOf("You can speak from this person's");
+
+      expect(topicsIdx).toBeGreaterThanOrEqual(0);
+      expect(inventoryIdx).toBeGreaterThan(topicsIdx);
+    });
+
+    it("phrasing is plain conversational prose (no markdown / lists / headers)", () => {
+      const sentence = buildContentInventorySentence({
+        articles: true,
+        posts: true,
+        bioEntries: true,
+      });
+
+      // STYLE_RULES forbids **, *, _, backticks, bullets, headers — the
+      // inventory sentence must not introduce any of those markers.
+      expect(sentence).not.toBeNull();
+      expect(sentence!).not.toMatch(/\*\*|\*[^*]|_[^_]|`/);
+      expect(sentence!).not.toMatch(/^\s*[-•]/m);
+      expect(sentence!).not.toMatch(/^#/m);
+    });
+
+    it("buildContentInventorySentence returns null when nothing populated", () => {
+      expect(buildContentInventorySentence(allFalse)).toBeNull();
+    });
+
+    it("FR-09 truncation budget still holds with full inventory + oversize fields", () => {
+      // Confirms acceptance criterion: the existing truncation logic still
+      // enforces SYSTEM_PROMPT_MAX_CHARS even when contentInventory pushes
+      // the truncatable list to its longest plausible shape.
+      const hugePersona = "p".repeat(SYSTEM_PROMPT_MAX_CHARS * 2);
+      const hugeBio = "b".repeat(SYSTEM_PROMPT_MAX_CHARS);
+      const hugeTopics = "t".repeat(SYSTEM_PROMPT_MAX_CHARS);
+
+      const result = composeSystemPrompt({
+        name: "Alice",
+        bio: hugeBio,
+        personaPrompt: hugePersona,
+        tonePreset: "friendly",
+        topicsToAvoid: hugeTopics,
+        contentInventory: { articles: true, posts: true, bioEntries: true },
+      });
+
+      expect(result.length).toBeLessThanOrEqual(SYSTEM_PROMPT_MAX_CHARS);
+      // Fixed sections still survive proportional truncation verbatim.
+      expect(result).toContain(STYLE_RULES);
+      expect(result).toContain(TONE_PRESETS.friendly.clause);
     });
   });
 });

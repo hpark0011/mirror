@@ -38,6 +38,12 @@ When the new mutation schedules `generateEmbedding`, the action passes the
 source row poisons the embedding row. The fix is enforcing this rule at
 the source-row write path.
 
+The action-side extension of this invariant — chat-agent tool
+`inputSchema` MUST NOT include any user identifier, and tool data
+resolution MUST close over `profileOwnerId` server-side via the
+per-request factory — lives in
+[`.claude/rules/agent-parity.md`](agent-parity.md).
+
 ## Adding a new ingestion source
 
 1. Append the literal to `embeddingSourceTableValidator` in
