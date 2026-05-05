@@ -10,8 +10,10 @@ export function BioEntryListEmpty({
   ownerEmptyAction,
 }: BioEntryListEmptyProps) {
   return (
-    <div // data-testid="bio-entry-list-empty"
-     className="flex flex-col items-center gap-3 p-6 h-full justify-center">
+    <div
+      data-testid="bio-entry-list-empty"
+      className="flex flex-col items-center gap-3 p-6 h-full justify-center"
+    >
       {isOwner
         ? (
           <div className="flex flex-col items-center justify-center gap-4">
