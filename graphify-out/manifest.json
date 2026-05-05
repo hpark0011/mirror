@@ -1,0 +1,454 @@
+{
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/vitest.config.ts": {
+    "mtime": 1777965812.213827,
+    "hash": "347db5363266cf2e5349baf256088231"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/schema.ts": {
+    "mtime": 1777965812.2114048,
+    "hash": "19a3d4b8e0585cdff7c8d355c4184d71"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/crons.ts": {
+    "mtime": 1777965812.206686,
+    "hash": "18763c130154f5c9472d143b8483b5ab"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/auth.config.ts": {
+    "mtime": 1777965812.1948931,
+    "hash": "a4512aa6adf142e8b4d8660b4a8f4ceb"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/http.ts": {
+    "mtime": 1777965812.208947,
+    "hash": "4844c2260a0cbf0537f126e698f0d489"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/convex.config.ts": {
+    "mtime": 1777965812.2062016,
+    "hash": "e93b0c36ccc4ec26925386c1bf640643"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/seed.ts": {
+    "mtime": 1777965812.2115383,
+    "hash": "9b476279e7fa23a43922b5314fab2e00"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/env.ts": {
+    "mtime": 1777965812.2086847,
+    "hash": "287bf72c9efb161dae2abb9a3e231501"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/waitlistRequests/schema.ts": {
+    "mtime": 1777965812.2131088,
+    "hash": "9daef763f1aeceaefb70f8e2a1f391e5"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/waitlistRequests/queries.ts": {
+    "mtime": 1777965812.2128348,
+    "hash": "8800880cd05a24504f301caaf5384e10"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/waitlistRequests/testHelpers.ts": {
+    "mtime": 1777965812.2132359,
+    "hash": "398407d6fb6f0927c8c62f563ccaade9"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/waitlistRequests/rateLimits.ts": {
+    "mtime": 1777965812.2129714,
+    "hash": "d1b20f7dce30ed1af0704684a6841294"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/waitlistRequests/mutations.ts": {
+    "mtime": 1777965812.2127063,
+    "hash": "3c46613464771c11ced0ea8dd5a8a05e"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/waitlistRequests/__tests__/waitlist.test.ts": {
+    "mtime": 1777965812.2124703,
+    "hash": "3fd468d115743aa771118a587297890c"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/betaAllowlist/schema.ts": {
+    "mtime": 1777965812.1965406,
+    "hash": "8a0369597adef3cd7f9004ac6d601c79"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/betaAllowlist/queries.ts": {
+    "mtime": 1777965812.1964495,
+    "hash": "f720ce092dfa6f7cefcbcf4954e9be44"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/betaAllowlist/mutations.ts": {
+    "mtime": 1777965812.196364,
+    "hash": "148bee295e0698d07c3d500dd8813338"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/betaAllowlist/__tests__/send-otp.test.ts": {
+    "mtime": 1777965812.196074,
+    "hash": "0bc3e6b88386509c45a7ee4c9ff9829e"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/betaAllowlist/__tests__/allowlist.test.ts": {
+    "mtime": 1777965812.1958733,
+    "hash": "0022da866a22e0d6c3e27296bd916cb3"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/betaAllowlist/__tests__/trigger.test.ts": {
+    "mtime": 1777965812.1962733,
+    "hash": "926471b3e3b0c9360a89839ffffc26bd"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/bio/schema.ts": {
+    "mtime": 1777965812.197887,
+    "hash": "5c556810ac6de980ca8c0ca83a45ee7a"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/bio/queries.ts": {
+    "mtime": 1777965812.197749,
+    "hash": "0de7eedeb453b8528a38a0febedae6e6"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/bio/serializeForEmbedding.ts": {
+    "mtime": 1777965812.198019,
+    "hash": "b35cbc6cd81f4d24f80aa3efa7b77ee4"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/bio/mutations.ts": {
+    "mtime": 1777965812.1976097,
+    "hash": "b3195099bc0228dca2950481af586bec"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/bio/__tests__/queries.test.ts": {
+    "mtime": 1777965812.1970992,
+    "hash": "40eacb064501d12017ab7ad750cc2308"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/bio/__tests__/mutations.test.ts": {
+    "mtime": 1777965812.1968498,
+    "hash": "446a09a206ba90598a0334595916f6de"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/bio/__tests__/serialize-for-embedding.test.ts": {
+    "mtime": 1777965812.197364,
+    "hash": "69be8e750963925eca0b4f08582cc291"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/schema.ts": {
+    "mtime": 1777965812.2084248,
+    "hash": "d383ff31fbd18d5a8c3e4071d9a997a0"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/queries.ts": {
+    "mtime": 1777965812.2081237,
+    "hash": "1b512ac0db07757301b14dd1912ecf2f"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/actions.ts": {
+    "mtime": 1777965812.2075484,
+    "hash": "c4b16dc9e388f8b09ac48978ecc90647"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/textExtractor.ts": {
+    "mtime": 1777965812.2085557,
+    "hash": "fa7a96a148d01a91ce9c1f6ba20bba66"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/mutations.ts": {
+    "mtime": 1777965812.2078567,
+    "hash": "c32edaef1c7c7656e8bc03b2150a3485"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/chunker.ts": {
+    "mtime": 1777965812.2076464,
+    "hash": "f65b30341002dfd86ed0c81b851ac3ed"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/config.ts": {
+    "mtime": 1777965812.2077267,
+    "hash": "64fc374534bbaf63b72e2e353ac44d52"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/embeddings/__tests__/bio-source.test.ts": {
+    "mtime": 1777965812.207298,
+    "hash": "d4bc9f1f11080507b277db0c95a533d0"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/schema.ts": {
+    "mtime": 1777965812.21128,
+    "hash": "a903174984cc1059ad2c238f08764361"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/helpers.ts": {
+    "mtime": 1777965812.210369,
+    "hash": "2ad6e313fe3f303d9fb4a8c0d88604e7"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/internalImages.ts": {
+    "mtime": 1777965812.21073,
+    "hash": "ecb8d938cb531b84551099cc589164e8"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/queries.ts": {
+    "mtime": 1777965812.2111452,
+    "hash": "265710c1439f26ec791c7eecebf1d9f6"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/inlineImages.ts": {
+    "mtime": 1777965812.210605,
+    "hash": "115276e9c75aecdf9334be1867c9080d"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/actions.ts": {
+    "mtime": 1777965812.2101495,
+    "hash": "07f0ccf10305562ab5c82b019cbc07a5"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/categories.ts": {
+    "mtime": 1777965812.2102325,
+    "hash": "4929d15b57f6c1213ebf03ab20c4c369"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/mutations.ts": {
+    "mtime": 1777965812.210907,
+    "hash": "391fef97485470d67fb3e33d90d4672e"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/__tests__/queries.test.ts": {
+    "mtime": 1777965812.2100112,
+    "hash": "d9c7c7d1de43505f488ec576f6f6e52f"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/__tests__/mutations.test.ts": {
+    "mtime": 1777965812.2097447,
+    "hash": "55a4de80cbd7b4dd874b9813d7c50c95"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/posts/__tests__/inline-images.test.ts": {
+    "mtime": 1777965812.2094195,
+    "hash": "85757f6056b4feb8b8a47bf32e235380"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/schema.ts": {
+    "mtime": 1777965812.2016785,
+    "hash": "6d73cc3ac233aacbfa090ca96a5028b0"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/toolQueries.ts": {
+    "mtime": 1777965812.2021813,
+    "hash": "95b39ce904340ab0cf7720324a8bc5ea"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/helpers.ts": {
+    "mtime": 1777965812.2003932,
+    "hash": "6347e41b43cecc7e6e821e53ab1617a0"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/queries.ts": {
+    "mtime": 1777965812.201406,
+    "hash": "3d03e0f5f55a2273125b8d8161894e8b"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/agent.ts": {
+    "mtime": 1777965812.2001374,
+    "hash": "0537d840aa9ab425e81dc0fe0d670184"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/testHelpers.ts": {
+    "mtime": 1777965812.2018363,
+    "hash": "058802ed6ce2ee7fc55d9a5a012b5eda"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/rateLimits.ts": {
+    "mtime": 1777965812.201553,
+    "hash": "ae5a6ae725b4ad00a665fe2bbf5df9d3"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/actions.ts": {
+    "mtime": 1777965812.1999605,
+    "hash": "598ae67a98bb42a19b2aca11155a5d35"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/tools.ts": {
+    "mtime": 1777965812.2023425,
+    "hash": "4a139a0474f4fd7833a187bc89e91c8e"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/mutations.ts": {
+    "mtime": 1777965812.2006328,
+    "hash": "d240d50278c5d02f77597204c545311f"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/tonePresets.ts": {
+    "mtime": 1777965812.2019348,
+    "hash": "fad2d9b5bd8e4dcec6599abdfd3aa6ee"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/__tests__/tonePresets.test.ts": {
+    "mtime": 1777965812.199444,
+    "hash": "9af46ff7bc61a2fee54f6a01a51f67d2"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/__tests__/rateLimits.test.ts": {
+    "mtime": 1777965812.199123,
+    "hash": "7b9aa962b410b3617d951f015dd34fec"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/__tests__/rag-cross-user.test.ts": {
+    "mtime": 1777965812.198499,
+    "hash": "3d18d7ccaba081ccbd3c4e7c920060c7"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/__tests__/ragContext.test.ts": {
+    "mtime": 1777965812.1988776,
+    "hash": "dd93faa8edc5b8721f7844641bdd9f9c"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/__tests__/tools.test.ts": {
+    "mtime": 1777965812.1996658,
+    "hash": "332d0194d480ca9a66dda99223782340"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/__tests__/testUtils.ts": {
+    "mtime": 1777965812.199327,
+    "hash": "7032e0e49a9e126978a29d8136156f9e"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/chat/__tests__/helpers.test.ts": {
+    "mtime": 1777965812.1982756,
+    "hash": "fcedf6bc39b01dcddd36f8f5577cb9c9"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/auth/queries.ts": {
+    "mtime": 1777965812.1952891,
+    "hash": "e8754c700ca609640bf15a61dc4a4fcb"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/auth/testHelpers.ts": {
+    "mtime": 1777965812.1954117,
+    "hash": "69151dd6d96dc981382767ad4365bd66"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/auth/client.ts": {
+    "mtime": 1777965812.195207,
+    "hash": "eb5d5b682cba9db57414440797b9a8bb"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/auth/triggers.ts": {
+    "mtime": 1777965812.195607,
+    "hash": "e9b00ee4457106bef1b5559da5df4b6b"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/auth/testMode.ts": {
+    "mtime": 1777965812.195507,
+    "hash": "c6aa4d5e42171a45e10376d28d925f28"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/schema.ts": {
+    "mtime": 1777965812.194802,
+    "hash": "8a35b7046d8f840741326aa7d5272007"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/helpers.ts": {
+    "mtime": 1777965812.1938488,
+    "hash": "0dec3dc54acdf485074d6f23960f494d"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/internalImages.ts": {
+    "mtime": 1777965812.1942575,
+    "hash": "be0c694ab9e33b07c7eaad1a247aee11"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/queries.ts": {
+    "mtime": 1777965812.1946492,
+    "hash": "9393307acc67e65e10fe32c440bb332a"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/inlineImages.ts": {
+    "mtime": 1777965812.1941042,
+    "hash": "c41591eafae4131f9f160e544eaaaefb"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/actions.ts": {
+    "mtime": 1777965812.1937017,
+    "hash": "2e796ccd149cccf559d65cf8ce336a8f"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/mutations.ts": {
+    "mtime": 1777965812.1943934,
+    "hash": "f4c3d73ab37bc71e54eff7ee54e50609"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/__tests__/queries.test.ts": {
+    "mtime": 1777965812.1935408,
+    "hash": "8d740c5d2932d1c3cb357e4cacb7ecde"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/__tests__/mutations.test.ts": {
+    "mtime": 1777965812.1932642,
+    "hash": "d4961692d2133bcc98f7910b0a9a8245"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/articles/__tests__/inline-images.test.ts": {
+    "mtime": 1777965812.1929848,
+    "hash": "113236d4c9709981fba2ea1fb2d530a4"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/schema.ts": {
+    "mtime": 1777965812.2054608,
+    "hash": "d5bfd5e22e865069b97d09599f5af45c"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/safeFetch.ts": {
+    "mtime": 1777965812.2053652,
+    "hash": "ed5d880069950cc692dbbe7b6f9da8b7"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/slug.ts": {
+    "mtime": 1777965812.2056217,
+    "hash": "9cde879443c1fca669d00dd7f145e942"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/helpers.ts": {
+    "mtime": 1777965812.204414,
+    "hash": "7edf7a9e5a3484a4d932a1872f774a66"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/inlineImageOwnership.ts": {
+    "mtime": 1777965812.2047856,
+    "hash": "aff1ea9541b62b3d4c5d11b42dde0d95"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/storageRegistry.ts": {
+    "mtime": 1777965812.2060528,
+    "hash": "750f06ec17af2b147112d71bf0b0e403"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/backfill.ts": {
+    "mtime": 1777965812.2040262,
+    "hash": "49654cbbbada0c5de39b13cffb2c28b6"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/href.ts": {
+    "mtime": 1777965812.2045445,
+    "hash": "cbd62d6b9aae10e64f607bc163b53633"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/markdownImport.ts": {
+    "mtime": 1777965812.2051725,
+    "hash": "89ad0b7afebcc23b98be29acaca020fa"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/inlineImageOwnershipSchema.ts": {
+    "mtime": 1777965812.204927,
+    "hash": "833afea94b96febb5eeb837d7650d0a9"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/storagePolicy.ts": {
+    "mtime": 1777965812.2057836,
+    "hash": "5c0059a5d5257861a1e8baaff2eae71f"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/bodyWalk.ts": {
+    "mtime": 1777965812.204282,
+    "hash": "0bd38caac5ef05e4f3df2a2d5cd78ae4"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/__tests__/backfill.test.ts": {
+    "mtime": 1777965812.2027442,
+    "hash": "096f9754a45aea669e71316b3cac2a98"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/__tests__/slug.test.ts": {
+    "mtime": 1777965812.2037396,
+    "hash": "ecc3ea76f75dc4fe0612ca0b533db1a1"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/__tests__/orphanSweep.test.ts": {
+    "mtime": 1777965812.2032201,
+    "hash": "41361a1c72a087e0f8609a41b8b455e7"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/__tests__/bodyWalk.test.ts": {
+    "mtime": 1777965812.2030187,
+    "hash": "d3df0f8f19c18204e7d10e675aea603b"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/content/__tests__/safeFetch.test.ts": {
+    "mtime": 1777965812.2034307,
+    "hash": "b47b9b965846d7432f44d88ad3188a62"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/users/schema.ts": {
+    "mtime": 1777965812.2122068,
+    "hash": "8c5c6fd39403b1054ab7df02f0595c71"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/users/helpers.ts": {
+    "mtime": 1777965812.2119615,
+    "hash": "1d5a2aaf33b4f28941fa672eb0ee9f18"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/users/queries.ts": {
+    "mtime": 1777965812.2121205,
+    "hash": "75b714f7538e1317563ff8ccdc940e92"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/users/mutations.ts": {
+    "mtime": 1777965812.2120445,
+    "hash": "50bb3b884d6421f112e64bcd43253beb"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/users/__tests__/updatePersonaSettings.test.ts": {
+    "mtime": 1777965812.2118847,
+    "hash": "5db826a30955d811677e29565a5b6620"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/users/__tests__/getCurrentProfile.test.ts": {
+    "mtime": 1777965812.2117984,
+    "hash": "127067d3cdfb0e73e32db2921334b15e"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/lib/auth.ts": {
+    "mtime": 1777965812.2090962,
+    "hash": "8ce1ccdba1624a28cbc89196b3c5a76b"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/email/actions.ts": {
+    "mtime": 1777965812.2070115,
+    "hash": "dfc7ef17a2ab41a89932f2b3e5196190"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/_generated/dataModel.d.ts": {
+    "mtime": 1777965812.1923652,
+    "hash": "af87bff09394971f8debeb5b8e9f8a70"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/_generated/api.d.ts": {
+    "mtime": 1777965812.1920307,
+    "hash": "c83741eb37f8a58404267f805aae5ecb"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/_generated/server.d.ts": {
+    "mtime": 1777965812.1925561,
+    "hash": "a6d3e29e1cd98c6a0ebcf82d5074009e"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/_generated/server.js": {
+    "mtime": 1777965812.192646,
+    "hash": "cfc7a4ed084119abac0e51d79f525f4f"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/convex/_generated/api.js": {
+    "mtime": 1777965812.19221,
+    "hash": "ea14005171d3e17b1b28a7139ad36d62"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/src/index.ts": {
+    "mtime": 1777965812.2136192,
+    "hash": "f85cd9009069acb7377755af0b54d0e7"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/README.md": {
+    "mtime": 1777965812.1917622,
+    "hash": "4abbb8d05d985ff805e0c4f1ae5214a5"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/AGENTS.md": {
+    "mtime": 1777965812.1915407,
+    "hash": "5a430423cc6924a7fdf7ed3a9f8ca905"
+  },
+  "/Users/disquiet/Desktop/mirror/.worktrees/improvements-article-editor/packages/convex/CLAUDE.md": {
+    "mtime": 1777965812.1916673,
+    "hash": "5a430423cc6924a7fdf7ed3a9f8ca905"
+  }
+}

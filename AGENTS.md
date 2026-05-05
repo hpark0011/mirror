@@ -52,3 +52,14 @@ Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` 
 - **[Sentry](.claude/rules/sentry/)** — exception capture, tracing spans, and logger patterns for Next.js.
 
 Convex-specific instructions and the canonical guidelines file live under [`packages/convex/AGENTS.md`](packages/convex/AGENTS.md) and [`packages/convex/convex/_generated/ai/guidelines.md`](packages/convex/convex/_generated/ai/guidelines.md). Both are managed by `npx convex ai-files install` from `packages/convex/`.
+
+## graphify
+
+This project has a graphify knowledge graph at graphify-out/.
+
+Rules:
+
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
+- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
