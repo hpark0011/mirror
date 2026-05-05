@@ -36,7 +36,7 @@ Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` 
 - **[Agent Parity](.claude/rules/agent-parity.md)** — two-routes-one-dispatcher pattern: every UI verb has a matching clone-agent tool, and both routes funnel through `useCloneActions`. Cross-user isolation invariant for tool args + the four-step checklist for adding a new verb. Auto-loads under `packages/convex/convex/chat/**`, `apps/mirror/features/chat/**`, and `apps/mirror/app/[username]/_providers/**`.
 - **[Auth](.claude/rules/auth.md)** — Better Auth running inside Convex; Next.js only proxies `/api/auth/*`. **Check before debugging sign-in, OAuth, or session cookies — the URL/host choreography between `.convex.cloud`, `.convex.site`, and the app domain is the #1 footgun.**
 - **[Convex](.claude/rules/convex.md)** — function guidelines, validators, schema, query/mutation patterns. Auto-loads under `packages/convex/convex/**`.
-- **[Verification](.claude/rules/verification.md)** — build/lint/Chrome-MCP tiers per change type. **Run the matching tier before reporting any task complete.**
+- **[Verification](.claude/rules/verification.md)** — build/lint/Chrome-MCP tiers per change type, plus the e2e tool-boundary rule (**Playwright CLI only — never Playwright MCP or browser-automation MCP tools**). **Run the matching tier before reporting any task complete.**
 - **[File organization](.claude/rules/file-organization.md)** — where components/hooks/utils/schemas live in a feature module. All React components go in `components/`; `views/` is reserved for cross-app packages.
 - **[Forms](.claude/rules/forms.md)** — React Hook Form + Zod + `zodResolver`; shadcn `Form` primitives from `@feel-good/ui/primitives/form`; schemas live in each feature's `lib/schemas/`.
 - **[Identifiers](.claude/rules/identifiers.md)** — slugs/handles/codes must pass through one canonical normalizer at the mutation boundary; never `args.slug || generate(...)`; always `generate(args.slug ?? args.title)` plus an `assertValid…` check before DB write.
@@ -46,7 +46,6 @@ Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` 
 - **[Tailwind](.claude/rules/tailwind.md)** — Tailwind v4, CSS-first config (no `tailwind.config.js`); use `@source` to scan shared packages; three-layer token system (Radix → semantic → `@theme inline`).
 - **[TypeScript](.claude/rules/typescript.md)** — inline type imports; feature types in `features/<feature>/types.ts`, shared in `types/<domain>.types.ts`.
 - **[Providers](.claude/rules/providers.md)** — separate client singleton (`lib/<service>.ts`) from React provider (`providers/<service>-provider.tsx`); never `!` on `process.env`; lazy-init external clients.
-- **[Testing](.claude/rules/testing.md)** — **Playwright CLI only for e2e tests.** Never the Playwright MCP plugin or browser-automation MCP tools.
 - **[Dev process](.claude/rules/dev-process.md)** — session discipline, planning, problem-solving flow; **after any correction, update `workspace/lessons.md`.**
 - **[Worktrees](.claude/rules/worktrees.md)** — `apps/mirror/.env.local` is symlinked across worktrees; **never run `vercel <cmd> --yes` in an unlinked dir** (silently pulls env and clobbers the canonical file). Recovery: `./scripts/restore-env-local.sh`.
 - **[App-specific](.claude/rules/apps/)** — per-app topic rules (see `apps/mirror/` for current files).

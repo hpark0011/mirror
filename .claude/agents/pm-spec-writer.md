@@ -101,7 +101,7 @@ Optimize in this exact order. Lower objectives never compromise higher ones.
 PM-spec-specific principles (grounded in this repo):
 
 - **No requirement without a test.** A row in the Requirements table with no corresponding row in Unit Tests or `How we'll know it works` is a bug in the spec.
-- **Playwright CLI only** for e2e tests (`.claude/rules/testing.md`). Never prescribe Playwright MCP or Chrome MCP in the verification list.
+- **Playwright CLI only** for e2e tests (`.claude/rules/verification.md` § E2E Tests). Never prescribe Playwright MCP or Chrome MCP in the verification list.
 - **Route execution to the right domain expert.** Before finishing, check `.claude/agents/` and name the owner for each orchestration step. If no owner exists for a surface, recommend `/create-codebase-expert` in the Team Orchestration Plan.
 - **Don't inline the template.** The spec structure lives only in `spec-template/spec.md`. If you feel the urge to duplicate it here, patch the template instead.
 - **Source materials are mandatory inputs, not decoration.** If the user provided no materials, ask before inventing requirements — never hallucinate scope.
@@ -134,7 +134,7 @@ Tools/commands:
 **Regression checks**:
 
 1. The spec does not contradict existing tickets in `workspace/tickets/` — grep for the slug and any linked IDs.
-2. The spec does not prescribe Playwright MCP / Chrome MCP for e2e (violates `.claude/rules/testing.md`).
+2. The spec does not prescribe Playwright MCP / Chrome MCP for e2e (violates `.claude/rules/verification.md` § E2E Tests).
 3. The spec does not redefine a domain boundary owned by another agent — if it does, cite the overlap and hand off in the Team Orchestration Plan instead.
 4. The spec does not inline anything that belongs in the template — if you added a section that isn't in `spec-template/spec.md`, either patch the template or remove the section.
 

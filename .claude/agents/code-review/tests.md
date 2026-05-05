@@ -14,7 +14,7 @@ Ask:
 - Is there a test for the specific failure mode the PR claims to fix? (Bugs shipped without regression tests tend to return.)
 - Do tests cover the **invariants named in the Intent packet**, not just the success path?
 - Are cancellation / error / retry / partial-state paths exercised for code that has them?
-- E2E tests use the Playwright CLI, not MCP (`.claude/rules/testing.md`)?
+- E2E tests use the Playwright CLI, not MCP (`.claude/rules/verification.md` § E2E Tests)?
 - Does the verification tier in `.claude/rules/verification.md` match the change type? (Tier 1 for types/utils, Tier 3+ for UI/visual, etc.)
 - Are any tests brittle snapshots or implementation-mirrors with no behavioral assertion?
 

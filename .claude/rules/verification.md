@@ -41,6 +41,27 @@ Then use Chrome MCP to interact with the feature and confirm correct behavior.
 
 All of the above: build, lint, screenshot, and interaction test.
 
+## E2E Tests
+
+E2E tests use the Playwright CLI. Never use Playwright MCP or browser-automation MCP tools for tests.
+
+```bash
+pnpm --filter=@feel-good/mirror test:e2e    # Run all e2e tests
+pnpm --filter=@feel-good/mirror test:e2e:ui # Run with Playwright UI
+```
+
+Test files go in `apps/{app}/tests/` or `apps/{app}/e2e/`.
+
+## Tool Boundaries
+
+| Task | Tool |
+|------|------|
+| Build verification | `pnpm build`, `pnpm lint` |
+| Visual debugging (Tier 3+) | Chrome MCP |
+| Automated e2e tests | Playwright CLI (`playwright test`) |
+
+Chrome MCP is for visual confirmation and interaction debugging — not for test assertions.
+
 ## App Filter Reference
 
 | App | Filter |

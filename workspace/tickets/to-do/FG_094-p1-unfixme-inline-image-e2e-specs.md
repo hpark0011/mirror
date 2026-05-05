@@ -54,7 +54,7 @@ After this ticket, all 8 inline-image E2E specs run their primary assertions aga
 
 - Adding new specs beyond the spec's 8 — coverage gaps for drop unit / NFR-03 perf are tracked separately (FG_108).
 - Resolving any pre-existing fixme'd specs outside the inline-image lifecycle scope.
-- Migrating away from Playwright — `.claude/rules/testing.md` mandates Playwright CLI.
+- Migrating away from Playwright — `.claude/rules/verification.md` § E2E Tests mandates Playwright CLI.
 
 ## Approach
 
@@ -77,7 +77,7 @@ If the race truly cannot be resolved at the client level, the fallback is to see
 
 ## Constraints
 
-- Must use Playwright CLI only (`.claude/rules/testing.md`) — no MCP browser automation in tests.
+- Must use Playwright CLI only (`.claude/rules/verification.md` § E2E Tests) — no MCP browser automation in tests.
 - The fix must be at the fixture/helper level, not per-spec — avoid copy-pasting wait logic into 7 specs.
 - Specs must continue to assert the storage outcome (body contains storageId, blob exists, etc.), not just UI.
 
