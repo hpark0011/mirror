@@ -3,7 +3,7 @@ id: FG_094
 title: "Inline-image lifecycle E2E specs run end-to-end against a real Convex backend"
 date: 2026-05-02
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "Seven of eight Playwright specs added by the inline-image-lifecycle wave are marked test.fixme citing a Convex client-auth race in the test environment. The result: FR-01, FR-02, FR-03, FR-06, FR-07, FR-08 have no running browser-stack verification. Only the size-limit and MIME-limit specs (which exercise pre-Convex client validation only) actually run. Resolve the auth race or replace the affected assertions with a deterministic Convex-test fixture path so the full inline-image lifecycle has running coverage."
 dependencies: [FG_153, FG_154]
