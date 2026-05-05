@@ -1,4 +1,5 @@
 import { Plugin, PluginKey, type EditorState, type Transaction } from "@tiptap/pm/state";
+import { insertPoint } from "@tiptap/pm/transform";
 import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
 import { Extension } from "@tiptap/core";
 
@@ -134,14 +135,21 @@ function startUpload(
         view.dispatch(removeTr);
         return;
       }
-      // Defend against schema rejections at the resolved position — e.g. if
-      // the user moved the placeholder (or its parent paragraph) inside a
-      // code block while the upload was in flight. Without this guard,
-      // `replaceWith` would throw, leaking the placeholder decoration and
-      // never invoking `onError`.
-      const $pos = view.state.doc.resolve(finalPos);
-      const index = $pos.index();
-      if (!$pos.parent.canReplaceWith(index, index, imageType)) {
+      // FG_153: image is a BLOCK node (`inline: false`), so the resolved
+      // placeholder position — which lives inside a paragraph or other text
+      // block — is never a directly-valid insertion point for it.
+      // `parent.canReplaceWith(index, index, imageType)` rejects every
+      // common paste case (cursor inside a paragraph) because it only checks
+      // direct containment, not ProseMirror's normal block auto-split. Using
+      // it as a precondition silently dropped pasted/dropped images on every
+      // empty draft. Use `insertPoint` instead — it walks up the parent
+      // chain and returns a position where the node can actually be
+      // inserted (auto-splitting the paragraph as needed). It returns null
+      // only when no valid position exists (entire doc inside a code block,
+      // for example), which is the schema-rejection case we still want to
+      // surface as an error.
+      const insertPos = insertPoint(view.state.doc, finalPos, imageType);
+      if (insertPos === null) {
         onError?.(
           new Error(
             "Images can't be inserted at the current cursor position",
@@ -154,7 +162,7 @@ function startUpload(
         src: result.url,
         storageId: result.storageId,
       });
-      view.dispatch(removeTr.replaceWith(finalPos, finalPos, node));
+      view.dispatch(removeTr.insert(insertPos, node));
     },
     (error) => {
       console.error("[inline-image-upload-plugin] upload failed", error);

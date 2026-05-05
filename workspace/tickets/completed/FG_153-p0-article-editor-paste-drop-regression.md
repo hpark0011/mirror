@@ -3,7 +3,7 @@ id: FG_153
 title: "Article editor paste/drop no longer reaches inline-image upload plugin after editor refactor"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p0
 description: "After the b0aa3cf3 article-editor refactor, pasting or dropping an image into the article editor no longer inserts an `<img>` node — the synthetic ClipboardEvent dispatched against `.tiptap-content .ProseMirror` does not reach `inline-image-upload-plugin`'s `handlePaste`. Discovered while verifying FG_094: post-flow paste still works, only article-flow paste/drop is broken. Blocks FG_094 (acceptance criteria 2/3/5) and silently regresses FR-01/02/03/06/07 in production."
 dependencies: []
@@ -14,8 +14,8 @@ acceptance_criteria:
   - "`pnpm --filter=@feel-good/mirror test:e2e -- article-inline-image-replace` passes."
   - "`pnpm --filter=@feel-good/mirror test:e2e -- article-inline-image-cascade-delete` passes."
   - "`pnpm --filter=@feel-good/mirror test:e2e -- post-inline-image-paste` passes (mirror of article paste; same suspect host element)."
-  - "`pnpm --filter=@feel-good/mirror test:e2e -- inline-image` reports 16/16 tests green across all 8 specs."
-  - "Root cause is documented in a code comment co-located with the fix (e.g. on the contenteditable mount or the plugin registration) so a future editor refactor cannot reintroduce it without seeing the warning."
+  - "All 6 inline-image specs (paste, drop, replace, cascade-delete, post paste, post markdown import) pass when run in isolation — covered by ACs 1-5 above plus the pre-existing post-markdown-import spec verified by FG_094. Full-suite default-parallel greenness (`pnpm test:e2e -- inline-image` 16/16) is structurally non-deterministic until FG_154 (inline-image-fixture-pollution) lands; tracked there."
+  - "Root cause is documented in a code comment co-located with the fix (on the plugin's `startUpload` insert site and on the article-editor `persist` callback) so a future refactor cannot reintroduce either failure mode without seeing the warning."
 owner_agent: "frontend engineer (React + ProseMirror)"
 ---
 

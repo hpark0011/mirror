@@ -134,19 +134,34 @@ export function useEditArticleForm({
       if (isCoverCleared) {
         setIsCoverCleared(false);
       }
-      router.refresh();
+      // FG_153: navigate to the read view after save. The post editor
+      // (`features/content/components/content-editor.tsx`) does the same via
+      // `router.push(cancelHref)` on its onSave path; the article-editor
+      // refactor (b0aa3cf3) split off into its own shell and silently dropped
+      // the navigation, leaving users on `/edit` after Save with only a
+      // `router.refresh()`. The inline-image-paste / drop / replace /
+      // cascade-delete e2e specs all assert this navigation as the
+      // observable end-state of save (the only way to confirm the saved body
+      // round-trips back through the read view), so without it AC #1-#4 here
+      // and AC #5 (post mirror) cannot be exercised end-to-end. Use the
+      // post-save slug — `slug` reflects the user's edited value, which is
+      // what the server normalized and persisted.
+      const targetSlug = slug.trim() ? slug.trim() : initial.slug;
+      router.push(`/@${username}/articles/${targetSlug}`);
     },
     [
       body,
       category,
       coverImageStorageId,
       initial._id,
+      initial.slug,
       isCoverCleared,
       publishedAt,
       router,
       slug,
       title,
       update,
+      username,
     ],
   );
 
