@@ -72,23 +72,8 @@ vi.mock("../../auth/client", () => {
 import { internal } from "../../_generated/api";
 import { buildCloneTools } from "../tools";
 import { buildContentHref } from "../toolQueries";
+import { normalizeConvexGlob } from "./testUtils";
 import type { Id } from "../../_generated/dataModel";
-
-function normalizeConvexGlob(
-  raw: Record<string, () => Promise<unknown>>,
-): Record<string, () => Promise<unknown>> {
-  const out: Record<string, () => Promise<unknown>> = {};
-  for (const [key, loader] of Object.entries(raw)) {
-    let k = key;
-    if (k.startsWith("./")) {
-      k = "../../chat/__tests__/" + k.slice(2);
-    } else if (k.startsWith("../") && !k.startsWith("../../")) {
-      k = "../../chat/" + k.slice(3);
-    }
-    out[k] = loader;
-  }
-  return out;
-}
 
 const rawModules = import.meta.glob("../../**/*.{ts,js}");
 const modules = normalizeConvexGlob(rawModules);
