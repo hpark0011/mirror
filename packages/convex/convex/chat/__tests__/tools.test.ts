@@ -204,6 +204,74 @@ describe("chat/toolQueries.queryLatestPublished", () => {
 
     expect(result).toBeNull();
   });
+
+  it("PERF: returns the published row in <50ms when surrounded by 50 drafts", async () => {
+    // Regression guard for FG_125. The previous shape walked `by_userId` in
+    // descending order and skipped drafts in a `for await` loop — so a user
+    // with N drafts ahead of any published row read N documents per call.
+    // The compound `by_userId_and_status` index pins the scan to published
+    // rows, so the latency is bounded regardless of draft count.
+    //
+    // The convex-test harness has no first-class "documents-read" counter,
+    // so we assert latency. The threshold is generous (<50ms) on top of an
+    // in-memory store with 50 drafts; pre-fix this same shape walked all 50
+    // drafts in O(N) which still passes locally but blows up at scale on
+    // production-sized tables. The real value of this test is locking the
+    // `.first()` shape — if a future edit reverts to the iterator/skip
+    // pattern it will at least flag in slower CI runs and certainly in any
+    // future "documents-read" assertion. The skip-loop revert is also caught
+    // by the criterion's grep on `.filter(` inside the function bodies.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_perf");
+
+    // Insert 50 drafts. Mix of older and newer creationTime values so the
+    // test exercises the descending-order path: if `.first()` quietly
+    // changed to ascending it would still return the published row, but the
+    // assertion below pins the exact slug.
+    await t.run(async (ctx) => {
+      for (let i = 0; i < 50; i++) {
+        await ctx.db.insert("articles", {
+          userId: owner,
+          slug: `draft-${i}`,
+          title: `Draft ${i}`,
+          category: "blog",
+          body: { type: "doc", content: [] },
+          status: "draft",
+          createdAt: 1000 + i,
+        });
+      }
+    });
+
+    // One published row — the only row the new index sees.
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "the-one-published",
+        title: "The One Published",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 9999,
+        createdAt: 9999,
+      }),
+    );
+
+    const start = performance.now();
+    const result = await t.query(
+      internal.chat.toolQueries.queryLatestPublished,
+      { userId: owner, kind: "articles" },
+    );
+    const elapsedMs = performance.now() - start;
+
+    expect(result).not.toBeNull();
+    expect(result!.slug).toBe("the-one-published");
+    expect(result!.title).toBe("The One Published");
+    // Latency bound. Convex-test runs in-memory so even the buggy O(N)
+    // shape would pass on 50 rows locally — the real protection is the
+    // `.filter()` grep in the acceptance criteria. This bound mostly
+    // guards against an accidental `.collect()` or full-table walk.
+    expect(elapsedMs).toBeLessThan(50);
+  });
 });
 
 describe("chat/toolQueries.resolveBySlug", () => {

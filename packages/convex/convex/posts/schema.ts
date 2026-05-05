@@ -8,4 +8,5 @@ export const postsTable = defineTable({
   category: v.string(),
 })
   .index("by_userId", ["userId"])
-  .index("by_userId_and_slug", ["userId", "slug"]);
+  .index("by_userId_and_slug", ["userId", "slug"])
+  .index("by_userId_and_status", ["userId", "status"]);

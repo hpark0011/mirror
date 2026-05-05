@@ -234,20 +234,26 @@ export const loadStreamingContext = internalQuery({
     }
 
     // Inventory of structured content the profile owner has populated.
-    // Each query is a `take(1)` against `by_userId` for a presence check.
-    // Articles and posts must be filtered to `status === "published"` so
-    // unpublished drafts (which are not retrieval-eligible — see
-    // `embeddings/getContentForEmbedding`) do not get mentioned in the
-    // prompt. Bio entries have no draft lifecycle, so any row counts.
+    // Each query is a `take(1)` against an index for a presence check.
+    // Articles and posts use the compound `by_userId_and_status` index so the
+    // scan is bounded to published rows only — `.filter()` is forbidden by
+    // `.claude/rules/convex.md` because Convex applies it AFTER the index
+    // scan, meaning N drafts before any published row would read N documents.
+    // Drafts are not retrieval-eligible (see
+    // `embeddings/getContentForEmbedding`) and must not be mentioned in the
+    // prompt. Bio entries have no draft lifecycle, so any row counts and the
+    // simpler `by_userId` index is sufficient.
     const articleRow = await ctx.db
       .query("articles")
-      .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
-      .filter((q) => q.eq(q.field("status"), "published"))
+      .withIndex("by_userId_and_status", (q) =>
+        q.eq("userId", profileOwnerId).eq("status", "published"),
+      )
       .take(1);
     const postRow = await ctx.db
       .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
-      .filter((q) => q.eq(q.field("status"), "published"))
+      .withIndex("by_userId_and_status", (q) =>
+        q.eq("userId", profileOwnerId).eq("status", "published"),
+      )
       .take(1);
     const bioEntryRow = await ctx.db
       .query("bioEntries")

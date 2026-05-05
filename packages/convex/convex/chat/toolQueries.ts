@@ -93,22 +93,25 @@ export const queryLatestPublished = internalQuery({
     // exists. If we ever support re-ingestion, add a
     // `by_userId_and_publishedAt` index and switch the order key here.
     //
-    // Walking the iterator avoids paging in every row of the user's table
-    // just to find the latest published one — we stop at the first match.
-    const iter = ctx.db
+    // The compound `by_userId_and_status` index pins the scan to published
+    // rows only. The previous shape walked `by_userId` in `desc` order and
+    // used a `for await` loop to skip drafts — that read N draft documents
+    // for a user with N drafts and few/no published rows. Pinning `status`
+    // at the index level means the scan never visits a draft. `.first()`
+    // returns the most recent published row in O(1) index lookups.
+    const row = await ctx.db
       .query(tableName)
-      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
-      .order("desc");
-
-    for await (const row of iter) {
-      if (row.status !== "published") continue;
-      return {
-        slug: row.slug,
-        title: row.title,
-        publishedAt: row.publishedAt,
-      };
-    }
-    return null;
+      .withIndex("by_userId_and_status", (q) =>
+        q.eq("userId", userId as Id<"users">).eq("status", "published"),
+      )
+      .order("desc")
+      .first();
+    if (!row) return null;
+    return {
+      slug: row.slug,
+      title: row.title,
+      publishedAt: row.publishedAt,
+    };
   },
 });
 
