@@ -25,14 +25,17 @@ export function BioEntryList({
 }: BioEntryListProps) {
   if (entries.length === 0) {
     return (
-      <BioEntryListEmpty isOwner={isOwner} ownerEmptyAction={ownerEmptyAction} />
+      <BioEntryListEmpty
+        isOwner={isOwner}
+        ownerEmptyAction={ownerEmptyAction}
+      />
     );
   }
 
   return (
     <ol
       data-testid="bio-entry-list"
-      className="flex flex-col list-none mt-8 gap-10"
+      className="flex flex-col list-none mt-8 gap-10 pb-20"
     >
       {entries.map((entry) => (
         <li
