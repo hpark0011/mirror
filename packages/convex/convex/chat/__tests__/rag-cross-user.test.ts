@@ -45,6 +45,7 @@ vi.mock("@convex-dev/agent", () => {
         };
       }
     },
+    createTool: vi.fn((def: unknown) => def),
   };
 });
 
@@ -77,22 +78,7 @@ vi.mock("../../auth/client", () => {
 });
 
 import { internal } from "../../_generated/api";
-
-function normalizeConvexGlob(
-  raw: Record<string, () => Promise<unknown>>,
-): Record<string, () => Promise<unknown>> {
-  const out: Record<string, () => Promise<unknown>> = {};
-  for (const [key, loader] of Object.entries(raw)) {
-    let k = key;
-    if (k.startsWith("./")) {
-      k = "../../chat/__tests__/" + k.slice(2);
-    } else if (k.startsWith("../") && !k.startsWith("../../")) {
-      k = "../../chat/" + k.slice(3);
-    }
-    out[k] = loader;
-  }
-  return out;
-}
+import { normalizeConvexGlob } from "./testUtils";
 
 const rawModules = import.meta.glob("../../**/*.{ts,js}");
 const modules = normalizeConvexGlob(rawModules);
@@ -262,5 +248,56 @@ describe("RAG cross-user isolation (FR-14, NFR-01)", () => {
     );
     expect(bChunks.length).toBe(2);
     expect(bChunks.every((c) => c.userId === userB)).toBe(true);
+  });
+
+  /**
+   * Action-side parity for the same isolation invariant. The RAG cases
+   * above exercise the read path; the chat agent's tool surface
+   * (`buildCloneTools` in `chat/tools.ts`) goes through
+   * `internal.chat.toolQueries.resolveBySlug`. The LLM-visible
+   * `inputSchema` for `navigateToContent` cannot pass `userId` — only the
+   * server-bound `profileOwnerId` reaches the internal query. So even if a
+   * visitor's clone (User A) is asked to "open Bob's article," the slug
+   * resolution must reject it.
+   */
+  it("resolveBySlug rejects cross-user article slugs", async () => {
+    const t = makeT();
+    const userA = await insertOwner(t, "user_a_tool");
+    const userB = await insertOwner(t, "user_b_tool");
+
+    // User B publishes an article. User A's clone has no published article
+    // with this slug; even though the slug exists in the table, scoping by
+    // userId === userA must return null.
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: userB,
+        slug: "b-published",
+        title: "B's published article",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: Date.now(),
+        createdAt: Date.now(),
+      }),
+    );
+
+    const crossUserResult = await t.query(
+      internal.chat.toolQueries.resolveBySlug,
+      { userId: userA, kind: "articles", slug: "b-published" },
+    );
+
+    expect(crossUserResult).toBeNull();
+
+    // Positive control: querying as the actual owner returns the row. Without
+    // this, the test could pass for the wrong reason (e.g. the insert
+    // silently failed and BOTH users see null). Pinning a non-null on the
+    // legitimate owner proves the cross-user null is a real rejection.
+    const sameUserResult = await t.query(
+      internal.chat.toolQueries.resolveBySlug,
+      { userId: userB, kind: "articles", slug: "b-published" },
+    );
+
+    expect(sameUserResult).not.toBeNull();
+    expect(sameUserResult!.username).toBe("user_b_tool");
   });
 });

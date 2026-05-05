@@ -1,10 +1,11 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useCallback, type MouseEvent } from "react";
 import Link from "next/link";
 import { TableCell } from "@feel-good/ui/primitives/table";
 import { Checkbox } from "@feel-good/ui/primitives/checkbox";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { formatShortDate, getContentHref } from "@/features/content";
 import type { ArticleSummary } from "../types";
 import { AnimatedArticleRow } from "./animated-article-row";
@@ -30,8 +31,30 @@ export const ArticleListItem = memo(function ArticleListItem({
   index = 0,
 }: ArticleListItemProps) {
   const { buildChatAwareHref } = useChatSearchParams();
+  const { navigateToContent } = useCloneActions();
+  // Keep `<Link href>` populated for SEO/middle-click semantics. The
+  // onClick below routes "normal" left-clicks through the same dispatcher
+  // the agent uses (`useCloneActions().navigateToContent`).
   const href = buildChatAwareHref(
     getContentHref(username, "articles", article.slug),
+  );
+
+  const handleClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      // Preserve middle/cmd/shift-click-to-new-tab semantics.
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.button !== 0
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigateToContent({ kind: "articles", slug: article.slug });
+    },
+    [navigateToContent, article.slug],
   );
 
   return (
@@ -59,6 +82,7 @@ export const ArticleListItem = memo(function ArticleListItem({
         <Link
           href={href}
           scroll={false}
+          onClick={handleClick}
           className="after:absolute after:inset-0 font-[440]"
         >
           {article.title}

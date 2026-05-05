@@ -40,11 +40,14 @@ export function BioPanel() {
       </WorkspaceToolbar>
       <div
         data-testid="bio-panel"
-        className="flex flex-col gap-2 p-4 max-w-2xl mx-auto py-12"
+        className="flex flex-col gap-2 p-4 max-w-2xl mx-auto py-12 h-full"
       >
-        <p className="text-[15px] mb-4">
-          Work and education history.
-        </p>
+        {entries.length !== 0 && (
+          <p className="text-[15px] mb-4">
+            Work and education history.
+          </p>
+        )}
+
         <BioEntryList
           entries={entries}
           isOwner={isOwner}
@@ -58,7 +61,7 @@ export function BioPanel() {
                 disabled={addDisabled}
                 disabledReason={addDisabledReason}
               >
-                Add your first entry
+                Add first entry
               </BioAddEntryButton>
             )
             : undefined}

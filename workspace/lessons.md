@@ -8,6 +8,44 @@
 - The deterministic signal is `<ConvexAuthProbe>` (`apps/mirror/providers/convex-auth-probe.tsx`) — an inert `<span data-testid="convex-auth-state" data-authenticated="true">` that flips only after `client.setAuth`'s onChange callback fires. The probe is mounted globally via `apps/mirror/providers/convex-provider.tsx` and is ~zero cost in production.
 - **Authenticated-spec rule:** every authenticated Playwright spec MUST call `await waitForAuthReady(page)` (from `apps/mirror/e2e/fixtures/auth.ts`) AFTER `page.goto(...)` and BEFORE the first interaction that triggers a Convex mutation (paste, drop, save, dialog submit). Do NOT copy-paste the wait logic per spec — the helper is the single source of truth so future regressions are one fixture edit away from re-fixing every consumer.
 - The fixture file's docstring carries the same root-cause writeup co-located with the helper itself for fast discovery from the call site.
+- Agent tool flows that need "lookup, then act" require an explicit AI SDK
+  step budget (`stopWhen: stepCountIs(...)`). The default one-step loop can
+  execute the lookup tool and stop before the action tool is ever called.
+- "Latest published" content must order by `publishedAt`, not row creation
+  time. Drafts can be created long before they are published, so use an index
+  that includes the semantic publish timestamp whenever UI or agent language
+  says "latest".
+
+### Authenticated Playwright specs need a deterministic ConvexAuth-ready signal
+
+`ConvexBetterAuthProvider` installs the JWT in a *post-mount* effect:
+`authClient.useSession()` resolves → `fetchAccessToken()` round-trips
+`/api/auth/convex/token` → `client.setAuth(...)` flips
+`useConvexAuth().isAuthenticated` to `true`. Any `useMutation(...)` fired
+during those microtasks (the inline-image upload-URL generator, the
+post-create mutation, etc.) hits `Unauthenticated` even though the
+session cookie is already set on the browser. Pre-warming
+`/api/auth/convex/token` via `app/api/test/session` does NOT help — the
+cookie is already present; the gap is the client-side effect, not the
+network.
+
+The fix is one inert probe + one fixture helper, applied uniformly:
+
+- `apps/mirror/providers/convex-auth-probe.tsx` mounts a hidden `<span
+  data-testid="convex-auth-state" data-authenticated="…">` that mirrors
+  `useConvexAuth()`. It's `aria-hidden` and `display:none` so the
+  production cost is one tiny element render.
+- `apps/mirror/e2e/fixtures/auth.ts` exports `waitForAuthReady(page)`,
+  which waits for `[data-authenticated="true"]` to attach. Authenticated
+  specs call it AFTER `page.goto(...)` and BEFORE the first interaction
+  that triggers a `useMutation(...)` (paste, drop, save, dialog submit).
+
+When you add a new authenticated spec that interacts with a Convex
+mutation: import `waitForAuthReady` from `./fixtures/auth`, call it once
+per page navigation, and you're safe. Don't try to re-derive readiness
+from network requests — the token cookie may already be set, so no
+second `/api/auth/convex/token` request fires; the only deterministic
+signal is the `useConvexAuth` boolean mirrored into the DOM.
 
 ## 2026-05-03
 

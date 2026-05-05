@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { useSession } from "@/lib/auth-client";
 import { ArcSphere } from "../../../components/animated-geometries/arc-sphere";
 import { useChatContext } from "../context/chat-context";
+import { useAgentIntentWatcher } from "../hooks/use-agent-intent-watcher";
 import { useChat } from "../hooks/use-chat";
 import { ChatConversationListSheet } from "./chat-conversation-list-sheet";
 import { ChatHeader } from "./chat-header";
@@ -96,6 +97,14 @@ function ChatActiveThread() {
     conversationId,
     onConversationCreated: setConversationId,
   });
+
+  // Watch for agent tool-results that drive UI navigation (the agent half
+  // of the "two routes, one dispatcher" pattern — see
+  // `app/[username]/_providers/clone-actions-context.tsx`).
+  // `conversationId` keys the module-level idempotency Map, so the
+  // handled-toolCallId set survives chat-panel close/reopen and
+  // conversation switches.
+  useAgentIntentWatcher(messages, conversationId);
 
   // Conversation deleted after route resolved — show error state
   if (conversationNotFound) {

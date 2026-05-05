@@ -24,12 +24,16 @@ Two things about the Vercel/Convex setup are easy to break and hard to diagnose 
 ## Core Principles
 
 - **Always Choose the Compounding Option** — You should ALWAYS choose the option that compounds, that architecturally makes the codebase less prone for error and never choose the quick wins. When a bug or feedback reveals a gap in a skill, rule, convention, or template, patch the upstream artifact before (or alongside) fixing the downstream instance.
+- **Agent Parity** — Every action a user can take through the UI, the
+  clone agent must be able to take through a tool. Concrete checklist
+  and dispatcher pattern: [Agent Parity](.claude/rules/agent-parity.md).
 - **Git workflow** — Never commit directly to main. Always use feature branches. When a merge conflict or branch divergence occurs, stop and ask the user before force-pushing or resetting.
 
 ## Project Rules
 
 Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` frontmatter unless noted.
 
+- **[Agent Parity](.claude/rules/agent-parity.md)** — two-routes-one-dispatcher pattern: every UI verb has a matching clone-agent tool, and both routes funnel through `useCloneActions`. Cross-user isolation invariant for tool args + the four-step checklist for adding a new verb. Auto-loads under `packages/convex/convex/chat/**`, `apps/mirror/features/chat/**`, and `apps/mirror/app/[username]/_providers/**`.
 - **[Auth](.claude/rules/auth.md)** — Better Auth running inside Convex; Next.js only proxies `/api/auth/*`. **Check before debugging sign-in, OAuth, or session cookies — the URL/host choreography between `.convex.cloud`, `.convex.site`, and the app domain is the #1 footgun.**
 - **[Convex](.claude/rules/convex.md)** — function guidelines, validators, schema, query/mutation patterns. Auto-loads under `packages/convex/convex/**`.
 - **[Verification](.claude/rules/verification.md)** — build/lint/Chrome-MCP tiers per change type. **Run the matching tier before reporting any task complete.**

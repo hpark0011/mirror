@@ -77,6 +77,12 @@ vi.mock("@convex-dev/agent", () => {
         };
       }
     },
+    // `createTool` is imported by `chat/tools.ts:buildCloneTools`, which
+    // `actions.ts:streamResponse` calls per-request. The identity stub
+    // (return `def` as-is) is enough — these tests don't exercise tool
+    // execution; they assert on `streamArgs` shape captured by the
+    // `cloneAgent` mock below.
+    createTool: vi.fn((def: unknown) => def),
   };
 });
 
@@ -110,6 +116,9 @@ vi.mock("ai", () => {
     embed: vi.fn(async () => {
       throw new Error("embed stubbed in test — RAG falls through");
     }),
+    stepCountIs: vi.fn((count: number) => {
+      return ({ steps }: { steps: unknown[] }) => steps.length === count;
+    }),
   };
 });
 vi.mock("@ai-sdk/google", () => {
@@ -138,28 +147,7 @@ vi.mock("../../auth/client", () => {
 // --------------------------------------------------------------------------
 
 import { api, internal } from "../../_generated/api";
-
-// Vite's `import.meta.glob` normalizes keys to the shortest possible
-// relative path from the importing file, which gives mixed prefixes when
-// the test lives in a nested __tests__/ dir. `convex-test` needs a single
-// uniform prefix rooted at the `_generated/` entry, so we rewrite every
-// key to start with `../../chat/...` (the chat dir relative to the test
-// file's parent's parent — i.e. the convex/ root when viewed from here).
-function normalizeConvexGlob(
-  raw: Record<string, () => Promise<unknown>>,
-): Record<string, () => Promise<unknown>> {
-  const out: Record<string, () => Promise<unknown>> = {};
-  for (const [key, loader] of Object.entries(raw)) {
-    let k = key;
-    if (k.startsWith("./")) {
-      k = "../../chat/__tests__/" + k.slice(2);
-    } else if (k.startsWith("../") && !k.startsWith("../../")) {
-      k = "../../chat/" + k.slice(3);
-    }
-    out[k] = loader;
-  }
-  return out;
-}
+import { normalizeConvexGlob } from "./testUtils";
 
 const rawChatModules = import.meta.glob("../../**/*.{ts,js}");
 const modules = normalizeConvexGlob(rawChatModules);
@@ -698,6 +686,12 @@ describe("FR-01: streamResponse passes maxOutputTokens: 1024 to thread.streamTex
       maxOutputTokens: 1024,
       promptMessageId: "msg_seed",
     });
+    expect(typeof firstArg.stopWhen).toBe("function");
+    const stopWhen = firstArg.stopWhen as (args: {
+      steps: unknown[];
+    }) => boolean;
+    expect(stopWhen({ steps: [{}, {}] })).toBe(false);
+    expect(stopWhen({ steps: [{}, {}, {}] })).toBe(true);
     expect(typeof firstArg.system).toBe("string");
   });
 
@@ -720,6 +714,7 @@ describe("FR-01: streamResponse passes maxOutputTokens: 1024 to thread.streamTex
     expect(ourCalls.length).toBeGreaterThanOrEqual(1);
     const firstArg = ourCalls[0].firstArg as Record<string, unknown>;
     expect(firstArg).toMatchObject({ maxOutputTokens: 1024 });
+    expect(typeof firstArg.stopWhen).toBe("function");
     // Retry branch MUST NOT include `promptMessageId` (empty string means
     // "respond to latest user message" and is stripped).
     expect(firstArg.promptMessageId).toBeUndefined();

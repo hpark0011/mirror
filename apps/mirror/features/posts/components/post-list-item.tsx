@@ -1,9 +1,11 @@
 "use client";
 
+import { useCallback, type MouseEvent } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ContentBody } from "@feel-good/features/editor/components";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentHref } from "@/features/content";
 import { PostMetadata } from "./post-metadata";
 import type { PostSummary } from "../types";
@@ -15,7 +17,29 @@ type PostListItemProps = {
 
 export function PostListItem({ post, username }: PostListItemProps) {
   const { buildChatAwareHref } = useChatSearchParams();
+  const { navigateToContent } = useCloneActions();
+  // Keep `<Link href>` populated for SEO/middle-click semantics. The
+  // onClick below routes "normal" left-clicks through the same dispatcher
+  // the agent uses (`useCloneActions().navigateToContent`).
   const href = buildChatAwareHref(getContentHref(username, "posts", post.slug));
+
+  const handleClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      // Preserve middle/cmd/shift-click-to-new-tab semantics.
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.button !== 0
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigateToContent({ kind: "posts", slug: post.slug });
+    },
+    [navigateToContent, post.slug],
+  );
 
   return (
     <article className="border-b border-border-subtle px-4.5 py-12 last:border-b-0">
@@ -26,7 +50,12 @@ export function PostListItem({ post, username }: PostListItemProps) {
         <div className="flex flex-col items-center w-full">
           <div className="max-w-lg flex flex-col gap-2 w-full">
             {post.coverImageUrl && (
-              <Link href={href} scroll={false} className="block mb-3.5">
+              <Link
+                href={href}
+                scroll={false}
+                onClick={handleClick}
+                className="block mb-3.5"
+              >
                 <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)]">
                   <Image
                     src={post.coverImageUrl}
@@ -40,7 +69,7 @@ export function PostListItem({ post, username }: PostListItemProps) {
             )}
             <div className="flex flex-col gap-3">
               <h2 className="text-xl leading-tight underline decoration-transparent transition-colors hover:text-blue-11">
-                <Link href={href} scroll={false}>
+                <Link href={href} scroll={false} onClick={handleClick}>
                   <span className="underline capitalize">
                     {post.title}
                   </span>
