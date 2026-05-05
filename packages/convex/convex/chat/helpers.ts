@@ -251,23 +251,26 @@ export const loadStreamingContext = internalQuery({
     // Drafts are not retrieval-eligible (see
     // `embeddings/getContentForEmbedding`) and must not be mentioned in the
     // prompt. Bio entries have no draft lifecycle, so any row counts and the
-    // simpler `by_userId` index is sufficient.
-    const articleRow = await ctx.db
-      .query("articles")
-      .withIndex("by_userId_and_status", (q) =>
-        q.eq("userId", profileOwnerId).eq("status", "published"),
-      )
-      .take(1);
-    const postRow = await ctx.db
-      .query("posts")
-      .withIndex("by_userId_and_status", (q) =>
-        q.eq("userId", profileOwnerId).eq("status", "published"),
-      )
-      .take(1);
-    const bioEntryRow = await ctx.db
-      .query("bioEntries")
-      .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
-      .take(1);
+    // simpler `by_userId` index is sufficient. The three reads are
+    // independent presence checks so they run concurrently via `Promise.all`.
+    const [articleRow, postRow, bioEntryRow] = await Promise.all([
+      ctx.db
+        .query("articles")
+        .withIndex("by_userId_and_status", (q) =>
+          q.eq("userId", profileOwnerId).eq("status", "published"),
+        )
+        .take(1),
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId_and_status", (q) =>
+          q.eq("userId", profileOwnerId).eq("status", "published"),
+        )
+        .take(1),
+      ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
+        .take(1),
+    ]);
 
     const contentInventory: ContentInventory = {
       articles: articleRow.length > 0,

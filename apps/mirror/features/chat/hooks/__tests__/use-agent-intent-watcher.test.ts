@@ -8,7 +8,9 @@
  *       FG_127 fixed (mount-scoped Set → conversation-scoped Map).
  *   (c) Tool parts in `state: "input-streaming"` are never dispatched.
  *   (d) Tool parts in `state: "output-error"` are never dispatched.
- *   (e) Two distinct toolCallIds in one assistant turn each dispatch once.
+ *   (e) `output-available` with a malformed payload (failing
+ *       `isNavigateOutput`) is never dispatched.
+ *   (f) Two distinct toolCallIds in one assistant turn each dispatch once.
  *
  * The hook reads `useCloneActions().navigateToContent`. We mock the
  * provider module so the hook can run outside `<CloneActionsProvider>`.
@@ -150,7 +152,30 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToContentMock).not.toHaveBeenCalled();
   });
 
-  it("(e) dispatches each toolCallId exactly once when an assistant turn carries two", () => {
+  it("(e) does not dispatch when output-available but output payload is malformed", () => {
+    // The `isNavigateOutput` guard requires `kind`, `slug`, `title`, and
+    // `href` fields. A malformed payload (here: `kind` only — missing
+    // `slug`/`title`/`href`) must be skipped silently; otherwise the
+    // dispatcher would receive `undefined` slug/href and either no-op or
+    // navigate to a 404. Belt-and-suspenders for the runtime narrowing
+    // that the broader `@convex-dev/agent` part type doesn't enforce.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-navigateToContent",
+          state: "output-available",
+          toolCallId: "call_malformed",
+          output: { kind: "articles" },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, "conv_test_malformed"));
+
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+  });
+
+  it("(f) dispatches each toolCallId exactly once when an assistant turn carries two", () => {
     const messages = [
       makeAssistantMessage([
         makeNavigateOutputPart("call_e1", "first-slug"),

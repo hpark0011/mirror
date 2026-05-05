@@ -2,7 +2,7 @@
 date: 2026-05-04
 topic: agent-driven UI control / agent parity
 target: how Greyboard wires the clone agent to control UI affordances, and how that shape would map onto Mirror
-source_repo: /Users/disquiet/desktop/greyboard
+source_repo: greyboard/
 status: research
 ---
 
@@ -10,7 +10,7 @@ status: research
 
 Mirror's clone agent today is read-only: it composes a system prompt at request time, retrieves user content via `vectorSearch` on `contentEmbeddings` (filtered by `userId`), and emits text. It cannot change the right panel, navigate the visitor, or take any UI action. `packages/convex/convex/chat/agent.ts:33-37` confirms — `cloneAgent` is constructed with no `tools` map.
 
-Greyboard (a sibling Electron + React + Tailwind editor app at `/Users/disquiet/desktop/greyboard`) ships the agent-control-the-UI piece already built. This document captures the shape so we can decide what to lift back into Mirror.
+Greyboard (a sibling Electron + React + Tailwind editor app at `greyboard/`) ships the agent-control-the-UI piece already built. This document captures the shape so we can decide what to lift back into Mirror.
 
 ## 1. Parity is the project thesis, not a per-feature aspiration
 
@@ -26,7 +26,7 @@ Mirror's `AGENTS.md` does not lift parity to a top-level project principle. It l
 
 The single most useful pattern. From `docs/architecture.md:101-104`:
 
-```
+```text
 User path:   renderer → preload window.greyboard.* → main IPC handler → Controller
 Agent path:  agent → MCP tool in src/main/agent/tools/ → SAME Controller
 ```
@@ -256,13 +256,13 @@ Greyboard's win is structural: the principle is on the front page. Mirror should
 
 ## Sources
 
-- `/Users/disquiet/desktop/greyboard/agents.md:35` — Core Principle statement
-- `/Users/disquiet/desktop/greyboard/docs/architecture.md:91-125` — § Agent parity
-- `/Users/disquiet/desktop/greyboard/.claude/rules/agent-parity.md` — checklist rule
-- `/Users/disquiet/desktop/greyboard/.claude/agents/code-review/agent-parity.md` — review enforcement
-- `/Users/disquiet/desktop/greyboard/src/main/agent/greyboard-tools.ts:14-46` — `UiController` interface, tool registration
-- `/Users/disquiet/desktop/greyboard/src/main/agent/agent-ipc-handlers.ts:73-113` — `UiController` impl
-- `/Users/disquiet/desktop/greyboard/src/main/agent/tools/ui-tools.ts` — UI tool definitions
-- `/Users/disquiet/desktop/greyboard/src/main/agent/tools/editor-tools.ts:54-76` — `editor_open_file` (the `navigate_to_content` analog)
-- `/Users/disquiet/desktop/greyboard/src/renderer/hooks/use-agent-ipc-bridge.ts` — renderer-side dispatcher
+- `greyboard/agents.md:35` — Core Principle statement
+- `greyboard/docs/architecture.md:91-125` — § Agent parity
+- `greyboard/.claude/rules/agent-parity.md` — checklist rule
+- `greyboard/.claude/agents/code-review/agent-parity.md` — review enforcement
+- `greyboard/src/main/agent/greyboard-tools.ts:14-46` — `UiController` interface, tool registration
+- `greyboard/src/main/agent/agent-ipc-handlers.ts:73-113` — `UiController` impl
+- `greyboard/src/main/agent/tools/ui-tools.ts` — UI tool definitions
+- `greyboard/src/main/agent/tools/editor-tools.ts:54-76` — `editor_open_file` (the `navigate_to_content` analog)
+- `greyboard/src/renderer/hooks/use-agent-ipc-bridge.ts` — renderer-side dispatcher
 - Mirror counterparts: `packages/convex/convex/chat/agent.ts:33-37`, `packages/convex/convex/chat/actions.ts:76-146`, `.claude/agents/code-review/agent-native.md`

@@ -5,11 +5,14 @@
 // `back-link.tsx`, `use-profile-workspace-route-data.ts`) keep importing
 // `getContentHref` from `@/features/content`. See
 // `.claude/rules/agent-parity.md` § Href-parity invariant.
-export { buildContentHref as getContentHref } from "@feel-good/convex/convex/content/href";
+import { type ContentKind } from "@feel-good/convex/convex/content/href";
+
+export {
+  buildContentHref as getContentHref,
+  type ContentKind,
+} from "@feel-good/convex/convex/content/href";
 
 export const CONTENT_KINDS = ["posts", "articles"] as const;
-
-export type ContentKind = (typeof CONTENT_KINDS)[number];
 
 export const DEFAULT_PROFILE_CONTENT_KIND: ContentKind = "posts";
 

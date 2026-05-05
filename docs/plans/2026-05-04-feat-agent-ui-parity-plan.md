@@ -13,7 +13,7 @@ related_tickets:
 
 Today, Mirror's clone agent is **read-only**. It composes a system prompt at request time, retrieves user content via `vectorSearch` on `contentEmbeddings` (filtered by `userId`), and emits text. `cloneAgent` at `packages/convex/convex/chat/agent.ts:33-37` is constructed with no `tools` map, so it cannot navigate the visitor, change the right panel, or take any UI action. If a visitor asks "show me your latest article," the best the clone can do is quote from a chunk and emit a `[Read more](/<slug>)` link — the visitor still has to click.
 
-Greyboard, the sibling Electron app at `/Users/disquiet/desktop/greyboard`, ships the agent-controls-the-UI piece. Its principle (`agents.md:35`):
+Greyboard, the sibling Electron app at `greyboard/`, ships the agent-controls-the-UI piece. Its principle (`agents.md:35`):
 
 > Any action a user can take through the UI, the agent must be able to take through an MCP tool. A UI feature without an agent tool is a parity bug, not a feature.
 
@@ -27,7 +27,7 @@ This plan delivers a **thin end-to-end demo** of that pattern with one verb (`na
 
 ### The two routes, one dispatcher shape
 
-```
+```text
 User path:   <Link>/click handler → useCloneActions().navigateToContent(...) → router.push(href)
 Agent path:  cloneAgent tool call → tool result in UIMessage.parts → useAgentIntentWatcher → useCloneActions().navigateToContent(...)
                                                                                          ↓
@@ -127,7 +127,7 @@ Implementation reads `useRouter`, `useChatSearchParams` (for `buildChatAwareHref
 
 **Modified: `features/chat/components/chat-thread.tsx`** — mount `useAgentIntentWatcher()` once. No change to `chat-message-item.tsx` rendering (text only); tool-result parts drive navigation, not visible UI. (We can later render an inline confirmation if we want.)
 
-**Refactor: `features/articles/components/article-list-item.tsx`** — replace the manual `buildChatAwareHref(getContentHref(...))` + `<Link>` with `useCloneActions().navigateToContent(...)` on click. Same for posts list. *This is the proof that the user route uses the same dispatcher* — without this refactor, parity is theoretical. (Keep `<Link>` for SEO/right-click semantics; the click handler calls into the dispatcher and `event.preventDefault()` only if the dispatcher succeeded — preserves middle-click-to-new-tab.)
+**Refactor: `features/articles/components/article-list-item.tsx`** — replace the manual `buildChatAwareHref(getContentHref(...))` + `<Link>` with `useCloneActions().navigateToContent(...)` on click. Same for posts list. *This is the proof that the user route uses the same dispatcher* — without this refactor, parity is theoretical. (Keep `<Link>` for SEO/right-click semantics; the click handler calls the dispatcher first (`useCloneActions().navigateToContent(...)`), then unconditionally `event.preventDefault()` to suppress the `<Link>`'s default navigation. The dispatcher synchronously initiates `router.push`, so the call order matters but the outcome doesn't gate the prevent-default.)
 
 #### Project rules
 
@@ -200,7 +200,9 @@ End-to-end test path (Phase 1 done = this works):
    - Open the user's profile chat panel.
    - Send: "show me your latest article."
    - Expect: chat assistant message renders normally; right panel transitions to the latest article's detail view; URL updates to `/@<username>/articles/<slug>?chat=1&conversation=...`; chat panel stays open.
-   - Negative: ask "show me Bob's latest article" (different user). The agent should not be able to call `navigateToContent` with Bob's slug — the tool throws "Not found or not published" and the agent recovers gracefully with text.
+   - Negative cross-user tests:
+     - **Scenario A — explicit slug from another user.** User types or pastes a path like `/@bob/articles/bobs-slug-123` while signed in as Alice. The agent's `navigateToContent` tool calls `resolveBySlug({ userId: profileOwnerId, slug })` — `profileOwnerId` is Alice's id, so the lookup returns null and the tool replies "Not found or not published." No router.push fires.
+     - **Scenario B — RAG cannot leak Bob's slug.** The vector index filter pins `userId` to Alice's id (see `chat/actions.ts` `vectorSearch`), so Bob's content cannot enter Alice's chat context. Confirms the agent has no path to "discover" a foreign slug through retrieval.
 
 4. **E2E spec** (Playwright CLI, per `.claude/rules/testing.md`):
    - New `apps/mirror/e2e/chat-agent-navigates.authenticated.spec.ts`:

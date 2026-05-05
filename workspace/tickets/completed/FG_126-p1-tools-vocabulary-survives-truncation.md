@@ -5,7 +5,7 @@ date: 2026-05-05
 type: fix
 status: completed
 priority: p1
-description: "TOOLS_VOCABULARY (the system-prompt sentence that names the clone agent's two tools) is currently pushed into the truncatable region of composeSystemPrompt. Under realistic budget pressure (large persona prompt + bio + topics) the proportional shrinker can reduce its share to ~35 chars — neither getLatestPublished nor navigateToContent appears, so the agent falls back to text and never calls its own tools. Move the vocabulary line into the fixed region alongside STYLE_RULES and add survival assertions to the FR-09 oversize tests."
+description: "TOOLS_VOCABULARY (the system-prompt sentence that names the clone agent's two tools) was pushed into the truncatable region of composeSystemPrompt. Under realistic budget pressure (large persona prompt + bio + topics) the proportional shrinker could reduce its share to ~35 chars — neither getLatestPublished nor navigateToContent appeared, so the agent fell back to text and never called its own tools. Move the vocabulary line into the fixed region alongside STYLE_RULES and add survival assertions to the FR-09 oversize tests."
 dependencies: []
 parent_plan_id: docs/plans/2026-05-04-feat-agent-ui-parity-plan.md
 acceptance_criteria:
@@ -23,7 +23,7 @@ owner_agent: "Convex chat backend developer"
 
 ## Context
 
-Code review on `feature-agent-parity-architecture` (correctness + agent-native reviewers, both at P1 confidence ~0.92) found that the `TOOLS_VOCABULARY` line — the only place the system prompt names `getLatestPublished` and `navigateToContent` — is fragile under budget pressure.
+Code review on `feature-agent-parity-architecture` (correctness + agent-native reviewers, both at P1 confidence ~0.92) found that the `TOOLS_VOCABULARY` line — the only place the system prompt names `getLatestPublished` and `navigateToContent` — was fragile under budget pressure.
 
 `packages/convex/convex/chat/helpers.ts:197-198`:
 
@@ -38,11 +38,11 @@ const share = Math.floor((p.length / truncatableTotal) * budget);
 return p.slice(0, share);
 ```
 
-For a user with a verbose `personaPrompt` (~12,000 chars), large `bio` (~6,000 chars), and detailed `topicsToAvoid` (~6,000 chars), the truncatable total is ~24,000 chars and the budget is ~5,400. TOOLS_VOCABULARY's share collapses to `floor(161/24000 * 5400) ≈ 35` chars, which is `"You can open content for the visito"` — neither tool name survives.
+For a user with a verbose `personaPrompt` (~12,000 chars), large `bio` (~6,000 chars), and detailed `topicsToAvoid` (~6,000 chars), the truncatable total was ~24,000 chars and the budget was ~5,400. TOOLS_VOCABULARY's share collapsed to `floor(161/24000 * 5400) ≈ 35` chars, which was `"You can open content for the visito"` — neither tool name survived.
 
-The agent learns nothing about its tool surface and silently falls back to text. The bug only manifests for users who fill in all profile fields extensively, but for those users the navigation feature is silently dead.
+The agent learned nothing about its tool surface and silently fell back to text. The bug only manifested for users who filled in all profile fields extensively, but for those users the navigation feature was silently dead.
 
-The existing FR-09 oversize tests (`packages/convex/convex/chat/__tests__/helpers.test.ts:130-203`) assert `STYLE_RULES` and tone clause survive but never assert `navigateToContent` survives — the gap that allowed this regression to land.
+The existing FR-09 oversize tests (`packages/convex/convex/chat/__tests__/helpers.test.ts:130-203`) asserted `STYLE_RULES` and tone clause survived but never asserted `navigateToContent` survived — the gap that allowed this regression to land.
 
 ## Goal
 
