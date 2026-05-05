@@ -103,7 +103,12 @@ const SEPARATOR = "\n\n";
  * the model contract (≤ 6000 chars) always holds, at the cost of cutting
  * into the safety prefix. That is the lesser evil vs. blowing the cap.
  *
- * Section ORDER is preserved: safety → style → tone → bio → persona → topics.
+ * Section ORDER is preserved:
+ *   safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+ * The first four are fixed (load-bearing) — safety prefix, style rules, the
+ * optional tone clause, and TOOLS_VOCABULARY (the only place the system
+ * prompt names `getLatestPublished` / `navigateToContent`). The rest are
+ * truncatable.
  */
 function truncateToBudget(
   fixedParts: Array<string>,
@@ -162,18 +167,27 @@ export function composeSystemPrompt(opts: {
     rawName.length > MAX_NAME_CHARS ? rawName.slice(0, MAX_NAME_CHARS) : rawName;
 
   // Fixed (non-truncatable) sections — always preserved verbatim.
-  // Order: safety → style → tone(optional). Style rules are product-wide
-  // (the chat UI renders plain text, not markdown), so they apply regardless
-  // of tone preset or persona prompt.
+  // Order: safety → style → tone(optional) → tools-vocab. Style rules are
+  // product-wide (the chat UI renders plain text, not markdown), so they
+  // apply regardless of tone preset or persona prompt. TOOLS_VOCABULARY is
+  // load-bearing too — it is the only place the system prompt names
+  // `getLatestPublished` / `navigateToContent`, so under budget pressure
+  // (verbose persona + bio + topics) it must not be proportionally shrunk
+  // away. The verb names are identical across users — the per-request
+  // factory only binds `profileOwnerId`, never tool args — so the line is
+  // a constant, not user-derived content.
   const fixed: Array<string> = [SAFETY_PREFIX(name), STYLE_RULES];
   if (opts.tonePreset && opts.tonePreset in TONE_PRESETS) {
     fixed.push(TONE_PRESETS[opts.tonePreset].clause);
   }
+  fixed.push(TOOLS_VOCABULARY);
 
   // Truncatable sections — bio, persona, topics, inventory. Order:
-  // safety → style → tone → bio → persona → topics → inventory. The
-  // inventory sentence is appended last so it does not destabilize existing
-  // prompt ordering for users without structured content.
+  // safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+  // The inventory sentence is appended last so it does not destabilize
+  // existing prompt ordering for users without structured content; it is
+  // genuinely user-derived (depends on which kinds the owner has populated)
+  // and may legitimately compress if context budget runs tight.
   const truncatable: Array<string> = [];
   if (opts.bio) {
     truncatable.push(`Bio: ${opts.bio}`);
@@ -190,11 +204,6 @@ export function composeSystemPrompt(opts: {
       truncatable.push(inventorySentence);
     }
   }
-  // Tools vocabulary always applies — every clone agent has the same tool
-  // surface (the per-request factory only binds the user; the verb names are
-  // identical across users). Placed last in the truncatable region so it does
-  // not destabilize existing prompt order under the budget.
-  truncatable.push(TOOLS_VOCABULARY);
 
   // Track which truncatable slots correspond to bio/persona/topics so we can
   // reassemble in order after truncation.
