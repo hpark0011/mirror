@@ -1,33 +1,16 @@
 import { test, expect } from "./fixtures/auth";
-import { requireEnv } from "./lib/env";
+import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 import path from "path";
 import fs from "fs";
 
 const username = "test-user";
-const testEmail = "playwright-test@mirror.test";
+const FIXTURE_KEY = "mime-limit";
 
-const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
-const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
-
-async function ensureTestArticleFixtures(): Promise<{
-  draftSlug: string;
-  publishedSlug: string;
-}> {
-  const res = await fetch(`${convexSiteUrl}/test/ensure-article-fixtures`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-test-secret": testSecret,
-    },
-    body: JSON.stringify({ email: testEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `ensure-article-fixtures failed with status ${res.status}: ${await res.text()}`,
-    );
-  }
-  return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
-}
+// FG_154: ProseMirror auto-injects `<img class="ProseMirror-separator">` into
+// empty inline-level positions. The empty draft this spec opens already has
+// a separator, so a raw `img` count would be 1 — not 0 — even when no
+// upload fired. Use this selector for any in-editor image-count assertion.
+const INSERTED_IMG = "img:not(.ProseMirror-separator)";
 
 // Tiny GIF89a — minimal valid GIF that satisfies the `image/gif` MIME sniff
 // but trips the inline upload's allowed-MIME guard (PNG/JPEG/WEBP only).
@@ -54,7 +37,7 @@ test.describe("Article inline image MIME limit (authenticated)", () => {
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    const { draftSlug } = await ensureTestArticleFixtures();
+    const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
     await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
       waitUntil: "domcontentloaded",
     });
@@ -68,7 +51,7 @@ test.describe("Article inline image MIME limit (authenticated)", () => {
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    const { draftSlug } = await ensureTestArticleFixtures();
+    const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
 
     const uploadErrors: string[] = [];
     page.on("console", (msg) => {
@@ -130,7 +113,7 @@ test.describe("Article inline image MIME limit (authenticated)", () => {
       .toBeGreaterThan(0);
     expect(uploadErrors.join(" ")).toMatch(/PNG|JPEG|WEBP|mime/i);
 
-    await expect(editor.locator("img")).toHaveCount(0);
+    await expect(editor.locator(INSERTED_IMG)).toHaveCount(0);
 
     const newConvexCalls = convexCalls.slice(baselineCalls);
     expect(

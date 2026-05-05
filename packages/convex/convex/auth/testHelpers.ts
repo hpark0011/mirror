@@ -273,6 +273,10 @@ export const ensureTestPostFixtures = internalMutation({
 
 const ARTICLE_DRAFT_FIXTURE_SLUG = "test-article-fixture-draft";
 const ARTICLE_PUBLISHED_FIXTURE_SLUG = "test-article-fixture-published";
+// Per-spec key shape: `inline-<key>-fixture-draft`. The key is constrained so
+// the resulting slug always passes the canonical slug pattern
+// (`^[a-z0-9]+(?:-[a-z0-9]+)*$`) — see packages/convex/convex/content/slug.ts.
+const FIXTURE_KEY_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /**
  * Idempotently creates one draft article and one published article owned by
@@ -282,11 +286,19 @@ const ARTICLE_PUBLISHED_FIXTURE_SLUG = "test-article-fixture-published";
  * does not exist as a self-serve UI in Mirror today). Returns the slugs so
  * tests can navigate directly.
  *
+ * `key` (optional): scopes the draft slug to a per-spec key so parallel
+ * Playwright workers running sibling specs can't pollute each other's body
+ * assertions. When provided, the draft slug is `inline-<key>-fixture-draft`;
+ * when absent, the legacy `test-article-fixture-draft` slug is used so any
+ * non-inline-image consumers of this fixture remain unaffected. The
+ * published slug is shared (read-only across specs).
+ *
  * WARNING: Only call from test infrastructure. Never expose as public API.
  */
 export const ensureTestArticleFixtures = internalMutation({
   args: {
     email: v.string(),
+    key: v.optional(v.string()),
   },
   returns: v.object({
     draftSlug: v.string(),
@@ -294,6 +306,16 @@ export const ensureTestArticleFixtures = internalMutation({
   }),
   handler: async (ctx, args) => {
     assertTestEmail(args.email);
+
+    if (args.key !== undefined && !FIXTURE_KEY_PATTERN.test(args.key)) {
+      throw new Error(
+        `ensureTestArticleFixtures: key must match ${FIXTURE_KEY_PATTERN}; got "${args.key}"`,
+      );
+    }
+
+    const draftSlug = args.key
+      ? `inline-${args.key}-fixture-draft`
+      : ARTICLE_DRAFT_FIXTURE_SLUG;
 
     const user = await ctx.db
       .query("users")
@@ -314,7 +336,7 @@ export const ensureTestArticleFixtures = internalMutation({
     const existingDraft = await ctx.db
       .query("articles")
       .withIndex("by_userId_and_slug", (q) =>
-        q.eq("userId", userId).eq("slug", ARTICLE_DRAFT_FIXTURE_SLUG),
+        q.eq("userId", userId).eq("slug", draftSlug),
       )
       .unique();
 
@@ -335,7 +357,7 @@ export const ensureTestArticleFixtures = internalMutation({
     } else {
       await ctx.db.insert("articles", {
         userId,
-        slug: ARTICLE_DRAFT_FIXTURE_SLUG,
+        slug: draftSlug,
         title: "Test Draft Article",
         body: emptyBody,
         category: "test",
@@ -373,7 +395,7 @@ export const ensureTestArticleFixtures = internalMutation({
     }
 
     return {
-      draftSlug: ARTICLE_DRAFT_FIXTURE_SLUG,
+      draftSlug,
       publishedSlug: ARTICLE_PUBLISHED_FIXTURE_SLUG,
     };
   },

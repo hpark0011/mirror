@@ -1,33 +1,16 @@
 import { test, expect } from "./fixtures/auth";
-import { requireEnv } from "./lib/env";
+import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 import path from "path";
 import fs from "fs";
 
 const username = "test-user";
-const testEmail = "playwright-test@mirror.test";
+const FIXTURE_KEY = "size-limit";
 
-const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
-const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
-
-async function ensureTestArticleFixtures(): Promise<{
-  draftSlug: string;
-  publishedSlug: string;
-}> {
-  const res = await fetch(`${convexSiteUrl}/test/ensure-article-fixtures`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-test-secret": testSecret,
-    },
-    body: JSON.stringify({ email: testEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `ensure-article-fixtures failed with status ${res.status}: ${await res.text()}`,
-    );
-  }
-  return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
-}
+// FG_154: ProseMirror auto-injects `<img class="ProseMirror-separator">` into
+// empty inline-level positions. The empty draft this spec opens already has
+// a separator, so a raw `img` count would be 1 — not 0 — even when no
+// upload fired. Use this selector for any in-editor image-count assertion.
+const INSERTED_IMG = "img:not(.ProseMirror-separator)";
 
 // 6 MiB PNG: a real (but oversize) PNG that satisfies the MIME sniff yet
 // trips the 5 MiB hook-level size guard before any Convex mutation runs.
@@ -56,7 +39,7 @@ test.describe("Article inline image size limit (authenticated)", () => {
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    const { draftSlug } = await ensureTestArticleFixtures();
+    const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
     await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
       waitUntil: "domcontentloaded",
     });
@@ -70,7 +53,7 @@ test.describe("Article inline image size limit (authenticated)", () => {
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    const { draftSlug } = await ensureTestArticleFixtures();
+    const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
 
     // Capture the inline-image-upload-plugin's console.error so we can
     // assert FR-11 fires synchronously (the hook throws InlineImageValidationError
@@ -140,7 +123,7 @@ test.describe("Article inline image size limit (authenticated)", () => {
     expect(uploadErrors.join(" ")).toMatch(/smaller than 5 MB|size/i);
 
     // No image node was inserted into the editor.
-    await expect(editor.locator("img")).toHaveCount(0);
+    await expect(editor.locator(INSERTED_IMG)).toHaveCount(0);
 
     // No `generateArticleInlineImageUploadUrl` mutation request fired.
     const newConvexCalls = convexCalls.slice(baselineCalls);

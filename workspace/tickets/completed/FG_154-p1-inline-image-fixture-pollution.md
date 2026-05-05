@@ -3,7 +3,7 @@ id: FG_154
 title: "Inline-image E2E specs share one draft fixture and pollute each other in parallel runs"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "All 6 article-inline-image-*.authenticated.spec.ts specs (paste, drop, replace, cascade-delete, mime-limit, size-limit) call the same `/test/ensure-article-fixtures` endpoint, which returns ONE shared `draftSlug` per test user. Under default-parallel Playwright execution (5 workers), specs that save image bodies into that shared draft race and overwrite each other, producing non-deterministic 'leftover image' / 'image count off by one' failures. The 5 individual specs pass in isolation; the full-suite parallel run fails on a different subset every time."
 dependencies: []
