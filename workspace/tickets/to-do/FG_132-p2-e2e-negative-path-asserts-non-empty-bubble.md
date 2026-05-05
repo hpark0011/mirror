@@ -105,7 +105,7 @@ This change is exercised by Playwright with a real LLM. CI or local runs against
 
 ## Resources
 
-- `.claude/rules/testing.md` (Playwright CLI is the e2e tool)
+- `.claude/rules/verification.md` § E2E Tests (Playwright CLI is the e2e tool)
 - Code review report from `/review-code` on `feature-agent-parity-architecture` (2026-05-05) — P2 #7
 - Playwright docs on `toHaveText`: https://playwright.dev/docs/api/class-locatorassertions#locator-assertions-to-have-text
 - Peer specs that use the same bubble selector: `apps/mirror/e2e/chat-plain-text.spec.ts`, `apps/mirror/e2e/chat-assistant-placeholder.spec.ts`

@@ -92,7 +92,7 @@ Spawn the `create-spec-verification` agent (defined at `.claude/agents/create-sp
 
 ### Final Output
 
-1. Write the spec to `workspace/spec/{YYYY-MM-DD}-{feature-name}-spec.md` (ISO date prefix, kebab-case feature name). Use today's date. Set the `**Created:**` line in the spec header to the same date.
+1. Write the spec to `workspace/spec/{YYYY-MM-DD}-{feature-name}-spec.md`. Use today's date. Set the `**Created:**` line in the spec header to the same date.
 2. Present a summary including: spec location, FR/NFR counts, unit + E2E test counts, adversarial review tallies (raised / accepted / rejected, no unresolved Critical), and verification result.
 
 ### Implementation handoff

@@ -204,7 +204,7 @@ End-to-end test path (Phase 1 done = this works):
      - **Scenario A — explicit slug from another user.** User types or pastes a path like `/@bob/articles/bobs-slug-123` while signed in as Alice. The agent's `navigateToContent` tool calls `resolveBySlug({ userId: profileOwnerId, slug })` — `profileOwnerId` is Alice's id, so the lookup returns null and the tool replies "Not found or not published." No router.push fires.
      - **Scenario B — RAG cannot leak Bob's slug.** The vector index filter pins `userId` to Alice's id (see `chat/actions.ts` `vectorSearch`), so Bob's content cannot enter Alice's chat context. Confirms the agent has no path to "discover" a foreign slug through retrieval.
 
-4. **E2E spec** (Playwright CLI, per `.claude/rules/testing.md`):
+4. **E2E spec** (Playwright CLI, per `.claude/rules/verification.md` § E2E Tests):
    - New `apps/mirror/e2e/chat-agent-navigates.authenticated.spec.ts`:
      - Visits a profile page with chat open.
      - Sends "show me your latest article."

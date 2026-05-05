@@ -18,7 +18,7 @@ none, say so and justify.
 
 ## How we'll know it works
 
-Each row is the source of truth for one Playwright E2E test. Write in plain language a non-engineer could follow — real user flows, not internal state checks. `Test file` may stay blank during drafting; must be set before implementation. Test conventions: `.claude/rules/testing.md`.
+Each row is the source of truth for one Playwright E2E test. Write in plain language a non-engineer could follow — real user flows, not internal state checks. `Test file` may stay blank during drafting; must be set before implementation. Test conventions: `.claude/rules/verification.md` § E2E Tests.
 
 | Scenario (user-flow language)                     | Expected outcome                                  | Test file       | Verifies |
 | ------------------------------------------------- | ------------------------------------------------- | --------------- | -------- |

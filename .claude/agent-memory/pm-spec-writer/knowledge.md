@@ -25,7 +25,7 @@ Only verified facts live here. If you can't point to evidence, don't write it do
 
 ## References
 
-<!-- Internal: .claude/rules/testing.md, .claude/skills/create-spec, .claude/skills/generate-issue-tickets,
+<!-- Internal: .claude/rules/verification.md, .claude/skills/create-spec, .claude/skills/generate-issue-tickets,
      workspace/tickets/, .claude/agents/ -->
 
 | Type | Resource | Why it matters |
