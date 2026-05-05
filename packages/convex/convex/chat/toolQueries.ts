@@ -64,24 +64,12 @@ export const queryLatestPublished = internalQuery({
   returns: latestPublishedReturnValidator,
   handler: async (ctx, { userId, kind }) => {
     const tableName = kind;
-    // Ordering is by `_creationTime` descending. For normal write paths this
-    // tracks `publishedAt` (a row is published shortly after it is created).
-    // The known divergence is when a row is deleted and re-inserted — e.g.
-    // via a migration or markdown re-import — `_creationTime` resets but
-    // `publishedAt` is preserved, so the re-inserted row would surface as
-    // "latest" by creation time even if a semantically newer publication
-    // exists. If we ever support re-ingestion, add a
-    // `by_userId_and_publishedAt` index and switch the order key here.
-    //
-    // The compound `by_userId_and_status` index pins the scan to published
-    // rows only. The previous shape walked `by_userId` in `desc` order and
-    // used a `for await` loop to skip drafts — that read N draft documents
-    // for a user with N drafts and few/no published rows. Pinning `status`
-    // at the index level means the scan never visits a draft. `.first()`
-    // returns the most recent published row in O(1) index lookups.
+    // The compound index pins the scan to published rows and orders by the
+    // semantic publish timestamp. Ordering by `_creationTime` would return the
+    // wrong "latest" item when an older draft is published after a newer row.
     const row = await ctx.db
       .query(tableName)
-      .withIndex("by_userId_and_status", (q) =>
+      .withIndex("by_userId_status_publishedAt", (q) =>
         q.eq("userId", userId as Id<"users">).eq("status", "published"),
       )
       .order("desc")

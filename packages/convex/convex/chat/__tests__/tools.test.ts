@@ -153,6 +153,47 @@ describe("chat/toolQueries.queryLatestPublished", () => {
     expect(olderPublished).not.toBe(middlePublished);
   });
 
+  it("orders latest by publishedAt, not row creation time", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_publish_time");
+
+    // Insert the semantically newest publication first. A `_creationTime`
+    // ordered query would incorrectly return the second row below.
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "published-later",
+        title: "Published Later",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 3000,
+        createdAt: 1000,
+      }),
+    );
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "created-later",
+        title: "Created Later",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 2000,
+        createdAt: 2000,
+      }),
+    );
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryLatestPublished,
+      { userId: owner, kind: "articles" },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.slug).toBe("published-later");
+    expect(result!.publishedAt).toBe(3000);
+  });
+
   it("returns null when the user has zero published items of that kind", async () => {
     const t = makeT();
     const owner = await insertOwner(t, "owner_no_published");
@@ -194,8 +235,9 @@ describe("chat/toolQueries.queryLatestPublished", () => {
     // Regression guard for FG_125. The previous shape walked `by_userId` in
     // descending order and skipped drafts in a `for await` loop — so a user
     // with N drafts ahead of any published row read N documents per call.
-    // The compound `by_userId_and_status` index pins the scan to published
-    // rows, so the latency is bounded regardless of draft count.
+    // The compound `by_userId_status_publishedAt` index pins the scan to
+    // published rows and orders by the semantic publish timestamp, so the
+    // latency is bounded regardless of draft count.
     //
     // The convex-test harness has no first-class "documents-read" counter,
     // so we assert latency. The threshold is generous (<50ms) on top of an

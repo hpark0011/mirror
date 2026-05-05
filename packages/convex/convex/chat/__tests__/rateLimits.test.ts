@@ -116,6 +116,9 @@ vi.mock("ai", () => {
     embed: vi.fn(async () => {
       throw new Error("embed stubbed in test — RAG falls through");
     }),
+    stepCountIs: vi.fn((count: number) => {
+      return ({ steps }: { steps: unknown[] }) => steps.length === count;
+    }),
   };
 });
 vi.mock("@ai-sdk/google", () => {
@@ -683,6 +686,12 @@ describe("FR-01: streamResponse passes maxOutputTokens: 1024 to thread.streamTex
       maxOutputTokens: 1024,
       promptMessageId: "msg_seed",
     });
+    expect(typeof firstArg.stopWhen).toBe("function");
+    const stopWhen = firstArg.stopWhen as (args: {
+      steps: unknown[];
+    }) => boolean;
+    expect(stopWhen({ steps: [{}, {}] })).toBe(false);
+    expect(stopWhen({ steps: [{}, {}, {}] })).toBe(true);
     expect(typeof firstArg.system).toBe("string");
   });
 
@@ -705,6 +714,7 @@ describe("FR-01: streamResponse passes maxOutputTokens: 1024 to thread.streamTex
     expect(ourCalls.length).toBeGreaterThanOrEqual(1);
     const firstArg = ourCalls[0].firstArg as Record<string, unknown>;
     expect(firstArg).toMatchObject({ maxOutputTokens: 1024 });
+    expect(typeof firstArg.stopWhen).toBe("function");
     // Retry branch MUST NOT include `promptMessageId` (empty string means
     // "respond to latest user message" and is stripped).
     expect(firstArg.promptMessageId).toBeUndefined();

@@ -1,7 +1,7 @@
 "use node";
 
 import { v } from "convex/values";
-import { embed } from "ai";
+import { embed, stepCountIs } from "ai";
 import { google } from "@ai-sdk/google";
 import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
@@ -16,6 +16,7 @@ export const RAG_CONTEXT_MAX_CHARS = 4000;
 // FR-01: per-turn Anthropic output cap. Single source so retry and
 // first-send paths can't drift.
 const CHAT_MAX_OUTPUT_TOKENS = 1024;
+const CHAT_MAX_TOOL_STEPS = 3;
 
 // Generalized header — bio entries are not "writing" and future structured
 // sources (events, projects, …) won't be either. One header string that
@@ -157,6 +158,7 @@ export const streamResponse = internalAction({
       const streamArgs = {
         system: fullSystemPrompt,
         maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
+        stopWhen: stepCountIs(CHAT_MAX_TOOL_STEPS),
         tools: buildCloneTools(profileOwnerId),
         ...(promptMessageId ? { promptMessageId } : {}),
       };

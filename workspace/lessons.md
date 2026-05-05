@@ -2,6 +2,14 @@
 
 ## 2026-05-05
 
+- Agent tool flows that need "lookup, then act" require an explicit AI SDK
+  step budget (`stopWhen: stepCountIs(...)`). The default one-step loop can
+  execute the lookup tool and stop before the action tool is ever called.
+- "Latest published" content must order by `publishedAt`, not row creation
+  time. Drafts can be created long before they are published, so use an index
+  that includes the semantic publish timestamp whenever UI or agent language
+  says "latest".
+
 ### Authenticated Playwright specs need a deterministic ConvexAuth-ready signal
 
 `ConvexBetterAuthProvider` installs the JWT in a *post-mount* effect:
