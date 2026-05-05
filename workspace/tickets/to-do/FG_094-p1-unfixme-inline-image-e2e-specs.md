@@ -6,14 +6,14 @@ type: fix
 status: to-do
 priority: p1
 description: "Seven of eight Playwright specs added by the inline-image-lifecycle wave are marked test.fixme citing a Convex client-auth race in the test environment. The result: FR-01, FR-02, FR-03, FR-06, FR-07, FR-08 have no running browser-stack verification. Only the size-limit and MIME-limit specs (which exercise pre-Convex client validation only) actually run. Resolve the auth race or replace the affected assertions with a deterministic Convex-test fixture path so the full inline-image lifecycle has running coverage."
-dependencies: [FG_153]
+dependencies: [FG_153, FG_154]
 parent_plan_id: workspace/spec/2026-04-30-tiptap-inline-image-lifecycle-spec.md
 acceptance_criteria:
   - "grep -rn 'test.fixme' apps/mirror/e2e/article-inline-image-* apps/mirror/e2e/post-inline-image-* apps/mirror/e2e/post-markdown-image-import.authenticated.spec.ts returns 0 matches (all 7 fixme'd specs un-skipped)"
   - "pnpm --filter=@feel-good/mirror test:e2e -- article-inline-image-paste passes"
   - "pnpm --filter=@feel-good/mirror test:e2e -- article-inline-image-cascade-delete passes"
   - "pnpm --filter=@feel-good/mirror test:e2e -- post-markdown-image-import passes"
-  - "All 8 inline-image specs (paste, drop, replace, cascade-delete, size-limit, mime-limit, post-paste, post-markdown-import) run green in CI"
+  - "All 8 inline-image specs (paste, drop, replace, cascade-delete, size-limit, mime-limit, post-paste, post-markdown-import) pass when run in isolation. Full-suite default-parallel greenness in CI is gated on FG_154 (inline-image-fixture-pollution); cite that ticket here once it lands."
   - "Root cause of the original Convex client-auth race is documented in workspace/lessons.md or a code comment in the affected fixture"
 owner_agent: "Playwright E2E specialist"
 ---
