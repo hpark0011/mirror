@@ -37,6 +37,7 @@ import type * as chat_tools from "../chat/tools.js";
 import type * as content_backfill from "../content/backfill.js";
 import type * as content_bodyWalk from "../content/bodyWalk.js";
 import type * as content_helpers from "../content/helpers.js";
+import type * as content_href from "../content/href.js";
 import type * as content_inlineImageOwnership from "../content/inlineImageOwnership.js";
 import type * as content_inlineImageOwnershipSchema from "../content/inlineImageOwnershipSchema.js";
 import type * as content_markdownImport from "../content/markdownImport.js";
@@ -107,6 +108,7 @@ declare const fullApi: ApiFromModules<{
   "content/backfill": typeof content_backfill;
   "content/bodyWalk": typeof content_bodyWalk;
   "content/helpers": typeof content_helpers;
+  "content/href": typeof content_href;
   "content/inlineImageOwnership": typeof content_inlineImageOwnership;
   "content/inlineImageOwnershipSchema": typeof content_inlineImageOwnershipSchema;
   "content/markdownImport": typeof content_markdownImport;

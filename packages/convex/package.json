@@ -10,6 +10,7 @@
     "./convex/_generated/server": "./convex/_generated/server.js",
     "./convex/content/schema": "./convex/content/schema.ts",
     "./convex/content/slug": "./convex/content/slug.ts",
+    "./convex/content/href": "./convex/content/href.ts",
     "./convex/content/storagePolicy": "./convex/content/storagePolicy.ts",
     "./convex/content/bodyWalk": "./convex/content/bodyWalk.ts",
     "./convex/content/safeFetch": "./convex/content/safeFetch.ts",
@@ -37,6 +38,9 @@
       ],
       "convex/content/slug": [
         "./convex/content/slug.ts"
+      ],
+      "convex/content/href": [
+        "./convex/content/href.ts"
       ],
       "convex/content/storagePolicy": [
         "./convex/content/storagePolicy.ts"

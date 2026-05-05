@@ -531,6 +531,17 @@ describe("chat/toolQueries.buildContentHref", () => {
     );
   });
 
+  // The shared helper (`packages/convex/convex/content/href.ts`) accepts an
+  // optional slug — both consumers (this Convex side and the Next.js client
+  // re-export at `apps/mirror/features/content/types.ts`) MUST cover the
+  // slug-omitted path so a future template change can't silently regress
+  // one consumer while the other passes. Mirror of the equivalent test in
+  // `apps/mirror/features/content/__tests__/types.test.ts`.
+  it("omits slug when not provided (list-route shape)", () => {
+    expect(buildContentHref("alice", "articles")).toBe("/@alice/articles");
+    expect(buildContentHref("bob", "posts")).toBe("/@bob/posts");
+  });
+
   it("resolveBySlug returns the same href the helper builds (single source of truth)", async () => {
     // Confirms the tool path and the helper agree byte-for-byte on the URL
     // shape — if `resolveBySlug` ever forgets to call `buildContentHref`

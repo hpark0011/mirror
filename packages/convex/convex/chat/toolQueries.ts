@@ -1,6 +1,14 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
+import { buildContentHref } from "../content/href";
+
+// Re-exported so existing test imports
+// (`packages/convex/convex/chat/__tests__/tools.test.ts`) and any future
+// chat-package consumers can keep importing `buildContentHref` from
+// `../toolQueries` while the canonical implementation lives at
+// `../content/href` (see `.claude/rules/agent-parity.md` § Href-parity).
+export { buildContentHref };
 
 /**
  * Tool-side internal queries powering `buildCloneTools` in `chat/tools.ts`.
@@ -17,34 +25,6 @@ import type { Id } from "../_generated/dataModel";
  *  - `resolveBySlug` returns `null` for drafts even when slug + userId match,
  *    so a chat agent cannot navigate the visitor to an unpublished URL.
  */
-
-/**
- * Canonical href builder for content the chat agent navigates the visitor to.
- *
- * Exported so unit tests can assert the exact href shape without going through
- * the tool-execute path (the convex-test harness has no first-class way to
- * invoke `Tool.execute(...)` synthetically because the AI SDK injects ctx via
- * a `__acceptsCtx` symbol). Centralizing the template here means the tool
- * surface and the test surface share one source of truth — a typo in the
- * template surfaces in both `resolveBySlug`'s return and the helper unit test.
- *
- * Format: `/@<username>/<articles|posts>/<slug>` — must stay aligned with the
- * Next.js route at `apps/mirror/app/[username]/<kind>/[slug]/page.tsx`.
- *
- * Mirror of `getContentHref` in
- * `apps/mirror/features/content/types.ts`. Both must produce the same
- * canonical `/@<username>/<kind>/<slug>` shape — the client's
- * `useAgentIntentWatcher` trusts the server-built `href` from this
- * helper, and the user-UI list items call `getContentHref` directly.
- * Tests on both sides pin the format.
- */
-export function buildContentHref(
-  username: string,
-  kind: "articles" | "posts",
-  slug: string,
-): string {
-  return `/@${username}/${kind}/${slug}`;
-}
 
 const latestPublishedReturnValidator = v.union(
   v.null(),
