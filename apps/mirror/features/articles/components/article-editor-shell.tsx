@@ -11,11 +11,9 @@ import {
   EditorToolbar,
   type JSONContent,
 } from "@feel-good/features/editor";
-import { Button } from "@feel-good/ui/primitives/button";
-import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import type { InlineImageUploadResult } from "@feel-good/features/editor";
+import { ArticleEditorToolbar } from "./article-editor-toolbar";
 import { ArticleMetadataHeader } from "./article-metadata-header";
-import { ArticlePublishToggle } from "./article-publish-toggle";
 import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
 
 export interface ArticleEditorShellProps {
@@ -74,40 +72,14 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
 
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
-      <WorkspaceToolbar>
-        <div className="flex h-9 w-full items-center justify-between gap-2 border-b border-border-subtle px-3.5 pb-1.5">
-          {onCancel && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="xs"
-              onClick={onCancel}
-              disabled={isSaving}
-            >
-              Cancel
-            </Button>
-          )}
-          <div className="flex items-center gap-2">
-            <ArticlePublishToggle
-              status={status}
-              isPending={isSaving}
-              disabled={isSaving || hasPendingUploads}
-              onConfirm={onPublishToggle}
-            />
-            <Button
-              type="button"
-              variant="primary"
-              size="xs"
-              data-testid="save-article-btn"
-              className="w-12"
-              onClick={() => void onSave()}
-              disabled={isSaving || hasPendingUploads}
-            >
-              {isSaving ? "Saving…" : "Save"}
-            </Button>
-          </div>
-        </div>
-      </WorkspaceToolbar>
+      <ArticleEditorToolbar
+        status={status}
+        isSaving={isSaving}
+        hasPendingUploads={hasPendingUploads}
+        onSave={onSave}
+        onPublishToggle={onPublishToggle}
+        onCancel={onCancel}
+      />
       <div className="flex-1 overflow-auto">
         <div className="mx-auto flex w-full max-w-xl flex-col px-6 pt-4 pb-20">
           <ArticleMetadataHeader {...metadata} />
