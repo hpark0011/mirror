@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import type { ReactNode } from "react";
 import { cn } from "@feel-good/utils/cn";
-import { articleRowVariants } from "../utils/article-list.config";
+import { articleRowVariants } from "../../utils/article-list.config";
 
 type AnimatedArticleRowProps = {
   children: ReactNode;

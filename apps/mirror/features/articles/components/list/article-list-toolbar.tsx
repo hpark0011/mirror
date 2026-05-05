@@ -18,8 +18,8 @@ import {
   type SortOrder,
   type UseContentSearchReturn,
 } from "@/features/content";
-import type { UseArticleFilterReturn } from "../hooks/use-article-filter";
-import type { ArticleSummary } from "../types";
+import type { UseArticleFilterReturn } from "../../hooks/use-article-filter";
+import type { ArticleSummary } from "../../types";
 import { ArticleFilterDropdown } from "./article-filter-dropdown";
 import { ArticleSearchInput } from "./article-search-input";
 import { ArticleSortDropdown } from "./article-sort-dropdown";

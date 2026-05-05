@@ -1,6 +1,6 @@
 "use client";
 
-import { useArticleToolbar } from "../context/article-toolbar-context";
+import { useArticleToolbar } from "../../context/article-toolbar-context";
 import { ArticleListToolbar } from "./article-list-toolbar";
 
 export function ArticleListToolbarConnector() {

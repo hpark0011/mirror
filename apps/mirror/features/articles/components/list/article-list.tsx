@@ -8,9 +8,9 @@ import {
   TableRow,
 } from "@feel-good/ui/primitives/table";
 import { Checkbox } from "@feel-good/ui/primitives/checkbox";
-import type { ArticleSummary } from "../types";
-import { ArticleListItem } from "../components/article-list-item";
-import { ArticleListLoader } from "../components/article-list-loader";
+import type { ArticleSummary } from "../../types";
+import { ArticleListItem } from "./article-list-item";
+import { ArticleListLoader } from "./article-list-loader";
 import { cn } from "@feel-good/utils/cn";
 
 type ArticleListProps = {

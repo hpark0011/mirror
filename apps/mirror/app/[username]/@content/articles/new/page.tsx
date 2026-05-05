@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { NewArticleEditor } from "@/features/articles/components/new-article-editor";
+import { NewArticleEditor } from "@/features/articles/components/editor/new-article-editor";
 import { fetchAuthQuery, isAuthenticated } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
 

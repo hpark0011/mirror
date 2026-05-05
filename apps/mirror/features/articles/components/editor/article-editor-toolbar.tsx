@@ -1,9 +1,10 @@
 "use client";
 
+import { ArrowshapeLeftFillIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import { ArticlePublishToggle } from "./article-publish-toggle";
-import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
+import type { ArticleStatus } from "../../lib/schemas/article-metadata.schema";
 
 export interface ArticleEditorToolbarProps {
   status: ArticleStatus;
@@ -32,8 +33,11 @@ export function ArticleEditorToolbar({
             size="xs"
             onClick={onCancel}
             disabled={isSaving}
+            aria-label="Cancel"
+            className="gap-1 has-[>svg]:pl-0"
           >
-            Cancel
+            <ArrowshapeLeftFillIcon className="size-4" />
+            Back
           </Button>
         )}
         <div className="flex items-center gap-2">

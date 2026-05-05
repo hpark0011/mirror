@@ -1,20 +1,22 @@
 "use client";
 
-// Host for `/articles/new`. Owns no server state; defers row creation
-// until the user clicks Save (per the editor plan). On success, the form
-// hook navigates to `/articles/<slug>/edit` so subsequent edits use the
-// patch flow.
-import { useRouter } from "next/navigation";
-import { useNewArticleForm } from "../hooks/use-new-article-form";
+// Edit-existing-article host. Wraps the shared `ArticleEditorShell` with a
+// server-bound form hook so Save dispatches `articles.mutations.update`
+// for the loaded row. URL stays stable across saves.
+import { type ArticleWithBody } from "../../types";
+import { useEditArticleForm } from "../../hooks/use-edit-article-form";
 import { ArticleEditorShell } from "./article-editor-shell";
 
-interface NewArticleEditorProps {
+type ArticleEditorProps = {
+  article: ArticleWithBody;
   username: string;
-}
+  // `slug` arg kept for backwards-compat with the existing edit page; the
+  // form hook reads slug off `article.slug`.
+  slug?: string;
+};
 
-export function NewArticleEditor({ username }: NewArticleEditorProps) {
-  const router = useRouter();
-  const form = useNewArticleForm({ username });
+export function ArticleEditor({ article, username }: ArticleEditorProps) {
+  const form = useEditArticleForm({ username, initial: article });
   return (
     <ArticleEditorShell
       title={form.title}
@@ -36,7 +38,7 @@ export function NewArticleEditor({ username }: NewArticleEditorProps) {
       onPendingUploadsChange={form.setHasPendingUploads}
       onSave={form.save}
       onPublishToggle={form.togglePublish}
-      onCancel={() => router.push(`/@${username}/articles`)}
+      onCancel={form.cancel}
       isSaving={form.isSaving}
       hasPendingUploads={form.hasPendingUploads}
     />

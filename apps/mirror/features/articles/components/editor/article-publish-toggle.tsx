@@ -13,7 +13,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@feel-good/ui/primitives/alert-dialog";
-import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
+import type { ArticleStatus } from "../../lib/schemas/article-metadata.schema";
 
 type ArticlePublishToggleProps = {
   status: ArticleStatus;

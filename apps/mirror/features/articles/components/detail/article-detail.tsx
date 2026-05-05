@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { formatLongDate } from "@/features/content";
-import type { ArticleWithBody } from "../types";
+import type { ArticleWithBody } from "../../types";
 
 const RichTextViewer = dynamic(
   () =>
