@@ -6,7 +6,7 @@ type: fix
 status: to-do
 priority: p1
 description: "Seven of eight Playwright specs added by the inline-image-lifecycle wave are marked test.fixme citing a Convex client-auth race in the test environment. The result: FR-01, FR-02, FR-03, FR-06, FR-07, FR-08 have no running browser-stack verification. Only the size-limit and MIME-limit specs (which exercise pre-Convex client validation only) actually run. Resolve the auth race or replace the affected assertions with a deterministic Convex-test fixture path so the full inline-image lifecycle has running coverage."
-dependencies: []
+dependencies: [FG_153]
 parent_plan_id: workspace/spec/2026-04-30-tiptap-inline-image-lifecycle-spec.md
 acceptance_criteria:
   - "grep -rn 'test.fixme' apps/mirror/e2e/article-inline-image-* apps/mirror/e2e/post-inline-image-* apps/mirror/e2e/post-markdown-image-import.authenticated.spec.ts returns 0 matches (all 7 fixme'd specs un-skipped)"
