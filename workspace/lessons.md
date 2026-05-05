@@ -2,6 +2,12 @@
 
 ## 2026-05-05
 
+### Convex client-auth race in authenticated Playwright specs
+
+- `ConvexBetterAuthProvider` installs the JWT in an `useEffect` AFTER mount: read Better Auth session → `await authClient.convex.token()` → `client.setAuth(...)`. Any `useMutation(...)` fired during those microtasks (e.g. an inline-image upload-URL generator triggered by the FIRST paste in an authenticated spec) hits `Unauthenticated` even though the session cookie is already on the browser. Pre-warming `/api/auth/convex/token` does not help — the gap is the client effect, not the network round-trip.
+- The deterministic signal is `<ConvexAuthProbe>` (`apps/mirror/providers/convex-auth-probe.tsx`) — an inert `<span data-testid="convex-auth-state" data-authenticated="true">` that flips only after `client.setAuth`'s onChange callback fires. The probe is mounted globally via `apps/mirror/providers/convex-provider.tsx` and is ~zero cost in production.
+- **Authenticated-spec rule:** every authenticated Playwright spec MUST call `await waitForAuthReady(page)` (from `apps/mirror/e2e/fixtures/auth.ts`) AFTER `page.goto(...)` and BEFORE the first interaction that triggers a Convex mutation (paste, drop, save, dialog submit). Do NOT copy-paste the wait logic per spec — the helper is the single source of truth so future regressions are one fixture edit away from re-fixing every consumer.
+- The fixture file's docstring carries the same root-cause writeup co-located with the helper itself for fast discovery from the call site.
 - Agent tool flows that need "lookup, then act" require an explicit AI SDK
   step budget (`stopWhen: stepCountIs(...)`). The default one-step loop can
   execute the lookup tool and stop before the action tool is ever called.

@@ -14,6 +14,8 @@ export type ArticleToolbarContextValue = {
   categories: { name: string; count: number }[];
   selectedCount: number;
   onDelete: () => void;
+  /** Routes to /articles/new for the article-create flow. Owner-only path. */
+  onNew: () => void;
 };
 
 export const ArticleToolbarContext =

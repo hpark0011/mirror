@@ -1,40 +1,26 @@
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
-import { requireEnv } from "./lib/env";
+import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 import path from "path";
 import fs from "fs";
 
 const username = "test-user";
-const testEmail = "playwright-test@mirror.test";
+const FIXTURE_KEY = "replace";
 
-const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
-const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
-
-async function ensureTestArticleFixtures(): Promise<{
-  draftSlug: string;
-  publishedSlug: string;
-}> {
-  const res = await fetch(`${convexSiteUrl}/test/ensure-article-fixtures`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-test-secret": testSecret,
-    },
-    body: JSON.stringify({ email: testEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `ensure-article-fixtures failed with status ${res.status}: ${await res.text()}`,
-    );
-  }
-  return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
-}
+// FG_154: ProseMirror auto-injects `<img class="ProseMirror-separator">` into
+// empty inline-level positions to keep the cursor addressable. After the
+// FG_153 plugin change to `tr.insert(insertPos, node)` (correctly auto-splits
+// the paragraph), the editor leaves an empty paragraph next to the inserted
+// image, which then carries a separator `img`. Counting raw `img` inside
+// `.ProseMirror` therefore double-counts. Use this selector for any in-editor
+// image-count assertion.
+const INSERTED_IMG = "img:not(.ProseMirror-separator)";
 
 test.describe("Article inline image replace / delete-on-save (authenticated)", () => {
   test("article edit page renders for owner and exposes save control", async ({
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    const { draftSlug } = await ensureTestArticleFixtures();
+    const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
     await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
       waitUntil: "domcontentloaded",
     });
@@ -56,7 +42,7 @@ test.describe("Article inline image replace / delete-on-save (authenticated)", (
     "delete one of two inline images and save removes only that blob",
     async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 1440, height: 960 });
-      const { draftSlug } = await ensureTestArticleFixtures();
+      const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
       await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
         waitUntil: "domcontentloaded",
       });
@@ -100,9 +86,9 @@ test.describe("Article inline image replace / delete-on-save (authenticated)", (
       };
 
       await pastePng();
-      await expect(editor.locator("img")).toHaveCount(1, { timeout: 15_000 });
+      await expect(editor.locator(INSERTED_IMG)).toHaveCount(1, { timeout: 15_000 });
       await pastePng();
-      await expect(editor.locator("img")).toHaveCount(2, { timeout: 15_000 });
+      await expect(editor.locator(INSERTED_IMG)).toHaveCount(2, { timeout: 15_000 });
 
       // Save with two images.
       await page.getByTestId("save-article-btn").click();
@@ -120,14 +106,14 @@ test.describe("Article inline image replace / delete-on-save (authenticated)", (
       await expect(editor2).toBeVisible({ timeout: 10_000 });
 
       // Two images survive the round-trip.
-      await expect(editor2.locator("img")).toHaveCount(2, { timeout: 10_000 });
+      await expect(editor2.locator(INSERTED_IMG)).toHaveCount(2, { timeout: 10_000 });
 
       // Click the second image and remove it (Backspace handles image-node
       // deletion in Tiptap because the image node is selectable).
-      const secondImg = editor2.locator("img").nth(1);
+      const secondImg = editor2.locator(INSERTED_IMG).nth(1);
       await secondImg.click();
       await page.keyboard.press("Backspace");
-      await expect(editor2.locator("img")).toHaveCount(1, { timeout: 5_000 });
+      await expect(editor2.locator(INSERTED_IMG)).toHaveCount(1, { timeout: 5_000 });
 
       await page.getByTestId("save-article-btn").click();
       await page.waitForURL(`**/@${username}/articles/${draftSlug}`, {

@@ -1,40 +1,23 @@
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
+import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 import path from "path";
 import fs from "fs";
-import { requireEnv } from "./lib/env";
 
 const username = "test-user";
-const testEmail = "playwright-test@mirror.test";
+const FIXTURE_KEY = "cascade-delete";
 
-const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
-const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
-
-async function ensureTestArticleFixtures(): Promise<{
-  draftSlug: string;
-  publishedSlug: string;
-}> {
-  const res = await fetch(`${convexSiteUrl}/test/ensure-article-fixtures`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-test-secret": testSecret,
-    },
-    body: JSON.stringify({ email: testEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `ensure-article-fixtures failed with status ${res.status}: ${await res.text()}`,
-    );
-  }
-  return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
-}
+// FG_154: ProseMirror auto-injects `<img class="ProseMirror-separator">` into
+// empty inline-level positions to keep the cursor addressable. Use this
+// selector for any in-editor image lookup so separators don't shadow the
+// real inserted image.
+const INSERTED_IMG = "img:not(.ProseMirror-separator)";
 
 test.describe("Article inline image cascade delete (authenticated)", () => {
   test("article detail page is reachable for owner before deletion", async ({
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    const { draftSlug } = await ensureTestArticleFixtures();
+    const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
     await page.goto(`/@${username}/articles/${draftSlug}`, {
       waitUntil: "domcontentloaded",
     });
@@ -61,7 +44,7 @@ test.describe("Article inline image cascade delete (authenticated)", () => {
     "deleting an article cascades to inline images and cover blob",
     async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 1440, height: 960 });
-      const { draftSlug } = await ensureTestArticleFixtures();
+      const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
       await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
         waitUntil: "domcontentloaded",
       });
@@ -102,10 +85,10 @@ test.describe("Article inline image cascade delete (authenticated)", () => {
       }, pngBytes);
 
       // Wait for the upload to land before we save.
-      await expect(editor.locator("img").first()).toBeVisible({
+      await expect(editor.locator(INSERTED_IMG).first()).toBeVisible({
         timeout: 15_000,
       });
-      await expect(editor.locator("img").first()).toHaveAttribute(
+      await expect(editor.locator(INSERTED_IMG).first()).toHaveAttribute(
         "src",
         /\.convex\.(cloud|site)\//,
       );
@@ -119,7 +102,7 @@ test.describe("Article inline image cascade delete (authenticated)", () => {
       // Re-seed (idempotent, restores the draft for the next worker) and
       // then delete via the canonical mutation. The mutation only fires the
       // cascade because the body was saved with a `storageId` above.
-      const { draftSlug: slugToRemove } = await ensureTestArticleFixtures();
+      const { draftSlug: slugToRemove } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
       expect(slugToRemove).toBe(draftSlug);
 
       // Reload and read the article id off the page (saved into the path

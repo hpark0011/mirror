@@ -29,6 +29,7 @@ type ArticleListToolbarProps = {
   isOwner: boolean;
   selectedCount: number;
   onDelete: () => void;
+  onNew: () => void;
   sortOrder: SortOrder;
   onSortChange: (order: SortOrder) => void;
   search: UseContentSearchReturn<ArticleSummary>;
@@ -40,6 +41,7 @@ export function ArticleListToolbar({
   isOwner,
   selectedCount,
   onDelete,
+  onNew,
   sortOrder,
   onSortChange,
   search,
@@ -121,6 +123,8 @@ export function ArticleListToolbar({
             <Button
               variant="primary"
               size="xs"
+              data-testid="new-article-btn"
+              onClick={onNew}
               className="ml-2 has-[>svg]:gap-0.5 has-[>svg]:pl-1 has-[>svg]:pr-2"
             >
               <Icon name="PlusIcon" className="size-4 text-icon-light" />

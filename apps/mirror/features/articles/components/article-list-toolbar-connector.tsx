@@ -10,6 +10,7 @@ export function ArticleListToolbarConnector() {
       isOwner={ctx.isOwner}
       selectedCount={ctx.selectedCount}
       onDelete={ctx.onDelete}
+      onNew={ctx.onNew}
       sortOrder={ctx.sortOrder}
       onSortChange={ctx.onSortChange}
       search={ctx.search}

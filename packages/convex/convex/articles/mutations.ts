@@ -101,6 +101,14 @@ export const update = authMutation({
     body: v.optional(v.any()),
     status: v.optional(v.union(v.literal("draft"), v.literal("published"))),
     coverImageStorageId: v.optional(v.id("_storage")),
+    // Explicit removal signal for the cover image. The schema field stays
+    // `v.optional(v.id("_storage"))`; setting `clearCoverImage: true` makes
+    // the handler patch `coverImageStorageId: undefined` which Convex
+    // interprets as "remove this optional field". Without this sentinel
+    // there is no way to distinguish "user cleared the cover" from "user
+    // didn't touch the cover" — both arrive as `coverImageStorageId:
+    // undefined` after the optional-arg validator runs.
+    clearCoverImage: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -184,6 +192,13 @@ export const update = authMutation({
     if (args.body !== undefined) patch.body = args.body;
     if (args.coverImageStorageId !== undefined)
       patch.coverImageStorageId = args.coverImageStorageId;
+    // `clearCoverImage` takes precedence over a stale `coverImageStorageId`
+    // arg — if the client both uploaded then cleared in the same session,
+    // the explicit clear wins. Setting the field to `undefined` is Convex's
+    // documented removal path for an optional field via `ctx.db.patch`.
+    if (args.clearCoverImage) {
+      patch.coverImageStorageId = undefined;
+    }
 
     if (args.status !== undefined) {
       patch.status = args.status;
@@ -195,14 +210,14 @@ export const update = authMutation({
     await ctx.db.patch(args.id, patch);
 
     // After the patch succeeds, delete the previous cover blob if it was
-    // replaced. `ctx.storage.delete` is not transactional, so a failure here
-    // must not roll back the patch above — wrap in try/catch and let the
-    // cron sweep be the safety net.
-    if (
+    // replaced OR explicitly cleared. `ctx.storage.delete` is not
+    // transactional, so a failure here must not roll back the patch above —
+    // wrap in try/catch and let the cron sweep be the safety net.
+    const replacedCover =
       args.coverImageStorageId !== undefined &&
-      args.coverImageStorageId !== article.coverImageStorageId &&
-      article.coverImageStorageId
-    ) {
+      args.coverImageStorageId !== article.coverImageStorageId;
+    const clearedCover = args.clearCoverImage === true;
+    if ((replacedCover || clearedCover) && article.coverImageStorageId) {
       try {
         await ctx.storage.delete(article.coverImageStorageId);
       } catch {

@@ -160,7 +160,10 @@ if (isPlaywrightTestMode()) {
     handler: httpAction(async (ctx, req) => {
       const deny = authorizeTestRequest(req);
       if (deny) return deny;
-      const { email } = (await req.json()) as { email: string };
+      const { email, key } = (await req.json()) as {
+        email: string;
+        key?: string;
+      };
       if (!email) {
         return new Response("Bad Request: email required", { status: 400 });
       }
@@ -170,9 +173,14 @@ if (isPlaywrightTestMode()) {
           { status: 400 },
         );
       }
+      if (key !== undefined && typeof key !== "string") {
+        return new Response("Bad Request: key must be a string", {
+          status: 400,
+        });
+      }
       const result = await ctx.runMutation(
         internal.auth.testHelpers.ensureTestArticleFixtures,
-        { email },
+        key !== undefined ? { email, key } : { email },
       );
       return new Response(JSON.stringify(result), {
         status: 200,

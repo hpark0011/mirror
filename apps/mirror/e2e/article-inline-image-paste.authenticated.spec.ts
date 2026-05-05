@@ -1,33 +1,16 @@
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
-import { requireEnv } from "./lib/env";
+import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 import path from "path";
 import fs from "fs";
 
 const username = "test-user";
-const testEmail = "playwright-test@mirror.test";
+const FIXTURE_KEY = "paste";
 
-const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
-const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
-
-async function ensureTestArticleFixtures(): Promise<{
-  draftSlug: string;
-  publishedSlug: string;
-}> {
-  const res = await fetch(`${convexSiteUrl}/test/ensure-article-fixtures`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-test-secret": testSecret,
-    },
-    body: JSON.stringify({ email: testEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `ensure-article-fixtures failed with status ${res.status}: ${await res.text()}`,
-    );
-  }
-  return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
-}
+// FG_154: ProseMirror auto-injects `<img class="ProseMirror-separator">` into
+// empty inline-level positions to keep the cursor addressable. Use this
+// selector for any in-editor image lookup so separators don't shadow the
+// real inserted image.
+const INSERTED_IMG = "img:not(.ProseMirror-separator)";
 
 // 1x1 red PNG. Smallest valid PNG that satisfies the PNG MIME sniff and the
 // inline image upload's PNG/JPEG/WEBP filter.
@@ -47,7 +30,7 @@ test.describe("Article inline image paste (authenticated)", () => {
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    const { draftSlug } = await ensureTestArticleFixtures();
+    const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
     await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
       waitUntil: "domcontentloaded",
     });
@@ -74,7 +57,7 @@ test.describe("Article inline image paste (authenticated)", () => {
     "paste a PNG into the editor renders inline and persists on save",
     async ({ authenticatedPage: page }) => {
       await page.setViewportSize({ width: 1440, height: 960 });
-      const { draftSlug } = await ensureTestArticleFixtures();
+      const { draftSlug } = await ensureTestArticleFixtures({ key: FIXTURE_KEY });
       await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
         waitUntil: "domcontentloaded",
       });
@@ -113,7 +96,7 @@ test.describe("Article inline image paste (authenticated)", () => {
       }, pngBytes);
 
       // Inline image node renders with a Convex-served URL.
-      const insertedImg = editor.locator("img").first();
+      const insertedImg = editor.locator(INSERTED_IMG).first();
       await expect(insertedImg).toBeVisible({ timeout: 15_000 });
       await expect(insertedImg).toHaveAttribute(
         "src",

@@ -1,0 +1,260 @@
+/*
+ * article-editor.css
+ *
+ * Direct port of greyboard/packages/features/editor/src/styles/{tokens,
+ * base, bubble-menu, slash-menu, editor-toolbar}.css. Combined into one
+ * file for now; split per concern if it grows.
+ *
+ * Sections:
+ *   1. Editor design tokens (`.tiptap-editor` scope)
+ *   2. Toolbar tokens (`:root` / `.dark`)
+ *   3. Editor base (placeholder, caret)
+ *   4. Slash command menu
+ *   5. Bubble menu
+ *   6. Fixed toolbar + buttons + dropdown trigger
+ */
+
+/* --- 1. Editor design tokens --- */
+.tiptap-editor {
+  --tiptap-bubble-z: 400;
+  --tiptap-image-selection-width: 3px;
+  --tiptap-image-selection-color: var(--gray-6);
+  --tiptap-list-indent: 1.5rem;
+
+  /* Foreground opacity tokens (extracted from repeated color-mix calls). */
+  --tiptap-fg-faint: color-mix(in oklch, var(--foreground) 8%, transparent);
+  --tiptap-fg-wash: color-mix(in oklch, var(--foreground) 10%, transparent);
+  --tiptap-fg-subtle: color-mix(in oklch, var(--foreground) 15%, transparent);
+  --tiptap-fg-muted: color-mix(in oklch, var(--foreground) 50%, transparent);
+  --tiptap-fg-secondary: color-mix(
+    in oklch,
+    var(--foreground) 55%,
+    transparent
+  );
+  --tiptap-fg-text: color-mix(in oklch, var(--foreground) 70%, transparent);
+}
+
+/* --- 2. Toolbar tokens --- */
+:root {
+  --toolbar: var(--primary);
+  --toolbar-border: color-mix(in srgb, var(--gray-11) 0%, transparent);
+  --toolbar-text: var(--muted-foreground);
+  --toolbar-text-hover: var(--accent-foreground);
+  --toolbar-text-active: var(--accent-foreground);
+  --toolbar-separator: color-mix(in srgb, var(--gray-11) 15%, transparent);
+  --toolbar-btn-hover: var(--accent);
+  --toolbar-btn-active: color-mix(in srgb, var(--gray-11) 30%, transparent);
+  --toolbar-shadow: 0px 100px 80px 0px rgba(0, 0, 0, 0.14),
+    0px 41.78px 33.42px 0px rgba(0, 0, 0, 0.106),
+    0px 22.34px 17.87px 0px rgba(0, 0, 0, 0.0834),
+    0px 12.52px 10.02px 0px rgba(0, 0, 0, 0.07),
+    0px 6.65px 5.32px 0px rgba(0, 0, 0, 0.0566),
+    0px 2.77px 2.21px 0px rgba(0, 0, 0, 0.0394);
+}
+
+.dark {
+  --toolbar: var(--secondary);
+  --toolbar-border: var(--card-border);
+  --toolbar-text: var(--muted-foreground);
+  --toolbar-text-hover: var(--accent-foreground);
+  --toolbar-text-active: var(--accent-foreground);
+  --toolbar-separator: var(--border-subtle);
+  --toolbar-btn-hover: var(--popover-focus);
+  --toolbar-btn-active: var(--popover-focus);
+  --toolbar-shadow: 0px 100px 80px 0px rgba(0, 0, 0, 0.01),
+    0px 41.78px 33.42px 0px rgba(0, 0, 0, 0.03),
+    0px 22.34px 17.87px 0px rgba(0, 0, 0, 0.017),
+    0px 12.52px 10.02px 0px rgba(0, 0, 0, 0.05),
+    0px 6.65px 5.32px 0px rgba(0, 0, 0, 0.073),
+    0px 2.77px 2.21px 0px rgba(0, 0, 0, 0.087);
+}
+
+/* --- 3. Editor base --- */
+.tiptap-editor .tiptap-prose {
+  outline: none;
+  min-height: 60px;
+  caret-color: var(--blue-10, currentColor);
+  contain: layout style;
+}
+
+.tiptap-editor .tiptap-prose p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: var(--foreground);
+  opacity: 0.3;
+  pointer-events: none;
+  height: 0;
+}
+
+/* --- 4. Slash command menu --- */
+.tiptap-slash-menu {
+  width: fit-content;
+  min-width: 280px;
+  max-width: min(300px, calc(100vw - 32px));
+  max-height: 320px;
+  overflow: auto;
+  border-radius: 0.75rem;
+  font-family: var(--font-sans);
+  border: 1px solid
+    var(
+      --tiptap-fg-subtle,
+      color-mix(in oklch, var(--foreground) 15%, transparent)
+    );
+  background: var(--background);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.12);
+}
+
+.tiptap-slash-item {
+  position: relative;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  cursor: default;
+  padding: 8px 14px;
+  font-size: 13px;
+  line-height: 1.2;
+  color: var(--foreground);
+  transition: background-color 0.1s;
+}
+
+.tiptap-slash-item:hover,
+.tiptap-slash-item.is-selected,
+.tiptap-slash-item[data-selected="true"] {
+  background: color-mix(in oklch, var(--foreground) 8%, transparent);
+}
+
+.tiptap-slash-item-icon {
+  width: 14px;
+  min-width: 14px;
+  height: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in oklch, var(--foreground) 70%, transparent);
+}
+
+.tiptap-slash-item-icon svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+
+.tiptap-slash-item-title {
+  font-size: 13px;
+  font-weight: 400;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- 5. Bubble menu --- */
+.tiptap-bubble-menu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: fit-content;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--toolbar);
+  border: 1px solid var(--toolbar-border);
+  box-shadow: var(--toolbar-shadow);
+  z-index: var(--tiptap-bubble-z, 400);
+}
+
+.tiptap-bubble-menu--editing {
+  flex-direction: column;
+  align-items: stretch;
+  width: 280px;
+  padding: 0px;
+  border-radius: 10px;
+  background: var(--popover);
+  border-color: var(--card-border);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* --- 6. Fixed toolbar --- */
+.tiptap-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: fit-content;
+  padding: 2px;
+  border-radius: 9px;
+  background: var(--toolbar);
+  border: 1px solid var(--toolbar-border);
+  box-shadow: var(--toolbar-shadow);
+}
+
+.tiptap-toolbar-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--toolbar-text);
+  transition:
+    background-color 0.1s,
+    color 0.1s;
+}
+
+.tiptap-toolbar-btn:hover {
+  background: var(--toolbar-btn-hover);
+  color: var(--toolbar-text-hover);
+}
+
+/* Active state — also exposes data-active for tests. */
+.tiptap-toolbar-btn.is-active,
+.tiptap-toolbar-btn[data-active="true"] {
+  background: var(--toolbar-btn-active);
+  color: var(--toolbar-text-active);
+}
+
+.tiptap-toolbar-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+  pointer-events: none;
+}
+
+.tiptap-toolbar-separator {
+  width: 1px;
+  height: 20px;
+  margin: 0 2px;
+  border: none;
+  background: var(--toolbar-separator);
+}
+
+.tiptap-toolbar-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 28px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--toolbar-text);
+  font-size: 12px;
+  font-weight: 500;
+  white-space: nowrap;
+  transition:
+    background-color 0.1s,
+    color 0.1s;
+}
+
+.tiptap-toolbar-dropdown-trigger:hover {
+  background: var(--toolbar-btn-hover);
+  color: var(--toolbar-text-hover);
+}

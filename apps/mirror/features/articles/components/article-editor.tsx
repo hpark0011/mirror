@@ -1,38 +1,46 @@
 "use client";
 
-import { useCallback } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@feel-good/convex/convex/_generated/api";
-import { type JSONContent } from "@feel-good/features/editor";
-import { ContentEditor } from "@/features/content/components/content-editor";
-import { useArticleInlineImageUpload } from "../hooks/use-article-inline-image-upload";
+// Edit-existing-article host. Wraps the shared `ArticleEditorShell` with a
+// server-bound form hook so Save dispatches `articles.mutations.update`
+// for the loaded row. URL stays stable across saves.
 import { type ArticleWithBody } from "../types";
+import { useEditArticleForm } from "../hooks/use-edit-article-form";
+import { ArticleEditorShell } from "./article-editor-shell";
 
 type ArticleEditorProps = {
   article: ArticleWithBody;
   username: string;
-  slug: string;
+  // `slug` arg kept for backwards-compat with the existing edit page; the
+  // form hook reads slug off `article.slug`.
+  slug?: string;
 };
 
-export function ArticleEditor({ article, username, slug }: ArticleEditorProps) {
-  const update = useMutation(api.articles.mutations.update);
-  const { upload } = useArticleInlineImageUpload();
-
-  const handleSave = useCallback(
-    async (body: JSONContent) => {
-      await update({ id: article._id, body });
-    },
-    [article._id, update],
-  );
-
+export function ArticleEditor({ article, username }: ArticleEditorProps) {
+  const form = useEditArticleForm({ username, initial: article });
   return (
-    <ContentEditor
-      title={article.title}
-      initialBody={article.body}
-      onSave={handleSave}
-      onImageUpload={upload}
-      cancelHref={`/@${username}/articles/${slug}`}
-      saveTestId="save-article-btn"
+    <ArticleEditorShell
+      title={form.title}
+      slug={form.slug}
+      category={form.category}
+      status={form.status}
+      coverImageUrl={form.coverImageUrl}
+      createdAt={form.createdAt}
+      publishedAt={form.publishedAt}
+      onTitleChange={form.setTitle}
+      onSlugChange={form.setSlug}
+      onCategoryChange={form.setCategory}
+      onCoverImageUpload={form.handleCoverImageUpload}
+      onCoverImageClear={form.handleCoverImageClear}
+      body={form.body}
+      onBodyChange={form.setBody}
+      onInlineImageUpload={form.onInlineImageUpload}
+      onInlineImageError={form.onInlineImageError}
+      onPendingUploadsChange={form.setHasPendingUploads}
+      onSave={form.save}
+      onPublishToggle={form.togglePublish}
+      onCancel={form.cancel}
+      isSaving={form.isSaving}
+      hasPendingUploads={form.hasPendingUploads}
     />
   );
 }

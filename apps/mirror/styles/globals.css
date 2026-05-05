@@ -31,6 +31,7 @@
 
 /* import tiptap content styles */
 @import "@feel-good/features/editor/styles/tiptap-content.css";
+@import "@feel-good/features/editor/styles/article-editor.css";
 
 /* content sources */
 @source "../node_modules/@feel-good/ui";
