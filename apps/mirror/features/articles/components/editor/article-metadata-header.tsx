@@ -120,8 +120,8 @@ export function ArticleMetadataHeader({
 
       <div className="flex flex-col gap-2 pb-9 border-b border-border-subtle">
         <div className="flex flex-col gap-1">
-          <div className="flex gap-1 items-start">
-            <span className="text-[13px] text-muted-foreground w-30 pt-1">
+          <div className="flex gap-1 items-start mb-1">
+            <span className="text-[13px] text-muted-foreground w-30 pt-1 font-medium">
               Cover Image
             </span>
             <CoverImagePicker

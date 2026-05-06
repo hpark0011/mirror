@@ -95,8 +95,9 @@ export function CoverImagePicker({
             size="xs"
             onClick={() => inputRef.current?.click()}
             disabled={disabled || isUploading}
+            className="flex items-center gap-1"
           >
-            {isUploading ? "Uploading…" : "Add cover"}
+            {isUploading ? "Uploading…" : "Add Cover"}
           </Button>
         )}
     </div>
