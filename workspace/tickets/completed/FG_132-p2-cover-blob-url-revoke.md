@@ -3,7 +3,7 @@ id: FG_132
 title: "Cover-image blob URLs are revoked on replace, clear, and unmount"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Both article form hooks call URL.createObjectURL on cover upload but never call URL.revokeObjectURL, leaking multi-MB blob references for the lifetime of the page."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_129
 title: "Failed first-save of a new article with a cover does not orphan storage blobs"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "Cover image bytes are uploaded before the create mutation runs; if create throws, the bytes stay in Convex storage with no owning row and no cleanup."
 dependencies: []

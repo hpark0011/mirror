@@ -10,7 +10,7 @@ import { act, renderHook } from "@testing-library/react";
 const mockUpdate = vi.fn();
 const mockUploadCover = vi.fn();
 const mockReplace = vi.fn();
-const mockToastError = vi.fn();
+const mockShowToast = vi.fn();
 const mockRefresh = vi.fn();
 
 vi.mock("convex/react", () => ({
@@ -48,12 +48,9 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({ username: "test-user" }),
 }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    custom: (fn: (id: string) => unknown) => {
-      mockToastError(fn);
-      return "toast-id";
-    },
+vi.mock("@feel-good/ui/components/toast", () => ({
+  showToast: (opts: unknown) => {
+    mockShowToast(opts);
   },
 }));
 
@@ -86,7 +83,7 @@ describe("useEditArticleForm — cover clear", () => {
     mockUploadCover.mockReset();
     mockReplace.mockReset();
     mockRefresh.mockReset();
-    mockToastError.mockReset();
+    mockShowToast.mockReset();
   });
 
   afterEach(() => {
@@ -185,7 +182,7 @@ describe("useEditArticleForm — cancel", () => {
     mockUploadCover.mockReset();
     mockReplace.mockReset();
     mockRefresh.mockReset();
-    mockToastError.mockReset();
+    mockShowToast.mockReset();
   });
 
   afterEach(() => {

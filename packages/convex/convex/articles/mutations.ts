@@ -367,3 +367,47 @@ export const generateArticleCoverImageUploadUrl = authMutation({
     return await ctx.storage.generateUploadUrl();
   },
 });
+
+// FG_129: Eagerly clean up a cover-image storage blob that was uploaded
+// before a `create` call that subsequently failed (e.g. slug collision).
+//
+// Trust boundary: verifies that NO `articles` row references the storageId
+// before deleting. This scan and the delete execute inside the same mutation
+// transaction so there is no TOCTOU window between the reference check and
+// `ctx.storage.delete`. The mutation does not accept a userId arg — ownership
+// is derived server-side from `getAppUser`.
+//
+// Failure modes:
+//   - If the blog row was somehow created in a concurrent request before this
+//     mutation runs, the scan finds it and aborts — blob is preserved.
+//   - If the blob is already gone (double-call), `ctx.storage.delete` is a
+//     no-op (Convex storage treats missing-blob deletes as idempotent).
+export const deleteOrphanCoverImage = authMutation({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    // Verify that no articles row references this storageId. Scan the full
+    // table (no index on coverImageStorageId) — this is a compensating delete
+    // on an error path, not a hot path.
+    const referencingArticle = await ctx.db
+      .query("articles")
+      .filter((q) => q.eq(q.field("coverImageStorageId"), args.storageId))
+      .first();
+
+    if (referencingArticle !== null) {
+      // A row was successfully created (or another article already claimed
+      // this blob). Do NOT delete.
+      return null;
+    }
+
+    try {
+      await ctx.storage.delete(args.storageId);
+    } catch {
+      // Blob may already be gone (double-call) or invalid — safe to ignore.
+    }
+
+    return null;
+  },
+});

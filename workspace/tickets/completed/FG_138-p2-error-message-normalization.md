@@ -3,7 +3,7 @@ id: FG_138
 title: "Image insert error messages handle non-Error rejections without showing 'undefined'"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Two editor error paths cast caught values to Error and read .message, producing 'Failed to insert image: undefined' for string or non-Error rejections."
 dependencies: []

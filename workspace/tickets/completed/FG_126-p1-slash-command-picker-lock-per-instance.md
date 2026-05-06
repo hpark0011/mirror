@@ -3,7 +3,7 @@ id: FG_126
 title: "Slash-command image picker lock is scoped per editor instance"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "A module-global `isPickerOpen` boolean in the slash-command extension is shared across every editor instance and the entire tab session, creating an unrecoverable failure mode for image insertion."
 dependencies: []

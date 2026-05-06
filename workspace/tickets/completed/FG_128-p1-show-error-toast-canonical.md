@@ -3,7 +3,7 @@ id: FG_128
 title: "Article forms use the canonical showToast helper for error toasts"
 date: 2026-05-05
 type: refactor
-status: to-do
+status: completed
 priority: p1
 description: "Both article form hooks duplicate an 18-line toast.custom JSX block while the rest of the app uses a single-line showToast helper."
 dependencies: []

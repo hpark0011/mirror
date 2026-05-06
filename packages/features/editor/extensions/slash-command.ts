@@ -45,7 +45,19 @@ export interface SlashCommandOptions {
   onError?: (message: string) => void;
 }
 
-let isPickerOpen = false;
+interface SlashCommandStorage {
+  isPickerOpen: boolean;
+}
+
+/**
+ * Returns the per-instance picker-lock storage for a given editor,
+ * avoiding the repetition of the `as` cast.
+ */
+function getSlashStorage(editor: Editor): SlashCommandStorage {
+  return (
+    editor.storage as unknown as { slashCommand: SlashCommandStorage }
+  ).slashCommand;
+}
 
 export function buildSlashCommandItems(
   options: SlashCommandOptions = {},
@@ -158,10 +170,11 @@ export function buildSlashCommandItems(
           onError?.("Image picker not configured");
           return;
         }
-        if (isPickerOpen) return;
+        const slashStorage = getSlashStorage(editor);
+        if (slashStorage.isPickerOpen) return;
         editor.chain().focus().deleteRange(range).run();
         (async () => {
-          isPickerOpen = true;
+          slashStorage.isPickerOpen = true;
           try {
             const result = await pickInlineImage();
             if (!result) return;
@@ -169,10 +182,10 @@ export function buildSlashCommandItems(
             editor.chain().focus().setImage({ src: result.src }).run();
           } catch (error) {
             onError?.(
-              `Failed to insert image: ${(error as Error).message}`,
+              `Failed to insert image: ${error instanceof Error ? error.message : String(error)}`,
             );
           } finally {
-            isPickerOpen = false;
+            slashStorage.isPickerOpen = false;
           }
         })();
       },
@@ -197,6 +210,10 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
 
   addOptions() {
     return {};
+  },
+
+  addStorage() {
+    return { isPickerOpen: false };
   },
 
   addProseMirrorPlugins() {
