@@ -18,7 +18,7 @@ export default async function ArticleContentPage({
   return (
     <>
       <WorkspaceToolbar>
-        <ArticleDetailToolbar username={username} />
+        <ArticleDetailToolbar username={username} slug={slug} />
       </WorkspaceToolbar>
       <ArticleDetail article={article as ArticleWithBody} />
     </>
