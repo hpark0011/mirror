@@ -17,7 +17,7 @@ export type Profile = {
   authId: PublicProfileResponse["authId"];
   username: string;
   name: string;
-  bio: string;
+  tagline: string;
   avatarUrl: PublicProfileResponse["avatarUrl"];
   media?: {
     video: string;

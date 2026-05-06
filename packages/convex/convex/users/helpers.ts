@@ -19,6 +19,7 @@ const profileReturnFields = {
   username: v.optional(v.string()),
   name: v.optional(v.string()),
   bio: v.optional(v.string()),
+  tagline: v.optional(v.string()),
   avatarUrl: v.union(v.string(), v.null()),
   onboardingComplete: v.boolean(),
 } as const;
@@ -42,6 +43,7 @@ export const publicProfileReturnValidator = v.object({
   username: v.optional(v.string()),
   name: v.optional(v.string()),
   bio: v.optional(v.string()),
+  tagline: v.optional(v.string()),
   avatarUrl: v.union(v.string(), v.null()),
   onboardingComplete: v.boolean(),
   chatAuthRequired: v.optional(v.boolean()),

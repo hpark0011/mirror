@@ -66,6 +66,7 @@ import type * as posts_mutations from "../posts/mutations.js";
 import type * as posts_queries from "../posts/queries.js";
 import type * as seed from "../seed.js";
 import type * as users_helpers from "../users/helpers.js";
+import type * as users_migrations from "../users/migrations.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
 import type * as waitlistRequests_mutations from "../waitlistRequests/mutations.js";
@@ -138,6 +139,7 @@ declare const fullApi: ApiFromModules<{
   "posts/queries": typeof posts_queries;
   seed: typeof seed;
   "users/helpers": typeof users_helpers;
+  "users/migrations": typeof users_migrations;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
   "waitlistRequests/mutations": typeof waitlistRequests_mutations;
