@@ -13,6 +13,7 @@ export async function uploadToStorage(
     method: "POST",
     headers: { "Content-Type": file.type },
     body: file,
+    signal: AbortSignal.timeout(60_000),
   });
 
   if (!response.ok) {

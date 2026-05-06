@@ -3,7 +3,7 @@ id: FG_139
 title: "Slash-command popup is clamped to viewport bounds"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The slash-command popup positions to rect.left without clamping to window width, rendering off-screen at end-of-line on narrow viewports."
 dependencies: []

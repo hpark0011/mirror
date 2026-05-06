@@ -3,7 +3,7 @@ id: FG_137
 title: "Remove the dead backwards-compat slug prop from ArticleEditor"
 date: 2026-05-05
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "ArticleEditor declares slug? as backwards-compat but never reads it; the only caller still passes it. AGENTS.md prohibits backwards-compat shims for hypothetical needs."
 dependencies: []

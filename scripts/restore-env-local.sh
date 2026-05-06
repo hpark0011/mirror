@@ -66,7 +66,7 @@ fi
   echo "NEXT_PUBLIC_CONVEX_SITE_URL=${CONVEX_SITE}"
   echo
   echo "# Site"
-  echo "NEXT_PUBLIC_SITE_URL=http://localhost:3000"
+  echo "NEXT_PUBLIC_SITE_URL=http://localhost:3001"
   echo
   echo "# Sentry (DSN from Vercel; env+sample-rate fixed for dev)"
   if grep -qE '^NEXT_PUBLIC_SENTRY_DSN=' "$TMP_VERCEL"; then

@@ -3,7 +3,7 @@ id: FG_131
 title: "Cancel on the new-article page uses router.replace instead of router.push"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Cancelling a new article leaves /articles/new in browser history, so the Back button reopens a stale empty editor instead of returning to the prior page."
 dependencies: []
