@@ -1,8 +1,9 @@
+---
+date: 2026-05-06
+branch: improvements-article-cover-image-style
+owner: Hyunsol
+---
 # Article cover image — thumbhash LQIP placeholder
-
-**Date:** 2026-05-06 \
-**Branch:** `improvements-article-cover-image-style`\
-**Owner:** Hyunsol
 
 ## Problem
 

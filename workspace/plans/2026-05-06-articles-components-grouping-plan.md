@@ -1,7 +1,11 @@
+---
+date: 2026-05-06
+branch: improvements-article-editor
+owner: Hyunsol
+---
+
 # Plan — Group `features/articles/components/` by surface
 
-**Date:** 2026-05-06
-**Branch:** `improvements-article-editor`
 **Scope:** `apps/mirror/features/articles/components/` reorg only — no behavior changes.
 
 ---

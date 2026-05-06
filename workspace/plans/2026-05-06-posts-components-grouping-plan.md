@@ -1,7 +1,11 @@
+---
+date: 2026-05-06
+branch: refactor-post-files
+owner: Hyunsol
+---
+
 # Plan — Group `features/posts/components/` by surface
 
-**Date:** 2026-05-06
-**Branch:** `refactor-post-files`
 **Scope:** `apps/mirror/features/posts/components/` reorg only — no behavior changes.
 
 ---

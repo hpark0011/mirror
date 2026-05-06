@@ -1,8 +1,12 @@
+---
+date: 2026-05-06
+branch: feature-article-cover-image
+owner: Hyunsol
+---
+
 # Plan: Render cover image in article detail view
 
-**Branch**: `feature-article-cover-image`
-**Worktree**: `.worktrees/feature-article-cover-image/`
-**Date**: 2026-05-06
+**Worktree:** `.worktrees/feature-article-cover-image/`
 
 ## Problem
 
