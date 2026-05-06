@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { formatLongDate } from "@/features/content";
 import type { ArticleWithBody } from "../../types";
 
@@ -41,10 +42,24 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
               {article.category}
             </span>
           </div>
-          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-center mt-3 mb-14">
+          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-center mt-3 mb-7">
             {article.title}
           </h1>
         </div>
+
+        {article.coverImageUrl && (
+          <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-14">
+            <Image
+              src={article.coverImageUrl}
+              alt=""
+              fill
+              sizes="(min-width: 768px) 36rem, 100vw"
+              priority
+              className="object-cover"
+              data-testid="article-detail-cover-image"
+            />
+          </div>
+        )}
 
         <RichTextViewer content={article.body} />
       </article>
