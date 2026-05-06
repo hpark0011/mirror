@@ -51,6 +51,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   const [body, setBody] = useState<JSONContent>(EMPTY_BODY);
   const [coverImageStorageId, setCoverImageStorageId] =
     useState<Id<"_storage"> | null>(null);
+  const [coverImageThumbhash, setCoverImageThumbhash] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -77,17 +78,19 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
 
   const handleCoverImageUpload = useCallback(
     async (file: File) => {
-      const storageId = await uploadCover(file);
+      const { storageId, thumbhash } = await uploadCover(file);
       const objectUrl = URL.createObjectURL(file);
       setCoverImageStorageId(storageId);
+      setCoverImageThumbhash(thumbhash);
       setCoverImageUrl(objectUrl);
-      return { storageId: storageId as string, url: objectUrl };
+      return { storageId: storageId as string, thumbhash, url: objectUrl };
     },
     [uploadCover],
   );
 
   const handleCoverImageClear = useCallback(() => {
     setCoverImageStorageId(null);
+    setCoverImageThumbhash("");
     setCoverImageUrl(null);
   }, []);
 
@@ -108,6 +111,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
         body,
         status: targetStatus,
         ...(coverImageStorageId ? { coverImageStorageId } : {}),
+        ...(coverImageThumbhash && { coverImageThumbhash }),
       });
       router.replace(`/@${username}/articles/${finalSlug}/edit`);
     },
@@ -115,6 +119,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
       body,
       category,
       coverImageStorageId,
+      coverImageThumbhash,
       create,
       router,
       slug,

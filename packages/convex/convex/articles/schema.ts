@@ -7,6 +7,7 @@ export const articleStatusValidator = contentStatusValidator;
 export const articleFields = {
   ...contentBaseFields,
   coverImageStorageId: v.optional(v.id("_storage")),
+  coverImageThumbhash: v.optional(v.string()),
   category: v.string(),
 };
 

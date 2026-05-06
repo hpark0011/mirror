@@ -2,14 +2,14 @@
 
 // Click-anywhere file picker with image preview. Drives the article cover
 // image upload pipeline — the parent passes a `onUpload(file)` callback
-// that resolves to a `_storage` ID; this component only owns the file
-// input + preview UX.
+// that resolves to the storage ID, thumbhash, and a preview URL; this
+// component only owns the file input + preview UX.
 import { Button } from "@feel-good/ui/primitives/button";
 import { useRef, useState } from "react";
 
 interface CoverImagePickerProps {
   url: string | null;
-  onUpload: (file: File) => Promise<{ url: string }>;
+  onUpload: (file: File) => Promise<{ storageId: string; thumbhash: string; url: string }>;
   onClear: () => void;
   disabled?: boolean;
 }

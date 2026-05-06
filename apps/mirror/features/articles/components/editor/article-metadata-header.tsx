@@ -29,6 +29,7 @@ export interface ArticleMetadataHeaderProps {
   onCategoryChange: (value: string) => void;
   onCoverImageUpload: (file: File) => Promise<{
     storageId: string;
+    thumbhash: string;
     url: string;
   }>;
   onCoverImageClear: () => void;

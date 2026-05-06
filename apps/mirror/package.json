@@ -46,6 +46,7 @@
     "react-i18next": "catalog:",
     "server-only": "^0.0.1",
     "sonner": "catalog:",
+    "thumbhash": "^0.1.1",
     "tw-animate-css": "catalog:",
     "zod": "catalog:"
   },
@@ -62,6 +63,7 @@
     "eslint": "catalog:",
     "eslint-config-next": "catalog:",
     "happy-dom": "^20.9.0",
+    "sharp": "^0.34.5",
     "tailwindcss": "catalog:",
     "typescript": "catalog:",
     "vitest": "^4.1.4"

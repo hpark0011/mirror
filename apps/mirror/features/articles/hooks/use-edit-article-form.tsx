@@ -54,6 +54,9 @@ export function useEditArticleForm({
   const [coverImageStorageId, setCoverImageStorageId] = useState<
     Id<"_storage"> | null
   >(null);
+  const [coverImageThumbhash, setCoverImageThumbhash] = useState(
+    initial.coverImageThumbhash ?? "",
+  );
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
     initial.coverImageUrl ?? null,
   );
@@ -90,19 +93,21 @@ export function useEditArticleForm({
 
   const handleCoverImageUpload = useCallback(
     async (file: File) => {
-      const storageId = await uploadCover(file);
+      const { storageId, thumbhash } = await uploadCover(file);
       const objectUrl = URL.createObjectURL(file);
       setCoverImageStorageId(storageId);
+      setCoverImageThumbhash(thumbhash);
       setCoverImageUrl(objectUrl);
       // A fresh upload supersedes any prior clear in the same session.
       setIsCoverCleared(false);
-      return { storageId: storageId as string, url: objectUrl };
+      return { storageId: storageId as string, thumbhash, url: objectUrl };
     },
     [uploadCover],
   );
 
   const handleCoverImageClear = useCallback(() => {
     setCoverImageStorageId(null);
+    setCoverImageThumbhash("");
     setCoverImageUrl(null);
     setIsCoverCleared(true);
   }, []);
@@ -122,6 +127,7 @@ export function useEditArticleForm({
         coverImageStorageId:
           coverImageStorageId !== null ? coverImageStorageId : undefined,
         clearCoverImage: isCoverCleared ? true : undefined,
+        ...(coverImageThumbhash && { coverImageThumbhash }),
       });
       // Optimistically reflect the server-side publishedAt assignment so
       // the UI doesn't wait for the next reactive query tick.
@@ -153,6 +159,7 @@ export function useEditArticleForm({
       body,
       category,
       coverImageStorageId,
+      coverImageThumbhash,
       initial._id,
       initial.slug,
       isCoverCleared,

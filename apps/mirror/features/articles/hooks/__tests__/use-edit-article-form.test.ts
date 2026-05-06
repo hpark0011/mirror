@@ -148,7 +148,7 @@ describe("useEditArticleForm — cover clear", () => {
 
   it("upload after clear wins — save sends the new storageId, no clear flag", async () => {
     mockUpdate.mockResolvedValue(null);
-    mockUploadCover.mockResolvedValue("new_storage_id");
+    mockUploadCover.mockResolvedValue({ storageId: "new_storage_id", thumbhash: "" });
     const { result } = renderHook(() =>
       useEditArticleForm({
         username: "test-user",

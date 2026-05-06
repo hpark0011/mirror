@@ -11,6 +11,7 @@ const articleSummaryFields = {
   slug: v.string(),
   title: v.string(),
   coverImageUrl: v.union(v.string(), v.null()),
+  coverImageThumbhash: v.union(v.string(), v.null()),
   createdAt: v.number(),
   publishedAt: v.optional(v.number()),
   status: contentStatusValidator,

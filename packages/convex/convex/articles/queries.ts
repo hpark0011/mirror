@@ -1,4 +1,4 @@
-import { query } from "../_generated/server";
+import { internalQuery, query } from "../_generated/server";
 import { v } from "convex/values";
 import {
   articleSummaryReturnValidator,
@@ -45,6 +45,7 @@ export const getByUsername = query({
       slug: article.slug,
       title: article.title,
       coverImageUrl: coverImageUrls[i]!,
+      coverImageThumbhash: article.coverImageThumbhash ?? null,
       createdAt: article.createdAt,
       publishedAt: article.publishedAt,
       status: article.status,
@@ -141,11 +142,46 @@ export const getBySlug = query({
       slug: article.slug,
       title: article.title,
       coverImageUrl,
+      coverImageThumbhash: article.coverImageThumbhash ?? null,
       createdAt: article.createdAt,
       publishedAt: article.publishedAt,
       status: article.status,
       category: article.category,
       body: rewrittenBody,
     };
+  },
+});
+
+export const listMissingThumbhash = internalQuery({
+  args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("articles"),
+      coverImageStorageId: v.id("_storage"),
+    }),
+  ),
+  handler: async (ctx) => {
+    // One-shot scan for the backfill. Use `.collect()` and a JS filter —
+    // there is no index keyed on the absence of a thumbhash, and this is
+    // not a hot path (runs once per dev).
+    const articles = await ctx.db.query("articles").collect();
+    return articles
+      .filter(
+        (a) =>
+          a.coverImageStorageId !== undefined &&
+          a.coverImageThumbhash === undefined,
+      )
+      .map((a) => ({
+        _id: a._id,
+        coverImageStorageId: a.coverImageStorageId!,
+      }));
+  },
+});
+
+export const getCoverUrl = internalQuery({
+  args: { storageId: v.id("_storage") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
   },
 });
