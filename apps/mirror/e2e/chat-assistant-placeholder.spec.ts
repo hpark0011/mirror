@@ -24,9 +24,11 @@ async function installChatStateTracking(page: Page) {
       __assistantTextSeen?: boolean;
       __pendingAssistantDroppedBeforeText?: boolean;
       __blankAssistantSeen?: boolean;
+      __resolvingStateSeen?: boolean;
     };
     const pendingAssistantSelector = '[data-pending-assistant="true"]';
     const loadingStateSelector = '[data-slot="chat-message-loading-state"]';
+    const resolvingStateSelector = '[data-slot="chat-thread-resolving"]';
     const blankAssistantSelector =
       '[data-assistant-empty="true"]:not([data-pending-assistant="true"])';
     const receivedBubbleSelector =
@@ -37,6 +39,7 @@ async function installChatStateTracking(page: Page) {
     trackedWindow.__assistantTextSeen = false;
     trackedWindow.__pendingAssistantDroppedBeforeText = false;
     trackedWindow.__blankAssistantSeen = false;
+    trackedWindow.__resolvingStateSeen = false;
 
     const markFlags = () => {
       const hasPendingAssistant = document.querySelector(pendingAssistantSelector)
@@ -63,6 +66,10 @@ async function installChatStateTracking(page: Page) {
 
       if (document.querySelector(loadingStateSelector)) {
         trackedWindow.__chatLoadingStateSeen = true;
+      }
+
+      if (document.querySelector(resolvingStateSelector)) {
+        trackedWindow.__resolvingStateSeen = true;
       }
 
       if (document.querySelector(blankAssistantSelector)) {
@@ -109,6 +116,7 @@ async function resetChatStateTracking(page: Page) {
       __assistantTextSeen?: boolean;
       __pendingAssistantDroppedBeforeText?: boolean;
       __blankAssistantSeen?: boolean;
+      __resolvingStateSeen?: boolean;
     };
 
     trackedWindow.__pendingAssistantSeen = false;
@@ -116,6 +124,7 @@ async function resetChatStateTracking(page: Page) {
     trackedWindow.__assistantTextSeen = false;
     trackedWindow.__pendingAssistantDroppedBeforeText = false;
     trackedWindow.__blankAssistantSeen = false;
+    trackedWindow.__resolvingStateSeen = false;
   });
 }
 
@@ -127,6 +136,7 @@ async function getChatStateTracking(page: Page) {
       __assistantTextSeen?: boolean;
       __pendingAssistantDroppedBeforeText?: boolean;
       __blankAssistantSeen?: boolean;
+      __resolvingStateSeen?: boolean;
     };
 
     return {
@@ -136,6 +146,7 @@ async function getChatStateTracking(page: Page) {
       pendingAssistantDroppedBeforeText:
         trackedWindow.__pendingAssistantDroppedBeforeText ?? false,
       blankAssistantSeen: trackedWindow.__blankAssistantSeen ?? false,
+      resolvingStateSeen: trackedWindow.__resolvingStateSeen ?? false,
     };
   });
 }
@@ -210,6 +221,7 @@ test.describe("Chat assistant placeholder", () => {
     expect(firstSendTracking.chatLoadingStateSeen).toBe(false);
     expect(firstSendTracking.pendingAssistantDroppedBeforeText).toBe(false);
     expect(firstSendTracking.blankAssistantSeen).toBe(false);
+    expect(firstSendTracking.resolvingStateSeen).toBe(false);
 
     await expect(textarea).toBeEnabled({ timeout: 30000 });
 
@@ -230,6 +242,7 @@ test.describe("Chat assistant placeholder", () => {
     expect(secondSendTracking.chatLoadingStateSeen).toBe(false);
     expect(secondSendTracking.pendingAssistantDroppedBeforeText).toBe(false);
     expect(secondSendTracking.blankAssistantSeen).toBe(false);
+    expect(secondSendTracking.resolvingStateSeen).toBe(false);
   });
 
   test("keeps streaming replies pinned to bottom until the user scrolls away", async ({
