@@ -56,7 +56,7 @@ export function CoverImagePicker({
       />
       {display
         ? (
-          <div className="relative w-full overflow-hidden rounded-md border border-border bg-muted/30">
+          <div className="relative w-full overflow-hidden rounded-xl [corner-shape:superellipse(1.2)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={display}
