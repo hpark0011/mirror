@@ -6,7 +6,7 @@ import { Button } from "@feel-good/ui/primitives/button";
 
 type WorkspaceBackButtonProps =
   | { href: string }
-  | { onClick: () => void; disabled?: boolean; ariaLabel?: string };
+  | { onClick: () => void; disabled?: boolean };
 
 export function WorkspaceBackButton(props: WorkspaceBackButtonProps) {
   if ("href" in props) {
@@ -32,7 +32,6 @@ export function WorkspaceBackButton(props: WorkspaceBackButtonProps) {
       size="wrapper-xs"
       onClick={props.onClick}
       disabled={props.disabled}
-      aria-label={props.ariaLabel}
       className="gap-1.5 relative left-[-1px]"
       data-testid="workspace-back-button"
     >
