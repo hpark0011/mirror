@@ -60,7 +60,8 @@ fi
 mkdir -p "$GIT_ROOT/.worktrees"
 
 # Create a new branch from main and check it out into the worktree path.
-git worktree add -b "$BRANCH_NAME" "$WORKTREE_PATH" main
+# --quiet suppresses the per-percent "Updating files:" progress spam.
+git worktree add --quiet -b "$BRANCH_NAME" "$WORKTREE_PATH" main
 
 # --- 4. Install dependencies -------------------------------------------------
 

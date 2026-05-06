@@ -70,17 +70,15 @@ All branch names must follow these conventions:
 
 These run once a branch name has been generated:
 
-### 1. Check worktree doesn't already exist
-
-Run `git worktree list` and check if a worktree for this branch already exists. Also check if the branch name is already taken with `git branch --list <branch-name>`. If either exists, inform the user and stop.
-
-### 2. Run the creation script
+### 1. Run the creation script
 
 ```bash
-bash .claude/skills/workspace/new-worktree/scripts/new-worktree.sh <branch-name>
+bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
 ```
 
-### 3. Report result
+The script bails out on its own if the worktree path or branch already exists, so no pre-flight check is needed.
+
+### 2. Report result
 
 Tell the user:
 
