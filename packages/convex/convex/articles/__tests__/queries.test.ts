@@ -122,27 +122,36 @@ describe("articles.queries.getBySlug — inline image src rewrite (FR-05)", () =
 
   it("leaves src untouched when storageId is absent (legacy external URL)", async () => {
     const t = makeT();
-    await setupOwnerAndSignIn(t);
+    const { appUserId } = await setupOwnerAndSignIn(t);
 
-    await t.mutation(api.articles.mutations.create, {
-      title: "Legacy",
-      slug: "legacy",
-      category: "general",
-      body: {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-            content: [
-              {
-                type: "image",
-                attrs: { src: "https://legacy.example/old.png" },
-              },
-            ],
-          },
-        ],
-      },
-      status: "published",
+    // FG_148: `create` now rejects bodies with external-src image nodes.
+    // This test validates the QUERY-side behavior (that legacy src passes
+    // through the query's `mapInlineImages` rewrite unchanged). Insert
+    // directly to simulate pre-FG_148 legacy data.
+    await t.run(async (ctx) => {
+      await ctx.db.insert("articles", {
+        userId: appUserId,
+        slug: "legacy",
+        title: "Legacy",
+        category: "general",
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://legacy.example/old.png" },
+                },
+              ],
+            },
+          ],
+        },
+        status: "published",
+        createdAt: Date.now(),
+        publishedAt: Date.now(),
+      });
     });
 
     const result = await t.query(api.articles.queries.getBySlug, {

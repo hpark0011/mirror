@@ -21,6 +21,29 @@ import type { ComponentProps } from "react";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 
+// Stub ProfileRouteDataProvider dependency: WorkspaceInteractionPanel calls
+// useProfileRouteData(), which throws when rendered outside its provider. The
+// FG_075 tests only care about the pending-navigation latch, not edit-state
+// UI, so a minimal stub is sufficient and avoids wiring the full Convex-backed
+// provider (which requires preloadedProfile, ProfileProvider, etc.).
+vi.mock("@/app/[username]/_providers/profile-route-data-context", () => ({
+  useProfileRouteData: () => ({
+    isOwner: false,
+    isEditing: false,
+    setIsEditing: vi.fn(),
+    isSubmitting: false,
+    setIsSubmitting: vi.fn(),
+  }),
+}));
+
+// WorkspaceInteractionPanel also calls useChatSearchParams(), which reads from
+// next/navigation. Stub just enough for the hook to return without throwing.
+vi.mock("next/navigation", () => ({
+  useSearchParams: () => new URLSearchParams(),
+  usePathname: () => "/",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
+}));
+
 // Replace the resizable primitives with minimal pass-through components.
 // react-resizable-panels relies on layout measurement that happy-dom does
 // not emulate, and the tests only care about callback invocation.

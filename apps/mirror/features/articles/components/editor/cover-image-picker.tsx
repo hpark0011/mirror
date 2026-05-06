@@ -5,7 +5,7 @@
 // that resolves to a `_storage` ID; this component only owns the file
 // input + preview UX.
 import { Button } from "@feel-good/ui/primitives/button";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface CoverImagePickerProps {
   url: string | null;
@@ -23,6 +23,13 @@ export function CoverImagePicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(url);
+
+  // Re-sync the preview when the parent's `url` prop changes (e.g. a
+  // slow-arriving server URL or a parent-driven clear). An in-progress
+  // local blob preview wins to avoid clobbering the active upload.
+  useEffect(() => {
+    setPreviewUrl((prev) => (prev?.startsWith("blob:") ? prev : url));
+  }, [url]);
 
   const handleSelect = async (file: File) => {
     setIsUploading(true);

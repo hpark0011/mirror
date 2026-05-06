@@ -157,6 +157,49 @@ export function multisetDifference<T extends string>(a: T[], b: T[]): T[] {
 }
 
 /**
+ * FG_148: Walk `body` and throw `ConvexError` if any image node has an
+ * `attrs.src` set but no `attrs.storageId`. This rejects bodies with
+ * external image URLs submitted by a caller bypassing the editor client.
+ *
+ * Legitimate editor-authored bodies always set `storageId` for inserted
+ * images, so this validator does not block normal writes.
+ *
+ * The markdown-import flow (`importMarkdownInlineImages`) intentionally
+ * allows external URLs and MUST bypass this check — call it only from
+ * `create` and `update` for editor-authored writes, not from the import path.
+ *
+ * Throws with a descriptive message so the client can surface it; callers
+ * import `ConvexError` from `"convex/values"` for typed throwing.
+ */
+export function hasExternalImageSrcs(
+  body: JSONContent | null | undefined,
+): boolean {
+  if (!body) return false;
+  return nodeHasExternalImageSrc(body);
+}
+
+function nodeHasExternalImageSrc(node: JSONContent): boolean {
+  if (node.type === "image") {
+    const attrs = node.attrs;
+    const storageId = attrs?.storageId;
+    const hasStorageId = typeof storageId === "string" && storageId.length > 0;
+    if (!hasStorageId) {
+      const src = attrs?.src;
+      if (typeof src === "string" && src.length > 0) {
+        // An image with a src but no storageId is an external URL — reject.
+        return true;
+      }
+    }
+  }
+  const children = node.content;
+  if (!children) return false;
+  for (const child of children) {
+    if (nodeHasExternalImageSrc(child)) return true;
+  }
+  return false;
+}
+
+/**
  * Returns `true` iff `value` looks like an absolute https URL. Used by the
  * markdown-import action to filter image nodes whose `attrs.src` is an
  * external URL we will attempt to fetch (vs. a relative path, a `data:`

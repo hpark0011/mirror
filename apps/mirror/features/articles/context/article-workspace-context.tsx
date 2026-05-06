@@ -9,8 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, usePreloadedQuery } from "convex/react";
-import type { Preloaded } from "convex/react";
+import { useMutation, usePreloadedQuery, type Preloaded } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import {
   filterContent,

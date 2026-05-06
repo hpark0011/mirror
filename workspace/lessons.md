@@ -1,5 +1,19 @@
 # Lessons Learned
 
+## 2026-05-06
+
+### PR hygiene — keep cosmetic tweaks out of feat/refactor PRs
+
+- Cosmetic/visual tweaks (e.g. a `py-12 → py-10` swap on `post-list-item`)
+  must ship in their own commit and PR. Bundling them into a `feat`/
+  `refactor` PR pollutes the bisect history (a future investigation of a
+  post-list spacing regression will land on a "feat(articles): add Edit
+  button" commit and waste investigation time) and breaks the trust that
+  PR titles summarize the change set.
+- Surfaced by FG_158 after PR #39 silently included a `py-12 → py-10`
+  change on `apps/mirror/features/posts/components/list/post-list-item.tsx`
+  alongside the article Edit button + back-button refactor commits.
+
 ## 2026-05-05
 
 ### Convex client-auth race in authenticated Playwright specs

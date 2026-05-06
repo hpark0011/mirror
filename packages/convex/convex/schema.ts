@@ -1,6 +1,6 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
-import { articlesTable } from "./articles/schema";
+import { articlesTable, coverImageOwnershipTable } from "./articles/schema";
 import { betaAllowlistTable } from "./betaAllowlist/schema";
 import { bioEntriesTable } from "./bio/schema";
 import { conversationsTable } from "./chat/schema";
@@ -13,6 +13,7 @@ import { waitlistRequestsTable } from "./waitlistRequests/schema";
 export default defineSchema({
   users: usersTable,
   articles: articlesTable,
+  coverImageOwnership: coverImageOwnershipTable,
   posts: postsTable,
   bioEntries: bioEntriesTable,
   conversations: conversationsTable,

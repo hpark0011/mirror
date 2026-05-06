@@ -1,7 +1,7 @@
 "use client";
 
-import type { Editor } from "@tiptap/react";
 import { memo } from "react";
+import { type Editor } from "@tiptap/react";
 import { INLINE_FORMAT_ACTIONS } from "./format-actions";
 import { ToolbarButton } from "./toolbar-button";
 
