@@ -49,7 +49,7 @@ test.describe("Workspace back button — unified component", () => {
     );
   });
 
-  test("article editor toolbar renders action mode with aria-label 'Cancel'", async ({
+  test("article editor toolbar renders action mode with accessible name 'Back'", async ({
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -63,7 +63,10 @@ test.describe("Workspace back button — unified component", () => {
     const back = page.getByTestId("workspace-back-button");
     await expect(back).toBeVisible({ timeout: 10_000 });
     await expect(back).toHaveRole("button");
-    await expect(back).toHaveAccessibleName("Cancel");
+    // Accessible name MUST equal the visible label (WCAG 2.5.3 Label in
+    // Name) — voice-control users saying "click Back" must be able to
+    // activate the editor's cancel affordance.
+    await expect(back).toHaveAccessibleName("Back");
     // Action mode does not render an href attribute.
     await expect(back).not.toHaveAttribute("href", /.+/);
   });

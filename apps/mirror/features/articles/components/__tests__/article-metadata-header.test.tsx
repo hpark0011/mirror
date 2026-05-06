@@ -99,6 +99,25 @@ describe("ArticleMetadataHeader", () => {
     expect(onSlugChange).not.toHaveBeenCalled();
   });
 
+  it("does NOT auto-derive slug when mounting with an existing slug (edit-mode)", () => {
+    // Editing the title of an already-published article must not silently
+    // rename its slug. The dirty-ref must initialise from the slug prop.
+    const onSlugChange = vi.fn();
+    render(
+      <ArticleMetadataHeader
+        {...baseProps}
+        title="Existing Title"
+        slug="existing-slug"
+        onSlugChange={onSlugChange}
+      />,
+    );
+
+    fireEvent.change(screen.getByTestId("article-title-input"), {
+      target: { value: "Updated Title" },
+    });
+    expect(onSlugChange).not.toHaveBeenCalled();
+  });
+
   it("re-derives slug from title after the user clears the slug field", () => {
     // Use a tiny stateful wrapper so the slug input's bound value actually
     // tracks the user's edits — without this, React's controlled-input

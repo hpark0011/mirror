@@ -3,7 +3,7 @@ id: FG_157
 title: "WorkspaceBackButton accessible name matches its visible label"
 date: 2026-05-06
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "In editor (action) mode the WorkspaceBackButton renders hardcoded visible text 'Back' while ariaLabel='Cancel' is passed from ArticleEditorToolbar. The aria-label overrides the accessible name, so screen readers announce 'Cancel' while sighted users see 'Back'. This violates WCAG 2.5.3 Label in Name: voice-control users saying 'click Back' cannot activate the editor's Cancel button. The existing e2e spec currently codifies this mismatch as expected and must change."
 dependencies: []

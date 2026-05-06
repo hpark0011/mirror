@@ -6,7 +6,6 @@
 //
 // Ported from greyboard/packages/features/editor/src/extensions/slash-command.ts.
 import {
-  CheckListIcon,
   CodeIcon,
   ListBulletIcon,
   ListNumberIcon,
@@ -120,33 +119,6 @@ export function buildSlashCommandItems(
       group: "Lists",
       command: (editor, range) => {
         editor.chain().focus().deleteRange(range).toggleOrderedList().run();
-      },
-    },
-    {
-      title: "Task List",
-      icon: CheckListIcon,
-      keywords: ["todo", "checkbox", "checklist"],
-      group: "Lists",
-      command: (editor, range) => {
-        // StarterKit doesn't ship task lists; treat as a no-op when the
-        // extension isn't loaded so the slash menu list stays parity-clean
-        // with greyboard. The unit-test suite only inspects the menu shape.
-        if (
-          (
-            editor.commands as {
-              toggleTaskList?: () => boolean;
-            }
-          ).toggleTaskList
-        ) {
-          editor
-            .chain()
-            .focus()
-            .deleteRange(range)
-            .toggleTaskList()
-            .run();
-        } else {
-          editor.chain().focus().deleteRange(range).run();
-        }
       },
     },
     {

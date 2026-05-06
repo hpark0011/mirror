@@ -27,11 +27,7 @@ export function ArticleEditorToolbar({
     <WorkspaceToolbar>
       <div className="flex h-9 w-full items-center justify-between gap-2 border-b border-border-subtle px-3.5 pb-1.5 relative">
         {onCancel && (
-          <WorkspaceBackButton
-            onClick={onCancel}
-            disabled={isSaving}
-            ariaLabel="Cancel"
-          />
+          <WorkspaceBackButton onClick={onCancel} disabled={isSaving} />
         )}
         <div className="flex items-center gap-1.5">
           <ArticlePublishToggle

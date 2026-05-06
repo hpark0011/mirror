@@ -26,11 +26,15 @@ describe("buildSlashCommandItems", () => {
     expect(h2).toBeLessThan(h3);
   });
 
-  it("includes Bullet/Numbered/Task under the Lists group", () => {
+  it("includes Bullet/Numbered under the Lists group", () => {
     const lists = items.filter((i) => i.group === "Lists").map((i) => i.title);
     expect(lists).toEqual(
-      expect.arrayContaining(["Bullet List", "Numbered List", "Task List"]),
+      expect.arrayContaining(["Bullet List", "Numbered List"]),
     );
+    // Task List is intentionally absent — the task-list Tiptap extensions
+    // are not registered in createArticleEditorExtensions, so listing it
+    // would surface as a no-op in the slash menu.
+    expect(lists).not.toContain("Task List");
   });
 
   it("includes Code Block, Blockquote, Divider, Image under Blocks", () => {

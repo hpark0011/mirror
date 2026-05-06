@@ -8,7 +8,11 @@ import {
   validateContentStringLength,
 } from "../content/helpers";
 import { assertValidSlug, generateSlug } from "../content/slug";
-import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
+import {
+  MAX_CATEGORY_LENGTH,
+  MAX_SLUG_LENGTH,
+  MAX_TITLE_LENGTH,
+} from "../content/schema";
 import {
   extractInlineImageStorageIds,
   multisetDifference,
@@ -19,8 +23,6 @@ import {
   filterUnreferencedStorageIds,
 } from "../content/inlineImageOwnership";
 import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
-
-const MAX_CATEGORY_LENGTH = 100;
 
 export const create = authMutation({
   args: {

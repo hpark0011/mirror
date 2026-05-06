@@ -3,7 +3,7 @@ id: FG_125
 title: "Editing the title of an existing article does not overwrite its slug"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "On the article edit form, typing in the title field auto-regenerates and overwrites the existing slug because the dirty-ref defaults to false even when a slug is already set."
 dependencies: []

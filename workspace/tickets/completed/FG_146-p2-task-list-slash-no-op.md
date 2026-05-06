@@ -3,7 +3,7 @@ id: FG_146
 title: "Task List slash-command item is removed (or task-list extension is wired)"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The Task List slash-menu item always falls into a no-op branch because the task-list Tiptap extension is never loaded; users see the slash deleted with nothing inserted."
 dependencies: []

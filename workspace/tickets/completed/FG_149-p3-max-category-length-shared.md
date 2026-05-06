@@ -3,7 +3,7 @@ id: FG_149
 title: "MAX_CATEGORY_LENGTH is shared between client schema and server validators"
 date: 2026-05-05
 type: refactor
-status: to-do
+status: completed
 priority: p3
 description: "Zod client schema sets MAX_CATEGORY_LENGTH=64 while the server uses 100; client rejects 65-100-char categories the server would accept."
 dependencies: []
