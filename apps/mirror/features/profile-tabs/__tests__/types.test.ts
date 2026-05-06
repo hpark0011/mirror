@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildBioHref } from "@feel-good/convex/convex/content/href";
+import {
+  buildBioHref,
+  buildProfileSectionHref,
+} from "@feel-good/convex/convex/content/href";
 import {
   getProfileTabHref,
   isProfileTabKind,
@@ -75,16 +78,33 @@ describe("getProfileTabHref", () => {
 
   it("agrees with buildBioHref for the 'bio' kind — href-parity invariant", () => {
     // `getProfileTabHref(_, "bio")` (user-UI Bio tab) and `buildBioHref(_)`
-    // (agent-side openBio tool result) are two independent helpers that MUST
-    // produce the same string. `.claude/rules/identifiers.md` §1 +
-    // `.claude/rules/agent-parity.md` § Href-parity invariant: a future
-    // template change to either without updating the other silently routes
-    // the agent to a 404 while users keep working. This test fails loudly on
-    // divergence.
+    // (agent-side openProfileSection tool result) are two independent
+    // helpers that MUST produce the same string. `.claude/rules/identifiers.md`
+    // §1 + `.claude/rules/agent-parity.md` § Href-parity invariant: a
+    // future template change to either without updating the other silently
+    // routes the agent to a 404 while users keep working. This test fails
+    // loudly on divergence.
     expect(getProfileTabHref("alice", "bio")).toBe(buildBioHref("alice"));
     expect(getProfileTabHref("rick-rubin", "bio")).toBe(
       buildBioHref("rick-rubin"),
     );
+  });
+
+  it("agrees with buildProfileSectionHref for every kind — extended href-parity invariant", () => {
+    // The profile-tabs dispatcher now drives every section. Both helpers
+    // (the client-side `getProfileTabHref` and the server-side
+    // `buildProfileSectionHref`) MUST produce the same string for every
+    // `ProfileTabKind`, not just `bio`. A drift between the two would
+    // silently route the agent (which uses `buildProfileSectionHref` via
+    // the chat tool) to a 404 even when the user-UI tab works.
+    for (const kind of PROFILE_TAB_KINDS) {
+      expect(getProfileTabHref("alice", kind)).toBe(
+        buildProfileSectionHref("alice", kind),
+      );
+      expect(getProfileTabHref("rick-rubin", kind)).toBe(
+        buildProfileSectionHref("rick-rubin", kind),
+      );
+    }
   });
 });
 

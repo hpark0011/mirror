@@ -91,31 +91,61 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
       },
     }),
 
-    openBio: createTool({
+    openProfileSection: createTool({
       description:
-        "Open the profile owner's bio panel for the visitor — the structured work history, education, and other bio entries. Call this when the visitor asks to see the full bio, work history, education, or professional background. Takes no arguments — the owner is resolved server-side from the chat context. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge in your reply that the bio panel is currently empty before opening it.",
-      // Empty input — no LLM-visible args. The owner is the closure-bound
-      // `profileOwnerId`, never a tool arg. The `inputSchema invariants`
-      // tests in `chat/__tests__/tools.test.ts` pin this.
-      inputSchema: z.object({}),
-      execute: async (ctx) => {
+        "Open one of the profile owner's tab panels for the visitor. Pass section: 'bio' to open the bio panel — the structured work history, education, and professional background. Pass section: 'articles' or 'posts' to open the visitor's list view of all published articles or posts (use this for list-level requests like 'show me your articles', not for opening a specific item — for that, call getLatestPublished + navigateToContent instead). The owner is resolved server-side from the chat context — do not pass any user identifier. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge that the section is currently empty before opening it.",
+      // The LLM-visible surface is `section` only. The owner is the
+      // closure-bound `profileOwnerId`, never a tool arg. The
+      // `inputSchema invariants` tests in `chat/__tests__/tools.test.ts`
+      // pin this. `clone-settings` is intentionally excluded — it is
+      // owner-only and not a visitor-reachable view.
+      inputSchema: z.object({
+        section: z
+          .enum(["bio", "articles", "posts"])
+          .describe(
+            "Which profile section to open — 'bio', 'articles' (list view), or 'posts' (list view).",
+          ),
+      }),
+      execute: async (ctx, { section }) => {
+        if (section === "bio") {
+          const row: {
+            username: string;
+            href: string;
+            hasEntries: boolean;
+          } | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryBioPanel,
+            { userId: profileOwnerId },
+          );
+          if (!row) {
+            // Mirrors `navigateToContent`'s "no row" path — surfaces a tool
+            // error so the LLM falls back to text. This branch only fires
+            // when the owner has no `username` (rare, but defensible: a row
+            // with no username can't produce `/@<username>/bio`).
+            throw new Error("Bio panel is unavailable for this profile.");
+          }
+          return {
+            kind: "bio" as const,
+            href: row.href,
+            hasEntries: row.hasEntries,
+          };
+        }
+
         const row: {
+          kind: "articles" | "posts";
           username: string;
           href: string;
           hasEntries: boolean;
         } | null = await ctx.runQuery(
-          internal.chat.toolQueries.queryBioPanel,
-          { userId: profileOwnerId },
+          internal.chat.toolQueries.queryProfileSectionList,
+          { userId: profileOwnerId, section },
         );
         if (!row) {
-          // Mirrors `navigateToContent`'s "no row" path — surfaces a tool
-          // error so the LLM falls back to text. This branch only fires
-          // when the owner has no `username` (rare, but defensible: a row
-          // with no username can't produce `/@<username>/bio`).
-          throw new Error("Bio panel is unavailable for this profile.");
+          throw new Error(
+            `${section === "articles" ? "Articles" : "Posts"} list is unavailable for this profile.`,
+          );
         }
         return {
-          kind: "bio" as const,
+          kind: row.kind,
           href: row.href,
           hasEntries: row.hasEntries,
         };

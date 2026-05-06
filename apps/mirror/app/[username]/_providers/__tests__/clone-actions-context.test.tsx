@@ -227,13 +227,14 @@ describe("CloneActionsProvider — navigateToContent href bypass (FG_129)", () =
   });
 });
 
-describe("CloneActionsProvider — openBio", () => {
-  // Bio parity: the dispatcher exposes `openBio` for the agent intent
-  // watcher only. There is no user-UI caller today — the user-UI Bio tab
-  // uses a bare `<Link>` (consistent with the other profile tabs). These
-  // tests pin the agent path's contract: server-built href passes through
-  // unchanged and the chat-aware suffix is preserved (mirror of the
-  // navigateToContent bypass test above).
+describe("CloneActionsProvider — navigateToProfileSection", () => {
+  // Tab-level dispatcher parity: every ProfileTab section funnels through
+  // `useCloneActions().navigateToProfileSection`. The agent path passes a
+  // server-built href; the user-UI path omits it and the dispatcher
+  // composes via `getProfileTabHref(username, section)`. The
+  // `clone-settings` case exercises the dispatcher's wider section enum
+  // (the agent enum is narrower — bio/articles/posts only) since the
+  // dispatcher is also the user-UI path for the owner's Clone tab.
   afterEach(() => {
     cleanup();
     pushSpy.mockReset();
@@ -241,41 +242,116 @@ describe("CloneActionsProvider — openBio", () => {
     mockIsChatOpen = true;
   });
 
-  it("(a) agent path — server-built href is passed through unchanged", () => {
-    const { result } = renderHook(() => useCloneActions(), { wrapper });
+  const sections = ["bio", "articles", "posts", "clone-settings"] as const;
 
-    act(() => {
-      result.current.openBio({ href: "/@alice/bio" });
+  for (const section of sections) {
+    describe(`section: ${section}`, () => {
+      const userPath = `/@alice/${section}`;
+      const agentPath = `/@alice/${section}`;
+
+      it("(a) agent path — server-built href is passed through unchanged", () => {
+        const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+        act(() => {
+          result.current.navigateToProfileSection({
+            section,
+            href: agentPath,
+          });
+        });
+
+        expect(pushSpy).toHaveBeenCalledTimes(1);
+        expect(pushSpy).toHaveBeenCalledWith(
+          `${agentPath}?chat=1&conversation=conv_123`,
+          { scroll: false },
+        );
+      });
+
+      it("(b) user-UI path — dispatcher composes href when omitted", () => {
+        const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+        act(() => {
+          result.current.navigateToProfileSection({ section });
+        });
+
+        expect(pushSpy).toHaveBeenCalledTimes(1);
+        expect(pushSpy).toHaveBeenCalledWith(
+          `${userPath}?chat=1&conversation=conv_123`,
+          { scroll: false },
+        );
+      });
+
+      it("(c) preserves scroll: false invariant on both branches", () => {
+        const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+        act(() => {
+          result.current.navigateToProfileSection({
+            section,
+            href: agentPath,
+          });
+        });
+        expect(pushSpy).toHaveBeenLastCalledWith(expect.any(String), {
+          scroll: false,
+        });
+
+        pushSpy.mockReset();
+
+        act(() => {
+          result.current.navigateToProfileSection({ section });
+        });
+        expect(pushSpy).toHaveBeenLastCalledWith(expect.any(String), {
+          scroll: false,
+        });
+      });
+
+      it("(d) preserves chat-aware suffix when isChatOpen is true and elides it when false", () => {
+        const { result: resultOpen } = renderHook(() => useCloneActions(), {
+          wrapper,
+        });
+
+        act(() => {
+          resultOpen.current.navigateToProfileSection({
+            section,
+            href: agentPath,
+          });
+        });
+        expect(pushSpy.mock.calls[0][0]).toContain(
+          "?chat=1&conversation=conv_123",
+        );
+
+        pushSpy.mockReset();
+
+        act(() => {
+          resultOpen.current.navigateToProfileSection({ section });
+        });
+        expect(pushSpy.mock.calls[0][0]).toContain(
+          "?chat=1&conversation=conv_123",
+        );
+
+        pushSpy.mockReset();
+        mockBuildChatAwareHref = buildChatAwareHrefClosed;
+        mockIsChatOpen = false;
+
+        const { result: resultClosed } = renderHook(() => useCloneActions(), {
+          wrapper,
+        });
+
+        act(() => {
+          resultClosed.current.navigateToProfileSection({
+            section,
+            href: agentPath,
+          });
+        });
+        const calledAgent: string = pushSpy.mock.calls[0][0] as string;
+        expect(calledAgent).not.toContain("chat=1");
+
+        pushSpy.mockReset();
+
+        act(() => {
+          resultClosed.current.navigateToProfileSection({ section });
+        });
+        const calledUser: string = pushSpy.mock.calls[0][0] as string;
+        expect(calledUser).not.toContain("chat=1");
+      });
     });
-
-    expect(pushSpy).toHaveBeenCalledTimes(1);
-    expect(pushSpy).toHaveBeenCalledWith(
-      "/@alice/bio?chat=1&conversation=conv_123",
-      { scroll: false },
-    );
-  });
-
-  it("(b) preserves the chat-aware suffix when isChatOpen is true", () => {
-    const { result } = renderHook(() => useCloneActions(), { wrapper });
-
-    act(() => {
-      result.current.openBio({ href: "/@alice/bio" });
-    });
-
-    expect(pushSpy.mock.calls[0][0]).toContain("?chat=1&conversation=conv_123");
-  });
-
-  it("(c) does NOT append chat suffix when isChatOpen is false", () => {
-    mockBuildChatAwareHref = buildChatAwareHrefClosed;
-    mockIsChatOpen = false;
-
-    const { result } = renderHook(() => useCloneActions(), { wrapper });
-
-    act(() => {
-      result.current.openBio({ href: "/@alice/bio" });
-    });
-
-    const calledWith: string = pushSpy.mock.calls[0][0] as string;
-    expect(calledWith).not.toContain("chat=1");
-  });
+  }
 });

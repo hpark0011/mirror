@@ -9,7 +9,8 @@ export const userFields = {
   // Profile-level one-line description. Distinct from the structured
   // `bioEntries` table (the Bio tab in the content panel). The clone-chat
   // system prompt injects this verbatim as the persona-voice signal; the
-  // agent's `openBio` tool is what surfaces the bio panel for visitors.
+  // agent's `openProfileSection` tool (with section: "bio") is what
+  // surfaces the bio panel for visitors.
   // See `chat/helpers.ts:composeSystemPrompt` and `.claude/rules/embeddings.md`.
   tagline: v.optional(v.string()),
   avatarStorageId: v.optional(v.id("_storage")),

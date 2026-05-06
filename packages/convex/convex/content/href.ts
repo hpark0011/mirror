@@ -26,12 +26,33 @@ export function buildContentHref(
   return slug ? `${basePath}/${slug}` : basePath;
 }
 
-// Bio panel href. Kept separate from `buildContentHref` because the bio tab
-// has no `slug` segment and is not a member of `ContentKind` — it's a tab
-// without list/detail semantics (see `apps/mirror/features/content/types.ts`
-// `getContentRouteState`'s "kindless tab" comment). Both the agent's `openBio`
-// tool and any future user-UI dispatcher path import this helper so the URL
-// shape has one source of truth.
+// Profile section identifier — covers every ProfileTab the user-UI dispatcher
+// can navigate to. The agent's `openProfileSection` tool pins to a strict
+// subset (`bio | articles | posts`); `clone-settings` is owner-only and not
+// part of the agent's verb space (see `chat/tools.ts`).
+export type ProfileSection =
+  | "bio"
+  | "articles"
+  | "posts"
+  | "clone-settings";
+
+// Server-side parallel of `getProfileTabHref` at
+// `apps/mirror/features/profile-tabs/types.ts`. The href-parity invariant is
+// pinned in `apps/mirror/features/profile-tabs/__tests__/types.test.ts` for
+// every section.
+export function buildProfileSectionHref(
+  username: string,
+  section: ProfileSection,
+): string {
+  if (section === "articles" || section === "posts") {
+    return buildContentHref(username, section);
+  }
+  return `/@${username}/${section}`;
+}
+
+// Bio panel href. Kept as a thin alias over `buildProfileSectionHref` so
+// existing call sites (`chat/toolQueries.ts:queryBioPanel`, plus tests) do not
+// need to migrate, and the URL template lives in exactly one place.
 export function buildBioHref(username: string): string {
-  return `/@${username}/bio`;
+  return buildProfileSectionHref(username, "bio");
 }

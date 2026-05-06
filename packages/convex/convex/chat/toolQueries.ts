@@ -1,7 +1,11 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
 import type { Id } from "../_generated/dataModel";
-import { buildBioHref, buildContentHref } from "../content/href";
+import {
+  buildBioHref,
+  buildContentHref,
+  buildProfileSectionHref,
+} from "../content/href";
 
 // Re-exported so existing test imports
 // (`packages/convex/convex/chat/__tests__/tools.test.ts`) and any future
@@ -161,7 +165,8 @@ const bioPanelReturnValidator = v.union(
  * which is exactly what the visitor saw before.
  *
  * Cross-user isolation is enforced by the closure-bound `profileOwnerId` in
- * `chat/tools.ts:openBio` — the LLM-visible `inputSchema` is empty.
+ * `chat/tools.ts:openProfileSection` — the LLM-visible `inputSchema` carries
+ * only `section`, never a user identifier.
  */
 export const queryBioPanel = internalQuery({
   args: {
@@ -185,6 +190,60 @@ export const queryBioPanel = internalQuery({
       username: owner.username,
       href: buildBioHref(owner.username),
       hasEntries: firstEntry.length > 0,
+    };
+  },
+});
+
+const profileSectionListReturnValidator = v.union(
+  v.null(),
+  v.object({
+    kind: v.union(v.literal("articles"), v.literal("posts")),
+    username: v.string(),
+    href: v.string(),
+    hasEntries: v.boolean(),
+  }),
+);
+
+/**
+ * Resolve the list-view panel for the profile owner's articles or posts.
+ * Mirrors `queryBioPanel`'s shape — same null-on-missing-username defense and
+ * same `hasEntries` presence semantics — so the agent's
+ * `openProfileSection` tool can return one structured shape across all three
+ * visitor-visible sections.
+ *
+ * `hasEntries` uses `take(1)` against the compound `by_userId_and_status`
+ * index (mirrors `helpers.ts:loadStreamingContext`'s inventory probe). Only
+ * published rows count — drafts are not retrieval-eligible and are not
+ * surfaced anywhere in the visitor's view.
+ *
+ * Cross-user isolation is enforced by the closure-bound `profileOwnerId` in
+ * `chat/tools.ts:openProfileSection`. The LLM-visible `inputSchema` carries
+ * `section` only.
+ */
+export const queryProfileSectionList = internalQuery({
+  args: {
+    userId: v.id("users"),
+    section: v.union(v.literal("articles"), v.literal("posts")),
+  },
+  returns: profileSectionListReturnValidator,
+  handler: async (ctx, { userId, section }) => {
+    const owner = await ctx.db.get(userId);
+    if (!owner) return null;
+    if (!owner.username) return null;
+
+    const tableName = section;
+    const firstRow = await ctx.db
+      .query(tableName)
+      .withIndex("by_userId_and_status", (q) =>
+        q.eq("userId", userId as Id<"users">).eq("status", "published"),
+      )
+      .take(1);
+
+    return {
+      kind: section,
+      username: owner.username,
+      href: buildProfileSectionHref(owner.username, section),
+      hasEntries: firstRow.length > 0,
     };
   },
 });

@@ -612,27 +612,235 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     expect(Object.keys(schema.shape).sort()).toEqual(["kind", "slug"]);
   });
 
-  it("openBio.inputSchema is empty — owner is closure-bound, never a tool arg", () => {
-    // The `openBio` verb takes no args. The closure binds `profileOwnerId`
-    // server-side; the LLM-visible surface must be `{}` so the model can
-    // never pass a foreign user identifier through tool arguments. Mirrors
-    // the cross-user isolation contract in `.claude/rules/agent-parity.md`.
+  it("openProfileSection.inputSchema does not expose userId (or any user identifier)", () => {
+    // Cross-user isolation invariant — the closure binds `profileOwnerId`
+    // server-side; the LLM-visible surface must never accept a user id.
+    // Mirrors the `navigateToContent.inputSchema` assertion above.
     const tools = buildCloneTools(fakeOwner);
-    const schema = tools.openBio.inputSchema as {
-      shape?: Record<string, unknown>;
-    };
+    const schema = tools.openProfileSection.inputSchema as
+      | { shape?: Record<string, unknown> }
+      | undefined;
 
     expect(schema).toBeDefined();
-    expect(schema.shape).toBeDefined();
-    expect(Object.keys(schema.shape!)).toEqual([]);
+    expect(schema!.shape).toBeDefined();
+    expect("userId" in schema!.shape!).toBe(false);
+    expect("user_id" in schema!.shape!).toBe(false);
+    expect("ownerId" in schema!.shape!).toBe(false);
 
-    // Defense-in-depth: walk every nested shape — even an empty top-level
-    // shape should never contain a user identifier at any depth (this
-    // catches a future edit that adds `z.object({ ctx: z.object({ userId: ... }) })`).
-    const allKeys = collectAllKeys(schema.shape!);
+    const allKeys = collectAllKeys(schema!.shape!);
     expect(allKeys.every((k) => !/^(userId|user_id|ownerId)$/i.test(k))).toBe(
       true,
     );
+  });
+
+  it("openProfileSection.inputSchema exposes only `section`, bounded to the visitor-visible subset", () => {
+    // Pins both the shape (one key, `section`) and the enum range
+    // (`bio | articles | posts` only — `clone-settings` is owner-only and
+    // not in the agent's verb space). A future edit that widens the enum
+    // to `clone-settings` would let the agent navigate visitors into a
+    // page they cannot render; this test catches that drift.
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.openProfileSection.inputSchema as {
+      shape: Record<string, unknown>;
+    };
+    expect(Object.keys(schema.shape).sort()).toEqual(["section"]);
+
+    const sectionField = schema.shape.section as
+      | { _def?: { values?: unknown }; options?: unknown }
+      | undefined;
+    // Zod v4 stores enum values on `_def.entries` (object form) or on
+    // `options` (array form depending on version). Try both paths and
+    // normalize to a sorted string array.
+    const rawEntries =
+      (sectionField?._def as { entries?: Record<string, string> } | undefined)
+        ?.entries ??
+      (sectionField?._def as { values?: string[] } | undefined)?.values ??
+      sectionField?.options;
+    const values = Array.isArray(rawEntries)
+      ? (rawEntries as string[])
+      : rawEntries
+        ? Object.values(rawEntries as Record<string, string>)
+        : [];
+    expect([...values].sort()).toEqual(["articles", "bio", "posts"]);
+  });
+});
+
+describe("chat/tools.openProfileSection — execute", () => {
+  // Behavioural coverage for the agent verb that powers tab-level
+  // navigation. Each `section` branch must:
+  //   - resolve the canonical href via the server-side helper,
+  //   - report `hasEntries` truthfully against published rows,
+  //   - never leak across users.
+  // The `clone-settings` enum value is intentionally absent from the
+  // agent's surface — it's a separate test (`inputSchema invariants`
+  // above) that pins it.
+
+  // Reach into the AI-SDK Tool wrapper. `createTool` is mocked at the top
+  // of this file to be the identity (returns its def), so `execute` is
+  // directly callable with a synthetic ctx.
+  type ProfileSection = "bio" | "articles" | "posts";
+  function buildCtx(t: ReturnType<typeof makeT>) {
+    return {
+      runQuery: (
+        ref: unknown,
+        args: { userId: Id<"users">; section?: ProfileSection },
+      ) => t.query(ref as never, args as never),
+    } as unknown as Parameters<
+      ReturnType<typeof buildCloneTools>["openProfileSection"]["execute"]
+    >[0];
+  }
+
+  it("section=bio with bio entries → hasEntries true and canonical href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_bio");
+    await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: owner,
+        kind: "work",
+        title: "Built X",
+        startDate: 1577836800000,
+        endDate: null,
+      }),
+    );
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "bio",
+    });
+
+    expect(result.kind).toBe("bio");
+    expect(result.hasEntries).toBe(true);
+    expect(result.href).toBe(buildBioHref("owner_section_bio"));
+  });
+
+  it("section=bio with no entries → hasEntries false but href still resolves", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_bio_empty");
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "bio",
+    });
+
+    expect(result.kind).toBe("bio");
+    expect(result.hasEntries).toBe(false);
+    expect(result.href).toBe(buildBioHref("owner_section_bio_empty"));
+  });
+
+  it("section=articles with a published article → hasEntries true and canonical href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_articles");
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "first",
+        title: "First",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "articles",
+    });
+
+    expect(result.kind).toBe("articles");
+    expect(result.hasEntries).toBe(true);
+    expect(result.href).toBe(buildContentHref("owner_section_articles", "articles"));
+  });
+
+  it("section=articles with only drafts → hasEntries false (drafts are not retrieval-eligible)", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_articles_drafts");
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "draft-only",
+        title: "Draft only",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "articles",
+    });
+
+    expect(result.kind).toBe("articles");
+    expect(result.hasEntries).toBe(false);
+    expect(result.href).toBe(
+      buildContentHref("owner_section_articles_drafts", "articles"),
+    );
+  });
+
+  it("section=posts with a published post → hasEntries true and canonical href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_posts");
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "hello",
+        title: "Hello",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "posts",
+    });
+
+    expect(result.kind).toBe("posts");
+    expect(result.hasEntries).toBe(true);
+    expect(result.href).toBe(buildContentHref("owner_section_posts", "posts"));
+  });
+
+  it("SECURITY: a posts row owned by a different user does NOT make hasEntries true for the queried owner", async () => {
+    // Cross-user isolation regression — the closure-bound `profileOwnerId`
+    // is the only userId reachable by the tool. A row published by user B
+    // must not show up in user A's openProfileSection result.
+    const t = makeT();
+    const userA = await insertOwner(t, "section_user_a");
+    const userB = await insertOwner(t, "section_user_b");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: userB,
+        slug: "b-only",
+        title: "B's post",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const toolsForA = buildCloneTools(userA);
+    const aResult = await toolsForA.openProfileSection.execute(buildCtx(t), {
+      section: "posts",
+    });
+    expect(aResult.kind).toBe("posts");
+    expect(aResult.hasEntries).toBe(false);
+    expect(aResult.href).toBe(buildContentHref("section_user_a", "posts"));
+
+    // Positive control — user B's own tools should see the published row.
+    const toolsForB = buildCloneTools(userB);
+    const bResult = await toolsForB.openProfileSection.execute(buildCtx(t), {
+      section: "posts",
+    });
+    expect(bResult.hasEntries).toBe(true);
   });
 });
 
@@ -684,7 +892,8 @@ describe("chat/toolQueries.queryBioPanel", () => {
   });
 
   it("returns null when the owner row was deleted (orphaned userId)", async () => {
-    // The openBio tool throws on null → LLM falls back to text. The most
+    // The openProfileSection tool's bio branch throws on null → LLM falls
+    // back to text. The most
     // realistic real-world trigger of that path is an account deleted
     // between the chat session opening and the tool firing — the
     // schema-typed `Id<"users">` is still well-formed, but `ctx.db.get`
