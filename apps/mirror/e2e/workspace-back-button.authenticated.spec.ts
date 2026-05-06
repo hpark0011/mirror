@@ -26,6 +26,26 @@ async function ensureTestArticleFixtures(): Promise<{
   return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
 }
 
+async function ensureTestPostFixtures(): Promise<{
+  draftSlug: string;
+  publishedSlug: string;
+}> {
+  const res = await fetch(`${convexSiteUrl}/test/ensure-post-fixtures`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-test-secret": testSecret,
+    },
+    body: JSON.stringify({ email: testEmail }),
+  });
+  if (!res.ok) {
+    throw new Error(
+      `ensure-post-fixtures failed with status ${res.status}: ${await res.text()}`,
+    );
+  }
+  return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
+}
+
 test.describe("Workspace back button — unified component", () => {
   test("article detail toolbar renders link mode with name 'Back'", async ({
     authenticatedPage: page,
@@ -39,6 +59,7 @@ test.describe("Workspace back button — unified component", () => {
     await waitForAuthReady(page);
 
     const back = page.getByTestId("workspace-back-button");
+    await expect(back).toHaveCount(1);
     await expect(back).toBeVisible({ timeout: 10_000 });
     await expect(back).toHaveRole("link");
     await expect(back).toHaveAccessibleName("Back");
@@ -52,17 +73,15 @@ test.describe("Workspace back button — unified component", () => {
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
-    await page.goto(`/@${username}/posts`, { waitUntil: "domcontentloaded" });
-    await waitForAuthReady(page);
+    const { publishedSlug } = await ensureTestPostFixtures();
 
-    // Click the first post in the list to enter detail.
-    const firstPostLink = page
-      .locator("article a[href*='/posts/']")
-      .first();
-    await firstPostLink.click();
+    await page.goto(`/@${username}/posts/${publishedSlug}`, {
+      waitUntil: "domcontentloaded",
+    });
     await waitForAuthReady(page);
 
     const back = page.getByTestId("workspace-back-button");
+    await expect(back).toHaveCount(1);
     await expect(back).toBeVisible({ timeout: 10_000 });
     await expect(back).toHaveRole("link");
     await expect(back).toHaveAccessibleName("Back");
@@ -72,7 +91,7 @@ test.describe("Workspace back button — unified component", () => {
     );
   });
 
-  test("article editor toolbar renders action mode with aria-label 'Cancel'", async ({
+  test("article editor toolbar renders action mode with name 'Back' and no href", async ({
     authenticatedPage: page,
   }) => {
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -84,10 +103,10 @@ test.describe("Workspace back button — unified component", () => {
     await waitForAuthReady(page);
 
     const back = page.getByTestId("workspace-back-button");
+    await expect(back).toHaveCount(1);
     await expect(back).toBeVisible({ timeout: 10_000 });
     await expect(back).toHaveRole("button");
-    await expect(back).toHaveAccessibleName("Cancel");
-    // Action mode does not render an href attribute.
+    await expect(back).toHaveAccessibleName("Back");
     await expect(back).not.toHaveAttribute("href", /.+/);
   });
 });

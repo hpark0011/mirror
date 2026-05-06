@@ -2,9 +2,9 @@
 // helper so both the Next.js client and the Convex backend share one source
 // of truth for the `/@<username>/<kind>/<slug>` URL shape. Legacy callers
 // (`article-list-item.tsx`, `post-list-item.tsx`, `clone-actions-context.tsx`,
-// `back-link.tsx`, `use-profile-workspace-route-data.ts`) keep importing
-// `getContentHref` from `@/features/content`. See
-// `.claude/rules/agent-parity.md` § Href-parity invariant.
+// `use-profile-workspace-route-data.ts`) keep importing `getContentHref` from
+// `@/features/content`. See `.claude/rules/agent-parity.md` § Href-parity
+// invariant.
 import { type ContentKind } from "@feel-good/convex/convex/content/href";
 
 export {
