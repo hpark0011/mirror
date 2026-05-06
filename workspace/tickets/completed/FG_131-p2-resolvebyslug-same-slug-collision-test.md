@@ -3,7 +3,7 @@ id: FG_131
 title: "resolveBySlug cross-user test pins index scoping with same-slug collision case"
 date: 2026-05-05
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The cross-user isolation test for resolveBySlug inserts the slug only for userB and then queries as userA. A regression that dropped the userId clause from the by_userId_and_slug index would still pass — userA has no row, so .unique() returns null regardless. Adding a dual-insert case (same slug for both userA and userB, both published) pins the compound-index scoping at the strongest shape: each user must get their own row when the slug collides."
 dependencies: []

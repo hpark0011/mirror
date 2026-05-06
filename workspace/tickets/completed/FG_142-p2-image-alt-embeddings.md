@@ -3,7 +3,7 @@ id: FG_142
 title: "Inline image alt text reaches the article embeddings pipeline"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Tiptap image nodes carry descriptive intent in attrs.alt, but extractPlainText returns an empty string for them, silently dropping image descriptions from the clone agent's RAG context."
 dependencies: []

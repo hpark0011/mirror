@@ -3,7 +3,7 @@ id: FG_156
 title: "Non-owner viewers never see Edit button on article detail toolbar"
 date: 2026-05-06
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The isOwner UI gating in apps/mirror/features/articles/components/detail/article-detail-toolbar.tsx:27 has zero automated regression protection. A future refactor that misconfigures useIsProfileOwner or passes the wrong username could silently expose the Edit button to all viewers, breaking ownership semantics for the article-edit affordance introduced in merged PR #39."
 dependencies: []

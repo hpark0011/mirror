@@ -15,6 +15,12 @@ export function extractPlainText(node: JSONContent): string {
     return node.text ?? "";
   }
 
+  if (node.type === "image") {
+    const alt = node.attrs?.alt ?? "";
+    const title = node.attrs?.title ?? "";
+    return [alt, title].filter(Boolean).join(" ");
+  }
+
   if (!node.content || node.content.length === 0) {
     return "";
   }

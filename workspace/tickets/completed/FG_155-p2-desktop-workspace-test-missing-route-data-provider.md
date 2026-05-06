@@ -3,7 +3,7 @@ id: FG_155
 title: "DesktopWorkspace pending-navigation tests pass without ProfileRouteDataProvider"
 date: 2026-05-06
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Four unit tests in apps/mirror/app/[username]/_components/__tests__/desktop-workspace.test.tsx (the FG_075 pending-navigation recovery suite) fail with 'useProfileRouteData must be used within ProfileRouteDataProvider'. WorkspaceInteractionPanel now reads from useProfileRouteData() but the test harness mounts DesktopWorkspace without wrapping it in ProfileRouteDataProvider. Confirmed pre-existing on parent commit 0780702e (refactor articles extract ArticleEditorToolbar from editor shell), so this is unrelated to the article-components reorg currently in flight on the improvements-article-editor branch."
 dependencies: []

@@ -1,6 +1,12 @@
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
 import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 
+/**
+ * test-user is the article owner (playwright-test@mirror.test).
+ * The non-owner tests use the authenticatedPageNoUsername fixture
+ * (playwright-no-username@mirror.test) — a different authenticated user
+ * who cannot own @test-user's articles.
+ */
 const username = "test-user";
 
 const escapeRegex = (value: string) =>
@@ -66,5 +72,35 @@ test.describe("Article detail — Edit button (owner-only entry to editor)", () 
       ),
       { timeout: 10_000 },
     );
+  });
+
+  /**
+   * Non-owner test: a different authenticated user (playwright-no-username@mirror.test)
+   * visits @test-user's article and must NOT see the Edit button.
+   *
+   * Uses the non-owner fixture pattern from
+   * apps/mirror/e2e/clone-settings/non-owner-hidden-tab-and-404.spec.ts and
+   * apps/mirror/e2e/bio/bio-tab-cross-user.authenticated.spec.ts.
+   */
+  test("non-owner viewers cannot see the Edit button on article detail", async ({
+    authenticatedPageNoUsername: page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 960 });
+    const { publishedSlug } = await ensureTestArticleFixtures();
+
+    // Navigate to the owner's published article as a non-owner authenticated user.
+    await page.goto(`/@${username}/articles/${publishedSlug}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForAuthReady(page);
+
+    // The back button must be visible — confirming the toolbar rendered and
+    // this is not a false negative caused by the page failing to load.
+    const back = page.getByTestId("workspace-back-button");
+    await expect(back).toBeVisible({ timeout: 10_000 });
+
+    // The Edit button MUST NOT appear for a non-owner viewer.
+    const editBtn = page.getByTestId("edit-article-btn");
+    await expect(editBtn).toHaveCount(0);
   });
 });

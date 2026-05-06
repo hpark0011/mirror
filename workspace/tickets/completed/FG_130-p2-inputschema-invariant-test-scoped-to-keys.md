@@ -3,7 +3,7 @@ id: FG_130
 title: "Tool inputSchema user-identifier invariant test asserts on schema keys, not stringified _def"
 date: 2026-05-05
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The cross-user isolation test in tools.test.ts checks that no `userId`-shaped field appears anywhere in `JSON.stringify(schema._def)`, including Zod description strings. A future tool-description edit mentioning the word 'userId' (e.g., 'do not pass userId') would fail the test even though the schema's actual fields are still safe. This pushes future authors to loosen the regex, which silently weakens defense-in-depth. Scope the regex to schema keys only."
 dependencies: []
