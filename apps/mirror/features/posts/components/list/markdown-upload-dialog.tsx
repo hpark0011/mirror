@@ -10,11 +10,11 @@ import {
   DialogDescription,
 } from "@feel-good/ui/primitives/dialog";
 import { Button } from "@feel-good/ui/primitives/button";
-import { type ParsedMarkdownFile } from "../hooks/use-markdown-file-parser";
+import { type ParsedMarkdownFile } from "../../hooks/use-markdown-file-parser";
 import {
   type ImportResult,
   type ImportStatus,
-} from "../hooks/use-create-post-from-file";
+} from "../../hooks/use-create-post-from-file";
 import { CoverImagePicker } from "./cover-image-picker";
 import { ParsedMetadataPreview } from "./parsed-metadata-preview";
 import { ImportResultStatus } from "./import-result-status";

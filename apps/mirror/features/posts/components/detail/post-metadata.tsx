@@ -1,6 +1,6 @@
 import { formatLongDate } from "@/features/content";
 import { cn } from "@feel-good/utils/cn";
-import type { PostSummary } from "../types";
+import type { PostSummary } from "../../types";
 
 type PostMetadataProps = {
   post: Pick<PostSummary, "status" | "publishedAt" | "createdAt" | "category">;

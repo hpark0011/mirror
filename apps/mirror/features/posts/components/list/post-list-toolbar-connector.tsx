@@ -1,6 +1,6 @@
 "use client";
 
-import { usePostToolbar } from "../context/post-toolbar-context";
+import { usePostToolbar } from "../../context/post-toolbar-context";
 import { MarkdownUploadDialogConnector } from "./markdown-upload-dialog-connector";
 import { PostListToolbar } from "./post-list-toolbar";
 

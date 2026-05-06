@@ -1,6 +1,6 @@
 "use client";
 
-import { type ParsedMarkdownFile } from "../hooks/use-markdown-file-parser";
+import { type ParsedMarkdownFile } from "../../hooks/use-markdown-file-parser";
 
 type ParsedMetadataPreviewProps = {
   parsed: ParsedMarkdownFile;

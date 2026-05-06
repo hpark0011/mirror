@@ -2,7 +2,7 @@
 
 import { ContentBackLink, ContentToolbarShell } from "@/features/content";
 import { PublishToggleConnector } from "./publish-toggle-connector";
-import type { PostSummary } from "../types";
+import type { PostSummary } from "../../types";
 
 type PostDetailToolbarProps = {
   username: string;

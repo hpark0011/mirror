@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { PostMetadata } from "./post-metadata";
-import type { PostSummary } from "../types";
+import type { PostSummary } from "../../types";
 
 const RichTextViewer = dynamic(
   () =>

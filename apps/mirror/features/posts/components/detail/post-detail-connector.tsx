@@ -5,7 +5,7 @@ import type { api } from "@feel-good/convex/convex/_generated/api";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import { PostDetail } from "./post-detail";
 import { PostDetailToolbar } from "./post-detail-toolbar";
-import type { PostSummary } from "../types";
+import type { PostSummary } from "../../types";
 
 type PostDetailConnectorProps = {
   preloadedPost: Preloaded<typeof api.posts.queries.getBySlug>;

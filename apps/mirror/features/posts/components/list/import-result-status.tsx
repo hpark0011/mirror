@@ -3,7 +3,7 @@
 import {
   type ImportResult,
   type ImportStatus,
-} from "../hooks/use-create-post-from-file";
+} from "../../hooks/use-create-post-from-file";
 
 /**
  * Map known machine-readable failure reasons from

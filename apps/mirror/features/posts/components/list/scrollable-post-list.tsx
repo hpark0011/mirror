@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { EmptyMessage } from "@/components/empty-message";
 import { markContentPanelContentReady } from "@/lib/perf/content-panel-open";
-import { usePostList } from "../context/post-list-context";
+import { usePostList } from "../../context/post-list-context";
 import { PostListItem } from "./post-list-item";
 
 export function ScrollablePostList() {

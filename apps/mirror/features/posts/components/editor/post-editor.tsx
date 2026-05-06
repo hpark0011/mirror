@@ -5,8 +5,8 @@ import { useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type JSONContent } from "@feel-good/features/editor";
 import { ContentEditor } from "@/features/content/components/content-editor";
-import { usePostInlineImageUpload } from "../hooks/use-post-inline-image-upload";
-import { type PostSummary } from "../types";
+import { usePostInlineImageUpload } from "../../hooks/use-post-inline-image-upload";
+import { type PostSummary } from "../../types";
 
 type PostEditorProps = {
   post: PostSummary;

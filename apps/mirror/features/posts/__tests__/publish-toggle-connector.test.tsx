@@ -26,7 +26,7 @@ let capturedProps: {
 } | null = null;
 
 // Mock PublishToggle to render minimal HTML and capture callbacks
-vi.mock("@/features/posts/components/publish-toggle", () => ({
+vi.mock("@/features/posts/components/detail/publish-toggle", () => ({
   PublishToggle: (props: {
     status: string;
     isPending: boolean;
@@ -84,7 +84,7 @@ vi.mock("@feel-good/ui/components/toast", () => ({
 // ── Load component after mocks ─────────────────────────────────────────────
 
 const { PublishToggleConnector } = await import(
-  "@/features/posts/components/publish-toggle-connector"
+  "@/features/posts/components/detail/publish-toggle-connector"
 );
 
 // ── Fixtures ───────────────────────────────────────────────────────────────

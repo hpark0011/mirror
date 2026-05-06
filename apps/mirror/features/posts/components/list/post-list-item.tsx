@@ -7,8 +7,8 @@ import { ContentBody } from "@feel-good/features/editor/components";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentHref } from "@/features/content";
-import { PostMetadata } from "./post-metadata";
-import type { PostSummary } from "../types";
+import { PostMetadata } from "../detail/post-metadata";
+import type { PostSummary } from "../../types";
 
 type PostListItemProps = {
   post: PostSummary;

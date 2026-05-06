@@ -1,10 +1,10 @@
 "use client";
 
 import { useCallback, useRef } from "react";
-import { usePostToolbar } from "../context/post-toolbar-context";
-import { useMarkdownFileParser } from "../hooks/use-markdown-file-parser";
-import { useCreatePostFromFile } from "../hooks/use-create-post-from-file";
-import { useCoverImageState } from "../hooks/use-cover-image-state";
+import { usePostToolbar } from "../../context/post-toolbar-context";
+import { useMarkdownFileParser } from "../../hooks/use-markdown-file-parser";
+import { useCreatePostFromFile } from "../../hooks/use-create-post-from-file";
+import { useCoverImageState } from "../../hooks/use-cover-image-state";
 import { MarkdownUploadDialog } from "./markdown-upload-dialog";
 
 export function MarkdownUploadDialogConnector() {
