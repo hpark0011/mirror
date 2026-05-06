@@ -44,14 +44,29 @@ test.describe("Profile tagline (renamed from bio) — read/write regression", ()
     // Enter edit mode via the EditProfileButton (aria-label="Edit Profile").
     await page.getByRole("button", { name: "Edit Profile" }).click();
 
-    // Load-bearing selector — the form-field label must be "Tagline".
-    // If the rename regresses, this resolves to no element and fails fast.
-    const input = page.getByLabel(/Tagline/i);
+    // Load-bearing rename locks (two independent assertions — both fail
+    // if the rename regresses to `bio`):
+    //   1. The visible FormLabel text is "Tagline".
+    //   2. The textarea data-test attribute is `edit-profile-tagline-textarea`.
+    // The data-test selector is the fill target because the FormLabel
+    // markup wraps "Tagline" in a framer-motion div, which breaks the
+    // standard label-for/input-id accessible-name pipeline that
+    // `getByLabel` relies on. Both assertions still anchor to the rename.
+    await expect(page.getByText("Tagline", { exact: true })).toBeVisible();
+    const input = page.locator('[data-test="edit-profile-tagline-textarea"]');
+    await expect(input).toBeVisible();
+
     const persistedValue = `Renamed-by-rename-test tagline value ${Date.now()}`;
     await input.fill(persistedValue);
 
     // Save (form id="edit-profile-form" submitted by EditActions button).
-    await page.locator('[data-test="edit-profile-submit-button"]').click();
+    // Two buttons share this data-test for responsive (mobile + desktop)
+    // duplication; the desktop-viewport visible one is the second.
+    await page
+      .locator('[data-test="edit-profile-submit-button"]')
+      .filter({ visible: true })
+      .first()
+      .click();
 
     // Reload to drop optimistic state and re-fetch from Convex.
     await page.reload();
