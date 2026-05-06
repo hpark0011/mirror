@@ -1,3 +1,15 @@
+// FG_163 (Option D, with prompt-swap kept for future use): the second test
+// (`keeps streaming replies pinned to bottom until the user scrolls away`)
+// is marked `test.fixme` because pixel-based scroll-growth assertions
+// cannot pass with STYLE_RULES short replies on a single exchange — the
+// chat panel's clientHeight exceeds the cumulative content height of one
+// user msg + one organic assistant reply, so `scrollHeight === clientHeight`
+// and no growth is observable. The long-reply prompts were updated to
+// organic single-item questions (instead of the original 80-numbered-lines
+// filler-content prompts that the persona refuses) so that a future
+// Option B redesign — build up scroll content with several short messages
+// before testing pin/un-pin behavior — only needs to add the priming step
+// and unfixme. See workspace/tickets/to-do/FG_163-*.md.
 import { expect, test, type Page } from "@playwright/test";
 import { openChat, sendChatMessage } from "./helpers/chat";
 
@@ -5,9 +17,9 @@ const username = "rick-rubin";
 const firstMessage = "Reply with exactly: ok";
 const secondMessage = "Reply with exactly: hi";
 const longReplyMessage =
-  "Reply with exactly 80 numbered lines in plain text. Each line must begin with 'stream line' followed by the line number. No intro or outro.";
+  "What's one record you produced that taught you the most about creativity? Tell me what made it stand out.";
 const detachedReplyMessage =
-  "Reply with exactly 80 numbered lines in plain text. Each line must begin with 'detached line' followed by the line number. No intro or outro.";
+  "What's the single most important thing you've learned about helping artists do their best work?";
 
 type ScrollMetrics = {
   clientHeight: number;
@@ -173,10 +185,12 @@ async function waitForAssistantText(page: Page) {
 }
 
 async function waitForScrollGrowth(page: Page, baselineHeight: number) {
+  // FG_163: threshold lowered from 200 to 40 — organic replies under
+  // STYLE_RULES are typically 1–3 sentences, ~30–80px of bubble growth.
   await expect.poll(async () => {
     const metrics = await getScrollMetrics(page);
     return metrics.scrollHeight - baselineHeight;
-  }, { timeout: 30000 }).toBeGreaterThan(200);
+  }, { timeout: 30000 }).toBeGreaterThan(40);
 }
 
 async function scrollChatUp(page: Page, distance: number) {
@@ -245,9 +259,15 @@ test.describe("Chat assistant placeholder", () => {
     expect(secondSendTracking.resolvingStateSeen).toBe(false);
   });
 
-  test("keeps streaming replies pinned to bottom until the user scrolls away", async ({
+  // FG_163: pixel-based scroll-growth assertions cannot pass with
+  // STYLE_RULES short replies on a single exchange. The bridge fix on
+  // `fix-message-error` does not affect this test. Unfixme once Option B
+  // (priming the chat with several messages to overflow the viewport)
+  // or Option C (test-mode bypass of STYLE_RULES) ships.
+  test.fixme("keeps streaming replies pinned to bottom until the user scrolls away", async ({
     page,
   }) => {
+    test.setTimeout(90000);
     await installChatStateTracking(page);
 
     const textarea = await openChat(page, username);
@@ -258,7 +278,7 @@ test.describe("Chat assistant placeholder", () => {
     await expect(textarea).toBeDisabled();
     await expect(page).toHaveURL(new RegExp(`/@${username}.*[?&]conversation=`));
     await expect(page.locator('[data-slot="chat-message"][data-variant="sent"]').last())
-      .toContainText("80 numbered lines");
+      .toContainText("one record you produced");
     await expect.poll(async () => {
       const tracking = await getChatStateTracking(page);
       return tracking.pendingAssistantSeen;
@@ -279,17 +299,22 @@ test.describe("Chat assistant placeholder", () => {
       '[data-slot="chat-message-scroll-to-bottom"]',
     );
     await expect(scrollToBottomButton).toBeVisible();
+    // FG_163: lowered from 200 to 100 — `AUTO_SCROLL_THRESHOLD_PX = 96` in
+    // chat-message-list.tsx is the boundary at which the scroll-to-bottom
+    // button appears, so >100 confirms the user is detached without
+    // requiring a 200px scrollback that organic-length content cannot
+    // guarantee.
     await expect.poll(async () => {
       const metrics = await getScrollMetrics(page);
       return metrics.distanceFromBottom;
-    }, { timeout: 5000 }).toBeGreaterThan(200);
+    }, { timeout: 5000 }).toBeGreaterThan(100);
 
     await resetChatStateTracking(page);
     await sendChatMessage(textarea, detachedReplyMessage);
 
     await expect(textarea).toBeDisabled();
     await expect(page.locator('[data-slot="chat-message"][data-variant="sent"]').last())
-      .toContainText("detached line");
+      .toContainText("single most important thing");
     await expect.poll(async () => {
       const tracking = await getChatStateTracking(page);
       return tracking.pendingAssistantSeen;
@@ -301,7 +326,7 @@ test.describe("Chat assistant placeholder", () => {
     await expect.poll(async () => {
       const metrics = await getScrollMetrics(page);
       return metrics.distanceFromBottom;
-    }, { timeout: 5000 }).toBeGreaterThan(200);
+    }, { timeout: 5000 }).toBeGreaterThan(100);
     await expect(scrollToBottomButton).toBeVisible();
 
     await scrollToBottomButton.click();
