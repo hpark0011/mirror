@@ -83,7 +83,7 @@ function makeT() {
   return convexTest(schema, modules);
 }
 
-describe("users.queries.getByUsername (C1: returns BOTH bio and tagline)", () => {
+describe("users.queries.getByUsername (post-narrow: returns tagline only)", () => {
   it("returns null when no user matches the username", async () => {
     const t = makeT();
     const result = await t.query(api.users.queries.getByUsername, {
@@ -92,51 +92,7 @@ describe("users.queries.getByUsername (C1: returns BOTH bio and tagline)", () =>
     expect(result).toBeNull();
   });
 
-  it("returns tagline alongside bio when both fields are set", async () => {
-    const t = makeT();
-    await t.run(async (ctx) => {
-      await ctx.db.insert("users", {
-        authId: "auth_alice",
-        email: "alice@example.com",
-        username: "alice",
-        name: "Alice",
-        bio: "legacy bio text",
-        tagline: "new tagline text",
-        onboardingComplete: true,
-      });
-    });
-
-    const result = await t.query(api.users.queries.getByUsername, {
-      username: "alice",
-    });
-    expect(result).not.toBeNull();
-    // Hard contract for C1: BOTH fields are returned so optimistic-update
-    // payloads on either name continue to type-check during the cutover.
-    expect(result!.bio).toBe("legacy bio text");
-    expect(result!.tagline).toBe("new tagline text");
-  });
-
-  it("returns tagline as undefined when only bio is set (pre-backfill row)", async () => {
-    const t = makeT();
-    await t.run(async (ctx) => {
-      await ctx.db.insert("users", {
-        authId: "auth_bob",
-        email: "bob@example.com",
-        username: "bob",
-        bio: "only bio set",
-        onboardingComplete: true,
-      });
-    });
-
-    const result = await t.query(api.users.queries.getByUsername, {
-      username: "bob",
-    });
-    expect(result).not.toBeNull();
-    expect(result!.bio).toBe("only bio set");
-    expect(result!.tagline).toBeUndefined();
-  });
-
-  it("returns bio as undefined when only tagline is set (post-rename row)", async () => {
+  it("returns tagline on the public profile shape and does not expose a bio field", async () => {
     const t = makeT();
     await t.run(async (ctx) => {
       await ctx.db.insert("users", {
@@ -152,12 +108,32 @@ describe("users.queries.getByUsername (C1: returns BOTH bio and tagline)", () =>
       username: "carol",
     });
     expect(result).not.toBeNull();
-    expect(result!.bio).toBeUndefined();
     expect(result!.tagline).toBe("only tagline set");
+    // The `bio` field has been removed from the schema and the public
+    // profile validator; the returned shape must not expose it.
+    expect((result as Record<string, unknown>).bio).toBeUndefined();
+  });
+
+  it("returns tagline as undefined when the user has no tagline set", async () => {
+    const t = makeT();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        authId: "auth_dave",
+        email: "dave@example.com",
+        username: "dave",
+        onboardingComplete: true,
+      });
+    });
+
+    const result = await t.query(api.users.queries.getByUsername, {
+      username: "dave",
+    });
+    expect(result).not.toBeNull();
+    expect(result!.tagline).toBeUndefined();
   });
 });
 
-describe("users.queries.getCurrentProfile (C1: returns BOTH bio and tagline)", () => {
+describe("users.queries.getCurrentProfile (post-narrow: returns tagline only)", () => {
   it("returns null when no auth user", async () => {
     const t = makeT();
     const result = await t.query(api.users.queries.getCurrentProfile, {});

@@ -6,7 +6,6 @@ export const userFields = {
   email: v.string(),
   username: v.optional(v.string()),
   name: v.optional(v.string()),
-  bio: v.optional(v.string()),
   // Profile-level one-line description. Distinct from the structured
   // `bioEntries` table (the Bio tab in the content panel). The clone-chat
   // system prompt injects this verbatim as the persona-voice signal; the

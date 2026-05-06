@@ -60,7 +60,6 @@ export const setUsername = authMutation({
 
 export const updateProfile = authMutation({
   args: {
-    bio: v.optional(v.string()),
     tagline: v.optional(v.string()),
     name: v.optional(v.string()),
   },
@@ -68,15 +67,9 @@ export const updateProfile = authMutation({
   handler: async (ctx, args) => {
     const appUser = await getAppUser(ctx, ctx.user._id);
 
-    // C1 dual-acceptance: legacy clients still send `bio`; treat it as a
-    // deprecated alias for `tagline`. Always write to `tagline` only —
-    // never to `bio` — so the rename is fully one-way at the DB layer.
-    // The `bio` arg is removed in C2.
-    const taglineToWrite = args.tagline ?? args.bio;
-
     await ctx.db.patch("users", appUser._id, {
       ...(args.name !== undefined ? { name: args.name } : {}),
-      ...(taglineToWrite !== undefined ? { tagline: taglineToWrite } : {}),
+      ...(args.tagline !== undefined ? { tagline: args.tagline } : {}),
     });
     return null;
   },
