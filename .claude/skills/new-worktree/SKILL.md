@@ -1,6 +1,6 @@
 ---
 name: new-worktree
-description: Create a new git worktree for parallel development. Supports three input modes — empty (scratch), ticket file, or free-text requirement. Invoke with `/workspace:new-worktree`, `/workspace:new-worktree <ticket-file.md>`, or `/workspace:new-worktree <requirement>`.
+description: Create a new git worktree for parallel development. Supports three input modes — empty (scratch), ticket file, or free-text requirement. Invoke with `/new-worktree`, `/new-worktree <ticket-file.md>`, or `/new-worktree <requirement>`.
 ---
 
 # New Worktree
@@ -9,9 +9,9 @@ Create a new git worktree for parallel feature development in this monorepo.
 
 ## Trigger
 
-- `/workspace:new-worktree` — empty mode; ask the user for scope, then proceed
-- `/workspace:new-worktree <path-to-ticket.md>` — derive name from a ticket file
-- `/workspace:new-worktree <requirement>` — derive name from free-text
+- `/new-worktree` — empty mode; ask the user for scope, then proceed
+- `/new-worktree <path-to-ticket.md>` — derive name from a ticket file
+- `/new-worktree <requirement>` — derive name from free-text
 
 ## Branch Name Rules
 
