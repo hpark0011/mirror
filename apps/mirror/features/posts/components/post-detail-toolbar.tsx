@@ -1,6 +1,11 @@
 "use client";
 
-import { ContentBackLink, ContentToolbarShell } from "@/features/content";
+import {
+  ContentToolbarShell,
+  WorkspaceBackButton,
+  getContentHref,
+} from "@/features/content";
+import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { PublishToggleConnector } from "./publish-toggle-connector";
 import type { PostSummary } from "../types";
 
@@ -10,9 +15,12 @@ type PostDetailToolbarProps = {
 };
 
 export function PostDetailToolbar({ username, post }: PostDetailToolbarProps) {
+  const { buildChatAwareHref } = useChatSearchParams();
   return (
     <ContentToolbarShell variant="detail">
-      <ContentBackLink username={username} kind="posts" />
+      <WorkspaceBackButton
+        href={buildChatAwareHref(getContentHref(username, "posts"))}
+      />
       <PublishToggleConnector post={post} />
     </ContentToolbarShell>
   );
