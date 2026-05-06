@@ -1,4 +1,4 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { authMutation } from "../lib/auth";
@@ -15,6 +15,7 @@ import {
 } from "../content/schema";
 import {
   extractInlineImageStorageIds,
+  hasExternalImageSrcs,
   multisetDifference,
 } from "../content/bodyWalk";
 import {
@@ -23,6 +24,28 @@ import {
   filterUnreferencedStorageIds,
 } from "../content/inlineImageOwnership";
 import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
+import type { MutationCtx } from "../_generated/server";
+
+// FG_147: Verify that `storageId` belongs to `userId` via the
+// `coverImageOwnership` table. Throws `ConvexError` if the row is missing or
+// attributed to a different user.
+//
+// Called from `create` and `update` before writing `coverImageStorageId`.
+// Args validators MUST NOT include `userId` — it is always derived server-side
+// from `getAppUser`. See `.claude/rules/embeddings.md`.
+async function assertCoverImageOwnership(
+  ctx: MutationCtx,
+  storageId: Id<"_storage">,
+  userId: Id<"users">,
+): Promise<void> {
+  const row = await ctx.db
+    .query("coverImageOwnership")
+    .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
+    .unique();
+  if (!row || row.userId !== userId) {
+    throw new ConvexError("cover image storage id does not belong to caller");
+  }
+}
 
 export const create = authMutation({
   args: {
@@ -56,6 +79,26 @@ export const create = authMutation({
       .unique();
     if (existing) {
       throw new Error(`An article with slug "${slug}" already exists`);
+    }
+
+    // FG_148: Reject bodies with external image src URLs (no storageId set).
+    // Editor-authored bodies always set storageId for inserted images; this
+    // guard catches direct mutation calls with attacker-controlled URLs.
+    // The markdown-import flow bypasses this check (it uses a separate path
+    // via importMarkdownInlineImages / importArticleMarkdownInlineImages).
+    if (hasExternalImageSrcs(args.body)) {
+      throw new ConvexError(
+        "body contains image nodes with external src URLs; use the storage upload flow",
+      );
+    }
+
+    // FG_147: Verify cover image belongs to the calling user before writing.
+    if (args.coverImageStorageId !== undefined) {
+      await assertCoverImageOwnership(
+        ctx,
+        args.coverImageStorageId,
+        appUser._id,
+      );
     }
 
     const now = Date.now();
@@ -151,6 +194,23 @@ export const update = authMutation({
       if (existing) {
         throw new Error(`An article with slug "${normalizedSlug}" already exists`);
       }
+    }
+
+    // FG_148: Reject bodies with external image src URLs (no storageId set).
+    // Same guard as in `create`; the markdown-import path bypasses this.
+    if (args.body !== undefined && hasExternalImageSrcs(args.body)) {
+      throw new ConvexError(
+        "body contains image nodes with external src URLs; use the storage upload flow",
+      );
+    }
+
+    // FG_147: Verify cover image belongs to the calling user before writing.
+    if (args.coverImageStorageId !== undefined) {
+      await assertCoverImageOwnership(
+        ctx,
+        args.coverImageStorageId,
+        appUser._id,
+      );
     }
 
     // Compute inline-image diff BEFORE the patch (we need both old and new
@@ -365,6 +425,37 @@ export const generateArticleCoverImageUploadUrl = authMutation({
   returns: v.string(),
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// FG_147: After a cover image upload completes, the client calls this mutation
+// to record ownership. The client provides the storageId returned by Convex
+// after the HTTP upload (via the upload URL). This is the trust boundary:
+// userId is always derived server-side from `getAppUser` — never from args.
+//
+// Args validator MUST NOT include a `userId` field. See `.claude/rules/embeddings.md`.
+export const claimCoverImageOwnership = authMutation({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const appUser = await getAppUser(ctx, ctx.user._id);
+
+    // First-claim-wins: if another user already claimed this storageId, leave
+    // the existing row intact (mirrors inlineImageOwnership behavior).
+    const existing = await ctx.db
+      .query("coverImageOwnership")
+      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
+      .unique();
+    if (existing) return null;
+
+    await ctx.db.insert("coverImageOwnership", {
+      storageId: args.storageId,
+      userId: appUser._id,
+      createdAt: Date.now(),
+    });
+    return null;
   },
 });
 

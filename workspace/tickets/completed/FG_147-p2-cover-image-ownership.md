@@ -3,7 +3,7 @@ id: FG_147
 title: "Article cover-image storage IDs are verified to belong to the calling user"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The articles create and update mutations accept coverImageStorageId from client args without verifying ownership; one user can pin another user's storage blob as their cover."
 dependencies: []

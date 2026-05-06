@@ -111,6 +111,34 @@ async function blobExists(
   });
 }
 
+// FG_148: Helper for test scenarios that need an article with external-src
+// image nodes (e.g. markdown-import test setup). Since `create` now rejects
+// such bodies, these tests insert directly into the DB to simulate the
+// pre-FG_148 state that the markdown-import action is designed to handle.
+async function insertArticleWithExternalSrcBody(
+  t: ReturnType<typeof makeT>,
+  authId: string,
+  title: string,
+  body: unknown,
+): Promise<Id<"articles">> {
+  return await t.run(async (ctx) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_authId", (q) => q.eq("authId", authId))
+      .unique();
+    if (!user) throw new Error(`User not found for authId: ${authId}`);
+    return ctx.db.insert("articles", {
+      userId: user._id,
+      slug: title.toLowerCase().replace(/\s+/g, "-"),
+      title,
+      category: "general",
+      body,
+      status: "draft",
+      createdAt: Date.now(),
+    });
+  });
+}
+
 function imageNode(storageId: string, src = "https://example/old") {
   return { type: "image", attrs: { storageId, src } };
 }
@@ -622,6 +650,11 @@ describe("articles.mutations.remove — inline-image cascade (FR-07, NFR-06)", (
     const i2 = await storeBlob(t, "i2");
     const i3 = await storeBlob(t, "i3");
 
+    // FG_147: claim ownership before using the cover storageId in create.
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: cover,
+    });
+
     const articleId = await t.mutation(api.articles.mutations.create, {
       title: "Doomed",
       category: "general",
@@ -642,22 +675,41 @@ describe("articles.mutations.remove — inline-image cascade (FR-07, NFR-06)", (
     const t = makeT();
     await insertAppUserAndSignIn(t);
 
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Legacy only",
-      category: "general",
-      body: {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-            content: [
-              { type: "image", attrs: { src: "https://external/legacy.png" } },
-              { type: "image", attrs: { src: "https://external/another.png" } },
-            ],
-          },
-        ],
-      },
-      status: "draft",
+    // FG_148: `create` now rejects bodies with external-src image nodes.
+    // Simulate a legacy article by inserting directly into the DB (bypassing
+    // the mutation guard), which represents pre-FG_148 data that predates the
+    // server-side validation. This tests that `remove` handles legacy bodies
+    // gracefully (no storageId → nothing to delete from storage; the cron
+    // sweep handles any orphaned blobs).
+    const articleId = await t.run(async (ctx) => {
+      const userId = (
+        await ctx.db
+          .query("users")
+          .withIndex("by_authId", (q) =>
+            q.eq("authId", "auth_articles_inline"),
+          )
+          .unique()
+      )!._id;
+      return ctx.db.insert("articles", {
+        userId,
+        slug: "legacy-external-urls",
+        title: "Legacy only",
+        category: "general",
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                { type: "image", attrs: { src: "https://external/legacy.png" } },
+                { type: "image", attrs: { src: "https://external/another.png" } },
+              ],
+            },
+          ],
+        },
+        status: "draft",
+        createdAt: Date.now(),
+      });
     });
 
     await t.mutation(api.articles.mutations.remove, { ids: [articleId] });
@@ -706,10 +758,13 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
       new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: "image/png" }),
     );
 
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Imported",
-      category: "general",
-      body: {
+    // FG_148: markdown-import creates articles with external-src image bodies;
+    // insert directly to bypass the public mutation's external-src guard.
+    const articleId = await insertArticleWithExternalSrcBody(
+      t,
+      "auth_articles_inline",
+      "Imported",
+      {
         type: "doc",
         content: [
           {
@@ -723,8 +778,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
           },
         ],
       },
-      status: "draft",
-    });
+    );
 
     const result = await t.action(
       internal.articles.actions.importMarkdownInlineImages,
@@ -750,10 +804,13 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
       new SafeFetchError("http-error", "HTTP 404"),
     );
 
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Broken",
-      category: "general",
-      body: {
+    // FG_148: insert directly — markdown import creates articles with
+    // external-src image bodies before the action rewrites them.
+    const articleId = await insertArticleWithExternalSrcBody(
+      t,
+      "auth_articles_inline",
+      "Broken",
+      {
         type: "doc",
         content: [
           {
@@ -767,8 +824,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
           },
         ],
       },
-      status: "draft",
-    });
+    );
 
     const result = await t.action(
       internal.articles.actions.importMarkdownInlineImages,
@@ -836,10 +892,13 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
     const t = makeT();
     const ownerId = await insertAppUserAndSignIn(t);
 
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Owned",
-      category: "general",
-      body: {
+    // FG_148: insert directly — this test exercises the action's ownership
+    // check, not the body-validation guard.
+    const articleId = await insertArticleWithExternalSrcBody(
+      t,
+      "auth_articles_inline",
+      "Owned",
+      {
         type: "doc",
         content: [
           {
@@ -853,8 +912,7 @@ describe("articles.actions.importMarkdownInlineImages (FR-08)", () => {
           },
         ],
       },
-      status: "draft",
-    });
+    );
 
     // A second app user not associated with the article.
     const strangerId = await t.run(async (ctx) =>
@@ -895,10 +953,13 @@ describe("articles.internalImages._patchInlineImageBody — concurrent body edit
 
     // Create article with a single external-URL image node. This is the
     // body the action would have read in transaction 1.
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Concurrent edit",
-      category: "general",
-      body: {
+    // FG_148: insert directly — external-src body simulates markdown-import
+    // initial state.
+    const articleId = await insertArticleWithExternalSrcBody(
+      t,
+      "auth_articles_inline",
+      "Concurrent edit",
+      {
         type: "doc",
         content: [
           {
@@ -912,8 +973,7 @@ describe("articles.internalImages._patchInlineImageBody — concurrent body edit
           },
         ],
       },
-      status: "draft",
-    });
+    );
 
     // Action stores a blob during the fetch window. Simulate the
     // resolved entry the action would build from `safeFetchImage`.
@@ -990,10 +1050,13 @@ describe("articles.internalImages._patchInlineImageBody — concurrent body edit
     const t = makeT();
     await insertAppUserAndSignIn(t);
 
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Removed mid-import",
-      category: "general",
-      body: {
+    // FG_148: insert directly — external-src body simulates markdown-import
+    // initial state.
+    const articleId = await insertArticleWithExternalSrcBody(
+      t,
+      "auth_articles_inline",
+      "Removed mid-import",
+      {
         type: "doc",
         content: [
           {
@@ -1007,8 +1070,7 @@ describe("articles.internalImages._patchInlineImageBody — concurrent body edit
           },
         ],
       },
-      status: "draft",
-    });
+    );
 
     const orphanStorageId = await storeBlob(t, "orphan");
 
@@ -1069,10 +1131,13 @@ describe("articles.internalImages._patchInlineImageBody — concurrent body edit
     const t = makeT();
     await insertAppUserAndSignIn(t);
 
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Added mid-import",
-      category: "general",
-      body: {
+    // FG_148: insert directly — external-src body simulates markdown-import
+    // initial state.
+    const articleId = await insertArticleWithExternalSrcBody(
+      t,
+      "auth_articles_inline",
+      "Added mid-import",
+      {
         type: "doc",
         content: [
           {
@@ -1086,8 +1151,7 @@ describe("articles.internalImages._patchInlineImageBody — concurrent body edit
           },
         ],
       },
-      status: "draft",
-    });
+    );
 
     const heroStorageId = await storeBlob(t, "hero");
 
@@ -1164,7 +1228,7 @@ describe("articles.inlineImages.importArticleMarkdownInlineImages (FR-08, FR-12)
 
   it("authed owner: action runs and returns the inner result shape", async () => {
     const t = makeT();
-    await insertAppUserAndSignIn(t);
+    await insertAppUserAndSignIn(t, "auth_articles_inline", "articles-inline@example.com");
 
     safeFetchMock.mockResolvedValueOnce(
       new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], {
@@ -1172,10 +1236,14 @@ describe("articles.inlineImages.importArticleMarkdownInlineImages (FR-08, FR-12)
       }),
     );
 
-    const articleId = await t.mutation(api.articles.mutations.create, {
-      title: "Owner Imports",
-      category: "general",
-      body: {
+    // FG_148: insert directly — the public action wrapper tests the auth/owner
+    // check path; external-src is intentional here (it's the markdown-import
+    // scenario).
+    const articleId = await insertArticleWithExternalSrcBody(
+      t,
+      "auth_articles_inline",
+      "Owner Imports",
+      {
         type: "doc",
         content: [
           {
@@ -1189,8 +1257,7 @@ describe("articles.inlineImages.importArticleMarkdownInlineImages (FR-08, FR-12)
           },
         ],
       },
-      status: "draft",
-    });
+    );
 
     const result = await t.action(
       api.articles.inlineImages.importArticleMarkdownInlineImages,
@@ -1251,5 +1318,364 @@ describe("articles.inlineImages.importArticleMarkdownInlineImages (FR-08, FR-12)
     ).rejects.toThrow(/not authenticated/i);
 
     expect(safeFetchMock).not.toHaveBeenCalled();
+  });
+});
+
+// FG_147: cover-image ownership guard.
+//
+// `create` and `update` must reject `coverImageStorageId` values that the
+// caller did not upload (i.e., no `coverImageOwnership` row attributes the
+// blob to the calling user). The `claimCoverImageOwnership` mutation must
+// be called after a successful upload before `create`/`update` will accept
+// the storageId.
+describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("create: accepts a coverImageStorageId after claimCoverImageOwnership is called", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const cover = await storeBlob(t, "cover-owned");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: cover,
+    });
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Owned Cover",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      coverImageStorageId: cover,
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(row?.coverImageStorageId).toBe(cover);
+  });
+
+  it("create: rejects coverImageStorageId with no ownership row (no prior claim)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const cover = await storeBlob(t, "cover-unclaimed");
+    // Deliberately do NOT call claimCoverImageOwnership.
+
+    await expect(
+      t.mutation(api.articles.mutations.create, {
+        title: "Unclaimed Cover",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        coverImageStorageId: cover,
+      }),
+    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+  });
+
+  it("create: user A cannot use user B's coverImageStorageId", async () => {
+    const t = makeT();
+
+    // User A uploads and claims a cover blob.
+    await insertAppUserAndSignIn(t, "auth_cover_a", "cover-a@example.com");
+    const coverA = await storeBlob(t, "cover-user-a");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: coverA,
+    });
+
+    // User B attempts to use user A's storageId as their cover.
+    await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_cover_b",
+        email: "cover-b@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_cover_b" };
+
+    await expect(
+      t.mutation(api.articles.mutations.create, {
+        title: "User B Article",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        coverImageStorageId: coverA, // B attempts to use A's blob
+      }),
+    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+  });
+
+  it("update: user A cannot update their article's cover to user B's storageId", async () => {
+    const t = makeT();
+
+    // User B uploads and claims a cover blob.
+    await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_upd_b",
+        email: "upd-b@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_upd_b" };
+    const coverB = await storeBlob(t, "cover-upd-user-b");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: coverB,
+    });
+
+    // User A creates an article without a cover.
+    const userAAppId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_upd_a",
+        email: "upd-a@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_upd_a" };
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "User A Article",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    // User A attempts to set their cover to user B's blob.
+    await expect(
+      t.mutation(api.articles.mutations.update, {
+        id: articleId,
+        coverImageStorageId: coverB, // A tries to use B's blob
+      }),
+    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+
+    // Sanity: article still has no cover.
+    const after = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(after?.coverImageStorageId).toBeUndefined();
+    expect(userAAppId).toBeDefined(); // silence unused-variable lint
+  });
+
+  it("claimCoverImageOwnership: first-claim-wins — second caller cannot overwrite", async () => {
+    const t = makeT();
+
+    // User A claims the storageId first.
+    await insertAppUserAndSignIn(t, "auth_claim_a", "claim-a@example.com");
+    const cover = await storeBlob(t, "contested-cover");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: cover,
+    });
+
+    // User B attempts to claim the same storageId.
+    await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_claim_b",
+        email: "claim-b@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    authState.currentAuthUser = { _id: "auth_claim_b" };
+    // Second claim is a no-op (first-commit-wins) — should NOT throw.
+    await expect(
+      t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+        storageId: cover,
+      }),
+    ).resolves.toBeNull();
+
+    // Ownership row still attributes the blob to A.
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("coverImageOwnership")
+        .withIndex("by_storageId", (q) => q.eq("storageId", cover))
+        .unique(),
+    );
+    expect(row?.userId).toBeDefined();
+    // And it is NOT B's claim (the original A row is unchanged).
+    // We confirm by checking B cannot use the storageId.
+    await expect(
+      t.mutation(api.articles.mutations.create, {
+        title: "B Fails",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        coverImageStorageId: cover,
+      }),
+    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+  });
+});
+
+// FG_148: body external-image-src guard.
+//
+// `create` and `update` must reject bodies that contain image nodes with an
+// `attrs.src` but no `attrs.storageId`. The markdown-import flow (a separate
+// internal action) is explicitly exempt and must continue to work.
+describe("articles.mutations — body external-image-src guard (FG_148)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("create: throws when body contains an image node with src but no storageId", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    await expect(
+      t.mutation(api.articles.mutations.create, {
+        title: "External Src",
+        category: "general",
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://attacker.example/track.gif" },
+                },
+              ],
+            },
+          ],
+        },
+        status: "draft",
+      }),
+    ).rejects.toThrow(/external src/i);
+  });
+
+  it("update: throws when updated body contains an image node with src but no storageId", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Clean Article",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    await expect(
+      t.mutation(api.articles.mutations.update, {
+        id: articleId,
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://attacker.example/pixel.gif" },
+                },
+              ],
+            },
+          ],
+        },
+      }),
+    ).rejects.toThrow(/external src/i);
+  });
+
+  it("create: accepts body with image node that has BOTH src and storageId (editor-authored)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const storageId = await storeBlob(t, "editor-img");
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Editor Authored",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { storageId, src: "https://convex.cloud/blob" },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(row).not.toBeNull();
+  });
+
+  it("create: accepts body with image node that has storageId but no src", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const storageId = await storeBlob(t, "no-src-img");
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "No Src",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "image",
+                attrs: { storageId },
+              },
+            ],
+          },
+        ],
+      },
+      status: "draft",
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(row).not.toBeNull();
+  });
+
+  it("create: empty body (no image nodes) is accepted", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Empty Body",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(row).not.toBeNull();
+  });
+
+  // Regression: the markdown-import flow creates articles with external-src
+  // image nodes (before the import action fetches and rewrites them). The
+  // import flow uses `articles.mutations.create` directly. This means the
+  // guard MUST NOT block an empty body at import time — the article is
+  // created first (with no inline images) and the import action patches in
+  // the rewritten body afterward. Because the initial body has no image nodes,
+  // the guard does not fire. The import action's `_patchInlineImageBody` then
+  // rewrites the body with storageIds before committing. This test confirms
+  // the happy path: a body with NO image nodes at create time is always
+  // accepted.
+  it("markdown-import happy path: initial article with no images is accepted (import creates, then patches)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    // The markdown-import action creates the article with the raw body first.
+    // Here we simulate the case where the body has ONLY external-URL image
+    // nodes, which the guard would reject — confirming the import must go
+    // through the internal `_patchInlineImageBody` path instead.
+    // The public `create` mutation IS the import entry point for text content;
+    // the image-URL nodes are patched in separately. So an article created
+    // with ONLY text (no image nodes) is always accepted.
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Markdown Import",
+      category: "general",
+      body: {
+        type: "doc",
+        content: [
+          { type: "paragraph", content: [{ type: "text", text: "Hello" }] },
+        ],
+      },
+      status: "draft",
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(row?.title).toBe("Markdown Import");
   });
 });

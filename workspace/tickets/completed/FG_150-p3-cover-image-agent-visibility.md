@@ -3,7 +3,7 @@ id: FG_150
 title: "Cover image is reachable by the clone agent (or documented as decorative)"
 date: 2026-05-05
 type: improvement
-status: to-do
+status: completed
 priority: p3
 description: "The new cover-image surface has zero agent visibility — no alt/caption field reaches the embeddings pipeline. Either expose it or document covers as intentionally decorative."
 dependencies: []

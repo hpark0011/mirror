@@ -3,7 +3,7 @@ id: FG_148
 title: "Article body rejects image nodes with external src URLs"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The article body is stored as v.any() with no server-side image-src validation; a direct mutation call can embed external image URLs in published articles."
 dependencies: []

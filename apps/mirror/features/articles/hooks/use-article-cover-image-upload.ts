@@ -18,13 +18,22 @@ export function useArticleCoverImageUpload(): UseArticleCoverImageUploadReturn {
   const generateUploadUrl = useMutation(
     api.articles.mutations.generateArticleCoverImageUploadUrl,
   );
+  const claimOwnership = useMutation(
+    api.articles.mutations.claimCoverImageOwnership,
+  );
 
   const upload = useCallback(
     async (file: File) => {
       const uploadUrl = await generateUploadUrl();
-      return uploadToStorage(uploadUrl, file);
+      const storageId = await uploadToStorage(uploadUrl, file);
+      // Claim ownership immediately so create/update mutations recognise this
+      // storageId as the caller's. Without this, the FG_147 ownership check
+      // in articles.mutations.create / update rejects the storageId and the
+      // save fails. First-claim-wins on the server side.
+      await claimOwnership({ storageId });
+      return storageId;
     },
-    [generateUploadUrl],
+    [generateUploadUrl, claimOwnership],
   );
 
   return { upload };

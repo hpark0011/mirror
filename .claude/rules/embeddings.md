@@ -44,6 +44,26 @@ resolution MUST close over `profileOwnerId` server-side via the
 per-request factory — lives in
 [`.claude/rules/agent-parity.md`](agent-parity.md).
 
+## Cover images are intentionally decorative (FG_150 — Option B)
+
+Article cover images (`coverImageStorageId` in the `articles` table) are
+classified as **decorative** and are out of scope for the embeddings/clone-agent
+context. No `coverAlt` or `coverCaption` field exists; the only metadata about
+a cover is the `coverImageOwnership` row (owner `userId` + `createdAt`).
+
+**Rationale:** covers are typically visual mood images; the most important
+article content lives in `title` and `body`. Adding a `coverAlt` field would
+require non-trivial editor UI changes, plumbing through `getContentForEmbedding`,
+and a dedicated embedding test. The benefit is low relative to the effort.
+
+**Revisit condition:** if image-heavy articles ship where the cover's subject
+materially differs from the body text (e.g., a cover describing a person not
+mentioned in the body), promote to Option A: add `coverAlt: v.optional(v.string())`,
+plumb it through `create`/`update` validators, add an alt-text input to the
+cover picker, prepend `coverAlt + "\n"` to the body string in
+`getContentForEmbedding`, and add a unit test asserting the chunk contains the
+alt text.
+
 ## Adding a new ingestion source
 
 1. Append the literal to `embeddingSourceTableValidator` in
