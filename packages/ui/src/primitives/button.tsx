@@ -40,7 +40,8 @@ const buttonVariants = cva(
         ghost:
           "bg-ghost hover:bg-accent/80 text-ghost-foreground hover:text-accent-foreground dark:hover:bg-accent/50 [&_svg]:text-icon",
         link: "text-primary underline-offset-4 hover:underline",
-        wrapper: "rounded-none p-0",
+        wrapper:
+          "font-normal [&_svg]:text-icon text-muted-foreground hover:text-foreground",
       },
       size: {
         // Default button size
@@ -57,6 +58,9 @@ const buttonVariants = cva(
         "icon-xs": "size-6 rounded-[4px] [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-7 rounded-lg",
         "icon-lg": "size-9 rounded-[10px]",
+        // Wrapper button sizes
+        "wrapper-xs":
+          "rounded-none p-0 has-[>svg]:p-0 h-6 gap-1 text-[13px] [&_svg]:text-icon hover:[&_svg]:text-foreground",
       },
     },
     defaultVariants: {

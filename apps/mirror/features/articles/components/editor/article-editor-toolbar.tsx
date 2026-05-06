@@ -25,18 +25,18 @@ export function ArticleEditorToolbar({
 }: ArticleEditorToolbarProps) {
   return (
     <WorkspaceToolbar>
-      <div className="flex h-9 w-full items-center justify-between gap-2 border-b border-border-subtle px-3.5 pb-1.5">
+      <div className="flex h-9 w-full items-center justify-between gap-2 border-b border-border-subtle px-3.5 pb-1.5 relative">
         {onCancel && (
           <Button
             type="button"
-            variant="ghost"
-            size="xs"
+            variant="wrapper"
+            size="wrapper-xs"
             onClick={onCancel}
             disabled={isSaving}
             aria-label="Cancel"
-            className="gap-1 has-[>svg]:pl-0"
+            className="gap-1.5 relative left-[-1px]"
           >
-            <ArrowshapeLeftFillIcon className="size-4" />
+            <ArrowshapeLeftFillIcon className="size-4.5 transition-all duration-100" />
             Back
           </Button>
         )}

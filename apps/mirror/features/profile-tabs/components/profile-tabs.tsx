@@ -29,10 +29,14 @@ export function ProfileTabs({
 
   return (
     <Tabs value={currentKind}>
-      <TabsList variant="minimal" className="">
-        {visibleKinds.map((kind, index) => (
+      <TabsList variant="minimal" className="gap-3">
+        {visibleKinds.map((kind) => (
           <div key={kind} className="flex items-center">
-            <TabsTrigger asChild value={kind} className="text-[13px]">
+            <TabsTrigger
+              asChild
+              value={kind}
+              className="text-[13px]"
+            >
               <Link
                 href={buildChatAwareHref(getProfileTabHref(username, kind))}
                 prefetch={false}
@@ -41,12 +45,9 @@ export function ProfileTabs({
                   ? { "data-testid": "profile-tab-clone-settings" }
                   : {})}
               >
-                {PROFILE_TAB_LABELS[kind]}
+                <span className="font-normal">{PROFILE_TAB_LABELS[kind]}</span>
               </Link>
             </TabsTrigger>
-            {index < visibleKinds.length - 1 && (
-              <span className="text-transparent mx-1.5 font-normal">/</span>
-            )}
           </div>
         ))}
       </TabsList>
