@@ -109,6 +109,7 @@ export const fetchChunksByIds = internalQuery({
       title: v.string(),
       slug: v.optional(v.string()),
       chunkText: v.string(),
+      sourceTable: embeddingSourceTableValidator,
     }),
   ),
   handler: async (ctx, { ids }) => {
@@ -120,6 +121,7 @@ export const fetchChunksByIds = internalQuery({
           title: doc.title,
           slug: doc.slug,
           chunkText: doc.chunkText,
+          sourceTable: doc.sourceTable,
         };
       }),
     );

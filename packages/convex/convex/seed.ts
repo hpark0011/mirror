@@ -260,6 +260,48 @@ async function ensureRickRubinPosts(
   }
 }
 
+async function ensureRickRubinBioEntries(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<void> {
+  const existing = await ctx.db
+    .query("bioEntries")
+    .withIndex("by_userId", (q: any) => q.eq("userId", userId))
+    .first();
+  if (existing) return;
+
+  await ctx.db.insert("bioEntries", {
+    userId,
+    kind: "work",
+    title: "Producer at Def Jam",
+    startDate: Date.parse("1984-01-01"),
+    endDate: Date.parse("1988-12-31"),
+    description:
+      "Co-founded the label; produced records that defined hip-hop's mainstream arrival.",
+  });
+  await ctx.db.insert("bioEntries", {
+    userId,
+    kind: "work",
+    title: "Founder, American Recordings",
+    startDate: Date.parse("1988-01-01"),
+    endDate: null,
+  });
+  await ctx.db.insert("bioEntries", {
+    userId,
+    kind: "education",
+    title: "NYU — Philosophy",
+    startDate: Date.parse("1981-09-01"),
+    endDate: Date.parse("1985-06-01"),
+  });
+  await ctx.db.insert("bioEntries", {
+    userId,
+    kind: "education",
+    title: "Long Beach High School",
+    startDate: Date.parse("1977-09-01"),
+    endDate: Date.parse("1981-06-01"),
+  });
+}
+
 async function ensureRickRubinConversations(
   ctx: MutationCtx,
   userId: Id<"users">,
@@ -343,6 +385,16 @@ export const seedRickRubinConversations = internalMutation({
   },
 });
 
+export const seedRickRubinBio = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx) => {
+    const userId = await ensureRickRubinUser(ctx);
+    await ensureRickRubinBioEntries(ctx, userId);
+    return null;
+  },
+});
+
 export const seedRickRubinDemo = internalMutation({
   args: {},
   returns: v.null(),
@@ -351,6 +403,7 @@ export const seedRickRubinDemo = internalMutation({
     await ensureRickRubinArticles(ctx, userId);
     await ensureRickRubinPosts(ctx, userId);
     await ensureRickRubinConversations(ctx, userId);
+    await ensureRickRubinBioEntries(ctx, userId);
     return null;
   },
 });

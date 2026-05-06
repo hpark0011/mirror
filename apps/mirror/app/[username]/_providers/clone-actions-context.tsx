@@ -9,6 +9,7 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { getContentHref, type ContentKind } from "@/features/content";
+import { getProfileTabHref } from "@/features/profile-tabs/types";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "./profile-route-data-context";
 
@@ -44,6 +45,14 @@ type CloneActions = {
      */
     href?: string;
   }) => void;
+  /**
+   * Open the profile owner's Bio tab. Used by both the agent intent
+   * watcher (via the `openBio` tool result) and any future user-UI
+   * caller that wants the dispatcher's chat-aware-href treatment.
+   * `href` is optional — passed through verbatim when the agent
+   * server-built it (parity with `navigateToContent`).
+   */
+  navigateToBio: (args?: { href?: string }) => void;
 };
 
 const CloneActionsContext = createContext<CloneActions | null>(null);
@@ -77,9 +86,17 @@ export function CloneActionsProvider({ children }: CloneActionsProviderProps) {
     [router, profile.username, buildChatAwareHref],
   );
 
+  const navigateToBio = useCallback<CloneActions["navigateToBio"]>(
+    (args) => {
+      const basePath = args?.href ?? getProfileTabHref(profile.username, "bio");
+      router.push(buildChatAwareHref(basePath), { scroll: false });
+    },
+    [router, profile.username, buildChatAwareHref],
+  );
+
   const value = useMemo<CloneActions>(
-    () => ({ navigateToContent }),
-    [navigateToContent],
+    () => ({ navigateToContent, navigateToBio }),
+    [navigateToContent, navigateToBio],
   );
 
   return (

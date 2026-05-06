@@ -49,6 +49,28 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
       },
     }),
 
+    openBio: createTool({
+      description:
+        "Open this profile's Bio tab in the visitor's right panel. The Bio tab is a separate page that lists the owner's structured work history and education entries — it is NOT the one-line summary in the system prompt. Call this tool whenever the visitor asks to see or open the bio, asks about work history, asks about education, or asks about background. Do not pass any user identifier — the profile owner is bound server-side. Returns the canonical href; the client uses it to navigate.",
+      inputSchema: z.object({}),
+      execute: async (ctx) => {
+        const row: {
+          kind: "bio";
+          username: string;
+          href: string;
+        } | null = await ctx.runQuery(
+          internal.chat.toolQueries.resolveBioForOwner,
+          { userId: profileOwnerId },
+        );
+        if (!row) {
+          throw new Error(
+            "No bio entries available for this profile.",
+          );
+        }
+        return { kind: row.kind, href: row.href };
+      },
+    }),
+
     navigateToContent: createTool({
       description:
         "Open an article or post in the visitor's right panel. Pass the kind and slug; do not pass any user identifier. The slug must come from getLatestPublished or from content the profile owner has authored. The result includes the canonical href; the client uses it to navigate.",

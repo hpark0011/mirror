@@ -83,6 +83,51 @@ export const queryLatestPublished = internalQuery({
   },
 });
 
+const resolveBioReturnValidator = v.union(
+  v.null(),
+  v.object({
+    kind: v.literal("bio"),
+    username: v.string(),
+    href: v.string(),
+  }),
+);
+
+/**
+ * Resolve the Bio tab href for the given user. Returns `null` when:
+ *  - the user has no `username` (cannot build a profile-tab href),
+ *  - the user has zero bio entries (no point navigating to an empty tab;
+ *    the LLM falls back to text recovery, mirroring `getLatestPublished`'s
+ *    "nothing to show" null return).
+ *
+ * Cross-user isolation is enforced by the `userId` clause on
+ * `bioEntries.by_userId`. `resolveBioForOwner({ userId: A })` cannot see
+ * user B's rows.
+ *
+ * Href shape `/@<username>/bio` is asserted byte-for-byte against
+ * `getProfileTabHref(username, "bio")` in the tool unit test, so a typo
+ * surfaces in CI rather than as a silent 404.
+ */
+export const resolveBioForOwner = internalQuery({
+  args: { userId: v.id("users") },
+  returns: resolveBioReturnValidator,
+  handler: async (ctx, { userId }) => {
+    const owner = await ctx.db.get(userId);
+    if (!owner || !owner.username) return null;
+
+    const firstEntry = await ctx.db
+      .query("bioEntries")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .first();
+    if (!firstEntry) return null;
+
+    return {
+      kind: "bio" as const,
+      username: owner.username,
+      href: `/@${owner.username}/bio`,
+    };
+  },
+});
+
 /**
  * Resolve an article/post by `(userId, slug)`. Returns `null` when:
  *  - no row with that slug exists for that user,

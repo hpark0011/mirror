@@ -130,14 +130,17 @@ export const streamResponse = internalAction({
               { ids: relevantResults.map((r) => r._id) },
             );
 
-            if (chunks.length > 0) {
-              // `chunks` already has `{ title, chunkText, slug? }` per
-              // `fetchChunksByIds`'s validator — no cast needed. `slug` is
-              // optional so bio chunks (slug undefined) and article/post
-              // chunks (slug present) flow through the same path; the
-              // conditional `[Read more]` link inside `buildRagContext`
-              // handles the difference.
-              ragContext = buildRagContext(chunks);
+            // Bio entries are navigation-targets, not chat-quotable content.
+            // The `openBio` tool surfaces the structured Bio tab to the visitor;
+            // injecting bio chunks here defeats it (the LLM uses the chunk text as
+            // the answer instead of calling the tool). Articles/posts are prose
+            // sources — they remain RAG-retrievable.
+            const ragEligibleChunks = chunks.filter(
+              (c) => c.sourceTable !== "bioEntries",
+            );
+
+            if (ragEligibleChunks.length > 0) {
+              ragContext = buildRagContext(ragEligibleChunks);
             }
           }
         } catch (error) {

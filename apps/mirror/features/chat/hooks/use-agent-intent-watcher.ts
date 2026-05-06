@@ -38,6 +38,7 @@ import { isContentKind, type ContentKind } from "@/features/content";
  * a historical tool result that's already been dispatched.
  */
 const NAVIGATE_TO_CONTENT_TYPE = "tool-navigateToContent";
+const OPEN_BIO_TYPE = "tool-openBio";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -80,6 +81,18 @@ type NavigateOutput = {
   href: string;
 };
 
+type OpenBioOutput = { kind: "bio"; href: string };
+
+function isOpenBioOutput(output: unknown): output is OpenBioOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  return (
+    o.kind === "bio" &&
+    typeof o.href === "string" &&
+    o.href.length > 0
+  );
+}
+
 function isNavigateOutput(output: unknown): output is NavigateOutput {
   if (!output || typeof output !== "object") return false;
   const o = output as Record<string, unknown>;
@@ -95,7 +108,7 @@ export function useAgentIntentWatcher(
   messages: UIMessage[],
   conversationId: string | null,
 ) {
-  const { navigateToContent } = useCloneActions();
+  const { navigateToContent, navigateToBio } = useCloneActions();
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -108,29 +121,47 @@ export function useAgentIntentWatcher(
     for (const message of messages) {
       if (message.role !== "assistant") continue;
       for (const part of message.parts) {
-        if (part.type !== NAVIGATE_TO_CONTENT_TYPE) continue;
-        // Narrow to the tool-result shape — `state` and `toolCallId` are
-        // both present on every variant of the tool-part union.
-        const toolPart = part as {
-          type: string;
-          state: string;
-          toolCallId: string;
-          output?: unknown;
-        };
-        if (toolPart.state !== "output-available") continue;
-        if (handled.has(toolPart.toolCallId)) continue;
-        if (!isNavigateOutput(toolPart.output)) continue;
+        if (part.type === NAVIGATE_TO_CONTENT_TYPE) {
+          // Narrow to the tool-result shape — `state` and `toolCallId` are
+          // both present on every variant of the tool-part union.
+          const toolPart = part as {
+            type: string;
+            state: string;
+            toolCallId: string;
+            output?: unknown;
+          };
+          if (toolPart.state !== "output-available") continue;
+          if (handled.has(toolPart.toolCallId)) continue;
+          if (!isNavigateOutput(toolPart.output)) continue;
 
-        handled.add(toolPart.toolCallId);
-        navigateToContent({
-          kind: toolPart.output.kind,
-          slug: toolPart.output.slug,
-          // Server-built href — do NOT recompose client-side. The
-          // dispatcher passes this through `buildChatAwareHref` to
-          // preserve `?chat=1&conversation=...`.
-          href: toolPart.output.href,
-        });
+          handled.add(toolPart.toolCallId);
+          navigateToContent({
+            kind: toolPart.output.kind,
+            slug: toolPart.output.slug,
+            // Server-built href — do NOT recompose client-side. The
+            // dispatcher passes this through `buildChatAwareHref` to
+            // preserve `?chat=1&conversation=...`.
+            href: toolPart.output.href,
+          });
+          continue;
+        }
+
+        if (part.type === OPEN_BIO_TYPE) {
+          const toolPart = part as {
+            type: string;
+            state: string;
+            toolCallId: string;
+            output?: unknown;
+          };
+          if (toolPart.state !== "output-available") continue;
+          if (handled.has(toolPart.toolCallId)) continue;
+          if (!isOpenBioOutput(toolPart.output)) continue;
+
+          handled.add(toolPart.toolCallId);
+          navigateToBio({ href: toolPart.output.href });
+          continue;
+        }
       }
     }
-  }, [messages, navigateToContent, conversationId]);
+  }, [messages, navigateToContent, navigateToBio, conversationId]);
 }

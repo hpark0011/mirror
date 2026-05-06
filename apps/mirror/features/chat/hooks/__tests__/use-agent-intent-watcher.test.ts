@@ -20,9 +20,13 @@ import { cleanup, renderHook } from "@testing-library/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 
 const navigateToContentMock = vi.fn();
+const navigateToBioMock = vi.fn();
 
 vi.mock("@/app/[username]/_providers/clone-actions-context", () => ({
-  useCloneActions: () => ({ navigateToContent: navigateToContentMock }),
+  useCloneActions: () => ({
+    navigateToContent: navigateToContentMock,
+    navigateToBio: navigateToBioMock,
+  }),
 }));
 
 // Import after the mock so the hook picks up the mocked provider.
@@ -65,9 +69,22 @@ function makeNavigateOutputPart(toolCallId: string, slug = "hello-world") {
   };
 }
 
+function makeOpenBioOutputPart(toolCallId: string, href = "/@rick-rubin/bio") {
+  return {
+    type: "tool-openBio",
+    state: "output-available" as const,
+    toolCallId,
+    output: {
+      kind: "bio",
+      href,
+    },
+  };
+}
+
 describe("useAgentIntentWatcher", () => {
   beforeEach(() => {
     navigateToContentMock.mockReset();
+    navigateToBioMock.mockReset();
     handledByConversation.clear();
   });
 
@@ -215,5 +232,67 @@ describe("useAgentIntentWatcher", () => {
     // won't, but the per-conversation isolation must hold either way.)
     renderHook(() => useAgentIntentWatcher(messages, CONV_ID_2));
     expect(navigateToContentMock).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("useAgentIntentWatcher — tool-openBio branch", () => {
+  beforeEach(() => {
+    navigateToContentMock.mockReset();
+    navigateToBioMock.mockReset();
+    handledByConversation.clear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("dispatches navigateToBio once when an output-available tool-openBio part is rendered", () => {
+    const messages = [
+      makeAssistantMessage([makeOpenBioOutputPart("call_bio_1")]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+
+    expect(navigateToBioMock).toHaveBeenCalledTimes(1);
+    expect(navigateToBioMock).toHaveBeenCalledWith({ href: "/@rick-rubin/bio" });
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+  });
+
+  it("is idempotent — same toolCallId across re-renders dispatches once total", () => {
+    const messages = [
+      makeAssistantMessage([makeOpenBioOutputPart("call_bio_idem")]),
+    ];
+
+    const { rerender } = renderHook(
+      ({ msgs }: { msgs: UIMessage[] }) =>
+        useAgentIntentWatcher(msgs, CONV_ID),
+      { initialProps: { msgs: messages } },
+    );
+
+    // Same reference re-render — no second dispatch.
+    rerender({ msgs: messages });
+    // Fresh array with same toolCallId — Map-scoped idempotency still holds.
+    rerender({
+      msgs: [makeAssistantMessage([makeOpenBioOutputPart("call_bio_idem")])],
+    });
+
+    expect(navigateToBioMock).toHaveBeenCalledTimes(1);
+    expect(navigateToBioMock).toHaveBeenCalledWith({ href: "/@rick-rubin/bio" });
+  });
+
+  it("ignores tool-openBio parts with state=output-error", () => {
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-openBio",
+          state: "output-error",
+          toolCallId: "call_bio_error",
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+
+    expect(navigateToBioMock).not.toHaveBeenCalled();
   });
 });

@@ -536,6 +536,126 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     };
     expect(Object.keys(schema.shape).sort()).toEqual(["kind", "slug"]);
   });
+
+  it("openBio.inputSchema does not expose userId (or any user identifier)", () => {
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.openBio.inputSchema as
+      | { shape?: Record<string, unknown>; _def?: unknown }
+      | undefined;
+
+    expect(schema).toBeDefined();
+    expect(schema!.shape).toBeDefined();
+    expect("userId" in schema!.shape!).toBe(false);
+    expect("user_id" in schema!.shape!).toBe(false);
+    expect("ownerId" in schema!.shape!).toBe(false);
+
+    const serialized = JSON.stringify(schema!._def);
+    expect(serialized).not.toMatch(/userId/i);
+    expect(serialized).not.toMatch(/profileOwnerId/i);
+  });
+
+  it("openBio.inputSchema is empty (the LLM has no args to pass)", () => {
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.openBio.inputSchema as {
+      shape: Record<string, unknown>;
+    };
+    expect(Object.keys(schema.shape)).toEqual([]);
+  });
+});
+
+describe("chat/toolQueries.resolveBioForOwner", () => {
+  it("returns the bio tab href when the owner has a username and at least one entry", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_with_bio");
+    await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: owner,
+        kind: "work",
+        title: "Founder",
+        startDate: Date.parse("2020-01-01"),
+        endDate: null,
+      }),
+    );
+
+    const result = await t.query(
+      internal.chat.toolQueries.resolveBioForOwner,
+      { userId: owner },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.kind).toBe("bio");
+    expect(result!.username).toBe("owner_with_bio");
+    expect(result!.href).toBe("/@owner_with_bio/bio");
+  });
+
+  it("returns null when the owner has zero bio entries (tool wrapper translates this to a thrown error)", async () => {
+    // The internal query's contract is "null = no data." The `openBio` tool
+    // wrapper around it (in `chat/tools.ts`) throws on the null case so the
+    // LLM sees an error and recovers with text — same shape as
+    // `navigateToContent`'s "couldn't resolve" path. The throw is asserted
+    // from the tool side; this test pins the underlying query's contract.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_no_bio");
+    const result = await t.query(
+      internal.chat.toolQueries.resolveBioForOwner,
+      { userId: owner },
+    );
+    expect(result).toBeNull();
+  });
+
+  it("SECURITY: cannot see another user's bio entries", async () => {
+    const t = makeT();
+    const userA = await insertOwner(t, "user_a_bio");
+    const userB = await insertOwner(t, "user_b_bio");
+
+    // User B has bio entries; user A has none. resolveBioForOwner({A})
+    // must return null — A cannot piggyback on B's rows.
+    await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: userB,
+        kind: "work",
+        title: "B's Job",
+        startDate: 1000,
+        endDate: null,
+      }),
+    );
+
+    const aResult = await t.query(
+      internal.chat.toolQueries.resolveBioForOwner,
+      { userId: userA },
+    );
+    expect(aResult).toBeNull();
+
+    // Positive control — userB's own query succeeds.
+    const bResult = await t.query(
+      internal.chat.toolQueries.resolveBioForOwner,
+      { userId: userB },
+    );
+    expect(bResult).not.toBeNull();
+    expect(bResult!.username).toBe("user_b_bio");
+  });
+
+  it("openBio href shape matches the client-side getProfileTabHref builder", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_href_pin");
+    await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: owner,
+        kind: "education",
+        title: "BS CS",
+        startDate: 1000,
+        endDate: 2000,
+      }),
+    );
+    const result = await t.query(
+      internal.chat.toolQueries.resolveBioForOwner,
+      { userId: owner },
+    );
+    // Cross-reference: must equal `getProfileTabHref("owner_href_pin", "bio")`
+    // from `apps/mirror/features/profile-tabs/types.ts:34-36`. If that helper
+    // ever changes the template, this test must be updated in the same commit.
+    expect(result!.href).toBe("/@owner_href_pin/bio");
+  });
 });
 
 describe("chat/toolQueries.buildContentHref", () => {

@@ -43,7 +43,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     expect(segments[3]).toContain("navigateToContent");
 
     // Segment 4: bio
-    expect(segments[4]).toBe("Bio: A writer");
+    expect(segments[4]).toBe("One-line summary about you: A writer");
 
     // Segment 5: persona
     expect(segments[5]).toBe("My custom persona");
@@ -242,7 +242,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       const styleIdx = result.indexOf(STYLE_RULES);
       const toneIdx = result.indexOf(TONE_PRESETS.friendly.clause);
       const toolsIdx = result.indexOf("navigateToContent");
-      const bioIdx = result.indexOf("Bio: Writer from Oakland");
+      const bioIdx = result.indexOf("One-line summary about you: Writer from Oakland");
       const personaIdx = result.indexOf("Persona body");
       const topicsIdx = result.indexOf("Avoid discussing: politics");
 

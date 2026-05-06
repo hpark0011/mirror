@@ -77,7 +77,7 @@ const DEFAULT_PERSONA =
 // the inventory sentence so the agent learns nouns ("articles", "posts") and
 // verbs ("getLatestPublished", "navigateToContent") in the same region.
 const TOOLS_VOCABULARY =
-  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug.";
+  "You have three tools. Call getLatestPublished and then navigateToContent to open an article or post by slug. Call openBio to open this profile's Bio tab in the visitor's right panel — do this whenever the visitor says anything like \"show me your bio\", \"open your bio\", \"can I see your bio page\", \"tell me about your work history\", \"what's your background\", or asks about your education. Prefer calling openBio over describing your bio in text — the Bio tab has the structured work-history and education list the visitor actually wants to see.";
 
 export const SYSTEM_PROMPT_MAX_CHARS = 6000;
 
@@ -190,7 +190,7 @@ export function composeSystemPrompt(opts: {
   // and may legitimately compress if context budget runs tight.
   const truncatable: Array<string> = [];
   if (opts.bio) {
-    truncatable.push(`Bio: ${opts.bio}`);
+    truncatable.push(`One-line summary about you: ${opts.bio}`);
   }
   truncatable.push(opts.personaPrompt || DEFAULT_PERSONA);
   if (opts.topicsToAvoid) {
