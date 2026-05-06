@@ -5,7 +5,7 @@ Interactive blogging platform that turns blog articles into a conversational dig
 ## Commands
 
 ```bash
-pnpm dev          # Start dev server (http://localhost:3001)
+pnpm dev          # Start dev server (main prefers 3001; worktrees auto-allocate)
 pnpm build        # Production build
 pnpm lint         # ESLint — must pass before commits
 pnpm test:unit    # Vitest unit tests
@@ -15,19 +15,23 @@ pnpm test:e2e:ui  # Playwright with UI
 
 Or from monorepo root: `pnpm dev --filter=@feel-good/mirror`
 
+In parallel worktrees, Mirror dev and Playwright e2e scripts use
+`scripts/with-worktree-port.mjs` to allocate a stable per-worktree port. Use
+`MIRROR_PORT=<port>` when you need an explicit port.
+
 ## Tech Stack
 
-| Category  | Technology                                         |
-| --------- | -------------------------------------------------- |
-| Framework | Next.js 15 (App Router), React 19, TypeScript      |
-| Backend   | Convex (real-time), @convex-dev/agent (clone chat)  |
-| Auth      | Better Auth with @convex-dev/better-auth            |
-| AI/Chat   | Vercel AI SDK (`ai`), streaming clone responses     |
-| Editor    | Tiptap (@tiptap/core) for post content              |
-| Video     | Tavus CVI, Daily.co (@daily-co/daily-js)            |
+| Category  | Technology                                           |
+| --------- | ---------------------------------------------------- |
+| Framework | Next.js 15 (App Router), React 19, TypeScript        |
+| Backend   | Convex (real-time), @convex-dev/agent (clone chat)   |
+| Auth      | Better Auth with @convex-dev/better-auth             |
+| AI/Chat   | Vercel AI SDK (`ai`), streaming clone responses      |
+| Editor    | Tiptap (@tiptap/core) for post content               |
+| Video     | Tavus CVI, Daily.co (@daily-co/daily-js)             |
 | Styling   | Tailwind CSS, @tailwindcss/typography, framer-motion |
-| UI        | @feel-good/ui (shadcn/ui primitives)                |
-| i18n      | react-i18next                                       |
+| UI        | @feel-good/ui (shadcn/ui primitives)                 |
+| i18n      | react-i18next                                        |
 
 ## Dependencies
 
@@ -86,15 +90,15 @@ e2e/                    # Playwright e2e tests
 
 Each feature under `features/` follows this layout:
 
-| Directory    | Purpose                              |
-| ------------ | ------------------------------------ |
-| `components/`| All React components                 |
-| `hooks/`     | Custom hooks                         |
-| `context/`   | React context providers              |
-| `lib/`       | Schemas, data parsing, adapters      |
-| `utils/`     | Pure utility functions               |
-| `types.ts`   | Feature-specific types               |
-| `index.ts`   | Public exports                       |
+| Directory     | Purpose                         |
+| ------------- | ------------------------------- |
+| `components/` | All React components            |
+| `hooks/`      | Custom hooks                    |
+| `context/`    | React context providers         |
+| `lib/`        | Schemas, data parsing, adapters |
+| `utils/`      | Pure utility functions          |
+| `types.ts`    | Feature-specific types          |
+| `index.ts`    | Public exports                  |
 
 ## Workspace Shell Architecture
 
@@ -132,8 +136,8 @@ import { useOTPAuth, createUseSession } from "@feel-good/features/auth/hooks";
 
 Feature-specific rules live in `.claude/rules/apps/mirror/`:
 
-| Topic      | File                                     |
-| ---------- | ---------------------------------------- |
-| Articles   | `.claude/rules/apps/mirror/articles.md`  |
-| Navigation | `.claude/rules/apps/mirror/navigation.md`|
-| Routing    | `.claude/rules/apps/mirror/routing.md`   |
+| Topic      | File                                      |
+| ---------- | ----------------------------------------- |
+| Articles   | `.claude/rules/apps/mirror/articles.md`   |
+| Navigation | `.claude/rules/apps/mirror/navigation.md` |
+| Routing    | `.claude/rules/apps/mirror/routing.md`    |

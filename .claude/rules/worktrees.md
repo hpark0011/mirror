@@ -6,9 +6,9 @@ Rules for operating safely inside `.worktrees/<branch>/`.
 
 Two `.env.local` files are gitignored and live only in the main checkout. Every new worktree symlinks them in via `new-worktree.sh`:
 
-| File | How it gets seeded in main |
-|------|----------------------------|
-| `apps/mirror/.env.local` | manual — copy from `apps/mirror/.env.local.example` and fill values |
+| File                         | How it gets seeded in main                                                                          |
+| ---------------------------- | --------------------------------------------------------------------------------------------------- |
+| `apps/mirror/.env.local`     | manual — copy from `apps/mirror/.env.local.example` and fill values                                 |
 | `packages/convex/.env.local` | `pnpm --filter=@feel-good/convex dev` once in main — the Convex CLI auto-writes it on first connect |
 
 Resulting symlink layout in each worktree:
@@ -61,3 +61,18 @@ Convex-side secrets (`BETTER_AUTH_SECRET`, `GOOGLE_*`, `RESEND_API_KEY`, `ANTHRO
 ## Worktree path discipline (general)
 
 Every Edit/Write inside a worktree must use the worktree's absolute path. Sub-agent reports that name a main-repo path (`/Users/disquiet/Desktop/mirror/...` instead of `/Users/disquiet/Desktop/mirror/.worktrees/<branch>/...`) are a trap — the file may be a symlink and the write may ripple.
+
+## Parallel dev servers and e2e ports
+
+Mirror dev and Playwright e2e scripts allocate a stable per-worktree port via
+`scripts/with-worktree-port.mjs`. Do not hardcode `localhost:3001` in new test
+or dev scripts; read `MIRROR_PORT`, `PORT`, or Playwright's configured
+`baseURL` instead. The main checkout still prefers `3001`, while worktrees use
+the allocated range.
+
+Do not add scripts that kill shared ports such as `3001` before starting dev.
+That can stop another worktree's app or e2e run mid-test.
+
+`convex dev` is guarded by `scripts/with-convex-dev-lock.sh` because all
+worktrees share the same Convex deployment coordinates. Stop the active Convex
+dev process before starting another one from a different worktree.
