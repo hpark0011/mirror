@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { Button } from "@feel-good/ui/primitives/button";
-import { ContentBackLink, ContentToolbarShell } from "@/features/content";
+import {
+  ContentToolbarShell,
+  WorkspaceBackButton,
+  getContentHref,
+} from "@/features/content";
 import { useIsProfileOwner } from "@/features/profile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 
@@ -17,7 +21,9 @@ export function ArticleDetailToolbar({ username, slug }: ArticleDetailToolbarPro
 
   return (
     <ContentToolbarShell variant="detail">
-      <ContentBackLink username={username} kind="articles" />
+      <WorkspaceBackButton
+        href={buildChatAwareHref(getContentHref(username, "articles"))}
+      />
       {isOwner && (
         <Button
           asChild
