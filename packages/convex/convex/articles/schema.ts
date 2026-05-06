@@ -9,8 +9,9 @@ export const articleFields = {
   // FG_150 (Option B): coverImageStorageId is intentionally decorative — no
   // alt/caption field exists and cover images are out of scope for the
   // embeddings/clone-agent context. The coverImageOwnership row (see
-  // coverImageOwnershipTable below) is the only metadata about a cover.
+  // coverImageOwnershipTable below) tracks upload ownership separately.
   coverImageStorageId: v.optional(v.id("_storage")),
+  coverImageThumbhash: v.optional(v.string()),
   category: v.string(),
 };
 
