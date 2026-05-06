@@ -3,7 +3,7 @@ id: FG_151
 title: "Edit-form cancel navigates to the original slug (regression test)"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "useEditArticleForm.cancel uses initial.slug, but no test asserts this — a refactor that switches to the editable slug state would go undetected."
 dependencies: []

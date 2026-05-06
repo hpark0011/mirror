@@ -3,7 +3,7 @@ id: FG_141
 title: "Deferred-create test proves no DB row across the metadata-editing lifecycle"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The 'does NOT call create on mount' test only checks the mount instant, leaving the no-DB-row-before-Save invariant unproven for the full editing flow."
 dependencies: []

@@ -178,3 +178,41 @@ describe("useEditArticleForm — cover clear", () => {
     expect(args.coverImageStorageId).toBe("new_storage_id");
   });
 });
+
+describe("useEditArticleForm — cancel", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUploadCover.mockReset();
+    mockReplace.mockReset();
+    mockRefresh.mockReset();
+    mockToastError.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("navigates to the original slug even after the slug field has been edited", () => {
+    // Cancel must use `initial.slug`, never the editable form-state slug.
+    // Otherwise an unsaved slug edit would route the user to a 404.
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    act(() => {
+      result.current.setSlug("edited-slug");
+    });
+
+    act(() => {
+      result.current.cancel();
+    });
+
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    const target = mockReplace.mock.calls[0]![0] as string;
+    expect(target).toContain("/existing-piece");
+    expect(target).not.toContain("/edited-slug");
+  });
+});

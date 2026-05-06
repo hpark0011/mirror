@@ -3,7 +3,7 @@ id: FG_129
 title: "CloneActions dispatcher unit test pins the server-built href bypass branch"
 date: 2026-05-05
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "useCloneActions().navigateToContent has two branches at clone-actions-context.tsx:74 — `const basePath = href ?? getContentHref(...)`. The agent path supplies `href` (server-built); the user-UI path omits it (client-recomposed). The agent-parity rule says the client must NOT recompose the URL when the server provided one. This branch is exercised only by the e2e, never asserted at unit level. A refactor that always called getContentHref would still pass the e2e while silently breaking the server-is-source-of-truth contract."
 dependencies: []

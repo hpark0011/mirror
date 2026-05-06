@@ -73,7 +73,19 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
   });
 
   it("does NOT call create on mount or on metadata edits — only on save", () => {
-    renderHook(() => useNewArticleForm({ username: "test-user" }));
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+
+    // Editing every metadata field must NOT fire create — the deferred-
+    // create contract is the most distinctive promise of the new-article
+    // flow. Abandoning the page leaves no trace in the DB.
+    act(() => {
+      result.current.setTitle("foo");
+      result.current.setSlug("foo-bar");
+      result.current.setCategory("cat");
+    });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 

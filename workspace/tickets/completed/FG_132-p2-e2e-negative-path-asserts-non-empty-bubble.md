@@ -3,7 +3,7 @@ id: FG_132
 title: "Chat-agent navigation e2e negative path proves the assistant actually responded"
 date: 2026-05-05
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The negative-path test in chat-agent-navigates.authenticated.spec.ts asserts the URL did not change AND that a received-bubble appeared. The current selector matches the bubble container element (`[data-slot=chat-message-bubble]`), which is satisfied by an empty placeholder bubble that renders before the stream completes. A regression where the agent times out or the LLM emits an empty response would still pass the assertion. Tighten the selector to require non-empty text content so the test genuinely proves the agent responded."
 dependencies: []

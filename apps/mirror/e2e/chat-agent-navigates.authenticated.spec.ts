@@ -140,10 +140,13 @@ test.describe("Clone agent navigates the visitor via the navigateToContent tool"
     // received-bubble assertion combined with the URL-unchanged check
     // triangulates the intended outcome: the agent responded *and* did not
     // navigate. Selector matches the peer chat specs (see
-    // `helpers/chat.ts:RECEIVED_BUBBLE_SELECTOR`).
-    await expect(page.locator(RECEIVED_BUBBLE_SELECTOR).last()).toBeVisible({
-      timeout: NAVIGATION_TIMEOUT,
-    });
+    // `helpers/chat.ts:RECEIVED_BUBBLE_SELECTOR`). Assert both that the
+    // bubble container is visible and that it contains non-empty text —
+    // this guards against regressions where the stream times out or the LLM
+    // returns an empty response (which would still render the bubble shell).
+    const bubble = page.locator(RECEIVED_BUBBLE_SELECTOR).last();
+    await expect(bubble).toBeVisible({ timeout: NAVIGATION_TIMEOUT });
+    await expect(bubble).toHaveText(/\S+/, { timeout: NAVIGATION_TIMEOUT });
 
     const finalUrl = page.url();
     // Always still under rick-rubin's profile.
