@@ -34,9 +34,27 @@ export interface ArticleMetadataHeaderProps {
   onCoverImageClear: () => void;
 }
 
-function formatTimestamp(value: number | null): string {
-  if (!value) return "—";
+function formatTimestamp(value: number): string {
   return new Date(value).toLocaleString();
+}
+
+function TimestampField({
+  label,
+  value,
+  testId,
+}: {
+  label: string;
+  value: number;
+  testId: string;
+}) {
+  return (
+    <div className="flex flex-col gap-1">
+      <div>{label}</div>
+      <div data-testid={testId} className="text-foreground">
+        {formatTimestamp(value)}
+      </div>
+    </div>
+  );
 }
 
 export function ArticleMetadataHeader({
@@ -150,20 +168,24 @@ export function ArticleMetadataHeader({
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 text-[13px] text-muted-foreground">
-          <div className="flex flex-col gap-1">
-            <div>Created</div>
-            <div data-testid="article-created-at" className="text-foreground">
-              {formatTimestamp(createdAt)}
-            </div>
+        {(createdAt || publishedAt) && (
+          <div className="grid grid-cols-2 gap-3 text-[13px] text-muted-foreground">
+            {createdAt && (
+              <TimestampField
+                label="Created"
+                value={createdAt}
+                testId="article-created-at"
+              />
+            )}
+            {publishedAt && (
+              <TimestampField
+                label="Published"
+                value={publishedAt}
+                testId="article-published-at"
+              />
+            )}
           </div>
-          <div className="flex flex-col gap-1">
-            <div>Published</div>
-            <div data-testid="article-published-at" className="text-foreground">
-              {publishedAt ? formatTimestamp(publishedAt) : "Not yet"}
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
