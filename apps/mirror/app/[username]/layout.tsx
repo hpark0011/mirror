@@ -72,7 +72,7 @@ export default async function ProfileLayout({
     authId: convexProfile.authId,
     username: convexProfile.username ?? username,
     name: convexProfile.name ?? "",
-    tagline: convexProfile.tagline ?? convexProfile.bio ?? "",
+    tagline: convexProfile.tagline ?? "",
     avatarUrl: convexProfile.avatarUrl,
     ...(convexProfile.username === "rick-rubin" && {
       media: { video: "/portrait-video.mp4", poster: "/rr.webp" },

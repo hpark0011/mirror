@@ -282,8 +282,7 @@ export const loadStreamingContext = internalQuery({
       threadId: conversation.threadId,
       systemPrompt: composeSystemPrompt({
         name: profileOwner.name,
-        // C1 fallback for any pre-backfill row; C2 removes the `?? bio` half.
-        tagline: profileOwner.tagline ?? profileOwner.bio ?? null,
+        tagline: profileOwner.tagline ?? null,
         personaPrompt: profileOwner.personaPrompt,
         tonePreset: profileOwner.tonePreset as TonePreset | null | undefined,
         topicsToAvoid: profileOwner.topicsToAvoid,

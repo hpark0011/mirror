@@ -108,7 +108,7 @@ async function signInAs(
   return userId;
 }
 
-describe("users.mutations.updateProfile (C1: writes tagline; bio is a deprecated alias)", () => {
+describe("users.mutations.updateProfile (post-narrow: tagline-only)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;
   });
@@ -133,44 +133,24 @@ describe("users.mutations.updateProfile (C1: writes tagline; bio is a deprecated
     const row = await t.run(async (ctx) => ctx.db.get(userId));
     expect(row).not.toBeNull();
     expect(row!.tagline).toBe("fresh tagline");
-    // The mutation MUST NOT touch the bio field — it is read-only at the
-    // mutation boundary in C1 and removed entirely in C2.
-    expect(row!.bio).toBeUndefined();
   });
 
-  it("writes tagline (NOT bio) when a legacy client sends { bio }", async () => {
+  it("rejects a legacy `bio` arg via the args validator", async () => {
     const t = makeT();
-    const userId = await signInAs(t, "auth_t2", "u_t2");
+    await signInAs(t, "auth_t2", "u_t2");
 
-    // Legacy alias path: a pre-rename client posts `bio` — the mutation
-    // must treat it as a tagline write, NOT propagate it to the bio field.
-    await t.mutation(api.users.mutations.updateProfile, {
-      bio: "legacy-client value",
-    });
-
-    const row = await t.run(async (ctx) => ctx.db.get(userId));
-    expect(row).not.toBeNull();
-    expect(row!.tagline).toBe("legacy-client value");
-    // Critical invariant: the bio field is never written by this mutation.
-    expect(row!.bio).toBeUndefined();
+    // The `bio` arg was a C1 dual-acceptance alias; in C2 it is removed
+    // from the args validator, so passing it must throw a validation
+    // error. Convex's argument validator rejects unknown fields.
+    await expect(
+      t.mutation(api.users.mutations.updateProfile, {
+        // @ts-expect-error — `bio` is no longer in the args validator.
+        bio: "legacy-client value",
+      }),
+    ).rejects.toThrow();
   });
 
-  it("prefers tagline over bio when both are passed", async () => {
-    const t = makeT();
-    const userId = await signInAs(t, "auth_t3", "u_t3");
-
-    await t.mutation(api.users.mutations.updateProfile, {
-      bio: "legacy-bio-arg",
-      tagline: "explicit-tagline-arg",
-    });
-
-    const row = await t.run(async (ctx) => ctx.db.get(userId));
-    expect(row).not.toBeNull();
-    expect(row!.tagline).toBe("explicit-tagline-arg");
-    expect(row!.bio).toBeUndefined();
-  });
-
-  it("updates name independently of tagline/bio", async () => {
+  it("updates name independently of tagline", async () => {
     const t = makeT();
     const userId = await signInAs(t, "auth_t4", "u_t4");
 
@@ -182,7 +162,6 @@ describe("users.mutations.updateProfile (C1: writes tagline; bio is a deprecated
     expect(row).not.toBeNull();
     expect(row!.name).toBe("New Name");
     expect(row!.tagline).toBeUndefined();
-    expect(row!.bio).toBeUndefined();
   });
 
   it("leaves an existing tagline intact when called with no fields", async () => {

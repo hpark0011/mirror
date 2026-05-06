@@ -163,7 +163,7 @@ export const resetTestUser = internalMutation({
     await ctx.db.patch(existing._id, {
       username: undefined,
       name: undefined,
-      bio: undefined,
+      tagline: undefined,
       onboardingComplete: false,
     });
     return null;
