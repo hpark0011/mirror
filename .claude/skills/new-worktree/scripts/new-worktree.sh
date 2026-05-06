@@ -64,34 +64,34 @@ mkdir -p "$GIT_ROOT/.worktrees"
 git worktree add --quiet -b "$BRANCH_NAME" "$WORKTREE_PATH" main
 
 # --- 4. Install dependencies -------------------------------------------------
+# --frozen-lockfile: lockfile in this worktree is exactly main's, so skip
+#   resolution. Errors loudly if main's lockfile and package.json have drifted —
+#   that should be fixed in main, not papered over here.
+# --prefer-offline: try the local pnpm content-addressable store first; only
+#   hit the registry for genuinely uncached packages.
+# --reporter=append-only: line-based output, no progress-bar redraws polluting
+#   the tool result.
 
 cd "$WORKTREE_PATH"
-pnpm install
+pnpm install --frozen-lockfile --prefer-offline --reporter=append-only
 
 # --- 5. Symlink .env.local files --------------------------------------------
 # .env.local is gitignored, so the worktree starts without any local secrets.
 # We symlink (not copy) so updates in the main checkout flow through automatically.
-# Step 2 already asserted the canonical set exists; this loop also picks up
-# any other .env.local files (e.g. future packages) on a best-effort basis.
+# Step 2 already asserted REQUIRED_ENVS exists in main; iterate that canonical
+# list directly rather than re-discovering with find.
 
 echo ""
 echo "Symlinking .env.local files..."
-ENV_COUNT=0
-while IFS= read -r env_file; do
-  # Compute the path relative to the repo root, then rebase it under the worktree.
-  rel_path="${env_file#$GIT_ROOT/}"
-  dest="$WORKTREE_PATH/$rel_path"
+for entry in "${REQUIRED_ENVS[@]}"; do
+  rel="${entry%%|*}"
+  src="$GIT_ROOT/$rel"
+  dest="$WORKTREE_PATH/$rel"
 
-  # Make sure the parent directory exists before creating the symlink.
   mkdir -p "$(dirname "$dest")"
-  ln -s "$env_file" "$dest"
-  echo "  Linked $rel_path"
-  ENV_COUNT=$((ENV_COUNT + 1))
-done < <(find "$GIT_ROOT" -name '.env.local' -not -path '*/.worktrees/*' -not -path '*/node_modules/*')
-
-if [[ $ENV_COUNT -eq 0 ]]; then
-  echo "  No .env.local files found to symlink"
-fi
+  ln -s "$src" "$dest"
+  echo "  Linked $rel"
+done
 
 echo ""
 echo "Worktree created: $WORKTREE_PATH"

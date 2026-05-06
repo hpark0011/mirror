@@ -9,80 +9,42 @@ Create a new git worktree for parallel feature development in this monorepo.
 
 ## Trigger
 
-- `/workspace:new-worktree` — ask the user for scope, then create with a proper name
+- `/workspace:new-worktree` — empty mode; ask the user for scope, then proceed
 - `/workspace:new-worktree <path-to-ticket.md>` — derive name from a ticket file
-- `/workspace:new-worktree <requirement>` — derive name from a free-text description
+- `/workspace:new-worktree <requirement>` — derive name from free-text
 
-## Input Detection
+## Branch Name Rules
 
-Determine the mode from the argument:
-
-| Condition                | Mode                      |
-| ------------------------ | ------------------------- |
-| No argument provided     | **Empty (scratch)**       |
-| Argument ends with `.md` | **Ticket file**           |
-| Anything else            | **Free-text requirement** |
-
-In all modes, generate the branch name and create the worktree without asking the user to confirm the name.
-
-## Name Generation Rules
-
-All branch names must follow these conventions:
-
-- **Prefix**: `feature-`, `fix-`, `chore-`, `docs-`, `improvements-` or `refactor-`
-- **Slug**: 2-4 words, kebab-case, lowercase
-- **Max length**: 40 characters total
-- **No special characters** beyond hyphens
+- Prefix: `feature-`, `fix-`, `chore-`, `docs-`, `improvements-`, or `refactor-`
+- Slug: 2–4 words, kebab-case, lowercase
+- Max 40 chars total; no special characters beyond hyphens
 - Examples: `feature-auth-magic-link`, `fix-nav-transition-bug`, `refactor-dock-layout`
 
-## Mode 1: Empty (Scratch)
+## Steps
 
-### Steps
+### 1. Determine prefix + slug
 
-1. **Ask the user** what they want to work on in this worktree — the scope, feature, or bug.
-2. Once the user responds, treat the response as a free-text requirement and follow **Mode 3** below to derive the prefix and slug, then proceed to **Shared Steps**.
+| Argument                  | How to derive                                                                                                                                                                                                                       |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| None                      | Ask the user for scope, then treat the response as free-text below.                                                                                                                                                                  |
+| Ends with `.md`           | Read the ticket. Prefix from `type` field: `fix` → `fix-`, `refactor` → `refactor-`, `chore`/`docs` → `chore-`, else `feature-`. Slugify the title (2–4 key words).                                                                  |
+| Anything else (free-text) | Prefix by intent: bug/broken behavior → `fix-`, restructuring → `refactor-`, polish/iteration on an existing feature → `improvements-`, chore/docs → `chore-`, else `feature-`. If the input is already a valid slug, use it as-is.  |
 
-## Mode 2: Ticket File
+Do not ask the user to confirm the generated name — proceed.
 
-### Steps
-
-1. **Read the ticket file** using the Read tool to extract its title, type, and description.
-2. **Derive the prefix** from the `type` field:
-   - Type is `fix` → `fix-`
-   - Type is `refactor` → `refactor-`
-   - Type is `chore` or `docs` → `chore-`
-   - Otherwise → `feature-`
-3. **Slugify the title** into a branch name: lowercase, strip special characters, replace spaces with hyphens, truncate to 2-4 key words.
-4. Proceed to **Shared Steps** below immediately (do not ask for confirmation on the name).
-
-## Mode 3: Free-Text Requirement
-
-### Steps
-
-1. **Analyze the requirement** to determine the prefix:
-   - Describes a bug or broken behavior → `fix-`
-   - Describes restructuring existing code → `refactor-`
-   - Otherwise → `feature-`
-2. **Generate a concise slug** (2-4 words, kebab-case) that captures the essence of the requirement.
-3. Proceed to **Shared Steps** below immediately (do not ask for confirmation on the name).
-
-## Shared Steps (All Modes)
-
-These run once a branch name has been generated:
-
-### 1. Run the creation script
+### 2. Run the creation script
 
 ```bash
 bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
 ```
 
-The script bails out on its own if the worktree path or branch already exists, so no pre-flight check is needed.
+The script bails on its own if the worktree path or branch already exists.
 
-### 2. Report result
+### 3. Report
 
 Tell the user:
 
-- The worktree path (`.worktrees/<branch-name>`)
-- The branch name created
+- Worktree path (`.worktrees/<branch-name>`)
+- Branch name
 - That `pnpm install` completed
-- Remind them to use a different port if running dev servers in multiple worktrees
+- Reminder to use a different port if running dev servers in multiple worktrees
