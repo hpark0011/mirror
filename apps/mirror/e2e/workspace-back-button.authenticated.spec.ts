@@ -1,30 +1,7 @@
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
-import { requireEnv } from "./lib/env";
+import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 
 const username = "test-user";
-const testEmail = "playwright-test@mirror.test";
-const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
-const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
-
-async function ensureTestArticleFixtures(): Promise<{
-  draftSlug: string;
-  publishedSlug: string;
-}> {
-  const res = await fetch(`${convexSiteUrl}/test/ensure-article-fixtures`, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      "x-test-secret": testSecret,
-    },
-    body: JSON.stringify({ email: testEmail }),
-  });
-  if (!res.ok) {
-    throw new Error(
-      `ensure-article-fixtures failed with status ${res.status}: ${await res.text()}`,
-    );
-  }
-  return res.json() as Promise<{ draftSlug: string; publishedSlug: string }>;
-}
 
 test.describe("Workspace back button — unified component", () => {
   test("article detail toolbar renders link mode with name 'Back'", async ({
