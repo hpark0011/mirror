@@ -8,10 +8,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
-    // Scoped to Vitest-migrated feature modules. Files under
-    // convex/users/__tests__/ still import from "bun:test" and are owned by a
-    // different agent; add new module globs here as tests migrate to Vitest to
-    // avoid breaking CI on out-of-scope files.
+    // Scoped to Vitest-migrated feature modules. Some legacy files under
+    // convex/users/__tests__/ still import from "bun:test"; the new vitest
+    // tests added during the bio→tagline rename use the standard pattern
+    // (`*.vitest.test.ts`) so they're picked up here without colliding with
+    // the legacy bun-test files.
     include: [
       "convex/chat/**/*.test.ts",
       "convex/betaAllowlist/**/*.test.ts",
@@ -21,6 +22,7 @@ export default defineConfig({
       "convex/content/**/*.test.ts",
       "convex/articles/**/*.test.ts",
       "convex/posts/**/*.test.ts",
+      "convex/users/**/*.vitest.test.ts",
     ],
     server: {
       deps: {

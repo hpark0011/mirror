@@ -22,7 +22,7 @@ export function useProfileData({
       authId: reactiveProfile.authId,
       username: reactiveProfile.username ?? initialProfile.username,
       name: reactiveProfile.name ?? "",
-      bio: reactiveProfile.bio ?? "",
+      tagline: reactiveProfile.tagline ?? "",
       avatarUrl: reactiveProfile.avatarUrl,
       media: initialProfile.media,
     }

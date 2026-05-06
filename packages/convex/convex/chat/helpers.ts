@@ -93,7 +93,7 @@ const SEPARATOR = "\n\n";
  * system prompt fits within `SYSTEM_PROMPT_MAX_CHARS` (FR-09).
  *
  * Safety prefix and tone clause are never touched in the *normal* case —
- * they are load-bearing safety content. Only the persona/bio/topics
+ * they are load-bearing safety content. Only the persona/tagline/topics
  * sections are proportionally shrunk.
  *
  * There is ONE pathological case: if the fixed sections alone (a very long
@@ -104,7 +104,7 @@ const SEPARATOR = "\n\n";
  * into the safety prefix. That is the lesser evil vs. blowing the cap.
  *
  * Section ORDER is preserved:
- *   safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+ *   safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
  * The first four are fixed (load-bearing) — safety prefix, style rules, the
  * optional tone clause, and TOOLS_VOCABULARY (the only place the system
  * prompt names `getLatestPublished` / `navigateToContent`). The rest are
@@ -154,7 +154,7 @@ function truncateToBudget(
 
 export function composeSystemPrompt(opts: {
   name?: string | null;
-  bio?: string | null;
+  tagline?: string | null;
   personaPrompt?: string | null;
   tonePreset?: TonePreset | null;
   topicsToAvoid?: string | null;
@@ -172,7 +172,7 @@ export function composeSystemPrompt(opts: {
   // apply regardless of tone preset or persona prompt. TOOLS_VOCABULARY is
   // load-bearing too — it is the only place the system prompt names
   // `getLatestPublished` / `navigateToContent`, so under budget pressure
-  // (verbose persona + bio + topics) it must not be proportionally shrunk
+  // (verbose persona + tagline + topics) it must not be proportionally shrunk
   // away. The verb names are identical across users — the per-request
   // factory only binds `profileOwnerId`, never tool args — so the line is
   // a constant, not user-derived content.
@@ -182,15 +182,15 @@ export function composeSystemPrompt(opts: {
   }
   fixed.push(TOOLS_VOCABULARY);
 
-  // Truncatable sections — bio, persona, topics, inventory. Order:
-  // safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+  // Truncatable sections — tagline, persona, topics, inventory. Order:
+  // safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
   // The inventory sentence is appended last so it does not destabilize
   // existing prompt ordering for users without structured content; it is
   // genuinely user-derived (depends on which kinds the owner has populated)
   // and may legitimately compress if context budget runs tight.
   const truncatable: Array<string> = [];
-  if (opts.bio) {
-    truncatable.push(`Bio: ${opts.bio}`);
+  if (opts.tagline) {
+    truncatable.push(`Tagline: ${opts.tagline}`);
   }
   truncatable.push(opts.personaPrompt || DEFAULT_PERSONA);
   if (opts.topicsToAvoid) {
@@ -205,7 +205,7 @@ export function composeSystemPrompt(opts: {
     }
   }
 
-  // Track which truncatable slots correspond to bio/persona/topics so we can
+  // Track which truncatable slots correspond to tagline/persona/topics so we can
   // reassemble in order after truncation.
   const assembled = truncateToBudget(fixed, truncatable);
   const joined = assembled.join(SEPARATOR);
@@ -282,7 +282,8 @@ export const loadStreamingContext = internalQuery({
       threadId: conversation.threadId,
       systemPrompt: composeSystemPrompt({
         name: profileOwner.name,
-        bio: profileOwner.bio,
+        // C1 fallback for any pre-backfill row; C2 removes the `?? bio` half.
+        tagline: profileOwner.tagline ?? profileOwner.bio ?? null,
         personaPrompt: profileOwner.personaPrompt,
         tonePreset: profileOwner.tonePreset as TonePreset | null | undefined,
         topicsToAvoid: profileOwner.topicsToAvoid,
