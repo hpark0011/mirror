@@ -18,7 +18,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
   it("UT-02: composes all segments in correct order joined by \\n\\n", () => {
     const result = composeSystemPrompt({
       name: "Alice",
-      bio: "A writer",
+      tagline: "A writer",
       personaPrompt: "My custom persona",
       tonePreset: "friendly",
       topicsToAvoid: "politics",
@@ -42,8 +42,8 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     expect(segments[3]).toContain("getLatestPublished");
     expect(segments[3]).toContain("navigateToContent");
 
-    // Segment 4: bio
-    expect(segments[4]).toBe("Bio: A writer");
+    // Segment 4: tagline
+    expect(segments[4]).toBe("Tagline: A writer");
 
     // Segment 5: persona
     expect(segments[5]).toBe("My custom persona");
@@ -58,7 +58,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
   it("UT-03: omits tone clause when tonePreset is null", () => {
     const result = composeSystemPrompt({
       name: "Bob",
-      bio: "A developer",
+      tagline: "A developer",
       personaPrompt: "My persona",
       tonePreset: null,
       topicsToAvoid: null,
@@ -70,7 +70,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     }
 
     const segments = result.split("\n\n");
-    // SAFETY_PREFIX, STYLE_RULES, tools-vocabulary, bio, persona
+    // SAFETY_PREFIX, STYLE_RULES, tools-vocabulary, tagline, persona
     // — no tone, no topics. Tools-vocabulary now sits in the fixed region
     // immediately after the (omitted) tone slot.
     expect(segments).toHaveLength(5);
@@ -107,7 +107,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
   it("UT-04: omits topics line when topicsToAvoid is null", () => {
     const result = composeSystemPrompt({
       name: "Carol",
-      bio: "An artist",
+      tagline: "An artist",
       personaPrompt: "Creative persona",
       tonePreset: "witty",
       topicsToAvoid: null,
@@ -137,12 +137,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
   describe("FR-09: SYSTEM_PROMPT_MAX_CHARS budget", () => {
     it("caps output at SYSTEM_PROMPT_MAX_CHARS when persona is oversize", () => {
       const hugePersona = "p".repeat(SYSTEM_PROMPT_MAX_CHARS * 2);
-      const hugeBio = "b".repeat(SYSTEM_PROMPT_MAX_CHARS);
+      const hugeTagline = "b".repeat(SYSTEM_PROMPT_MAX_CHARS);
       const hugeTopics = "t".repeat(SYSTEM_PROMPT_MAX_CHARS);
 
       const result = composeSystemPrompt({
         name: "Alice",
-        bio: hugeBio,
+        tagline: hugeTagline,
         personaPrompt: hugePersona,
         tonePreset: "friendly",
         topicsToAvoid: hugeTopics,
@@ -151,8 +151,8 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(result.length).toBeLessThanOrEqual(SYSTEM_PROMPT_MAX_CHARS);
       // FG_126: TOOLS_VOCABULARY moved into the fixed region so it cannot
       // be proportionally shrunk to nothing under budget pressure. Both
-      // tool names must appear verbatim even when persona+bio+topics are
-      // each oversize.
+      // tool names must appear verbatim even when persona+tagline+topics
+      // are each oversize.
       expect(result).toContain("getLatestPublished");
       expect(result).toContain("navigateToContent");
     });
@@ -162,7 +162,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
 
       const result = composeSystemPrompt({
         name: "Alice",
-        bio: "b".repeat(2000),
+        tagline: "b".repeat(2000),
         personaPrompt: hugePersona,
         tonePreset: "friendly",
         topicsToAvoid: "t".repeat(2000),
@@ -185,7 +185,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       const hugeName = "N".repeat(SYSTEM_PROMPT_MAX_CHARS);
       const result = composeSystemPrompt({
         name: hugeName,
-        bio: "short bio",
+        tagline: "short tagline",
         personaPrompt: "short persona",
         tonePreset: "friendly",
         topicsToAvoid: "short topics",
@@ -202,11 +202,11 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(result).toContain("navigateToContent");
     });
 
-    it("Finding A: 5500-char bio keeps FULL tone clause verbatim and stays ≤ 6000 chars", () => {
-      const bigBio = "x".repeat(5500);
+    it("Finding A: 5500-char tagline keeps FULL tone clause verbatim and stays ≤ 6000 chars", () => {
+      const bigTagline = "x".repeat(5500);
       const result = composeSystemPrompt({
         name: "Alice",
-        bio: bigBio,
+        tagline: bigTagline,
         personaPrompt: "short persona",
         tonePreset: "friendly",
         topicsToAvoid: "short topics",
@@ -224,15 +224,15 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       expect(result.startsWith(SAFETY_PREFIX_START)).toBe(true);
       expect(result).toContain("digital clone of Alice");
       // FG_126: TOOLS_VOCABULARY in the fixed region survives a 5500-char
-      // bio — both tool names appear verbatim.
+      // tagline — both tool names appear verbatim.
       expect(result).toContain("getLatestPublished");
       expect(result).toContain("navigateToContent");
     });
 
-    it("preserves section order (safety → style → tone → tools → bio → persona → topics) when under budget", () => {
+    it("preserves section order (safety → style → tone → tools → tagline → persona → topics) when under budget", () => {
       const result = composeSystemPrompt({
         name: "Alice",
-        bio: "Writer from Oakland",
+        tagline: "Writer from Oakland",
         personaPrompt: "Persona body",
         tonePreset: "friendly",
         topicsToAvoid: "politics",
@@ -242,18 +242,18 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       const styleIdx = result.indexOf(STYLE_RULES);
       const toneIdx = result.indexOf(TONE_PRESETS.friendly.clause);
       const toolsIdx = result.indexOf("navigateToContent");
-      const bioIdx = result.indexOf("Bio: Writer from Oakland");
+      const taglineIdx = result.indexOf("Tagline: Writer from Oakland");
       const personaIdx = result.indexOf("Persona body");
       const topicsIdx = result.indexOf("Avoid discussing: politics");
 
       // FG_126: TOOLS_VOCABULARY moved into the fixed region, so it now
-      // appears AFTER the tone clause and BEFORE bio/persona/topics.
+      // appears AFTER the tone clause and BEFORE tagline/persona/topics.
       expect(safetyIdx).toBeGreaterThanOrEqual(0);
       expect(styleIdx).toBeGreaterThan(safetyIdx);
       expect(toneIdx).toBeGreaterThan(styleIdx);
       expect(toolsIdx).toBeGreaterThan(toneIdx);
-      expect(bioIdx).toBeGreaterThan(toolsIdx);
-      expect(personaIdx).toBeGreaterThan(bioIdx);
+      expect(taglineIdx).toBeGreaterThan(toolsIdx);
+      expect(personaIdx).toBeGreaterThan(taglineIdx);
       expect(topicsIdx).toBeGreaterThan(personaIdx);
     });
   });
@@ -327,7 +327,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     it("places the inventory sentence in the truncatable region (after topics)", () => {
       const result = composeSystemPrompt({
         name: "Alice",
-        bio: "Writer",
+        tagline: "Writer",
         personaPrompt: "Persona body",
         tonePreset: "friendly",
         topicsToAvoid: "politics",
@@ -365,12 +365,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // enforces SYSTEM_PROMPT_MAX_CHARS even when contentInventory pushes
       // the truncatable list to its longest plausible shape.
       const hugePersona = "p".repeat(SYSTEM_PROMPT_MAX_CHARS * 2);
-      const hugeBio = "b".repeat(SYSTEM_PROMPT_MAX_CHARS);
+      const hugeTagline = "b".repeat(SYSTEM_PROMPT_MAX_CHARS);
       const hugeTopics = "t".repeat(SYSTEM_PROMPT_MAX_CHARS);
 
       const result = composeSystemPrompt({
         name: "Alice",
-        bio: hugeBio,
+        tagline: hugeTagline,
         personaPrompt: hugePersona,
         tonePreset: "friendly",
         topicsToAvoid: hugeTopics,

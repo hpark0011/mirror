@@ -28,27 +28,27 @@ const springTransition = {
   damping: 40,
 } as const;
 
-type EditableBioProps = {
+type EditableTaglineProps = {
   isEditing: boolean;
-  bio: string;
+  tagline: string;
 };
 
-export function EditableBio({ isEditing, bio }: EditableBioProps) {
+export function EditableTagline({ isEditing, tagline }: EditableTaglineProps) {
   const isOwner = useIsProfileOwner();
   const { control, watch } = useFormContext();
-  const bioValue = watch("bio");
+  const taglineValue = watch("tagline");
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
   const editShadow = isDark ? EDIT_SHADOW_DARK : EDIT_SHADOW_LIGHT;
   const viewShadow = isDark ? VIEW_SHADOW_DARK : VIEW_SHADOW_LIGHT;
 
-  if (!isEditing && !bio && !isOwner) return null;
+  if (!isEditing && !tagline && !isOwner) return null;
 
   return (
     <div className="text-lg text-center max-w-md mx-auto leading-[1.3] w-full flex">
       <FormField
         control={control}
-        name="bio"
+        name="tagline"
         render={({ field }) => (
           <FormItem className="w-full relative">
             <FormLabel className="absolute left-0.5 top-0.5 rounded-xl text-xs">
@@ -61,7 +61,7 @@ export function EditableBio({ isEditing, bio }: EditableBioProps) {
                 transition={springTransition}
                 className="py-[3px] text-muted-foreground text-xs px-[6px] backdrop-blur-xs rounded-xl"
               >
-                Bio
+                Tagline
               </motion.div>
             </FormLabel>
             <FormControl>
@@ -88,7 +88,7 @@ export function EditableBio({ isEditing, bio }: EditableBioProps) {
                     !isEditing &&
                       "border-transparent focus-visible:ring-0 hover:bg-transparent hover:border-transparent [text-shadow:0px_0px_0px_rgba(0,0,0,0.2)]",
                   )}
-                  data-test="edit-profile-bio-textarea"
+                  data-test="edit-profile-tagline-textarea"
                   {...field}
                 />
               </motion.div>
@@ -97,7 +97,7 @@ export function EditableBio({ isEditing, bio }: EditableBioProps) {
               <div className="flex items-center justify-between px-1">
                 <FormMessage />
                 <p className="ml-auto text-[13px] text-green-11">
-                  {bioValue?.length ?? 0}/300
+                  {taglineValue?.length ?? 0}/300
                 </p>
               </div>
             )}

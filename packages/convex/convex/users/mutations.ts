@@ -60,7 +60,7 @@ export const setUsername = authMutation({
 
 export const updateProfile = authMutation({
   args: {
-    bio: v.optional(v.string()),
+    tagline: v.optional(v.string()),
     name: v.optional(v.string()),
   },
   returns: v.null(),
@@ -68,8 +68,8 @@ export const updateProfile = authMutation({
     const appUser = await getAppUser(ctx, ctx.user._id);
 
     await ctx.db.patch("users", appUser._id, {
-      ...(args.bio !== undefined ? { bio: args.bio } : {}),
       ...(args.name !== undefined ? { name: args.name } : {}),
+      ...(args.tagline !== undefined ? { tagline: args.tagline } : {}),
     });
     return null;
   },

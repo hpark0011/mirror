@@ -54,9 +54,9 @@ export function ProfileStep({ username, onComplete }: ProfileStepProps) {
         await setAvatar({ storageId });
       }
 
-      // Save bio if provided
+      // Save tagline if provided
       if (bio.trim()) {
-        await updateProfile({ bio: bio.trim() });
+        await updateProfile({ tagline: bio.trim() });
       }
 
       // Mark onboarding as complete
