@@ -27,8 +27,8 @@ Create a new git worktree for parallel feature development in this monorepo.
 | Argument                  | How to derive                                                                                                                                                                                                                       |
 | ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | None                      | Ask the user for scope, then treat the response as free-text below.                                                                                                                                                                  |
-| Ends with `.md`           | Read the ticket. Prefix from `type` field: `fix` → `fix-`, `refactor` → `refactor-`, `chore`/`docs` → `chore-`, else `feature-`. Slugify the title (2–4 key words).                                                                  |
-| Anything else (free-text) | Prefix by intent: bug/broken behavior → `fix-`, restructuring → `refactor-`, polish/iteration on an existing feature → `improvements-`, chore/docs → `chore-`, else `feature-`. If the input is already a valid slug, use it as-is.  |
+| Ends with `.md`           | Read the ticket. Prefix from `type` field: `fix` → `fix-`, `refactor` → `refactor-`, `docs` → `docs-`, `chore` → `chore-`, else `feature-`. Slugify the title (2–4 key words).                                                       |
+| Anything else (free-text) | Prefix by intent: bug/broken behavior → `fix-`, restructuring → `refactor-`, polish/iteration on an existing feature → `improvements-`, docs → `docs-`, chore → `chore-`, else `feature-`. If the input is already a valid slug, use it as-is. |
 
 Do not ask the user to confirm the generated name — proceed.
 
