@@ -121,7 +121,10 @@ export const TextBubbleMenu = memo(function TextBubbleMenu({
       <div
         role="toolbar"
         aria-label="Text formatting"
-        className={cn("tiptap-bubble-menu")}
+        className={cn(
+          "tiptap-bubble-menu",
+          isEditingLink && "tiptap-bubble-menu--editing",
+        )}
         data-testid="text-bubble-menu"
       >
         {isEditingLink ? (

@@ -3,7 +3,7 @@ id: FG_144
 title: "Editor package public surface is curated to what consumers actually use"
 date: 2026-05-05
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "packages/features/editor/index.ts re-exports several slash-command and bubble-menu internals that no consumer outside the package imports."
 dependencies: []

@@ -18,7 +18,7 @@ export function updatePosition(
   const spaceBelow = window.innerHeight - rect.bottom;
   const fitsBelow = spaceBelow >= popupRect.height + 4;
 
-  popup.style.left = `${rect.left}px`;
+  popup.style.left = `${Math.max(8, Math.min(rect.left, window.innerWidth - popupRect.width - 8))}px`;
   popup.style.top = fitsBelow
     ? `${rect.bottom + 4}px`
     : `${rect.top - popupRect.height - 4}px`;
