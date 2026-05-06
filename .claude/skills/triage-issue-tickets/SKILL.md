@@ -1,6 +1,6 @@
 ---
 name: triage-issue-tickets
-description: Triage tickets in workspace/tickets/to-do/ — cancel irrelevant ones, mark already-solved ones completed. Use when the user says "triage tickets", "clean up the backlog", "/triage-issue-tickets". Does NOT resolve open tickets (use resolving-tickets).
+description: Triage tickets in workspace/tickets/to-do/ — cancel irrelevant ones, mark already-solved ones completed. Use when the user says "triage tickets", "clean up the backlog", "/triage-issue-tickets". Does NOT resolve open tickets (use resolve-issue-tickets).
 ---
 
 ## Workflow
