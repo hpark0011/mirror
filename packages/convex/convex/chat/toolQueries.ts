@@ -8,7 +8,7 @@ import { buildBioHref, buildContentHref } from "../content/href";
 // chat-package consumers can keep importing `buildContentHref` from
 // `../toolQueries` while the canonical implementation lives at
 // `../content/href` (see `.claude/rules/agent-parity.md` § Href-parity).
-export { buildBioHref, buildContentHref };
+export { buildContentHref };
 
 /**
  * Tool-side internal queries powering `buildCloneTools` in `chat/tools.ts`.

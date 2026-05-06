@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildBioHref } from "@feel-good/convex/convex/content/href";
 import {
   getProfileTabHref,
   isProfileTabKind,
@@ -69,6 +70,20 @@ describe("getProfileTabHref", () => {
     expect(getProfileTabHref("alice", "bio")).toBe("/@alice/bio");
     expect(getProfileTabHref("alice", "clone-settings")).toBe(
       "/@alice/clone-settings",
+    );
+  });
+
+  it("agrees with buildBioHref for the 'bio' kind — href-parity invariant", () => {
+    // `getProfileTabHref(_, "bio")` (user-UI Bio tab) and `buildBioHref(_)`
+    // (agent-side openBio tool result) are two independent helpers that MUST
+    // produce the same string. `.claude/rules/identifiers.md` §1 +
+    // `.claude/rules/agent-parity.md` § Href-parity invariant: a future
+    // template change to either without updating the other silently routes
+    // the agent to a 404 while users keep working. This test fails loudly on
+    // divergence.
+    expect(getProfileTabHref("alice", "bio")).toBe(buildBioHref("alice"));
+    expect(getProfileTabHref("rick-rubin", "bio")).toBe(
+      buildBioHref("rick-rubin"),
     );
   });
 });

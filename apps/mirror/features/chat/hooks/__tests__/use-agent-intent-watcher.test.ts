@@ -231,6 +231,38 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToContentMock).not.toHaveBeenCalled();
   });
 
+  it("dispatches openBio once per toolCallId across re-render and remount", () => {
+    // Mirrors tests (a) and (b) for navigateToContent. The `handled` set is
+    // shared and type-agnostic in production today, so this assertion pins
+    // the contract for the openBio path — a future refactor that moves
+    // `handled.add` into per-type branches cannot regress bio idempotency
+    // without failing this test.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-openBio",
+          state: "output-available",
+          toolCallId: "call_open_bio_idem",
+          output: {
+            kind: "bio",
+            href: "/@rick-rubin/bio",
+            hasEntries: true,
+          },
+        },
+      ]),
+    ];
+
+    const first = renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_bio_idem"),
+    );
+    expect(openBioMock).toHaveBeenCalledTimes(1);
+
+    first.unmount();
+    renderHook(() => useAgentIntentWatcher(messages, "conv_bio_idem"));
+
+    expect(openBioMock).toHaveBeenCalledTimes(1);
+  });
+
   it("does not dispatch openBio when output payload is malformed (kind missing or wrong)", () => {
     // Defense-in-depth: the runtime narrowing in `isOpenBioOutput` must
     // reject any output that doesn't include `kind: "bio"` and a non-empty

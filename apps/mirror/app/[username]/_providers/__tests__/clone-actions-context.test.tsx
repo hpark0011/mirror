@@ -228,11 +228,12 @@ describe("CloneActionsProvider — navigateToContent href bypass (FG_129)", () =
 });
 
 describe("CloneActionsProvider — openBio", () => {
-  // Bio parity: the dispatcher exposes `openBio` for the agent
-  // intent watcher. The user-UI Bio tab still uses `<Link>`; this test pins
-  // the agent path's contract: server-built href passes through unchanged
-  // and the chat-aware suffix is preserved (mirror of the navigateToContent
-  // bypass test above).
+  // Bio parity: the dispatcher exposes `openBio` for the agent intent
+  // watcher only. There is no user-UI caller today — the user-UI Bio tab
+  // uses a bare `<Link>` (consistent with the other profile tabs). These
+  // tests pin the agent path's contract: server-built href passes through
+  // unchanged and the chat-aware suffix is preserved (mirror of the
+  // navigateToContent bypass test above).
   afterEach(() => {
     cleanup();
     pushSpy.mockReset();
@@ -254,21 +255,7 @@ describe("CloneActionsProvider — openBio", () => {
     );
   });
 
-  it("(b) user-UI path — composes /@<username>/bio when href is omitted", () => {
-    const { result } = renderHook(() => useCloneActions(), { wrapper });
-
-    act(() => {
-      result.current.openBio();
-    });
-
-    expect(pushSpy).toHaveBeenCalledTimes(1);
-    expect(pushSpy).toHaveBeenCalledWith(
-      "/@alice/bio?chat=1&conversation=conv_123",
-      { scroll: false },
-    );
-  });
-
-  it("(c) preserves the chat-aware suffix when isChatOpen is true", () => {
+  it("(b) preserves the chat-aware suffix when isChatOpen is true", () => {
     const { result } = renderHook(() => useCloneActions(), { wrapper });
 
     act(() => {
@@ -278,7 +265,7 @@ describe("CloneActionsProvider — openBio", () => {
     expect(pushSpy.mock.calls[0][0]).toContain("?chat=1&conversation=conv_123");
   });
 
-  it("(d) does NOT append chat suffix when isChatOpen is false", () => {
+  it("(c) does NOT append chat suffix when isChatOpen is false", () => {
     mockBuildChatAwareHref = buildChatAwareHrefClosed;
     mockIsChatOpen = false;
 

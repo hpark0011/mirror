@@ -95,6 +95,12 @@ function isNavigateOutput(output: unknown): output is NavigateOutput {
 type OpenBioOutput = {
   kind: "bio";
   href: string;
+  // Emitted by the `openBio` tool so a future caller (a richer dispatcher
+  // or a connector reading the dispatched intent) can phrase "the bio is
+  // currently empty" instead of opening a panel without acknowledgement.
+  // The watcher itself does not consume this today; typing it keeps the
+  // client narrowing aligned with the tool's actual return shape.
+  hasEntries: boolean;
 };
 
 function isOpenBioOutput(output: unknown): output is OpenBioOutput {
@@ -103,7 +109,8 @@ function isOpenBioOutput(output: unknown): output is OpenBioOutput {
   return (
     o.kind === "bio" &&
     typeof o.href === "string" &&
-    o.href.length > 0
+    o.href.length > 0 &&
+    typeof o.hasEntries === "boolean"
   );
 }
 

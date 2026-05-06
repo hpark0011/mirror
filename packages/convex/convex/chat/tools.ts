@@ -93,7 +93,7 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
 
     openBio: createTool({
       description:
-        "Open the profile owner's bio panel for the visitor — the structured work history, education, and other bio entries. Call this when the visitor asks to see the full bio, work history, education, or background. Takes no arguments — the owner is resolved server-side from the chat context. The result includes the canonical href; the client uses it to navigate.",
+        "Open the profile owner's bio panel for the visitor — the structured work history, education, and other bio entries. Call this when the visitor asks to see the full bio, work history, education, or professional background. Takes no arguments — the owner is resolved server-side from the chat context. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge in your reply that the bio panel is currently empty before opening it.",
       // Empty input — no LLM-visible args. The owner is the closure-bound
       // `profileOwnerId`, never a tool arg. The `inputSchema invariants`
       // tests in `chat/__tests__/tools.test.ts` pin this.

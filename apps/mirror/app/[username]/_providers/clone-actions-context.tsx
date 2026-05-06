@@ -9,7 +9,6 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { getContentHref, type ContentKind } from "@/features/content";
-import { buildBioHref } from "@feel-good/convex/convex/content/href";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "./profile-route-data-context";
 
@@ -45,14 +44,13 @@ type CloneActions = {
      */
     href?: string;
   }) => void;
-  openBio: (args?: {
-    /**
-     * Optional override — agent path passes the server-built href from
-     * the `openBio` tool's structured result. User-UI path omits this
-     * and the dispatcher composes `/@<username>/bio`.
-     */
-    href?: string;
-  }) => void;
+  /**
+   * Agent path: passes the server-built href from the `openBio` tool's
+   * structured result. The user-UI Bio tab uses a bare `<Link>` via
+   * `getProfileTabHref` (consistent with the other profile tabs); the
+   * dispatcher does not have a user-UI caller today.
+   */
+  openBio: (args: { href: string }) => void;
 };
 
 const CloneActionsContext = createContext<CloneActions | null>(null);
@@ -88,14 +86,9 @@ export function CloneActionsProvider({ children }: CloneActionsProviderProps) {
 
   const openBio = useCallback<CloneActions["openBio"]>(
     (args) => {
-      // Agent path: server provided the canonical href; do NOT recompose.
-      // User path: dispatcher composes `/@<username>/bio` via the shared
-      // `buildBioHref` helper (single source of truth, mirroring the
-      // `getContentHref` pattern for articles/posts).
-      const basePath = args?.href ?? buildBioHref(profile.username);
-      router.push(buildChatAwareHref(basePath), { scroll: false });
+      router.push(buildChatAwareHref(args.href), { scroll: false });
     },
-    [router, profile.username, buildChatAwareHref],
+    [router, buildChatAwareHref],
   );
 
   const value = useMemo<CloneActions>(

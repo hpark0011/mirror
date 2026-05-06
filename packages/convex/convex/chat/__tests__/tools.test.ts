@@ -72,6 +72,7 @@ vi.mock("../../auth/client", () => {
 import { internal } from "../../_generated/api";
 import { buildCloneTools } from "../tools";
 import { buildContentHref } from "../toolQueries";
+import { buildBioHref } from "../../content/href";
 import { normalizeConvexGlob } from "./testUtils";
 import type { Id } from "../../_generated/dataModel";
 
@@ -656,7 +657,11 @@ describe("chat/toolQueries.queryBioPanel", () => {
 
     expect(result).not.toBeNull();
     expect(result!.username).toBe("owner_bio_with_entries");
-    expect(result!.href).toBe("/@owner_bio_with_entries/bio");
+    // Asserts via `buildBioHref` (not a string literal) so a future template
+    // change to the helper without a corresponding query update — or vice
+    // versa — fails this test loudly. Mirrors the `resolveBySlug` parity
+    // pattern below (`buildContentHref` assertion).
+    expect(result!.href).toBe(buildBioHref(result!.username));
     expect(result!.hasEntries).toBe(true);
   });
 
@@ -674,8 +679,26 @@ describe("chat/toolQueries.queryBioPanel", () => {
 
     expect(result).not.toBeNull();
     expect(result!.username).toBe("owner_bio_empty");
-    expect(result!.href).toBe("/@owner_bio_empty/bio");
+    expect(result!.href).toBe(buildBioHref(result!.username));
     expect(result!.hasEntries).toBe(false);
+  });
+
+  it("returns null when the owner row was deleted (orphaned userId)", async () => {
+    // The openBio tool throws on null → LLM falls back to text. The most
+    // realistic real-world trigger of that path is an account deleted
+    // between the chat session opening and the tool firing — the
+    // schema-typed `Id<"users">` is still well-formed, but `ctx.db.get`
+    // returns null. Pins the first of the two null-guards in
+    // `queryBioPanel`'s handler.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_to_delete");
+    await t.run(async (ctx) => ctx.db.delete(owner));
+
+    const result = await t.query(internal.chat.toolQueries.queryBioPanel, {
+      userId: owner,
+    });
+
+    expect(result).toBeNull();
   });
 
   it("returns null when the owner has no username (cannot build profile href)", async () => {

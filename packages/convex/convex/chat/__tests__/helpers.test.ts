@@ -106,6 +106,11 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // the discoverability gap that produced the "I don't have a full bio
     // page to pull up" fallback before this change.
     expect(result).toContain("openBio");
+    // Pins the schema-aligned trigger phrasing — bio schema only contains
+    // work + education kinds, so widening the vocabulary back to a bare
+    // "background" word (which visitors may use for personal/cultural
+    // background the panel does not hold) must fail this test.
+    expect(result).toContain("professional background");
   });
 
   // UT-04: omits topics line when topicsToAvoid is null
