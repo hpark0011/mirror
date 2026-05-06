@@ -15,4 +15,7 @@ describe("thumbhashToDataUrl", () => {
     expect(url).toMatch(/^data:image\/png;base64,/);
     expect(url!.length).toBeGreaterThan(100);
   });
+  it("returns null for a malformed thumbhash instead of throwing", () => {
+    expect(thumbhashToDataUrl("!!!not-base64!!!")).toBeNull();
+  });
 });

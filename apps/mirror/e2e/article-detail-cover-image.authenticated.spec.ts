@@ -130,11 +130,11 @@ test("article detail page renders a thumbhash blur placeholder", async ({
   );
   await fileInput.setInputFiles(png);
   await uploadDone;
-  // The upload hook now runs storage POST and `computeThumbhashFromFile` in
-  // parallel via Promise.all. The storage response can arrive before the
-  // canvas-based thumbhash encode completes. The same 500ms settle covers
-  // both promises resolving and React flushing both setters.
-  await page.waitForTimeout(500);
+  // Wait for the upload Promise.all to settle and React to flush both
+  // setters before saving — deterministic, replaces a 500ms heuristic.
+  await page
+    .locator("[data-cover-upload-state='ready']")
+    .waitFor({ state: "attached", timeout: 15_000 });
 
   await page.getByTestId("save-article-btn").click();
   await expect(page).toHaveURL(
@@ -154,12 +154,12 @@ test("article detail page renders a thumbhash blur placeholder", async ({
   // a data attribute. It is the deterministic test surface — present in the
   // DOM regardless of image-load state, unlike next/image's inline blur
   // style (which strips after load).
-  const wrapper = page.locator("[data-blur-placeholder]").first();
+  const wrapper = page.locator("[data-cover-thumbhash]").first();
   await expect(wrapper).toBeVisible({ timeout: 10_000 });
 
-  const placeholder = await wrapper.getAttribute("data-blur-placeholder");
-  expect(placeholder).toBeTruthy();
-  expect(placeholder!.length).toBeGreaterThan(10);
+  const thumbhash = await wrapper.getAttribute("data-cover-thumbhash");
+  expect(thumbhash).toBeTruthy();
+  expect(thumbhash!.length).toBeGreaterThan(10);
 
   // Confirm the cover Image still resolves to a Convex storage URL — i.e.
   // the placeholder wiring didn't break the actual src.

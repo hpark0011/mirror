@@ -8,6 +8,8 @@ const MAX_DIM = 100;
  *
  * Why 100px: thumbhash's reference impl downsamples this far server-side; any
  * larger and the encode is slower without payload benefit.
+ *
+ * Uses `btoa` rather than `Buffer` because this file runs in the browser.
  */
 export async function computeThumbhashFromFile(file: File): Promise<string> {
   const bitmap = await createImageBitmap(file);
@@ -25,7 +27,6 @@ export async function computeThumbhashFromFile(file: File): Promise<string> {
   const { data } = ctx.getImageData(0, 0, w, h);
   const hashBytes = rgbaToThumbHash(w, h, data);
 
-  // base64 encode
   let binary = "";
   for (const byte of hashBytes) binary += String.fromCharCode(byte);
   return btoa(binary);

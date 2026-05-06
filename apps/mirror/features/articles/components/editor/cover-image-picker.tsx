@@ -22,16 +22,19 @@ export function CoverImagePicker({
 }: CoverImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [hasUploaded, setHasUploaded] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(url);
 
   const handleSelect = async (file: File) => {
     setIsUploading(true);
+    setHasUploaded(false);
     try {
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
       const result = await onUpload(file);
       URL.revokeObjectURL(objectUrl);
       setPreviewUrl(result.url);
+      setHasUploaded(true);
     } finally {
       setIsUploading(false);
     }
@@ -39,8 +42,23 @@ export function CoverImagePicker({
 
   const display = previewUrl ?? url;
 
+  // Deterministic state surface for e2e tests. The hook's `onUpload` resolves
+  // once `Promise.all([uploadToStorage, computeThumbhashFromFile])` has settled
+  // and the parent form has committed both `storageId` and `thumbhash`. Only
+  // then does `hasUploaded` flip to true — replacing flaky `waitForTimeout`
+  // settle heuristics in the e2e.
+  const uploadState: "idle" | "uploading" | "ready" = isUploading
+    ? "uploading"
+    : hasUploaded
+    ? "ready"
+    : "idle";
+
   return (
-    <div data-testid="article-cover-image-picker" className="w-full">
+    <div
+      data-testid="article-cover-image-picker"
+      data-cover-upload-state={uploadState}
+      className="w-full"
+    >
       <input
         ref={inputRef}
         type="file"
@@ -79,6 +97,7 @@ export function CoverImagePicker({
                 variant="secondary"
                 onClick={() => {
                   setPreviewUrl(null);
+                  setHasUploaded(false);
                   onClear();
                 }}
                 disabled={disabled || isUploading}

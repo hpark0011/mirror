@@ -10,6 +10,7 @@ import {
 } from "../content/helpers";
 import { assertValidSlug, generateSlug } from "../content/slug";
 import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
+import { validateThumbhashFormat } from "./helpers";
 import {
   extractInlineImageStorageIds,
   multisetDifference,
@@ -39,6 +40,9 @@ export const create = authMutation({
 
     validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
     validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
+    if (args.coverImageThumbhash !== undefined) {
+      validateThumbhashFormat(args.coverImageThumbhash);
+    }
 
     // Always normalize: `generateSlug` is idempotent. See `.claude/rules/identifiers.md`.
     // Treat empty/whitespace-only client slug as "not supplied" and fall back
@@ -131,6 +135,9 @@ export const update = authMutation({
     if (args.category !== undefined) {
       validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
     }
+    if (args.coverImageThumbhash !== undefined) {
+      validateThumbhashFormat(args.coverImageThumbhash);
+    }
 
     // Normalize incoming slug at the boundary. See `.claude/rules/identifiers.md`.
     // Empty/whitespace-only slug arg is treated as "no change requested" — a
@@ -207,11 +214,12 @@ export const update = authMutation({
     // deliberately write `undefined` here — NEVER carry over the prior hash,
     // which would be a stale hash describing a different image.
     //
-    // Branch 3 — hash-only backfill: the cover image itself is unchanged but
-    // the caller is supplying a freshly computed hash (e.g. the backfill
-    // script flowing through the public mutation, or the client retrying after
-    // a prior upload that succeeded for the blob but failed for the hash).
-    // Patch the hash alone; leave the storageId untouched.
+    // Branch 3 — hash-only patch: the cover image itself is unchanged but the
+    // caller is supplying a freshly computed hash. This is reachable when the
+    // client retries after a prior upload where the storage POST succeeded but
+    // the thumbhash compute failed. Patch the hash alone; leave the storageId
+    // untouched. The dev backfill script does NOT flow through this path — it
+    // uses internal.articles.mutations.setCoverImageThumbhash directly.
     //
     // Branch 4 — round-trip no-op: the caller sent back the exact same
     // storageId that is already stored. No change to either field; this
@@ -398,13 +406,28 @@ export const generateArticleCoverImageUploadUrl = authMutation({
 });
 
 export const setCoverImageThumbhash = internalMutation({
-  args: { id: v.id("articles"), thumbhash: v.string() },
+  args: {
+    id: v.id("articles"),
+    // The storageId the caller resolved a URL from and encoded against.
+    // The mutation refuses to patch if the article's current storageId no
+    // longer matches — guards the backfill race where the user replaces
+    // the cover between the URL fetch + encode and this patch. See
+    // `scripts/backfill-cover-thumbhash.ts`.
+    expectedStorageId: v.id("_storage"),
+    thumbhash: v.string(),
+  },
   returns: v.null(),
   handler: async (ctx, args) => {
+    validateThumbhashFormat(args.thumbhash);
     const article = await ctx.db.get(args.id);
     if (!article) throw new Error("Article not found");
     if (article.coverImageStorageId === undefined) {
       throw new Error("Article has no cover image to hash");
+    }
+    if (article.coverImageStorageId !== args.expectedStorageId) {
+      throw new Error(
+        "Cover image changed during backfill — skipping stale hash",
+      );
     }
     await ctx.db.patch(args.id, { coverImageThumbhash: args.thumbhash });
     return null;

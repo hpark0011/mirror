@@ -377,6 +377,7 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     await expect(
       t.mutation(internal.articles.mutations.setCoverImageThumbhash, {
         id,
+        expectedStorageId: storageId,
         thumbhash: "shouldFail==",
       }),
     ).rejects.toThrow(/no cover image/i);
@@ -386,10 +387,143 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
 
     await t.mutation(internal.articles.mutations.setCoverImageThumbhash, {
       id,
+      expectedStorageId: storageId,
       thumbhash: "backfilledHash==",
     });
 
     const row = await t.run(async (ctx) => ctx.db.get(id));
     expect(row?.coverImageThumbhash).toBe("backfilledHash==");
+  });
+
+  it("update with the same coverImageStorageId and a NEW coverImageThumbhash patches only the hash (Branch 3)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const storageId = await storeBlob(t, "cover-branch3");
+
+    const id = await t.mutation(api.articles.mutations.create, {
+      title: "Branch 3 Test",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      coverImageStorageId: storageId,
+      coverImageThumbhash: "originalHash==",
+    });
+
+    await t.mutation(api.articles.mutations.update, {
+      id,
+      coverImageStorageId: storageId, // SAME storageId
+      coverImageThumbhash: "freshlyComputedHash==", // NEW hash
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(id));
+    expect(row?.coverImageStorageId).toBe(storageId);
+    expect(row?.coverImageThumbhash).toBe("freshlyComputedHash==");
+  });
+
+  it("update with the same coverImageStorageId and same/no coverImageThumbhash is a no-op (Branch 4)", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const storageId = await storeBlob(t, "cover-branch4");
+
+    const id = await t.mutation(api.articles.mutations.create, {
+      title: "Branch 4 Test",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      coverImageStorageId: storageId,
+      coverImageThumbhash: "preservedHash==",
+    });
+
+    // Round-trip the existing storageId, no thumbhash arg supplied.
+    // Per the coupling rule, this is a no-op for both fields.
+    await t.mutation(api.articles.mutations.update, {
+      id,
+      coverImageStorageId: storageId,
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(id));
+    expect(row?.coverImageStorageId).toBe(storageId);
+    expect(row?.coverImageThumbhash).toBe("preservedHash==");
+  });
+
+  it("update rejects an oversized coverImageThumbhash", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const storageId = await storeBlob(t, "cover-len-cap");
+
+    const id = await t.mutation(api.articles.mutations.create, {
+      title: "Length Cap Test",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      coverImageStorageId: storageId,
+    });
+
+    // 300 base64-shaped chars — well over the 256-char cap. The character
+    // class is intentionally valid base64 so this asserts the LENGTH path,
+    // not the format path.
+    const oversized = "A".repeat(300);
+    await expect(
+      t.mutation(api.articles.mutations.update, {
+        id,
+        coverImageThumbhash: oversized,
+      }),
+    ).rejects.toThrow(/coverImageThumbhash/);
+  });
+
+  it("update rejects a non-base64 coverImageThumbhash", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const storageId = await storeBlob(t, "cover-fmt");
+
+    const id = await t.mutation(api.articles.mutations.create, {
+      title: "Format Test",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      coverImageStorageId: storageId,
+    });
+
+    await expect(
+      t.mutation(api.articles.mutations.update, {
+        id,
+        coverImageThumbhash: "!!!not-base64!!!",
+      }),
+    ).rejects.toThrow(/base64/i);
+  });
+
+  it("setCoverImageThumbhash refuses to patch when expectedStorageId no longer matches the article", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const originalStorageId = await storeBlob(t, "cover-original");
+    const replacementStorageId = await storeBlob(t, "cover-replacement");
+
+    const id = await t.mutation(api.articles.mutations.create, {
+      title: "Race Guard Test",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      coverImageStorageId: originalStorageId,
+      coverImageThumbhash: "hashA==",
+    });
+
+    // Simulate the user replacing the cover after the backfill resolved a URL
+    // for `originalStorageId` but before it patched the new hash.
+    await t.run(async (ctx) =>
+      ctx.db.patch(id, { coverImageStorageId: replacementStorageId }),
+    );
+
+    await expect(
+      t.mutation(internal.articles.mutations.setCoverImageThumbhash, {
+        id,
+        expectedStorageId: originalStorageId, // stale — points at the replaced blob
+        thumbhash: "hashB==",
+      }),
+    ).rejects.toThrow(/cover image changed/i);
+
+    // The article's hash from before the race must NOT be overwritten.
+    const row = await t.run(async (ctx) => ctx.db.get(id));
+    expect(row?.coverImageStorageId).toBe(replacementStorageId);
+    expect(row?.coverImageThumbhash).toBe("hashA==");
   });
 });

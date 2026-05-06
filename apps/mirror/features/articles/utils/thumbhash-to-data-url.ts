@@ -7,8 +7,12 @@ import { thumbHashToDataURL } from "thumbhash";
  */
 export function thumbhashToDataUrl(thumbhash: string | null): string | null {
   if (!thumbhash) return null;
-  const binary = atob(thumbhash);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return thumbHashToDataURL(bytes);
+  try {
+    const binary = atob(thumbhash);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return thumbHashToDataURL(bytes);
+  } catch {
+    return null;
+  }
 }

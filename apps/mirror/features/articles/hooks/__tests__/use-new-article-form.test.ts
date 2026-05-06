@@ -11,6 +11,7 @@ import { act, renderHook } from "@testing-library/react";
 const mockCreate = vi.fn();
 const mockReplace = vi.fn();
 const mockToastError = vi.fn();
+const mockUploadCover = vi.fn();
 
 vi.mock("convex/react", () => ({
   useMutation: (ref: unknown) => {
@@ -22,7 +23,7 @@ vi.mock("convex/react", () => ({
 }));
 
 vi.mock("../use-article-cover-image-upload", () => ({
-  useArticleCoverImageUpload: () => ({ upload: vi.fn() }),
+  useArticleCoverImageUpload: () => ({ upload: mockUploadCover }),
 }));
 
 vi.mock("../use-article-inline-image-upload", () => ({
@@ -66,6 +67,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     mockCreate.mockReset();
     mockReplace.mockReset();
     mockToastError.mockReset();
+    mockUploadCover.mockReset();
   });
 
   afterEach(() => {
@@ -175,5 +177,67 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     expect(mockReplace).not.toHaveBeenCalled();
     expect(mockToastError).toHaveBeenCalledTimes(1);
     expect(result.current.isSaving).toBe(false);
+  });
+
+  // Pin the falsy-guard at use-new-article-form.tsx:
+  //   ...(coverImageThumbhash && { coverImageThumbhash })
+  // If a future regression removes / inverts the guard, an empty string
+  // would be persisted — and `thumbhashToDataUrl("")` returns null, so the
+  // detail view silently degrades to no LQIP placeholder. Lock both
+  // directions at the hook-level args boundary.
+  it("upload with thumbhash forwards coverImageThumbhash to create", async () => {
+    mockCreate.mockResolvedValue("article_id_4");
+    mockUploadCover.mockResolvedValue({ storageId: "sid_y", thumbhash: "xyz=" });
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("With Thumbhash");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ coverImageThumbhash: "xyz=" }),
+    );
+  });
+
+  it("upload with empty thumbhash omits coverImageThumbhash from create args", async () => {
+    mockCreate.mockResolvedValue("article_id_5");
+    mockUploadCover.mockResolvedValue({ storageId: "sid_x", thumbhash: "" });
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("Degraded");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ coverImageThumbhash: expect.anything() }),
+    );
   });
 });

@@ -33,6 +33,7 @@ const { ArticleMetadataHeader } = await import(
 
 const noopUpload = vi.fn(async (_file: File) => ({
   storageId: "kg2_storage" as const,
+  thumbhash: "",
   url: "https://example.convex.cloud/cover.png",
 }));
 
@@ -152,6 +153,7 @@ describe("ArticleMetadataHeader", () => {
   it("invokes upload callback when a cover image file is selected", async () => {
     const onCoverImageUpload = vi.fn(async (_file: File) => ({
       storageId: "k123" as const,
+      thumbhash: "",
       url: "https://example.convex.cloud/cover.png",
     }));
     render(

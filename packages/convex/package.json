@@ -85,6 +85,7 @@
     "convex-helpers": "^0.1.115",
     "zod": "catalog:"
   },
+  "//": "sharp + thumbhash are script-only — used by scripts/backfill-cover-thumbhash.ts, NOT imported from convex/. They install with the backend devDeps because pnpm has no lighter scope. See scripts/backfill-cover-thumbhash.ts.",
   "devDependencies": {
     "@feel-good/tsconfig": "workspace:*",
     "@types/node": "catalog:",

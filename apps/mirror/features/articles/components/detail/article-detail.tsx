@@ -56,7 +56,7 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
         {article.coverImageUrl && (
           <div
             className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-14"
-            data-blur-placeholder={article.coverImageThumbhash ?? ""}
+            data-cover-thumbhash={article.coverImageThumbhash ?? ""}
           >
             <Image
               src={article.coverImageUrl}

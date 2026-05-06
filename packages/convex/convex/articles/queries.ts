@@ -153,28 +153,44 @@ export const getBySlug = query({
 });
 
 export const listMissingThumbhash = internalQuery({
-  args: {},
-  returns: v.array(
-    v.object({
-      _id: v.id("articles"),
-      coverImageStorageId: v.id("_storage"),
-    }),
-  ),
-  handler: async (ctx) => {
-    // One-shot scan for the backfill. Use `.collect()` and a JS filter —
-    // there is no index keyed on the absence of a thumbhash, and this is
-    // not a hot path (runs once per dev).
-    const articles = await ctx.db.query("articles").collect();
-    return articles
-      .filter(
-        (a) =>
-          a.coverImageStorageId !== undefined &&
-          a.coverImageThumbhash === undefined,
-      )
-      .map((a) => ({
-        _id: a._id,
-        coverImageStorageId: a.coverImageStorageId!,
-      }));
+  // Paginated scan for the backfill. Without a cursor loop, `.collect()`
+  // hits Convex's 16k document read cap once an account accumulates that
+  // many articles. The backfill (`scripts/backfill-cover-thumbhash.ts`)
+  // drives this with a cursor loop and a fixed page size.
+  //
+  // There is no index keyed on the absence of a thumbhash, so the page is
+  // filtered in JS after the table scan. The script keeps paginating until
+  // `isDone` is true; pages may legitimately come back empty when every row
+  // in the page already has a thumbhash.
+  args: { cursor: v.union(v.string(), v.null()), numItems: v.number() },
+  returns: v.object({
+    page: v.array(
+      v.object({
+        _id: v.id("articles"),
+        coverImageStorageId: v.id("_storage"),
+      }),
+    ),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("articles")
+      .paginate({ cursor: args.cursor, numItems: args.numItems });
+    return {
+      page: result.page
+        .filter(
+          (a) =>
+            a.coverImageStorageId !== undefined &&
+            a.coverImageThumbhash === undefined,
+        )
+        .map((a) => ({
+          _id: a._id,
+          coverImageStorageId: a.coverImageStorageId!,
+        })),
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
   },
 });
 
