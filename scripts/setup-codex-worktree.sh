@@ -29,19 +29,15 @@ find_main_root() {
   return 1
 }
 
+STANDALONE_CHECKOUT=false
 MAIN_ROOT="${MIRROR_CANONICAL_ROOT:-}"
 if [[ -z "$MAIN_ROOT" ]]; then
   MAIN_ROOT=$(find_main_root || true)
 fi
 
-if [[ -z "$MAIN_ROOT" && -d "/Users/disquiet/Desktop/mirror" ]]; then
-  MAIN_ROOT="/Users/disquiet/Desktop/mirror"
-fi
-
 if [[ -z "$MAIN_ROOT" ]]; then
-  echo "Error: could not find the canonical main checkout for env symlinks." >&2
-  echo "Set MIRROR_CANONICAL_ROOT to the main checkout path and rerun." >&2
-  exit 1
+  MAIN_ROOT="$CURRENT_ROOT"
+  STANDALONE_CHECKOUT=true
 fi
 
 MAIN_ROOT=$(cd "$MAIN_ROOT" && pwd -P)
@@ -58,18 +54,34 @@ for entry in "${REQUIRED_ENVS[@]}"; do
 done
 
 if (( ${#MISSING[@]} > 0 )); then
-  echo "Error: required .env.local files are missing from the main checkout:" >&2
+  if [[ "$CHECK_ONLY" == true || "$CURRENT_ROOT" != "$MAIN_ROOT" ]]; then
+    echo "Error: required .env.local files are missing from the main checkout:" >&2
+    for entry in "${MISSING[@]}"; do
+      rel="${entry%%|*}"
+      hint="${entry#*|}"
+      echo "  $rel" >&2
+      echo "    seed: $hint" >&2
+    done
+    echo "Set MIRROR_CANONICAL_ROOT to the main checkout path if it could not be detected." >&2
+    exit 1
+  fi
+
+  echo "Warning: local .env.local files are missing in this standalone checkout:" >&2
   for entry in "${MISSING[@]}"; do
     rel="${entry%%|*}"
     hint="${entry#*|}"
     echo "  $rel" >&2
     echo "    seed: $hint" >&2
   done
-  exit 1
+  echo "Continuing with dependency install; app/Convex actions may need env setup before they run." >&2
 fi
 
 if [[ "$CHECK_ONLY" == true ]]; then
-  echo "Canonical .env.local files are present in $MAIN_ROOT."
+  if [[ "$STANDALONE_CHECKOUT" == true ]]; then
+    echo "Local .env.local files are present in $MAIN_ROOT."
+  else
+    echo "Canonical .env.local files are present in $MAIN_ROOT."
+  fi
   exit 0
 fi
 
@@ -92,7 +104,11 @@ if [[ "$CURRENT_ROOT" != "$MAIN_ROOT" ]]; then
     echo "  Linked $rel"
   done
 else
-  echo "Running in the main checkout; canonical .env.local files are already present."
+  if [[ "$STANDALONE_CHECKOUT" == true ]]; then
+    echo "Running in a standalone checkout; no .env.local symlinks needed."
+  else
+    echo "Running in the main checkout; canonical .env.local files are already present."
+  fi
 fi
 
 pnpm install --frozen-lockfile --prefer-offline --reporter=append-only
