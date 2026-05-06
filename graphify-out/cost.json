@@ -1,0 +1,19 @@
+{
+  "runs": [
+    {
+      "date": "2026-05-05T10:55:46.721239+00:00",
+      "input_tokens": 381676,
+      "output_tokens": 95417,
+      "files": 113
+    },
+    {
+      "date": "2026-05-05T13:10:01.894473+00:00",
+      "input_tokens": 71568,
+      "output_tokens": 17892,
+      "files": 13,
+      "note": "targeted re-extraction: chat module with deep mode + string-literal table refs"
+    }
+  ],
+  "total_input_tokens": 453244,
+  "total_output_tokens": 113309
+}

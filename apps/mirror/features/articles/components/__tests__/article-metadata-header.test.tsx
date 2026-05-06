@@ -28,7 +28,7 @@ vi.mock("next/link", () => ({
 }));
 
 const { ArticleMetadataHeader } = await import(
-  "@/features/articles/components/article-metadata-header"
+  "@/features/articles/components/editor/article-metadata-header"
 );
 
 const noopUpload = vi.fn(async (_file: File) => ({
