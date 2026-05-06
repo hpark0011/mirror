@@ -255,3 +255,88 @@ describe("users.migrations.backfillTaglineFromBio", () => {
     expect(result.updated + result.skipped).toBe(4);
   });
 });
+
+describe("users.migrations.clearBioField", () => {
+  it("deletes bio field from a user with bio set", async () => {
+    const t = makeT();
+    const id = await insertUserRaw(t, {
+      authId: "auth_cb1",
+      email: "cb1@example.com",
+      username: "cb1",
+      bio: "to be removed",
+      tagline: "kept",
+    });
+
+    const result = await t.mutation(
+      internal.users.migrations.clearBioField,
+      {},
+    );
+    expect(result.cleared).toBe(1);
+    expect(result.skipped).toBe(0);
+
+    const row = await t.run(async (ctx) => ctx.db.get(id));
+    expect(row!.bio).toBeUndefined();
+    expect(row!.tagline).toBe("kept");
+  });
+
+  it("clears empty-string bio (still a stored field)", async () => {
+    const t = makeT();
+    const id = await insertUserRaw(t, {
+      authId: "auth_cb2",
+      email: "cb2@example.com",
+      username: "cb2",
+      bio: "",
+    });
+
+    const result = await t.mutation(
+      internal.users.migrations.clearBioField,
+      {},
+    );
+    expect(result.cleared).toBe(1);
+    expect(result.skipped).toBe(0);
+
+    const row = await t.run(async (ctx) => ctx.db.get(id));
+    expect(row!.bio).toBeUndefined();
+  });
+
+  it("skips users with no bio field", async () => {
+    const t = makeT();
+    const id = await insertUserRaw(t, {
+      authId: "auth_cb3",
+      email: "cb3@example.com",
+      username: "cb3",
+      tagline: "only tagline",
+    });
+
+    const result = await t.mutation(
+      internal.users.migrations.clearBioField,
+      {},
+    );
+    expect(result.cleared).toBe(0);
+    expect(result.skipped).toBe(1);
+
+    const row = await t.run(async (ctx) => ctx.db.get(id));
+    expect(row!.tagline).toBe("only tagline");
+  });
+
+  it("is idempotent — re-running is a no-op", async () => {
+    const t = makeT();
+    await insertUserRaw(t, {
+      authId: "auth_cb4",
+      email: "cb4@example.com",
+      username: "cb4",
+      bio: "to clear",
+    });
+
+    const first = await t.mutation(internal.users.migrations.clearBioField, {});
+    expect(first.cleared).toBe(1);
+    expect(first.skipped).toBe(0);
+
+    const second = await t.mutation(
+      internal.users.migrations.clearBioField,
+      {},
+    );
+    expect(second.cleared).toBe(0);
+    expect(second.skipped).toBe(1);
+  });
+});
