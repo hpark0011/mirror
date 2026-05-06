@@ -9,11 +9,20 @@ export async function uploadToStorage(
   uploadUrl: string,
   file: File,
 ): Promise<Id<"_storage">> {
-  const response = await fetch(uploadUrl, {
-    method: "POST",
-    headers: { "Content-Type": file.type },
-    body: file,
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 60_000);
+
+  let response: Response;
+  try {
+    response = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+      signal: controller.signal,
+    });
+  } finally {
+    clearTimeout(timeoutId);
+  }
 
   if (!response.ok) {
     throw new Error(

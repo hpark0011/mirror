@@ -10,9 +10,6 @@ import { ArticleEditorShell } from "./article-editor-shell";
 type ArticleEditorProps = {
   article: ArticleWithBody;
   username: string;
-  // `slug` arg kept for backwards-compat with the existing edit page; the
-  // form hook reads slug off `article.slug`.
-  slug?: string;
 };
 
 export function ArticleEditor({ article, username }: ArticleEditorProps) {

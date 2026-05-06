@@ -36,7 +36,7 @@ export function NewArticleEditor({ username }: NewArticleEditorProps) {
       onPendingUploadsChange={form.setHasPendingUploads}
       onSave={form.save}
       onPublishToggle={form.togglePublish}
-      onCancel={() => router.push(`/@${username}/articles`)}
+      onCancel={() => router.replace(`/@${username}/articles`)}
       isSaving={form.isSaving}
       hasPendingUploads={form.hasPendingUploads}
     />

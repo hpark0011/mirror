@@ -11,6 +11,6 @@ description: Create a step-by-step implementation plan from a requirement. Outpu
    - `{YYYY-MM-DD}` = today's date
    - `{feature-name}` = kebab-case slug
 4. The plan MUST include:
-   - **Hard verification**: a Playwright CLI test path + assertions (per `.claude/rules/verification.md` § E2E Tests). Chrome MCP is for visual confirmation only, not test assertions.
+   - **Hard verification**: a Playwright CLI test path + assertions (per `.Codex/rules/verification.md` § E2E Tests). Chrome MCP is for visual confirmation only, not test assertions.
    - **Implementation steps** in order.
    - **Constraints & non-goals**.

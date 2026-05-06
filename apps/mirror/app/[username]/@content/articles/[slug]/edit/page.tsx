@@ -41,7 +41,6 @@ export default async function ArticleEditContentPage({
     <ArticleEditor
       article={article as ArticleWithBody}
       username={username}
-      slug={slug}
     />
   );
 }
