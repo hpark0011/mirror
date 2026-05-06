@@ -10,8 +10,8 @@ import {
   ArticleRichTextEditor,
   EditorToolbar,
   type JSONContent,
+  type InlineImageUploadResult,
 } from "@feel-good/features/editor";
-import type { InlineImageUploadResult } from "@feel-good/features/editor";
 import { ArticleEditorToolbar } from "./article-editor-toolbar";
 import { ArticleMetadataHeader } from "./article-metadata-header";
 import type { ArticleStatus } from "../../lib/schemas/article-metadata.schema";

@@ -3,7 +3,7 @@ id: FG_159
 title: "Back button preserves ?chat=1 from article and post detail toolbars"
 date: 2026-05-06
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "Existing tests in apps/mirror/e2e/workspace-back-button.authenticated.spec.ts:46-48,69-72 assert href shape /@username/articles(?:\\?|$) which matches with or without the chat query string. The unified back button runs through buildChatAwareHref in article-detail-toolbar.tsx:25 and post-detail-toolbar.tsx:22. A regression that drops buildChatAwareHref would not be caught. Add assertions that confirm chat=1 is preserved when present in the URL."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_161
 title: "Editor Cancel button actually navigates back to article detail"
 date: 2026-05-06
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The existing editor-mode e2e test at apps/mirror/e2e/workspace-back-button.authenticated.spec.ts:75-92 asserts role/aria-label/href-absence but never clicks the Cancel button or verifies the resulting URL. The onCancel prop chain through ArticleEditorShell -> ArticleEditorToolbar -> WorkspaceBackButton could break (handler dropped, swallowed, or wired to the wrong target) without test failure. Add coverage that clicks Cancel and asserts the post-click URL resolves to the article detail (not /edit)."
 dependencies: []

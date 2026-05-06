@@ -3,7 +3,7 @@ id: FG_134
 title: "Bubble menu applies the tiptap-bubble-menu--editing class during link edit mode"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The CSS variant for the link-editing bubble-menu state is defined but never applied because the className doesn't include isEditingLink in the cn() call."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_162
 title: "Post-detail back-button test uses ensureTestPostFixtures and direct nav"
 date: 2026-05-06
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The post-detail back-button test at apps/mirror/e2e/workspace-back-button.authenticated.spec.ts:51-73 navigates to /@test-user/posts and clicks article a[href*='/posts/'] first(). It does not call ensureTestPostFixtures(). If the test account has zero published posts, Playwright times out with an unrelated locator error rather than a clear missing-fixture diagnostic. Mirror the pattern in apps/mirror/e2e/post-publish-toggle.authenticated.spec.ts:19 by seeding fixtures and navigating directly to a known post URL."
 dependencies: []

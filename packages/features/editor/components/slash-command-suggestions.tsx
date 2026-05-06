@@ -12,14 +12,13 @@ import {
   CommandList,
   CommandSeparator,
 } from "@feel-good/ui/primitives/command";
-import type React from "react";
-import { useImperativeHandle, useRef } from "react";
+import { useImperativeHandle, useRef, type Ref } from "react";
 import type { SlashCommandItem } from "../extensions/slash-command";
 
 interface SlashCommandSuggestionsProps {
   items: SlashCommandItem[];
   command: (item: SlashCommandItem) => void;
-  ref?: React.Ref<{
+  ref?: Ref<{
     onKeyDown: (props: { event: KeyboardEvent }) => boolean;
   }>;
 }

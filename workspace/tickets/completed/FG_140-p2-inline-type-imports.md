@@ -3,7 +3,7 @@ id: FG_140
 title: "Editor and articles modules use inline type imports"
 date: 2026-05-05
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "Sixteen-plus newly added files use standalone `import type {}` lines, violating the project rule requiring inline type imports."
 dependencies: []

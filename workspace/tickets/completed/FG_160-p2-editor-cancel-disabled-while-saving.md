@@ -3,7 +3,7 @@ id: FG_160
 title: "Editor Cancel button is disabled while saving"
 date: 2026-05-06
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "ArticleEditorToolbar passes disabled={isSaving} to WorkspaceBackButton at apps/mirror/features/articles/components/editor/article-editor-toolbar.tsx:32. The existing e2e test at apps/mirror/e2e/workspace-back-button.authenticated.spec.ts:75-92 only asserts role/aria-label, never the disabled state. If the prop wiring is dropped, Cancel becomes clickable mid-save and could trigger a conflicting navigation. Add coverage that locks in the disabled-while-saving invariant."
 dependencies: []
