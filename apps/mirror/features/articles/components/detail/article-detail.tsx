@@ -55,7 +55,7 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
           <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-14">
             <Image
               src={article.coverImageUrl}
-              alt=""
+              alt={`Cover image for ${article.title}`}
               fill
               sizes="(min-width: 768px) 36rem, 100vw"
               priority
