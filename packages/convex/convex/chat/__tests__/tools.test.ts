@@ -610,6 +610,123 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     };
     expect(Object.keys(schema.shape).sort()).toEqual(["kind", "slug"]);
   });
+
+  it("openBio.inputSchema is empty — owner is closure-bound, never a tool arg", () => {
+    // The `openBio` verb takes no args. The closure binds `profileOwnerId`
+    // server-side; the LLM-visible surface must be `{}` so the model can
+    // never pass a foreign user identifier through tool arguments. Mirrors
+    // the cross-user isolation contract in `.claude/rules/agent-parity.md`.
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.openBio.inputSchema as {
+      shape?: Record<string, unknown>;
+    };
+
+    expect(schema).toBeDefined();
+    expect(schema.shape).toBeDefined();
+    expect(Object.keys(schema.shape!)).toEqual([]);
+
+    // Defense-in-depth: walk every nested shape — even an empty top-level
+    // shape should never contain a user identifier at any depth (this
+    // catches a future edit that adds `z.object({ ctx: z.object({ userId: ... }) })`).
+    const allKeys = collectAllKeys(schema.shape!);
+    expect(allKeys.every((k) => !/^(userId|user_id|ownerId)$/i.test(k))).toBe(
+      true,
+    );
+  });
+});
+
+describe("chat/toolQueries.queryBioPanel", () => {
+  it("returns href + hasEntries=true when the owner has bio entries", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_bio_with_entries");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: owner,
+        kind: "work",
+        title: "Built Disquiet",
+        startDate: 1577836800000,
+        endDate: null,
+      }),
+    );
+
+    const result = await t.query(internal.chat.toolQueries.queryBioPanel, {
+      userId: owner,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.username).toBe("owner_bio_with_entries");
+    expect(result!.href).toBe("/@owner_bio_with_entries/bio");
+    expect(result!.hasEntries).toBe(true);
+  });
+
+  it("returns href + hasEntries=false when the owner has NO bio entries (panel still navigable)", async () => {
+    // Empty bio panel is still a real user-reachable view — the agent must
+    // be allowed to navigate there. Refusing to resolve when `hasEntries`
+    // is false would re-introduce the "I don't have a full bio page to
+    // pull up" parity bug this verb exists to fix.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_bio_empty");
+
+    const result = await t.query(internal.chat.toolQueries.queryBioPanel, {
+      userId: owner,
+    });
+
+    expect(result).not.toBeNull();
+    expect(result!.username).toBe("owner_bio_empty");
+    expect(result!.href).toBe("/@owner_bio_empty/bio");
+    expect(result!.hasEntries).toBe(false);
+  });
+
+  it("returns null when the owner has no username (cannot build profile href)", async () => {
+    const t = makeT();
+    const ownerWithoutUsername = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_no_username",
+        email: "no-username@example.com",
+        // username intentionally omitted — `users.username` is optional.
+        onboardingComplete: false,
+      }),
+    );
+
+    const result = await t.query(internal.chat.toolQueries.queryBioPanel, {
+      userId: ownerWithoutUsername,
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it("SECURITY: scopes hasEntries to the queried userId — does not count entries owned by a different user", async () => {
+    // Cross-user isolation: user A's `queryBioPanel` must not report
+    // `hasEntries: true` because user B has populated their bio. Mirrors
+    // the same-shape invariant `resolveBySlug` enforces with
+    // `by_userId_and_slug`.
+    const t = makeT();
+    const userA = await insertOwner(t, "user_a_bio_iso");
+    const userB = await insertOwner(t, "user_b_bio_iso");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: userB,
+        kind: "education",
+        title: "B.S. in Industrial Design",
+        startDate: 1262304000000,
+        endDate: 1388534400000,
+      }),
+    );
+
+    const aResult = await t.query(internal.chat.toolQueries.queryBioPanel, {
+      userId: userA,
+    });
+    const bResult = await t.query(internal.chat.toolQueries.queryBioPanel, {
+      userId: userB,
+    });
+
+    expect(aResult).not.toBeNull();
+    expect(aResult!.hasEntries).toBe(false);
+    expect(bResult).not.toBeNull();
+    expect(bResult!.hasEntries).toBe(true);
+  });
 });
 
 describe("chat/toolQueries.buildContentHref", () => {

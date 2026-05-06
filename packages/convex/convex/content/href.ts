@@ -25,3 +25,13 @@ export function buildContentHref(
   const basePath = `/@${username}/${kind}`;
   return slug ? `${basePath}/${slug}` : basePath;
 }
+
+// Bio panel href. Kept separate from `buildContentHref` because the bio tab
+// has no `slug` segment and is not a member of `ContentKind` — it's a tab
+// without list/detail semantics (see `apps/mirror/features/content/types.ts`
+// `getContentRouteState`'s "kindless tab" comment). Both the agent's `openBio`
+// tool and any future user-UI dispatcher path import this helper so the URL
+// shape has one source of truth.
+export function buildBioHref(username: string): string {
+  return `/@${username}/bio`;
+}

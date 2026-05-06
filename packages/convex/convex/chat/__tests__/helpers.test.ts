@@ -101,6 +101,11 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // the fixed (non-truncatable) region.
     expect(result).toContain("navigateToContent");
     expect(result).toContain("getLatestPublished");
+    // Bio parity (this PR): the LLM cannot call a verb it has not been
+    // told exists, so `openBio` MUST appear in the vocabulary line. Pins
+    // the discoverability gap that produced the "I don't have a full bio
+    // page to pull up" fallback before this change.
+    expect(result).toContain("openBio");
   });
 
   // UT-04: omits topics line when topicsToAvoid is null

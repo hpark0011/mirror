@@ -226,3 +226,69 @@ describe("CloneActionsProvider — navigateToContent href bypass (FG_129)", () =
     });
   });
 });
+
+describe("CloneActionsProvider — openBio", () => {
+  // Bio parity: the dispatcher exposes `openBio` for the agent
+  // intent watcher. The user-UI Bio tab still uses `<Link>`; this test pins
+  // the agent path's contract: server-built href passes through unchanged
+  // and the chat-aware suffix is preserved (mirror of the navigateToContent
+  // bypass test above).
+  afterEach(() => {
+    cleanup();
+    pushSpy.mockReset();
+    mockBuildChatAwareHref = buildChatAwareHrefOpen;
+    mockIsChatOpen = true;
+  });
+
+  it("(a) agent path — server-built href is passed through unchanged", () => {
+    const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+    act(() => {
+      result.current.openBio({ href: "/@alice/bio" });
+    });
+
+    expect(pushSpy).toHaveBeenCalledTimes(1);
+    expect(pushSpy).toHaveBeenCalledWith(
+      "/@alice/bio?chat=1&conversation=conv_123",
+      { scroll: false },
+    );
+  });
+
+  it("(b) user-UI path — composes /@<username>/bio when href is omitted", () => {
+    const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+    act(() => {
+      result.current.openBio();
+    });
+
+    expect(pushSpy).toHaveBeenCalledTimes(1);
+    expect(pushSpy).toHaveBeenCalledWith(
+      "/@alice/bio?chat=1&conversation=conv_123",
+      { scroll: false },
+    );
+  });
+
+  it("(c) preserves the chat-aware suffix when isChatOpen is true", () => {
+    const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+    act(() => {
+      result.current.openBio({ href: "/@alice/bio" });
+    });
+
+    expect(pushSpy.mock.calls[0][0]).toContain("?chat=1&conversation=conv_123");
+  });
+
+  it("(d) does NOT append chat suffix when isChatOpen is false", () => {
+    mockBuildChatAwareHref = buildChatAwareHrefClosed;
+    mockIsChatOpen = false;
+
+    const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+    act(() => {
+      result.current.openBio({ href: "/@alice/bio" });
+    });
+
+    const calledWith: string = pushSpy.mock.calls[0][0] as string;
+    expect(calledWith).not.toContain("chat=1");
+  });
+});

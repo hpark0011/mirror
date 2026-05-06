@@ -90,5 +90,36 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
         };
       },
     }),
+
+    openBio: createTool({
+      description:
+        "Open the profile owner's bio panel for the visitor — the structured work history, education, and other bio entries. Call this when the visitor asks to see the full bio, work history, education, or background. Takes no arguments — the owner is resolved server-side from the chat context. The result includes the canonical href; the client uses it to navigate.",
+      // Empty input — no LLM-visible args. The owner is the closure-bound
+      // `profileOwnerId`, never a tool arg. The `inputSchema invariants`
+      // tests in `chat/__tests__/tools.test.ts` pin this.
+      inputSchema: z.object({}),
+      execute: async (ctx) => {
+        const row: {
+          username: string;
+          href: string;
+          hasEntries: boolean;
+        } | null = await ctx.runQuery(
+          internal.chat.toolQueries.queryBioPanel,
+          { userId: profileOwnerId },
+        );
+        if (!row) {
+          // Mirrors `navigateToContent`'s "no row" path — surfaces a tool
+          // error so the LLM falls back to text. This branch only fires
+          // when the owner has no `username` (rare, but defensible: a row
+          // with no username can't produce `/@<username>/bio`).
+          throw new Error("Bio panel is unavailable for this profile.");
+        }
+        return {
+          kind: "bio" as const,
+          href: row.href,
+          hasEntries: row.hasEntries,
+        };
+      },
+    }),
   };
 }

@@ -20,9 +20,13 @@ import { cleanup, renderHook } from "@testing-library/react";
 import type { UIMessage } from "@convex-dev/agent/react";
 
 const navigateToContentMock = vi.fn();
+const openBioMock = vi.fn();
 
 vi.mock("@/app/[username]/_providers/clone-actions-context", () => ({
-  useCloneActions: () => ({ navigateToContent: navigateToContentMock }),
+  useCloneActions: () => ({
+    navigateToContent: navigateToContentMock,
+    openBio: openBioMock,
+  }),
 }));
 
 // Import after the mock so the hook picks up the mocked provider.
@@ -68,6 +72,7 @@ function makeNavigateOutputPart(toolCallId: string, slug = "hello-world") {
 describe("useAgentIntentWatcher", () => {
   beforeEach(() => {
     navigateToContentMock.mockReset();
+    openBioMock.mockReset();
     handledByConversation.clear();
   });
 
@@ -196,6 +201,55 @@ describe("useAgentIntentWatcher", () => {
       slug: "second-slug",
       href: "/@rick-rubin/articles/second-slug",
     });
+  });
+
+  it("dispatches openBio when a tool-openBio output-available part lands", () => {
+    // Bio parity: the watcher must recognize `tool-openBio` parts and route
+    // them through `useCloneActions().openBio` with the server-built href.
+    // Mirrors the navigateToContent contract so a future regression that
+    // forgets to handle the new tool type fails this assertion loudly.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-openBio",
+          state: "output-available",
+          toolCallId: "call_open_bio_1",
+          output: {
+            kind: "bio",
+            href: "/@rick-rubin/bio",
+            hasEntries: true,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+
+    expect(openBioMock).toHaveBeenCalledTimes(1);
+    expect(openBioMock).toHaveBeenCalledWith({ href: "/@rick-rubin/bio" });
+    // Negative control — navigateToContent must not fire for a bio part.
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch openBio when output payload is malformed (kind missing or wrong)", () => {
+    // Defense-in-depth: the runtime narrowing in `isOpenBioOutput` must
+    // reject any output that doesn't include `kind: "bio"` and a non-empty
+    // `href` string. A typo in the server-side return shape would
+    // otherwise route the visitor to `/undefined` and a 404.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-openBio",
+          state: "output-available",
+          toolCallId: "call_open_bio_malformed",
+          output: { hasEntries: true },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, "conv_bio_malformed"));
+
+    expect(openBioMock).not.toHaveBeenCalled();
   });
 
   it("isolates handled toolCallIds per conversationId", () => {
