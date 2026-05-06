@@ -6,9 +6,9 @@ import { useCloneActions } from "@/app/[username]/_providers/clone-actions-conte
 import { isContentKind, type ContentKind } from "@/features/content";
 
 /**
- * Watches incoming `UIMessage[]` for completed `navigateToContent` tool
- * results and dispatches them through the same `useCloneActions` hook the
- * user-UI list items call. This is the agent half of the
+ * Watches incoming `UIMessage[]` for completed tool results and dispatches
+ * them through the same `useCloneActions` hook the user-UI list items and
+ * profile tabs call. This is the agent half of the
  * "two routes, one dispatcher" pattern — see
  * `apps/mirror/app/[username]/_providers/clone-actions-context.tsx`.
  *
@@ -38,6 +38,7 @@ import { isContentKind, type ContentKind } from "@/features/content";
  * a historical tool result that's already been dispatched.
  */
 const NAVIGATE_TO_CONTENT_TYPE = "tool-navigateToContent";
+const OPEN_PROFILE_SECTION_TYPE = "tool-openProfileSection";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -91,11 +92,45 @@ function isNavigateOutput(output: unknown): output is NavigateOutput {
   );
 }
 
+type OpenProfileSectionOutput = {
+  // The agent's `openProfileSection` enum is the visitor-visible subset of
+  // `ProfileTabKind` — `clone-settings` is owner-only and is never returned
+  // by the tool.
+  kind: "bio" | "articles" | "posts";
+  href: string;
+  // Emitted by the `openProfileSection` tool so a future caller (a richer
+  // dispatcher or a connector reading the dispatched intent) can phrase
+  // "the section is currently empty" instead of opening a panel without
+  // acknowledgement. The watcher itself does not consume this today;
+  // typing it keeps the client narrowing aligned with the tool's actual
+  // return shape.
+  hasEntries: boolean;
+};
+
+function isOpenProfileSectionOutput(
+  output: unknown,
+): output is OpenProfileSectionOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  if (
+    o.kind !== "bio" &&
+    o.kind !== "articles" &&
+    o.kind !== "posts"
+  ) {
+    return false;
+  }
+  return (
+    typeof o.href === "string" &&
+    o.href.length > 0 &&
+    typeof o.hasEntries === "boolean"
+  );
+}
+
 export function useAgentIntentWatcher(
   messages: UIMessage[],
   conversationId: string | null,
 ) {
-  const { navigateToContent } = useCloneActions();
+  const { navigateToContent, navigateToProfileSection } = useCloneActions();
 
   useEffect(() => {
     if (messages.length === 0) return;
@@ -108,7 +143,12 @@ export function useAgentIntentWatcher(
     for (const message of messages) {
       if (message.role !== "assistant") continue;
       for (const part of message.parts) {
-        if (part.type !== NAVIGATE_TO_CONTENT_TYPE) continue;
+        if (
+          part.type !== NAVIGATE_TO_CONTENT_TYPE &&
+          part.type !== OPEN_PROFILE_SECTION_TYPE
+        ) {
+          continue;
+        }
         // Narrow to the tool-result shape — `state` and `toolCallId` are
         // both present on every variant of the tool-part union.
         const toolPart = part as {
@@ -119,18 +159,31 @@ export function useAgentIntentWatcher(
         };
         if (toolPart.state !== "output-available") continue;
         if (handled.has(toolPart.toolCallId)) continue;
-        if (!isNavigateOutput(toolPart.output)) continue;
 
-        handled.add(toolPart.toolCallId);
-        navigateToContent({
-          kind: toolPart.output.kind,
-          slug: toolPart.output.slug,
-          // Server-built href — do NOT recompose client-side. The
-          // dispatcher passes this through `buildChatAwareHref` to
-          // preserve `?chat=1&conversation=...`.
-          href: toolPart.output.href,
-        });
+        if (toolPart.type === NAVIGATE_TO_CONTENT_TYPE) {
+          if (!isNavigateOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+          navigateToContent({
+            kind: toolPart.output.kind,
+            slug: toolPart.output.slug,
+            // Server-built href — do NOT recompose client-side. The
+            // dispatcher passes this through `buildChatAwareHref` to
+            // preserve `?chat=1&conversation=...`.
+            href: toolPart.output.href,
+          });
+          continue;
+        }
+
+        if (toolPart.type === OPEN_PROFILE_SECTION_TYPE) {
+          if (!isOpenProfileSectionOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+          navigateToProfileSection({
+            section: toolPart.output.kind,
+            href: toolPart.output.href,
+          });
+          continue;
+        }
       }
     }
-  }, [messages, navigateToContent, conversationId]);
+  }, [messages, navigateToContent, navigateToProfileSection, conversationId]);
 }

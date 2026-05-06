@@ -94,33 +94,77 @@ parity loop.
    as the user filter — the LLM-visible args are pure data
    (`{ kind, slug }`), never user identifiers.
 
-When the new verb is "act on a list" or "navigate to a slug,"
-mirror the existing `navigateToContent` shape: the tool returns
-`{ kind, slug, href, ... }` and the watcher dispatches by reading
-the part type prefix (`tool-<verbName>`) and the structured `output`.
+Two canonical reference shapes already live on the dispatcher; pick the
+one that matches the verb's granularity:
+
+- **Slug-level (navigate to a specific item).** Mirror
+  `navigateToContent`: the tool returns `{ kind, slug, href, ... }` and
+  the watcher dispatches `navigateToContent({ kind, slug, href })`.
+- **Tab-level (navigate to a profile section).** Mirror
+  `navigateToProfileSection`: the tool returns
+  `{ kind: "<section>", href, ... }` and the watcher dispatches
+  `navigateToProfileSection({ section, href })`. The agent-side verb is
+  `openProfileSection({ section })` with the section enum constrained to
+  visitor-reachable tabs only (see "Owner-only views" below).
+
+In both cases the watcher reads the part type prefix (`tool-<verbName>`)
+and the structured `output`.
+
+## Owner-only views are excluded from agent section enums
+
+Some profile tabs (today: `clone-settings`) are owner-only and not
+visitor-reachable. They MUST be excluded from any agent-visible enum
+that selects a section to open. Concretely, `openProfileSection`'s
+`section` enum in
+[`packages/convex/convex/chat/tools.ts`](../../packages/convex/convex/chat/tools.ts)
+is `'bio' | 'articles' | 'posts'` — `clone-settings` is omitted by
+design.
+
+When you add a new tab to `PROFILE_TAB_KINDS`, classify it before
+extending the agent enum: if it is owner-only, leave the agent enum
+alone; if it is visitor-reachable, extend the agent enum AND add a
+matching `buildProfileSectionHref` branch AND add a
+`queryBioPanel`-style data resolver that pins to `profileOwnerId`.
 
 ## Href-parity invariant
 
-Client and server MUST produce the same canonical href shape. Both have
-unit tests; cross-reference comments anchor the parity:
+Client and server MUST produce the same canonical href shape. Two
+parallel pairs exist today, one per dispatcher verb. Both have unit
+tests; cross-reference comments anchor the parity. **If you change a
+URL template, change both helpers in the matching pair and both tests
+in the same commit** — a divergence silently routes the agent to a 404
+while users keep working.
+
+**Slug-level pair (used by `navigateToContent`):**
 
 - Client: `getContentHref(username, kind, slug)` in
   [`apps/mirror/features/content/types.ts`](../../apps/mirror/features/content/types.ts).
 - Server: `buildContentHref(username, kind, slug)` in
   [`packages/convex/convex/chat/toolQueries.ts`](../../packages/convex/convex/chat/toolQueries.ts).
+- Format: `/@<username>/<articles|posts>/<slug>`. Must stay aligned
+  with the Next.js route at
+  `apps/mirror/app/[username]/<kind>/[slug]/page.tsx`.
 
-Format: `/@<username>/<articles|posts>/<slug>`. Must stay aligned with
-the Next.js route at `apps/mirror/app/[username]/<kind>/[slug]/page.tsx`.
+**Tab-level pair (used by `navigateToProfileSection`):**
 
-The agent path uses the server-built `href` from `resolveBySlug`'s
-result and passes it through to the dispatcher unchanged — the client
-**must not** recompose the URL template. The user-UI path calls
-`getContentHref` directly; the dispatcher composes the URL only when
-`href` is omitted by the caller.
+- Client: `getProfileTabHref(username, kind)` in
+  [`apps/mirror/features/profile-tabs/types.ts`](../../apps/mirror/features/profile-tabs/types.ts).
+- Server: `buildProfileSectionHref(username, section)` in
+  [`packages/convex/convex/content/href.ts`](../../packages/convex/convex/content/href.ts).
+  `buildBioHref(username)` is a thin alias used by the bio-panel
+  resolver in `chat/toolQueries.ts:queryBioPanel` and as the
+  assertion target in the bio↔section href-parity test at
+  [`apps/mirror/features/profile-tabs/__tests__/types.test.ts`](../../apps/mirror/features/profile-tabs/__tests__/types.test.ts);
+  prefer it for bio-specific call sites so the URL template lives in
+  exactly one place.
+- Format: `/@<username>/<bio|articles|posts>`. Must stay aligned with
+  the Next.js routes under `apps/mirror/app/[username]/<section>/`.
 
-A divergence between the two builders silently routes the agent to a
-404 while users keep working. If you change the URL template, change
-both helpers and both tests in the same commit.
+The agent path uses the server-built `href` from the tool's result and
+passes it through to the dispatcher unchanged — the client **must not**
+recompose the URL template. The user-UI path calls the matching client
+helper directly; the dispatcher composes the URL only when `href` is
+omitted by the caller.
 
 ## Footguns
 

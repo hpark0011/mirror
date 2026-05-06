@@ -77,7 +77,7 @@ const DEFAULT_PERSONA =
 // the inventory sentence so the agent learns nouns ("articles", "posts") and
 // verbs ("getLatestPublished", "navigateToContent") in the same region.
 const TOOLS_VOCABULARY =
-  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug.";
+  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug. Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background, and with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use getLatestPublished and navigateToContent instead).";
 
 export const SYSTEM_PROMPT_MAX_CHARS = 6000;
 
