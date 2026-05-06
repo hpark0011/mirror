@@ -14,3 +14,4 @@ description: Create a step-by-step implementation plan from a requirement. Outpu
    - **Hard verification**: a Playwright CLI test path + assertions (per `.claude/rules/verification.md` § E2E Tests). Chrome MCP is for visual confirmation only, not test assertions.
    - **Implementation steps** in order.
    - **Constraints & non-goals**.
+5. After writing the file, invoke the `greyboard-markdown` skill with the plan's absolute path to open it in the Greyboard desktop app.
