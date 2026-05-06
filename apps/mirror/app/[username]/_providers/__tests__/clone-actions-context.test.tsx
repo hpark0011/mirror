@@ -247,9 +247,13 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
   for (const section of sections) {
     describe(`section: ${section}`, () => {
       const userPath = `/@alice/${section}`;
-      const agentPath = `/@alice/${section}`;
+      // Deliberately non-canonical so pass-through vs recomposition is
+      // detectable: `getProfileTabHref("alice", section)` would never
+      // produce `/server-override`, so if the dispatcher ignored the
+      // `href` arg and rebuilt from `section`, test (a) would fail.
+      const agentPath = `/@alice/${section}/server-override`;
 
-      it("(a) agent path — server-built href is passed through unchanged", () => {
+      it("(a) agent path — server-built href is passed through unchanged (not recomposed)", () => {
         const { result } = renderHook(() => useCloneActions(), { wrapper });
 
         act(() => {
@@ -264,6 +268,11 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
           `${agentPath}?chat=1&conversation=conv_123`,
           { scroll: false },
         );
+        // Defensive: confirm the user-UI path was NOT used. If the
+        // bypass were absent, the push arg would be
+        // `${userPath}?…` rather than `${agentPath}?…`.
+        const calledWith = pushSpy.mock.calls[0][0] as string;
+        expect(calledWith).not.toBe(`${userPath}?chat=1&conversation=conv_123`);
       });
 
       it("(b) user-UI path — dispatcher composes href when omitted", () => {

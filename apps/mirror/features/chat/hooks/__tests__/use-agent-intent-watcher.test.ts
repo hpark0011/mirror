@@ -268,6 +268,11 @@ describe("useAgentIntentWatcher", () => {
     );
     expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
 
+    // Same-mount re-render must not re-dispatch — the per-conversation
+    // `handled` set is the in-mount idempotency boundary.
+    first.rerender();
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
+
     first.unmount();
     renderHook(() => useAgentIntentWatcher(messages, "conv_section_idem"));
 

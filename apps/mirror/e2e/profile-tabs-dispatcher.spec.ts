@@ -118,6 +118,11 @@ test.describe("Profile tabs dispatcher — visitor sections (bio / articles / po
     expect(newPage.url()).toMatch(
       new RegExp(`/@${username}/bio(?:\\?|$)`),
     );
+    // The opened tab must preserve `chat=1` too — the dispatcher's
+    // early-return on modifier keys surrenders to the `<Link href>`,
+    // so a regression in `href={buildChatAwareHref(...)}` would only
+    // show up on the new tab, not the original.
+    expect(newPage.url()).toMatch(/[?&]chat=1\b/);
 
     // Original tab still on /posts with the chat suffix intact.
     expect(page.url()).toMatch(new RegExp(`/@${username}/posts`));
