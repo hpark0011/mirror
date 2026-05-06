@@ -18,7 +18,7 @@ vi.mock("next/link", () => ({
 
 // Import after mocks
 const { PublishToggle } = await import(
-  "@/features/posts/components/publish-toggle"
+  "@/features/posts/components/detail/publish-toggle"
 );
 
 describe("PublishToggle", () => {

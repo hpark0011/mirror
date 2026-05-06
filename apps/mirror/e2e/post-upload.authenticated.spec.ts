@@ -67,7 +67,7 @@ test.describe("Post markdown upload (authenticated)", () => {
     await expect(dialog.getByText("Import Markdown")).toBeVisible();
 
     // File input should accept .md files
-    const fileInput = dialog.locator('input[type="file"]');
+    const fileInput = dialog.getByTestId("markdown-file-input");
     await expect(fileInput).toHaveAttribute("accept", ".md");
 
     // Create button should be disabled initially
@@ -113,7 +113,7 @@ test.describe("Post markdown upload (authenticated)", () => {
 
     const tmp = createTempMdFile("My Cool Post.md", mdWithoutFrontmatter);
     try {
-      await dialog.locator('input[type="file"]').setInputFiles(tmp.path);
+      await dialog.getByTestId("markdown-file-input").setInputFiles(tmp.path);
 
       await expect(dialog.getByTestId("preview-title")).toHaveText(
         "My Cool Post",
@@ -143,7 +143,7 @@ test.describe("Post markdown upload (authenticated)", () => {
 
     const tmp = createTempMdFile("not-markdown.txt", "just plain text");
     try {
-      await dialog.locator('input[type="file"]').setInputFiles(tmp.path);
+      await dialog.getByTestId("markdown-file-input").setInputFiles(tmp.path);
 
       const error = dialog.getByRole("alert");
       await expect(error).toBeVisible({ timeout: 3000 });

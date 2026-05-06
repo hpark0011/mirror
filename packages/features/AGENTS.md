@@ -20,12 +20,12 @@ Authentication components and utilities using Better Auth with Convex.
 
 ### Auth Package Layers
 
-| Layer | Import | Purpose |
-|-------|--------|---------|
-| Blocks | `@feel-good/features/auth/blocks` | Drop-in page sections |
-| Forms | `@feel-good/features/auth/components/forms` | Complete forms with logic |
-| Views | `@feel-good/features/auth/views` | Pure UI components |
-| Hooks | `@feel-good/features/auth/hooks` | Headless auth logic |
+| Layer  | Import                                      | Purpose                   |
+| ------ | ------------------------------------------- | ------------------------- |
+| Blocks | `@feel-good/features/auth/blocks`           | Drop-in page sections     |
+| Forms  | `@feel-good/features/auth/components/forms` | Complete forms with logic |
+| Views  | `@feel-good/features/auth/views`            | Pure UI components        |
+| Hooks  | `@feel-good/features/auth/hooks`            | Headless auth logic       |
 
 ### Quick Start (Blocks)
 
@@ -58,7 +58,12 @@ import { getAuthClient } from "@feel-good/features/auth/client";
 import { auth } from "@feel-good/features/auth/server";
 
 // Types
-import type { AuthSession, AuthUser, AuthError, AuthStatus } from "@feel-good/features/auth/types";
+import type {
+  AuthSession,
+  AuthUser,
+  AuthError,
+  AuthStatus,
+} from "@feel-good/features/auth/types";
 ```
 
 ## Structure
@@ -95,13 +100,13 @@ macOS-style application dock for navigating between apps. Features auto-hide beh
 
 ### Dock Package Layers
 
-| Layer | Import | Purpose |
-|-------|--------|---------|
-| Blocks | `@feel-good/features/dock/blocks` | Drop-in dock with all behavior built-in |
-| Components | `@feel-good/features/dock/components` | Individual UI primitives for custom composition |
-| Hooks | `@feel-good/features/dock/hooks` | Headless logic for visibility and config management |
-| Providers | `@feel-good/features/dock/providers` | Context providers for state management |
-| Lib | `@feel-good/features/dock/lib` | Types and validation schemas |
+| Layer      | Import                                | Purpose                                             |
+| ---------- | ------------------------------------- | --------------------------------------------------- |
+| Blocks     | `@feel-good/features/dock/blocks`     | Drop-in dock with all behavior built-in             |
+| Components | `@feel-good/features/dock/components` | Individual UI primitives for custom composition     |
+| Hooks      | `@feel-good/features/dock/hooks`      | Headless logic for visibility and config management |
+| Providers  | `@feel-good/features/dock/providers`  | Context providers for state management              |
+| Lib        | `@feel-good/features/dock/lib`        | Types and validation schemas                        |
 
 ### Quick Start (Blocks)
 
@@ -203,10 +208,17 @@ Rich text viewer components powered by Tiptap. Used by Mirror for article render
 
 ```typescript
 // Components
-import { MarkdownViewer, RichTextViewer } from "@feel-good/features/editor/components";
+import {
+  MarkdownViewer,
+  RichTextViewer,
+} from "@feel-good/features/editor/components";
 
 // Lib (extensions, sanitization, plain text extraction)
-import { extensions, sanitizeContent, getPlainText } from "@feel-good/features/editor/lib";
+import {
+  extensions,
+  sanitizeContent,
+  getPlainText,
+} from "@feel-good/features/editor/lib";
 
 // Types
 import type { EditorTypes } from "@feel-good/features/editor/types";
@@ -250,13 +262,3 @@ theme/
 │   └── theme-toggle-button.tsx
 └── index.ts
 ```
-
-## Dependencies
-
-- `@feel-good/ui` - UI components
-- `@feel-good/icons` - Icons (GoogleIcon)
-- `better-auth` - Authentication library
-- `@convex-dev/better-auth` - Convex adapter
-- `convex` - Real-time backend
-- `zod` - Validation schemas
-- `@tiptap/react` - Rich text editor (editor feature)
