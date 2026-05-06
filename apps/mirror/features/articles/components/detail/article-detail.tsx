@@ -42,7 +42,11 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
               {article.category}
             </span>
           </div>
-          <h1 className="text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-center mt-3 mb-7">
+          <h1
+            className={`text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-center mt-3 ${
+              article.coverImageUrl ? "mb-7" : "mb-14"
+            }`}
+          >
             {article.title}
           </h1>
         </div>
