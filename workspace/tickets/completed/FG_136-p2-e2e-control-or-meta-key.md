@@ -3,7 +3,7 @@ id: FG_136
 title: "E2E select-all uses ControlOrMeta+A for cross-platform CI"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Two e2e tests press Meta+A which only works on macOS; Linux and Windows CI runners need ControlOrMeta+A to map to Ctrl."
 dependencies: []

@@ -123,10 +123,15 @@ export function useEditArticleForm({
           coverImageStorageId !== null ? coverImageStorageId : undefined,
         clearCoverImage: isCoverCleared ? true : undefined,
       });
-      // Optimistically reflect the server-side publishedAt assignment so
-      // the UI doesn't wait for the next reactive query tick.
-      if (targetStatus === "published" && !publishedAt) {
+      // Optimistically reflect the server-side publish/unpublish timestamp
+      // change so the UI doesn't wait for the next reactive query tick.
+      // The optimistic re-set runs on every publish transition (not just the
+      // first) so a draft → publish → draft → publish flow shows the new
+      // publish time immediately, not the stale first-publish time.
+      if (targetStatus === "published") {
         setPublishedAt(Date.now());
+      } else {
+        setPublishedAt(null);
       }
       // After a successful save, the next reactive `getBySlug` tick
       // reflects the cleared cover; reset the flag so subsequent saves

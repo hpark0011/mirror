@@ -3,7 +3,7 @@ id: FG_143
 title: "uploadToStorage fetch has a timeout and surfaces stalled uploads"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The cover and inline image upload fetch has no AbortSignal; a stalled connection leaves hasPendingUploads true forever, permanently disabling Save and Publish."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_133
 title: "restore-env-local.sh writes localhost:3001 (matching the example file)"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The worktree env-recovery script still echoes localhost:3000 while the example file was bumped to 3001, silently reverting the port on every recovery."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_152
 title: "Optimistic publishedAt timestamp updates correctly on republish"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "After draft→publish→draft→publish, the optimistic publishedAt stays at the first publish time until the reactive query corrects it, briefly showing the wrong date."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_158
 title: "Isolate unrelated post-list-item padding tweak from feature PRs"
 date: 2026-05-06
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "PR #39's title is feat(articles): add Edit button to article detail toolbar, and its second commit is the back-button refactor. The padding change at apps/mirror/features/posts/components/list/post-list-item.tsx:45 (py-12 to py-10) has no logical connection to either commit. A future bisect for a post-list visual regression will land on a refactor commit and waste investigation time. Confirm the value is intentional and codify a process rule to keep cosmetic tweaks out of unrelated feature/refactor PRs."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_135
 title: "E2E article-editor tests use unique slugs to avoid cross-run collisions"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Four create-path tests use hardcoded titles that derive to deterministic slugs; on persistent test backends the second run collides on the slug and produces non-actionable timeouts."
 dependencies: []

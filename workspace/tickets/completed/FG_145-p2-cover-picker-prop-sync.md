@@ -3,7 +3,7 @@ id: FG_145
 title: "CoverImagePicker preview state stays in sync with the url prop"
 date: 2026-05-05
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "previewUrl is seeded from url only at mount; async parent updates leave the picker showing stale state."
 dependencies: []
