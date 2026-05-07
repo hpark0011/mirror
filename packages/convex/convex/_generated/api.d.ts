@@ -66,6 +66,8 @@ import type * as posts_internalImages from "../posts/internalImages.js";
 import type * as posts_mutations from "../posts/mutations.js";
 import type * as posts_queries from "../posts/queries.js";
 import type * as seed from "../seed.js";
+import type * as seed_data from "../seed/data.js";
+import type * as seed_helpers from "../seed/helpers.js";
 import type * as users_helpers from "../users/helpers.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
@@ -139,6 +141,8 @@ declare const fullApi: ApiFromModules<{
   "posts/mutations": typeof posts_mutations;
   "posts/queries": typeof posts_queries;
   seed: typeof seed;
+  "seed/data": typeof seed_data;
+  "seed/helpers": typeof seed_helpers;
   "users/helpers": typeof users_helpers;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
