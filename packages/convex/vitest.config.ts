@@ -15,6 +15,7 @@ export default defineConfig({
     // the legacy bun-test files.
     include: [
       "convex/chat/**/*.test.ts",
+      "convex/auth/**/*.test.ts",
       "convex/betaAllowlist/**/*.test.ts",
       "convex/waitlistRequests/**/*.test.ts",
       "convex/bio/**/*.test.ts",

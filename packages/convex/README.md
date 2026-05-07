@@ -20,20 +20,34 @@ npx convex env set EMAIL_DOMAIN "yourapp.com"
 
 ### Required Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SITE_URL` | Base URL for authentication callbacks (e.g., `https://yourapp.com`) | **Required** |
-| `GOOGLE_CLIENT_ID` | Google OAuth client ID | **Required** |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth client secret | **Required** |
-| `APP_NAME` | Application name used in email sender and content | `Mirror` |
-| `EMAIL_DOMAIN` | Domain for auth emails (e.g., `yourapp.com`) | `mirror.app` |
+| Variable                     | Description                                                                                                                                          | Default                     |
+| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| `SITE_URL`                   | Base URL for authentication callbacks and OAuth Proxy current URL (e.g., `https://yourapp.com`, or `http://localhost:<worktree-port>` in a worktree) | **Required**                |
+| `AUTH_ALLOWED_HOSTS`         | Comma-separated Better Auth dynamic base URL host allowlist (e.g., `localhost:*,127.0.0.1:*,yourapp.com`)                                            | Optional                    |
+| `OAUTH_PROXY_ENABLED`        | Set to `true` to route social OAuth through a stable registered production callback                                                                  | Optional                    |
+| `OAUTH_PROXY_PRODUCTION_URL` | Production app URL registered with the OAuth provider when OAuth Proxy is enabled                                                                    | Required when proxy enabled |
+| `OAUTH_PROXY_SECRET`         | Dedicated shared secret for OAuth Proxy payloads across participating environments                                                                   | Optional                    |
+| `GOOGLE_CLIENT_ID`           | Google OAuth client ID                                                                                                                               | **Required**                |
+| `GOOGLE_CLIENT_SECRET`       | Google OAuth client secret                                                                                                                           | **Required**                |
+| `APP_NAME`                   | Application name used in email sender and content                                                                                                    | `Mirror`                    |
+| `EMAIL_DOMAIN`               | Domain for auth emails (e.g., `yourapp.com`)                                                                                                         | `mirror.app`                |
 
 ### Setting Auth Variables
 
 ```bash
 npx convex env set SITE_URL "https://yourapp.com"
+npx convex env set AUTH_ALLOWED_HOSTS "localhost:*,127.0.0.1:*,yourapp.com"
 npx convex env set GOOGLE_CLIENT_ID "your-google-client-id"
 npx convex env set GOOGLE_CLIENT_SECRET "your-google-client-secret"
+```
+
+For arbitrary local worktree ports, prefer Better Auth OAuth Proxy instead of
+registering every `localhost:<port>` callback in Google:
+
+```bash
+npx convex env set OAUTH_PROXY_ENABLED "true"
+npx convex env set OAUTH_PROXY_PRODUCTION_URL "https://yourapp.com"
+npx convex env set OAUTH_PROXY_SECRET "shared-oauth-proxy-secret"
 ```
 
 ## Convex Sentry Integration
@@ -96,6 +110,6 @@ import { api } from "@feel-good/convex";
 // In your Convex mutation/action
 await ctx.runAction(api.email.sendMagicLink, {
   to: "user@example.com",
-  link: "https://yourapp.com/auth/verify?token=..."
+  link: "https://yourapp.com/auth/verify?token=...",
 });
 ```

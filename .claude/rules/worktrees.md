@@ -16,10 +16,10 @@ The previous symlink model (shared `packages/convex/.env.local` across worktrees
 
 ### What's seeded vs what you provision
 
-| File | How the worktree gets it |
-|------|--------------------------|
-| `apps/mirror/.env.local` | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
-| `packages/convex/.env.local` | **provisioned per worktree** — Convex CLI writes it on first `pnpm --filter=@feel-good/convex dev` run |
+| File                         | How the worktree gets it                                                                                                                                                                         |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `apps/mirror/.env.local`     | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
+| `packages/convex/.env.local` | **provisioned per worktree** — Convex CLI writes it on first `pnpm --filter=@feel-good/convex dev` run                                                                                           |
 
 ### Workflow for a fresh worktree
 
@@ -34,7 +34,9 @@ pnpm --filter=@feel-good/convex dev
   # point at this worktree's deployment.
 ./scripts/sync-worktree-convex-secrets.sh
   # Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
-  # main's deployment into this worktree's deployment.
+  # main's deployment into this worktree's deployment, then rewrites this
+  # deployment's SITE_URL to the worktree's stable Mirror port and ensures
+  # localhost worktree hosts are allowed by Better Auth.
 pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
   # Populates the deployment with the rick-rubin demo workspace
   # (3 articles, 10 posts, 2 chat conversations). The seed is the
@@ -102,6 +104,28 @@ pnpm --filter=@feel-good/convex exec convex env list
 ```
 
 To re-pull from main's deployment, run `./scripts/sync-worktree-convex-secrets.sh`.
+
+### Google OAuth on worktree ports
+
+Mirror worktrees run on a stable per-worktree localhost port allocated by
+`scripts/with-worktree-port.mjs`. Google OAuth callback URLs are exact, so do
+not register every generated localhost port in Google.
+
+Better Auth is configured to support dynamic local hosts via Convex env:
+
+- `SITE_URL` — this worktree's current app URL, e.g. `http://localhost:3350`
+- `AUTH_ALLOWED_HOSTS` — should include `localhost:*` and `127.0.0.1:*`
+- `OAUTH_PROXY_ENABLED` / `OAUTH_PROXY_PRODUCTION_URL` — optional, but needed
+  when Google only has the stable production callback registered
+
+`./scripts/sync-worktree-convex-secrets.sh` sets the first two automatically
+after copying main's Convex env. If main has OAuth Proxy env vars configured,
+they are copied too. If Google login still redirects to `localhost:3001`, rerun
+the sync script from inside the worktree and verify:
+
+```bash
+pnpm --filter=@feel-good/convex exec convex env list
+```
 
 ## Worktree path discipline (general)
 

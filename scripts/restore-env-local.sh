@@ -66,6 +66,7 @@ fi
   echo "NEXT_PUBLIC_CONVEX_SITE_URL=${CONVEX_SITE}"
   echo
   echo "# Site"
+  echo "# Runtime dev scripts override this for branch worktrees."
   echo "NEXT_PUBLIC_SITE_URL=http://localhost:3001"
   echo
   echo "# Sentry (DSN from Vercel; env+sample-rate fixed for dev)"

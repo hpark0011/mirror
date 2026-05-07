@@ -81,11 +81,12 @@ Next steps (one-time per worktree):
        Next.js targets this worktree's deployment.
   4. ./scripts/sync-worktree-convex-secrets.sh
        Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
-       main's deployment into this worktree's deployment.
+       main's deployment into this worktree's deployment, then sets
+       this worktree's auth SITE_URL to its stable Mirror port.
   5. pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
        Populates this deployment with the rick-rubin demo workspace
        (3 articles, 10 posts, 2 chat conversations). Browse at
-       http://localhost:3001/@rick-rubin once \`pnpm dev:safe\` is up.
+       this worktree's Mirror URL once \`pnpm dev:safe\` is up.
 
 Why a per-worktree deployment? See .claude/rules/worktrees.md.
 

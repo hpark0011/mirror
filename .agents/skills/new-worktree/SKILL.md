@@ -103,6 +103,6 @@ Tell the user:
   1. `cd .worktrees/<branch-name>`
   2. `pnpm --filter=@feel-good/convex dev` — choose "create a new project" when prompted
   3. `./scripts/sync-worktree-convex-env.sh` — points this worktree's frontend at the new deployment
-  4. `./scripts/sync-worktree-convex-secrets.sh` — copies Convex env secrets from main
+  4. `./scripts/sync-worktree-convex-secrets.sh` — copies Convex env secrets from main and sets this worktree's auth `SITE_URL` to its stable Mirror port
   5. `pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo` — populates the deployment with the rick-rubin demo workspace (3 articles, 10 posts, 2 chat conversations)
 - Why this matters: see `.claude/rules/worktrees.md` § Per-worktree dev Convex deployment.
