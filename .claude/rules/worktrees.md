@@ -36,7 +36,10 @@ pnpm --filter=@feel-good/convex dev
   # Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
   # main's deployment into this worktree's deployment, then rewrites this
   # deployment's SITE_URL to the worktree's stable Mirror port and ensures
-  # localhost worktree hosts are allowed by Better Auth.
+  # localhost worktree hosts are allowed by Better Auth. Also inserts
+  # `git config user.email` into `betaAllowlist` so first Google sign-in
+  # doesn't hit the BETA_CLOSED gate (`?error=unable_to_create_user`);
+  # idempotent, aborts if `git config user.email` is empty.
 pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
   # Populates the deployment with the rick-rubin demo workspace
   # (3 articles, 10 posts, 2 chat conversations). The seed is the

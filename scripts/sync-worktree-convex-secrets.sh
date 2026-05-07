@@ -94,5 +94,26 @@ echo "  AUTH_ALLOWED_HOSTS=$WORKTREE_ALLOWED_HOSTS"
 (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set SITE_URL "$WORKTREE_SITE_URL" >/dev/null)
 (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set AUTH_ALLOWED_HOSTS "$WORKTREE_ALLOWED_HOSTS" >/dev/null)
 
+# Auto-allowlist the worktree owner so first Google sign-in doesn't trip
+# the BETA_CLOSED gate (`?error=unable_to_create_user`). The mutation
+# lowercases on write and no-ops on duplicate, so re-running this script
+# is safe.
+OWNER_EMAIL=$(git config user.email 2>/dev/null || true)
+if [[ -z "$OWNER_EMAIL" ]]; then
+  echo "" >&2
+  echo "Error: \`git config user.email\` is empty; cannot auto-allowlist worktree owner." >&2
+  echo "       Set it with: git config --global user.email you@example.com" >&2
+  exit 1
+fi
+
+echo ""
+echo "Allowlisting worktree owner for first Google sign-in:"
+echo "  email=$OWNER_EMAIL"
+ALLOWLIST_ARG=$(printf '{"email":%s,"note":"worktree owner (auto)"}' \
+  "$(node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' "$OWNER_EMAIL")")
+(cd "$GIT_ROOT/packages/convex" \
+  && pnpm exec convex run betaAllowlist/mutations:addAllowlistEntry "$ALLOWLIST_ARG" >/dev/null)
+
 echo ""
 echo "Synced $COUNT env vars from main → this worktree's deployment."
+echo "Allowlisted: $OWNER_EMAIL"

@@ -3,7 +3,7 @@ id: FG_165
 title: "Worktree migration auto-allowlists the owner's email"
 date: 2026-05-07
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "Patch the per-worktree dev migration so the owner's git email is added to betaAllowlist automatically, eliminating the unable_to_create_user wall on first Google sign-in."
 dependencies: []
