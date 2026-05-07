@@ -1,9 +1,17 @@
 ---
+id: PLAN_008
+slug: article-cover-thumbhash-lqip
+title: "Article cover image — thumbhash LQIP placeholder"
 date: 2026-05-06
+type: feature
+status: completed
 branch: improvements-article-cover-image-style
-owner: Hyunsol
+worktree: .worktrees/improvements-article-cover-image-style/
+scope: "Persist a per-article thumbhash at upload time and decode it into next/image's blurDataURL on the detail view, replacing the blank aspect-video placeholder."
+apps: [mirror]
+verification_tier: 5
+predecessor: PLAN_001
 ---
-# Article cover image — thumbhash LQIP placeholder
 
 ## Problem
 
