@@ -57,11 +57,13 @@ export function ArticleList({
           <TableRow className="border-b-0 hover:bg-transparent">
             {isOwner && (
               <TableHead className="w-12 h-8 pl-4.5 [&:has([role=checkbox])]:pr-2">
-                <Checkbox
-                  checked={isIndeterminate ? "indeterminate" : isAllSelected}
-                  onCheckedChange={onToggleAll}
-                  aria-label="Select all articles"
-                />
+                <div>
+                  <Checkbox
+                    checked={isIndeterminate ? "indeterminate" : isAllSelected}
+                    onCheckedChange={onToggleAll}
+                    aria-label="Select all articles"
+                  />
+                </div>
               </TableHead>
             )}
             <TableHead
