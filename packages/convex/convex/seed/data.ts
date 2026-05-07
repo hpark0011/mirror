@@ -1,6 +1,6 @@
 // ── Seed data ───────────────────────────────────────────────────────
 
-export function tiptapDoc(paragraphs: string[]) {
+function tiptapDoc(paragraphs: string[]) {
   return {
     type: "doc",
     content: paragraphs.map((text) => ({

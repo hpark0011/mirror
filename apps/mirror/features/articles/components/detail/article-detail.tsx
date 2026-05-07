@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { cn } from "@feel-good/utils/cn";
 import { formatLongDate } from "@/features/content";
 import { type ArticleWithBody } from "../../types";
 import { thumbhashToDataUrl } from "../../utils/thumbhash-to-data-url";
@@ -45,9 +46,10 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
             </span>
           </div>
           <h1
-            className={`text-3xl font-medium leading-[1.0] tracking-[-0.04em] text-start ${
-              article.coverImageUrl ? "mb-20" : "mb-14"
-            }`}
+            className={cn(
+              "text-3xl font-medium leading-[1.0] tracking-[-0.04em] text-start",
+              article.coverImageUrl ? "mb-20" : "mb-14",
+            )}
           >
             {article.title}
           </h1>

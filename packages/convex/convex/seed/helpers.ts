@@ -31,16 +31,22 @@ export async function ensureRickRubinArticles(
   ctx: MutationCtx,
   userId: Id<"users">,
 ): Promise<void> {
-  const existing = await ctx.db
+  // Per-slug dedup (mirrors ensureRickRubinPosts). A single-row "any
+  // article exists" check would silently skip seeding for a real
+  // worktree owner who already has one of their own articles —
+  // seedWorktreeOwnerDemo would yield zero fixtures with no error.
+  const existingArticles = await ctx.db
     .query("articles")
     .withIndex("by_userId", (q: any) => q.eq("userId", userId))
-    .first();
-  if (existing) {
-    return;
-  }
+    .collect();
+  const existingSlugs = new Set(existingArticles.map((article) => article.slug));
 
   const now = Date.now();
   for (const article of SEED_ARTICLES) {
+    if (existingSlugs.has(article.slug)) {
+      continue;
+    }
+
     const createdAt = now - article.daysAgo * 24 * 60 * 60 * 1000;
     await ctx.db.insert("articles", {
       userId,
@@ -89,17 +95,27 @@ export async function ensureRickRubinConversations(
   ctx: MutationCtx,
   userId: Id<"users">,
 ): Promise<void> {
-  const existing = await ctx.db
+  // Per-title dedup. threadId is generated per-call so it can't anchor
+  // idempotency; title is the stable key in SEED_CONVERSATIONS. A
+  // single-row "any conversation exists" check would silently skip
+  // seeding for a worktree owner who already has one of their own
+  // conversations — seedWorktreeOwnerDemo would yield zero fixtures
+  // with no error.
+  const existingConversations = await ctx.db
     .query("conversations")
     .withIndex("by_profileOwnerId_and_viewerId", (q: any) =>
       q.eq("profileOwnerId", userId),
     )
-    .first();
-  if (existing) {
-    return;
-  }
+    .collect();
+  const existingTitles = new Set(
+    existingConversations.map((convo) => convo.title),
+  );
 
   for (const convo of SEED_CONVERSATIONS) {
+    if (existingTitles.has(convo.title)) {
+      continue;
+    }
+
     const threadId = await createThread(ctx, components.agent, {});
 
     await ctx.db.insert("conversations", {

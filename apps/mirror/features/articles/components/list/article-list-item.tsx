@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, type MouseEvent, useCallback } from "react";
+import { memo, useCallback, type MouseEvent } from "react";
 import Link from "next/link";
 import { TableCell } from "@feel-good/ui/primitives/table";
 import { Checkbox } from "@feel-good/ui/primitives/checkbox";
@@ -66,13 +66,11 @@ export const ArticleListItem = memo(function ArticleListItem({
     >
       {isOwner && (
         <TableCell className="relative z-10 w-12 py-0 [&:has([role=checkbox])]:pr-2 pl-4.5">
-          <div>
-            <Checkbox
-              checked={isSelected}
-              onCheckedChange={() => onToggle?.(article.slug)}
-              aria-label={`Select ${article.title}`}
-            />
-          </div>
+          <Checkbox
+            checked={isSelected}
+            onCheckedChange={() => onToggle?.(article.slug)}
+            aria-label={`Select ${article.title}`}
+          />
         </TableCell>
       )}
       <TableCell

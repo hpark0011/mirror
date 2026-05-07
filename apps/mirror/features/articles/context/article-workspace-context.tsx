@@ -23,6 +23,7 @@ import { type ArticleSummary } from "../types";
 import { useArticlePagination } from "../hooks/use-article-pagination";
 import { useArticleSelection } from "../hooks/use-article-selection";
 import { useArticleFilter } from "../hooks/use-article-filter";
+import { getLatestPublishedArticles } from "../utils/get-latest-published-articles";
 
 const getArticleSearchableFields = (article: ArticleSummary) => [
   article.title,
@@ -97,11 +98,7 @@ export function ArticleWorkspaceProvider({
   );
 
   const latestPublishedArticles = useMemo(
-    () =>
-      articles
-        .filter((a) => a.status === "published" && a.publishedAt !== undefined)
-        .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
-        .slice(0, 2),
+    () => getLatestPublishedArticles(articles, 2),
     [articles],
   );
 

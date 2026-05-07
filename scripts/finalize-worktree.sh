@@ -26,10 +26,10 @@ set -e
 
 GIT_ROOT=$(git rev-parse --show-toplevel)
 
-# Refuse to run from main — only worktrees provision their own deployment.
-if [[ "$GIT_ROOT" != */.worktrees/* ]]; then
-  echo "Error: finalize-worktree.sh must be run from inside a worktree." >&2
-  echo "       Current GIT_ROOT: $GIT_ROOT" >&2
+# git worktrees have .git as a file (gitdir pointer); main checkout has .git as a directory
+if [[ -d "$GIT_ROOT/.git" ]]; then
+  echo "Error: finalize-worktree.sh must be run from inside a worktree, not the main checkout." >&2
+  echo "       Detected .git/ as a directory (main checkout indicator) at $GIT_ROOT" >&2
   exit 1
 fi
 

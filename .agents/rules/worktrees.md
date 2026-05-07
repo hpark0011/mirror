@@ -47,6 +47,25 @@ pnpm --filter=@feel-good/convex dev
 
 After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
 
+### Optional: pre-populate your own profile
+
+After running `pnpm dev:safe` and signing in with Google at the worktree's
+app URL (the `users` row only exists once the auth flow has run), clone
+Rick's fixtures under your own user so `/@<your-username>` has content to
+browse and chat against:
+
+```bash
+pnpm --filter=@feel-good/convex exec convex run seed:seedWorktreeOwnerDemo \
+  "{\"email\":\"$(git config user.email)\"}"
+```
+
+Idempotent. Throws a clear error if you haven't signed in yet (no `users`
+row to target). Use this only for in-app browsing — it does NOT generate
+embeddings, so the clone agent won't have RAG context against the cloned
+content (matches Rick's seed). For a full snapshot of main's data
+(reproducing a prod bug, etc.), use `convex export` / `convex import`
+instead.
+
 ### Why code-based seeding instead of `convex export` / `import`?
 
 The Convex Stack article on [seeding preview deployments](https://stack.convex.dev/seeding-data-for-preview-deployments) recommends code-based seeding (`convex/seed.ts`) over data import for cross-deployment workflows. For our case the trade-offs come out clearly in favor of seeding:
@@ -102,6 +121,28 @@ pnpm --filter=@feel-good/convex exec convex env list
 ```
 
 To re-pull from main's deployment, run `./scripts/sync-worktree-convex-secrets.sh`.
+
+### Google OAuth on worktree ports
+
+Mirror worktrees run on a stable per-worktree localhost port allocated by
+`scripts/with-worktree-port.mjs`. Google OAuth callback URLs are exact, so do
+not register every generated localhost port in Google.
+
+Better Auth is configured to support dynamic local hosts via Convex env:
+
+- `SITE_URL` — this worktree's current app URL, e.g. `http://localhost:3350`
+- `AUTH_ALLOWED_HOSTS` — should include `localhost:*` and `127.0.0.1:*`
+- `OAUTH_PROXY_ENABLED` / `OAUTH_PROXY_PRODUCTION_URL` — optional, but needed
+  when Google only has the stable production callback registered
+
+`./scripts/sync-worktree-convex-secrets.sh` sets the first two automatically
+after copying main's Convex env. If main has OAuth Proxy env vars configured,
+they are copied too. If Google login still redirects to `localhost:3001`, rerun
+the sync script from inside the worktree and verify:
+
+```bash
+pnpm --filter=@feel-good/convex exec convex env list
+```
 
 ## Worktree path discipline (general)
 
