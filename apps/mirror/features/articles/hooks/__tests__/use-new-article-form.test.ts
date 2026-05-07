@@ -291,8 +291,31 @@ describe("useNewArticleForm — RHF validation", () => {
     // Validation blocked the mutation.
     expect(mockCreate).not.toHaveBeenCalled();
     expect(result.current.isSaving).toBe(false);
-    // The schema's title error message is surfaced through formState.errors.
+    // The schema's title error message is surfaced through the hook's
+    // `errors` accessor — the metadata header reads the same RHF state via
+    // `<FormField>` / `<FormMessage>`.
     expect(result.current.errors.title?.message).toBe("Title is required");
+  });
+
+  it("save with an empty category does not call create and exposes a category error", async () => {
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    // Title is set but category is left empty.
+    act(() => {
+      result.current.setTitle("Some Article");
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(result.current.isSaving).toBe(false);
+    expect(result.current.errors.category?.message).toBe(
+      "Category is required",
+    );
   });
 });
 

@@ -14,31 +14,26 @@ interface NewArticleEditorProps {
 
 export function NewArticleEditor({ username }: NewArticleEditorProps) {
   const router = useRouter();
-  const form = useNewArticleForm({ username });
+  const articleForm = useNewArticleForm({ username });
   return (
     <ArticleEditorShell
-      title={form.title}
-      slug={form.slug}
-      category={form.category}
-      status={form.status}
-      coverImageUrl={form.coverImageUrl}
-      createdAt={form.createdAt}
-      publishedAt={form.publishedAt}
-      onTitleChange={form.setTitle}
-      onSlugChange={form.setSlug}
-      onCategoryChange={form.setCategory}
-      onCoverImageUpload={form.handleCoverImageUpload}
-      onCoverImageClear={form.handleCoverImageClear}
-      body={form.body}
-      onBodyChange={form.setBody}
-      onInlineImageUpload={form.onInlineImageUpload}
-      onInlineImageError={form.onInlineImageError}
-      onPendingUploadsChange={form.setHasPendingUploads}
-      onSave={form.save}
-      onPublishToggle={form.togglePublish}
+      form={articleForm.form}
+      status={articleForm.status}
+      coverImageUrl={articleForm.coverImageUrl}
+      createdAt={articleForm.createdAt}
+      publishedAt={articleForm.publishedAt}
+      onCoverImageUpload={articleForm.handleCoverImageUpload}
+      onCoverImageClear={articleForm.handleCoverImageClear}
+      body={articleForm.body}
+      onBodyChange={articleForm.setBody}
+      onInlineImageUpload={articleForm.onInlineImageUpload}
+      onInlineImageError={articleForm.onInlineImageError}
+      onPendingUploadsChange={articleForm.setHasPendingUploads}
+      onSave={articleForm.save}
+      onPublishToggle={articleForm.togglePublish}
       onCancel={() => router.replace(`/@${username}/articles`)}
-      isSaving={form.isSaving}
-      hasPendingUploads={form.hasPendingUploads}
+      isSaving={articleForm.isSaving}
+      hasPendingUploads={articleForm.hasPendingUploads}
     />
   );
 }

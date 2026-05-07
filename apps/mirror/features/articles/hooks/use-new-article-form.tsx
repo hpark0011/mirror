@@ -208,17 +208,26 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     [],
   );
 
-  // Derive watched values for consumers that need reactive reads.
-  const title = form.watch("title");
-  const slug = form.watch("slug") ?? "";
-  const category = form.watch("category");
+  // Derive watched values for consumers that need reactive reads. Status is
+  // surfaced separately because the toolbar's publish-toggle button reads it
+  // outside the metadata-header's RHF tree.
   const status = form.watch("status");
 
+  // Read formState.errors here so RHF registers a subscription on this hook —
+  // that's what makes the hook re-render when validation fails. Without this
+  // read, `form.formState.errors` returned via `form` stays empty in callers
+  // that don't themselves access the proxy (notably `renderHook` unit tests
+  // that don't mount the header). The metadata header has its own subscription
+  // via `<FormField>` / `<FormMessage>`, so this is purely the headless-caller
+  // anchor.
+  const errors = form.formState.errors;
+
   return {
-    // Metadata getters
-    title,
-    slug,
-    category,
+    // The RHF form instance. The metadata header binds to it directly via
+    // `<Form>` + `<FormField>`, which is what surfaces validation errors as
+    // `<FormMessage />`. Callers needing read access use `form.watch(...)`.
+    form,
+    errors,
     status,
     coverImageUrl,
     createdAt: null as number | null,
@@ -226,9 +235,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     body,
     hasPendingUploads,
     isSaving,
-    // RHF form errors — consumers can display per-field error messages.
-    errors: form.formState.errors,
-    // Setters — bridge to RHF setValue so callers keep the same API surface.
+    // Test-only convenience setters — production callers drive RHF directly.
     setTitle: (value: string) => form.setValue("title", value),
     setSlug: (value: string) =>
       form.setValue("slug", value, { shouldValidate: false }),
