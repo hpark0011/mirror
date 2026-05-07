@@ -45,14 +45,7 @@ fi
 mkdir -p "$GIT_ROOT/.worktrees"
 git worktree add --quiet -b "$BRANCH_NAME" "$WORKTREE_PATH" main
 
-# --- 4. Install dependencies -------------------------------------------------
-# --frozen-lockfile: lockfile in this worktree is exactly main's, so skip
-#   resolution. Errors loudly if main's lockfile and package.json have drifted —
-#   that should be fixed in main, not papered over here.
-# --prefer-offline: try the local pnpm content-addressable store first; only
-#   hit the registry for genuinely uncached packages.
-# --reporter=append-only: line-based output, no progress-bar redraws polluting
-#   the tool result.
+# --- 3. Run local setup ------------------------------------------------------
 
 cd "$WORKTREE_PATH"
 pnpm install --frozen-lockfile --prefer-offline --reporter=append-only

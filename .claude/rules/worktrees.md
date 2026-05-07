@@ -115,3 +115,20 @@ Every Edit/Write inside a worktree must use the worktree's absolute path. Sub-ag
 - `.agents/skills/new-worktree/scripts/new-worktree.sh` (codex / other harnesses)
 
 Any change to one MUST be applied to the other. The two scripts have different surface (logging verbosity, install flags) but the env-seeding logic must stay identical.
+
+## Parallel dev servers and e2e ports
+
+Mirror dev and Playwright e2e scripts allocate a stable per-worktree port via
+`scripts/with-worktree-port.mjs`. Do not hardcode `localhost:3001` in new test
+or dev scripts; read `MIRROR_PORT`, `PORT`, or Playwright's configured
+`baseURL` instead. The main checkout still prefers `3001`, while worktrees use
+the allocated range.
+
+Do not add scripts that kill shared ports such as `3001` before starting dev.
+That can stop another worktree's app or e2e run mid-test.
+
+`convex dev` is guarded by `scripts/with-convex-dev-lock.sh`, which keys the
+lock off the deployment slug in `packages/convex/.env.local`. With per-worktree
+deployments each worktree has a unique slug, so the lock rarely fires — but it
+still catches the case where a worktree hasn't been migrated and is still
+pointing at a deployment a sibling is also using.

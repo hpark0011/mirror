@@ -63,7 +63,7 @@
     }
   },
   "scripts": {
-    "dev": "convex dev",
+    "dev": "../../scripts/with-convex-dev-lock.sh convex dev",
     "deploy": "convex deploy",
     "generate": "convex codegen",
     "check-types": "tsc --noEmit -p convex/tsconfig.json",
