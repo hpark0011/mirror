@@ -26,7 +26,7 @@ type ArticleDetailProps = {
 export function ArticleDetail({ article }: ArticleDetailProps) {
   const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
   return (
-    <div className="py-20 px-4.5 bg-background min-h-[calc(100vh-40px)]">
+    <div className="py-18 px-4.5 bg-background min-h-[calc(100vh-40px)]">
       <article className="mx-auto flex flex-col">
         <div className="flex flex-col gap-0.5 max-w-xl mx-auto w-full">
           <div className="flex items-center justify-start gap-2 text-[14px] font-medium ml-0.5">
@@ -45,7 +45,7 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
             </span>
           </div>
           <h1
-            className={`text-4xl font-medium leading-[1.0] tracking-[-0.04em] text-start ${
+            className={`text-3xl font-medium leading-[1.0] tracking-[-0.04em] text-start ${
               article.coverImageUrl ? "mb-20" : "mb-14"
             }`}
           >
