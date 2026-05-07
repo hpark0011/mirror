@@ -1,8 +1,17 @@
-# Profile Tabs Dispatcher Parity — Implementation Plan
-
-**Date:** 2026-05-06
-**Branch:** `fix-bio-pairity`
-**Slug:** `profile-tabs-dispatcher-parity`
+---
+id: PLAN_005
+slug: profile-tabs-dispatcher-parity
+title: "Profile Tabs Dispatcher Parity"
+date: 2026-05-06
+type: refactor
+status: completed
+branch: fix-bio-pairity
+worktree: null
+scope: "Generalize openBio into openProfileSection covering bio, articles, posts; route ProfileTabs through the useCloneActions dispatcher."
+apps: [mirror]
+packages: [convex]
+verification_tier: 5
+---
 
 ## 1. Summary
 

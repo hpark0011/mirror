@@ -1,8 +1,16 @@
-# Plan: Render cover image in article detail view
-
-**Branch**: `feature-article-cover-image`
-**Worktree**: `.worktrees/feature-article-cover-image/`
-**Date**: 2026-05-06
+---
+id: PLAN_001
+slug: article-detail-cover-image
+title: "Render cover image in article detail view"
+date: 2026-05-06
+type: feature
+status: completed
+branch: feature-article-cover-image
+worktree: .worktrees/feature-article-cover-image/
+scope: "ArticleDetail renders coverImageUrl below title; no backend, no editor changes."
+apps: [mirror]
+verification_tier: 5
+---
 
 ## Problem
 
