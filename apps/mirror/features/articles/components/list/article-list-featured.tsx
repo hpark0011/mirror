@@ -56,7 +56,7 @@ function FeaturedArticleCard({
         imageFirst && "@max-[480px]:order-1",
       )}
     >
-      <div className="md:text-3xl @max-[880px]:text-2xl @max-[480px]:text-2xl text-2xl leading-[1.05]">
+      <div className="md:text-3xl @max-[880px]:text-2xl @max-[480px]:text-2xl text-2xl leading-[1.0] @max-[880px]:leading-[1.05]">
         {article.title}
       </div>
       <div className="mt-4 @max-[480px]:mt-2 @max-[480px]:leading-[1.3] leading-[1.4] text-sm">
@@ -72,28 +72,26 @@ function FeaturedArticleCard({
     </div>
   );
 
-  const imageBlock = (
-    <div
-      className={cn(
-        "relative w-full aspect-video h-full bg-gray-5 max-w-[520px] overflow-hidden",
-        imageFirst && "@max-[480px]:order-2",
-      )}
-    >
-      {article.coverImageUrl
-        ? (
-          <Image
-            src={article.coverImageUrl}
-            alt=""
-            fill
-            sizes="(max-width: 880px) 100vw, 560px"
-            placeholder={blurDataUrl ? "blur" : "empty"}
-            blurDataURL={blurDataUrl ?? undefined}
-            className="object-cover"
-          />
-        )
-        : null}
-    </div>
-  );
+  const imageBlock = article.coverImageUrl
+    ? (
+      <div
+        className={cn(
+          "relative w-full aspect-video h-full bg-gray-5 max-w-[520px] overflow-hidden",
+          imageFirst && "@max-[480px]:order-2",
+        )}
+      >
+        <Image
+          src={article.coverImageUrl}
+          alt=""
+          fill
+          sizes="(max-width: 880px) 100vw, 560px"
+          placeholder={blurDataUrl ? "blur" : "empty"}
+          blurDataURL={blurDataUrl ?? undefined}
+          className="object-cover"
+        />
+      </div>
+    )
+    : null;
 
   return (
     <Link
