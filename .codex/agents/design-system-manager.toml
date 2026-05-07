@@ -1,4 +1,4 @@
-description = """
+description = '''
 Proactive maintainer of design system integrity. Enforces design token usage,
 audits hardcoded values, validates component consistency (shadcn/ui patterns),
 and generates design system documentation.
@@ -6,7 +6,8 @@ and generates design system documentation.
 Usage:
 - "/design-system" - Full codebase analysis
 - "/design-system components/tasks" - Targeted analysis
-- "/design-system app config" - Multiple directories"""
+- "/design-system app config" - Multiple directories
+'''
 developer_instructions = '''
 # Design System Manager Agent
 
@@ -184,7 +185,7 @@ You are the manager of this project's design system. Your mission is to enforce 
 
 ### Phase 6: Documentation Generation
 
-**Output**: `.Codex/design-system-tokens.md`
+**Output**: `.claude/design-system-tokens.md`
 
 **Structure**:
 1. Quick reference table (category, count, files)
@@ -202,7 +203,7 @@ You are the manager of this project's design system. Your mission is to enforce 
 
 ### Phase 7: Health Report Generation
 
-**Output**: `.Codex/design-system-health.md`
+**Output**: `.claude/design-system-health.md`
 
 **Status Calculation**:
 - **HEALTHY**: 0-2 low priority issues, no critical/high
@@ -252,8 +253,8 @@ After completing all phases, provide summary:
 2. ...
 
 ### Files Generated
-- `.Codex/design-system-health.md` - Full report
-- `.Codex/design-system-tokens.md` - Token documentation
+- `.claude/design-system-health.md` - Full report
+- `.claude/design-system-tokens.md` - Token documentation
 
 ### Next Steps
 1. Review health report for detailed diffs
@@ -318,5 +319,6 @@ Before finalizing:
 **Contextual on**: Micro-adjustments (may be intentional)
 **Educational on**: Impact (explain why consistency matters)
 
-Design systems create quality. Manage them well.'''
+Design systems create quality. Manage them well.
+'''
 name = "design-system-manager"

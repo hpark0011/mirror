@@ -9,14 +9,9 @@ Creates and reviews AGENTS.md and CLAUDE.md project-instructions files. Goal: ma
 
 In this repo (and many others) the canonical project-instructions file is `AGENTS.md`, and `CLAUDE.md` is a one-line `@AGENTS.md` import so Claude Code and other agent tools read the same source. This skill handles both artifacts and the interop pattern between them.
 
-## When to use
+## Scope & non-goals
 
-- User asks to create, review, audit, or update a CLAUDE.md file.
-- A CLAUDE.md has grown past ~200 lines and needs splitting into `@imports` or `.claude/rules/`.
-- User wants to bootstrap project instructions for a new repo (`/init` alternative with repo-specific conventions).
-- A code review or session surfaces drift between CLAUDE.md and the actual codebase.
-
-**Do NOT use for**: editing skills (use `create-skill` / `audit-skill`), writing task-specific workflows (use a skill or `.claude/rules/` path-scoped file), or auto-memory — that's Claude Code's own mechanism, not user-authored.
+**Do NOT use for**: editing skills (use `create-skill` / `audit-skill`), writing task-specific workflows (use a skill or `.claude/rules/` path-scoped file), or auto-memory — that's Claude Code's own mechanism, not user-authored. Trigger phrases live in the frontmatter `description`.
 
 ## Quick start
 

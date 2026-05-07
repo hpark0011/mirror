@@ -23,5 +23,5 @@
 | Context provider             | `context/`             |
 | Types/interfaces             | `types/` or co-located |
 | Utility functions            | `utils/`               |
-| Adapters, schemas, mock data | `lib/`                 |
+| Data access, adapters, schemas, mock data | `lib/`                 |
 | State store                  | `store/`               |
