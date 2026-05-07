@@ -30,6 +30,7 @@ export interface ArticleEditorShellProps {
   onCategoryChange: (value: string) => void;
   onCoverImageUpload: (file: File) => Promise<{
     storageId: string;
+    thumbhash: string;
     url: string;
   }>;
   onCoverImageClear: () => void;

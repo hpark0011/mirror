@@ -1,6 +1,7 @@
 import { ConvexError, v } from "convex/values";
 import { type Doc, type Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
+import { internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
 import {
@@ -13,6 +14,7 @@ import {
   MAX_SLUG_LENGTH,
   MAX_TITLE_LENGTH,
 } from "../content/schema";
+import { validateThumbhashFormat } from "./helpers";
 import {
   extractInlineImageStorageIds,
   hasExternalImageSrcs,
@@ -55,6 +57,7 @@ export const create = authMutation({
     body: v.any(),
     status: v.union(v.literal("draft"), v.literal("published")),
     coverImageStorageId: v.optional(v.id("_storage")),
+    coverImageThumbhash: v.optional(v.string()),
   },
   returns: v.id("articles"),
   handler: async (ctx, args) => {
@@ -62,6 +65,9 @@ export const create = authMutation({
 
     validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
     validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
+    if (args.coverImageThumbhash !== undefined) {
+      validateThumbhashFormat(args.coverImageThumbhash);
+    }
 
     // Always normalize: `generateSlug` is idempotent. See `.claude/rules/identifiers.md`.
     // Treat empty/whitespace-only client slug as "not supplied" and fall back
@@ -110,6 +116,7 @@ export const create = authMutation({
       body: args.body,
       status: args.status,
       coverImageStorageId: args.coverImageStorageId,
+      coverImageThumbhash: args.coverImageThumbhash,
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
@@ -146,6 +153,7 @@ export const update = authMutation({
     body: v.optional(v.any()),
     status: v.optional(v.union(v.literal("draft"), v.literal("published"))),
     coverImageStorageId: v.optional(v.id("_storage")),
+    coverImageThumbhash: v.optional(v.string()),
     // Explicit removal signal for the cover image. The schema field stays
     // `v.optional(v.id("_storage"))`; setting `clearCoverImage: true` makes
     // the handler patch `coverImageStorageId: undefined` which Convex
@@ -171,6 +179,9 @@ export const update = authMutation({
     }
     if (args.category !== undefined) {
       validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
+    }
+    if (args.coverImageThumbhash !== undefined) {
+      validateThumbhashFormat(args.coverImageThumbhash);
     }
 
     // Normalize incoming slug at the boundary. See `.claude/rules/identifiers.md`.
@@ -252,15 +263,43 @@ export const update = authMutation({
     }
     if (args.category !== undefined) patch.category = args.category;
     if (args.body !== undefined) patch.body = args.body;
-    if (args.coverImageStorageId !== undefined)
-      patch.coverImageStorageId = args.coverImageStorageId;
-    // `clearCoverImage` takes precedence over a stale `coverImageStorageId`
-    // arg — if the client both uploaded then cleared in the same session,
-    // the explicit clear wins. Setting the field to `undefined` is Convex's
-    // documented removal path for an optional field via `ctx.db.patch`.
-    if (args.clearCoverImage) {
+    // Cover-image patch coupling: the storage ID and the thumbhash must move
+    // as a pair to avoid a stale hash describing a different image.
+    //
+    // Branch 1 — explicit clear: wipe both fields so the article carries no
+    // cover state at all. `clearCoverImage` takes precedence over anything
+    // else the caller passed.
+    //
+    // Branch 2 — new cover: the caller is replacing the image (different
+    // storageId). Always land the supplied thumbhash alongside the new ID.
+    // If the caller forgot to supply a hash (e.g. a legacy code path), we
+    // deliberately write `undefined` here — NEVER carry over the prior hash,
+    // which would be a stale hash describing a different image.
+    //
+    // Branch 3 — hash-only patch: the cover image itself is unchanged but the
+    // caller is supplying a freshly computed hash. This is reachable when the
+    // client retries after a prior upload where the storage POST succeeded but
+    // the thumbhash compute failed. Patch the hash alone; leave the storageId
+    // untouched. The dev backfill script does NOT flow through this path — it
+    // uses internal.articles.mutations.setCoverImageThumbhash directly.
+    //
+    // Branch 4 — round-trip no-op: the caller sent back the exact same
+    // storageId that is already stored. No change to either field; this
+    // preserves the existing optional-arg semantics where the editor round-
+    // trips the current value on every save.
+    if (args.clearCoverImage === true) {
       patch.coverImageStorageId = undefined;
+      patch.coverImageThumbhash = undefined;
+    } else if (
+      args.coverImageStorageId !== undefined &&
+      args.coverImageStorageId !== article.coverImageStorageId
+    ) {
+      patch.coverImageStorageId = args.coverImageStorageId;
+      patch.coverImageThumbhash = args.coverImageThumbhash;
+    } else if (args.coverImageThumbhash !== undefined) {
+      patch.coverImageThumbhash = args.coverImageThumbhash;
     }
+    // Branch 4: args.coverImageStorageId === article.coverImageStorageId — no-op.
 
     if (args.status !== undefined) {
       patch.status = args.status;
@@ -499,6 +538,34 @@ export const deleteOrphanCoverImage = authMutation({
       // Blob may already be gone (double-call) or invalid — safe to ignore.
     }
 
+    return null;
+  },
+});
+
+// Backfill mutation: refuses to patch when the article's current
+// `coverImageStorageId` no longer matches `expectedStorageId`, guarding the
+// race where a user replaces the cover between the URL fetch + encode and
+// this patch. See `scripts/backfill-cover-thumbhash.ts`.
+export const setCoverImageThumbhash = internalMutation({
+  args: {
+    id: v.id("articles"),
+    expectedStorageId: v.id("_storage"),
+    thumbhash: v.string(),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    validateThumbhashFormat(args.thumbhash);
+    const article = await ctx.db.get(args.id);
+    if (!article) throw new Error("Article not found");
+    if (article.coverImageStorageId === undefined) {
+      throw new Error("Article has no cover image to hash");
+    }
+    if (article.coverImageStorageId !== args.expectedStorageId) {
+      throw new Error(
+        "Cover image changed during backfill — skipping stale hash",
+      );
+    }
+    await ctx.db.patch(args.id, { coverImageThumbhash: args.thumbhash });
     return null;
   },
 });

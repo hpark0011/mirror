@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Image from "next/image";
 import { formatLongDate } from "@/features/content";
 import { type ArticleWithBody } from "../../types";
+import { thumbhashToDataUrl } from "../../utils/thumbhash-to-data-url";
 
 const RichTextViewer = dynamic(
   () =>
@@ -23,6 +24,7 @@ type ArticleDetailProps = {
 };
 
 export function ArticleDetail({ article }: ArticleDetailProps) {
+  const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
   return (
     <div className="py-12 px-4.5 bg-background min-h-[calc(100vh-40px)]">
       <article className="max-w-xl mx-auto flex flex-col">
@@ -52,13 +54,18 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
         </div>
 
         {article.coverImageUrl && (
-          <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-14">
+          <div
+            className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-14"
+            data-cover-thumbhash={article.coverImageThumbhash ?? ""}
+          >
             <Image
               src={article.coverImageUrl}
               alt={`Cover image for ${article.title}`}
               fill
               sizes="(min-width: 768px) 36rem, 100vw"
               priority
+              placeholder={blurDataUrl ? "blur" : "empty"}
+              blurDataURL={blurDataUrl ?? undefined}
               className="object-cover"
               data-testid="article-detail-cover-image"
             />

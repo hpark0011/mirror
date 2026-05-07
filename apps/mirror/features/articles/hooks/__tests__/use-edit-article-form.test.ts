@@ -145,7 +145,7 @@ describe("useEditArticleForm — cover clear", () => {
 
   it("upload after clear wins — save sends the new storageId, no clear flag", async () => {
     mockUpdate.mockResolvedValue(null);
-    mockUploadCover.mockResolvedValue("new_storage_id");
+    mockUploadCover.mockResolvedValue({ storageId: "new_storage_id", thumbhash: "" });
     const { result } = renderHook(() =>
       useEditArticleForm({
         username: "test-user",
@@ -173,6 +173,70 @@ describe("useEditArticleForm — cover clear", () => {
     };
     expect(args.clearCoverImage).toBeUndefined();
     expect(args.coverImageStorageId).toBe("new_storage_id");
+  });
+
+  // The two tests below pin the falsy-guard at use-edit-article-form.tsx:
+  //   ...(coverImageThumbhash && { coverImageThumbhash })
+  // If a future regression removes / inverts the guard, an empty string would
+  // be persisted to the DB, and `thumbhashToDataUrl("")` returns null —
+  // silent degradation with no LQIP. Lock the contract with a hook-level
+  // assertion in both directions.
+  it("upload with thumbhash forwards coverImageThumbhash to update", async () => {
+    mockUpdate.mockResolvedValue(null);
+    mockUploadCover.mockResolvedValue({
+      storageId: "sid_y",
+      thumbhash: "abc123==",
+    });
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({ coverImageThumbhash: "abc123==" }),
+    );
+  });
+
+  it("upload with empty thumbhash omits coverImageThumbhash from update args", async () => {
+    mockUpdate.mockResolvedValue(null);
+    mockUploadCover.mockResolvedValue({ storageId: "sid_x", thumbhash: "" });
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        // Strip the seeded thumbhash so the save can only pick up what the
+        // upload returned — otherwise the initial-article default would mask
+        // the falsy-guard regression we're trying to lock down.
+        initial: { ...INITIAL_ARTICLE, coverImageThumbhash: undefined },
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ coverImageThumbhash: expect.anything() }),
+    );
   });
 });
 

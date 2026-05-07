@@ -1,4 +1,4 @@
-import { query } from "../_generated/server";
+import { internalQuery, query } from "../_generated/server";
 import { v } from "convex/values";
 import {
   articleSummaryReturnValidator,
@@ -45,6 +45,7 @@ export const getByUsername = query({
       slug: article.slug,
       title: article.title,
       coverImageUrl: coverImageUrls[i]!,
+      coverImageThumbhash: article.coverImageThumbhash ?? null,
       createdAt: article.createdAt,
       publishedAt: article.publishedAt,
       status: article.status,
@@ -141,11 +142,62 @@ export const getBySlug = query({
       slug: article.slug,
       title: article.title,
       coverImageUrl,
+      coverImageThumbhash: article.coverImageThumbhash ?? null,
       createdAt: article.createdAt,
       publishedAt: article.publishedAt,
       status: article.status,
       category: article.category,
       body: rewrittenBody,
     };
+  },
+});
+
+export const listMissingThumbhash = internalQuery({
+  // Paginated scan for the backfill. Without a cursor loop, `.collect()`
+  // hits Convex's 16k document read cap once an account accumulates that
+  // many articles. The backfill (`scripts/backfill-cover-thumbhash.ts`)
+  // drives this with a cursor loop and a fixed page size.
+  //
+  // There is no index keyed on the absence of a thumbhash, so the page is
+  // filtered in JS after the table scan. The script keeps paginating until
+  // `isDone` is true; pages may legitimately come back empty when every row
+  // in the page already has a thumbhash.
+  args: { cursor: v.union(v.string(), v.null()), numItems: v.number() },
+  returns: v.object({
+    page: v.array(
+      v.object({
+        _id: v.id("articles"),
+        coverImageStorageId: v.id("_storage"),
+      }),
+    ),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+  }),
+  handler: async (ctx, args) => {
+    const result = await ctx.db
+      .query("articles")
+      .paginate({ cursor: args.cursor, numItems: args.numItems });
+    return {
+      page: result.page
+        .filter(
+          (a) =>
+            a.coverImageStorageId !== undefined &&
+            a.coverImageThumbhash === undefined,
+        )
+        .map((a) => ({
+          _id: a._id,
+          coverImageStorageId: a.coverImageStorageId!,
+        })),
+      isDone: result.isDone,
+      continueCursor: result.continueCursor,
+    };
+  },
+});
+
+export const getCoverUrl = internalQuery({
+  args: { storageId: v.id("_storage") },
+  returns: v.union(v.string(), v.null()),
+  handler: async (ctx, args) => {
+    return await ctx.storage.getUrl(args.storageId);
   },
 });

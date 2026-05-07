@@ -47,6 +47,9 @@ export function useEditArticleForm({
   const [coverImageStorageId, setCoverImageStorageId] = useState<
     Id<"_storage"> | null
   >(null);
+  const [coverImageThumbhash, setCoverImageThumbhash] = useState(
+    initial.coverImageThumbhash ?? "",
+  );
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(
     initial.coverImageUrl ?? null,
   );
@@ -77,7 +80,7 @@ export function useEditArticleForm({
 
   const handleCoverImageUpload = useCallback(
     async (file: File) => {
-      const storageId = await uploadCover(file);
+      const { storageId, thumbhash } = await uploadCover(file);
       const objectUrl = URL.createObjectURL(file);
       // FG_132: revoke the previous blob URL before assigning a new one.
       setCoverImageUrl((prev) => {
@@ -86,9 +89,10 @@ export function useEditArticleForm({
       });
       blobUrlRef.current = objectUrl;
       setCoverImageStorageId(storageId);
+      setCoverImageThumbhash(thumbhash);
       // A fresh upload supersedes any prior clear in the same session.
       setIsCoverCleared(false);
-      return { storageId: storageId as string, url: objectUrl };
+      return { storageId: storageId as string, thumbhash, url: objectUrl };
     },
     [uploadCover],
   );
@@ -101,6 +105,7 @@ export function useEditArticleForm({
     });
     blobUrlRef.current = null;
     setCoverImageStorageId(null);
+    setCoverImageThumbhash("");
     setIsCoverCleared(true);
   }, []);
 
@@ -119,6 +124,7 @@ export function useEditArticleForm({
         coverImageStorageId:
           coverImageStorageId !== null ? coverImageStorageId : undefined,
         clearCoverImage: isCoverCleared ? true : undefined,
+        ...(coverImageThumbhash && { coverImageThumbhash }),
       });
       // Optimistically reflect the server-side publish/unpublish timestamp
       // change so the UI doesn't wait for the next reactive query tick.
@@ -155,6 +161,7 @@ export function useEditArticleForm({
       body,
       category,
       coverImageStorageId,
+      coverImageThumbhash,
       initial._id,
       initial.slug,
       isCoverCleared,

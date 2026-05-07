@@ -8,6 +8,7 @@ export type ArticleSummary = {
   slug: string;
   title: string;
   coverImageUrl: string | null;
+  coverImageThumbhash: string | null;
   createdAt: number;
   publishedAt?: number;
   status: "draft" | "published";

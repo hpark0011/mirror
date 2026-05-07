@@ -2,14 +2,14 @@
 
 // Click-anywhere file picker with image preview. Drives the article cover
 // image upload pipeline — the parent passes a `onUpload(file)` callback
-// that resolves to a `_storage` ID; this component only owns the file
-// input + preview UX.
+// that resolves to the storage ID, thumbhash, and a preview URL; this
+// component only owns the file input + preview UX.
 import { Button } from "@feel-good/ui/primitives/button";
 import { useEffect, useRef, useState } from "react";
 
 interface CoverImagePickerProps {
   url: string | null;
-  onUpload: (file: File) => Promise<{ url: string }>;
+  onUpload: (file: File) => Promise<{ storageId: string; thumbhash: string; url: string }>;
   onClear: () => void;
   disabled?: boolean;
 }
@@ -22,6 +22,7 @@ export function CoverImagePicker({
 }: CoverImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [hasUploaded, setHasUploaded] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(url);
 
   // Re-sync the preview when the parent's `url` prop changes (e.g. a
@@ -33,12 +34,14 @@ export function CoverImagePicker({
 
   const handleSelect = async (file: File) => {
     setIsUploading(true);
+    setHasUploaded(false);
     try {
       const objectUrl = URL.createObjectURL(file);
       setPreviewUrl(objectUrl);
       const result = await onUpload(file);
       URL.revokeObjectURL(objectUrl);
       setPreviewUrl(result.url);
+      setHasUploaded(true);
     } finally {
       setIsUploading(false);
     }
@@ -46,8 +49,23 @@ export function CoverImagePicker({
 
   const display = previewUrl ?? url;
 
+  // Deterministic state surface for e2e tests. The hook's `onUpload` resolves
+  // once `Promise.all([uploadToStorage, computeThumbhashFromFile])` has settled
+  // and the parent form has committed both `storageId` and `thumbhash`. Only
+  // then does `hasUploaded` flip to true — replacing flaky `waitForTimeout`
+  // settle heuristics in the e2e.
+  const uploadState: "idle" | "uploading" | "ready" = isUploading
+    ? "uploading"
+    : hasUploaded
+    ? "ready"
+    : "idle";
+
   return (
-    <div data-testid="article-cover-image-picker" className="w-full">
+    <div
+      data-testid="article-cover-image-picker"
+      data-cover-upload-state={uploadState}
+      className="w-full"
+    >
       <input
         ref={inputRef}
         type="file"
@@ -86,6 +104,7 @@ export function CoverImagePicker({
                 variant="secondary"
                 onClick={() => {
                   setPreviewUrl(null);
+                  setHasUploaded(false);
                   onClear();
                 }}
                 disabled={disabled || isUploading}

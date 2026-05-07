@@ -14,7 +14,7 @@ const mockCreate = vi.fn();
 const mockDeleteOrphanCoverImage = vi.fn();
 const mockReplace = vi.fn();
 const mockShowToast = vi.fn();
-// Mutable upload spy — tests in FG_129 suite can call mockUploadCover.mockResolvedValue(...)
+// Mutable upload spy — tests can call mockUploadCover.mockResolvedValue(...).
 const mockUploadCover = vi.fn();
 
 vi.mock("convex/react", () => ({
@@ -71,6 +71,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     mockDeleteOrphanCoverImage.mockReset();
     mockReplace.mockReset();
     mockShowToast.mockReset();
+    mockUploadCover.mockReset();
   });
 
   afterEach(() => {
@@ -195,6 +196,68 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
       expect.objectContaining({ type: "error" }),
     );
     expect(result.current.isSaving).toBe(false);
+  });
+
+  // Pin the falsy-guard at use-new-article-form.tsx:
+  //   ...(coverImageThumbhash && { coverImageThumbhash })
+  // If a future regression removes / inverts the guard, an empty string
+  // would be persisted — and `thumbhashToDataUrl("")` returns null, so the
+  // detail view silently degrades to no LQIP placeholder. Lock both
+  // directions at the hook-level args boundary.
+  it("upload with thumbhash forwards coverImageThumbhash to create", async () => {
+    mockCreate.mockResolvedValue("article_id_4");
+    mockUploadCover.mockResolvedValue({ storageId: "sid_y", thumbhash: "xyz=" });
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("With Thumbhash");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ coverImageThumbhash: "xyz=" }),
+    );
+  });
+
+  it("upload with empty thumbhash omits coverImageThumbhash from create args", async () => {
+    mockCreate.mockResolvedValue("article_id_5");
+    mockUploadCover.mockResolvedValue({ storageId: "sid_x", thumbhash: "" });
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("Degraded");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.not.objectContaining({ coverImageThumbhash: expect.anything() }),
+    );
   });
 });
 

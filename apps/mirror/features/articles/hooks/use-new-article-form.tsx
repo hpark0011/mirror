@@ -53,6 +53,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   const [body, setBody] = useState<JSONContent>(EMPTY_BODY);
   const [coverImageStorageId, setCoverImageStorageId] =
     useState<Id<"_storage"> | null>(null);
+  const [coverImageThumbhash, setCoverImageThumbhash] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -72,7 +73,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
 
   const handleCoverImageUpload = useCallback(
     async (file: File) => {
-      const storageId = await uploadCover(file);
+      const { storageId, thumbhash } = await uploadCover(file);
       const objectUrl = URL.createObjectURL(file);
       // FG_132: revoke the previous blob URL before assigning a new one.
       setCoverImageUrl((prev) => {
@@ -81,7 +82,8 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
       });
       blobUrlRef.current = objectUrl;
       setCoverImageStorageId(storageId);
-      return { storageId: storageId as string, url: objectUrl };
+      setCoverImageThumbhash(thumbhash);
+      return { storageId: storageId as string, thumbhash, url: objectUrl };
     },
     [uploadCover],
   );
@@ -94,6 +96,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     });
     blobUrlRef.current = null;
     setCoverImageStorageId(null);
+    setCoverImageThumbhash("");
   }, []);
 
   const persist = useCallback(
@@ -114,6 +117,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
           body,
           status: targetStatus,
           ...(coverImageStorageId ? { coverImageStorageId } : {}),
+          ...(coverImageThumbhash && { coverImageThumbhash }),
         });
       } catch (err) {
         // FG_129: If create fails after a cover was uploaded, the bytes are
@@ -132,6 +136,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
       body,
       category,
       coverImageStorageId,
+      coverImageThumbhash,
       create,
       deleteOrphanCoverImage,
       router,
