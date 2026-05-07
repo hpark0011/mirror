@@ -27,8 +27,8 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
   const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
   return (
     <div className="py-20 px-4.5 bg-background min-h-[calc(100vh-40px)]">
-      <article className="max-w-xl mx-auto flex flex-col">
-        <div className="flex flex-col gap-0.5 max-w-xl">
+      <article className="mx-auto flex flex-col">
+        <div className="flex flex-col gap-0.5 max-w-xl mx-auto w-full">
           <div className="flex items-center justify-start gap-2 text-[14px] font-medium ml-0.5">
             <span className="leading-[1.2]">
               {article.status === "draft"
@@ -55,14 +55,13 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
 
         {article.coverImageUrl && (
           <div
-            className="relative left-1/2 -translate-x-1/2 aspect-video w-[min(calc(100%+240px),calc(100vw-36px))] overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-2"
+            className="relative left-1/2 -translate-x-1/2 aspect-video overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-4 max-w-4xl w-[calc(100%+64px)]"
             data-cover-thumbhash={article.coverImageThumbhash ?? ""}
           >
             <Image
               src={article.coverImageUrl}
               alt={`Cover image for ${article.title}`}
               fill
-              sizes="(min-width: 768px) 36rem, 100vw"
               priority
               placeholder={blurDataUrl ? "blur" : "empty"}
               blurDataURL={blurDataUrl ?? undefined}
@@ -72,7 +71,9 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
           </div>
         )}
 
-        <RichTextViewer content={article.body} />
+        <div className="max-w-xl mx-auto w-full">
+          <RichTextViewer content={article.body} />
+        </div>
       </article>
     </div>
   );
