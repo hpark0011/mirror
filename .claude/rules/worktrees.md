@@ -2,35 +2,56 @@
 
 Rules for operating safely inside `.worktrees/<branch>/`.
 
-## Canonical `.env.local` set is symlinked across worktrees
+## Per-worktree dev Convex deployment (mandatory)
 
-Two `.env.local` files are gitignored and live only in the main checkout. Every new worktree symlinks them in via `new-worktree.sh`:
+Each worktree provisions its **own** dev Convex deployment. Deployments are NOT shared with main or with sibling worktrees.
 
-| File | How it gets seeded in main |
-|------|----------------------------|
-| `apps/mirror/.env.local` | manual — copy from `apps/mirror/.env.local.example` and fill values |
-| `packages/convex/.env.local` | `pnpm --filter=@feel-good/convex dev` once in main — the Convex CLI auto-writes it on first connect |
+### Why
 
-Resulting symlink layout in each worktree:
+Shared dev deployment + diverging schemas = a guaranteed `convex dev` push failure across sibling branches.
 
-```
-.worktrees/<branch>/apps/mirror/.env.local
-  -> /Users/disquiet/Desktop/mirror/apps/mirror/.env.local
-.worktrees/<branch>/packages/convex/.env.local
-  -> /Users/disquiet/Desktop/mirror/packages/convex/.env.local
-```
+If branch A adds an optional field to a table and writes a row, branch B (whose schema doesn't list the field) refuses to push because the existing row contains a field B's validator rejects. Convex has no "tolerate unknown fields" mode — the only escape hatches are deleting the offending row, narrowing it to match B, or merging A's schema into B. None of that scales when many worktrees may be doing schema-touching work in parallel.
 
-This shares dev coordinates across worktrees but makes each file a single global resource. **Any tool that writes to either file from any worktree mutates the canonical file for every worktree.**
+The previous symlink model (shared `packages/convex/.env.local` across worktrees) made this collision automatic. Per-worktree deployments make it impossible.
 
-`new-worktree.sh` enforces the canonical set: it refuses to create a worktree if either file is missing in main, with a per-file seed hint. If you ever see `convex dev` prompt "What would you like to configure?" or Next.js complain about a missing `NEXT_PUBLIC_CONVEX_URL` in a fresh worktree, that means a canonical file was deleted in main — fix it there, not in the worktree.
+### What's seeded vs what you provision
 
-Before running a tool that may touch `.env.local`:
+| File | How the worktree gets it |
+|------|--------------------------|
+| `apps/mirror/.env.local` | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
+| `packages/convex/.env.local` | **provisioned per worktree** — Convex CLI writes it on first `pnpm --filter=@feel-good/convex dev` run |
+
+### Workflow for a fresh worktree
 
 ```bash
-ls -la apps/mirror/.env.local packages/convex/.env.local
+bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
+cd .worktrees/<branch-name>
+pnpm --filter=@feel-good/convex dev
+  # When prompted, choose "create a new project". The CLI writes
+  # packages/convex/.env.local for this branch.
+./scripts/sync-worktree-convex-env.sh
+  # Rewrites the three CONVEX_* lines in apps/mirror/.env.local to
+  # point at this worktree's deployment.
+./scripts/sync-worktree-convex-secrets.sh
+  # Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
+  # main's deployment into this worktree's deployment.
 ```
 
-If output starts with `lrwxr` (symlink), treat the write as global.
+After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
+
+### Migrating an existing symlinked worktree
+
+```bash
+cd .worktrees/<branch-name>
+rm apps/mirror/.env.local             # removes the symlink, NOT main's file
+rm packages/convex/.env.local         # ditto
+cp ../../apps/mirror/.env.local apps/mirror/.env.local
+pnpm --filter=@feel-good/convex dev   # choose "create a new project"
+./scripts/sync-worktree-convex-env.sh
+./scripts/sync-worktree-convex-secrets.sh
+```
+
+Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both should show `-rw-` (regular file), not `lrwxr` (symlink). The two `sync-worktree-*.sh` scripts will refuse to run if either file is still a symlink.
 
 ## Vercel CLI footgun: `--yes` in an unlinked dir auto-pulls env
 
@@ -40,7 +61,7 @@ Running `vercel <anything> --yes` in a directory without `.vercel/project.json` 
 2. `vercel env pull` — overwrites `.env.local` with the linked environment's vars.
 3. The original command (e.g. `ls`, `inspect`).
 
-If `.env.local` is a symlink, step 2 follows it and clobbers the canonical file across all worktrees. The `development` Vercel env on this project contains only `VERCEL_OIDC_TOKEN`, so the result is "every secret you had locally is gone."
+With per-worktree env files this only clobbers **this worktree's** `apps/mirror/.env.local` — the blast radius no longer crosses worktrees. But the `development` Vercel env on this project contains only `VERCEL_OIDC_TOKEN`, so the result is still "every secret you had in this worktree is gone."
 
 **Rules:**
 
@@ -56,8 +77,23 @@ If `.env.local` is a symlink, step 2 follows it and clobbers the canonical file 
 
 Pulls non-secret values from `packages/convex/.env.local` (Convex coords) and `vercel env pull --environment=production` (Sentry DSN, Tavus). Excludes `CONVEX_DEPLOY_KEY` (would route the convex CLI to prod — see `.claude/rules/auth.md`).
 
-Convex-side secrets (`BETTER_AUTH_SECRET`, `GOOGLE_*`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `PLAYWRIGHT_TEST_SECRET`) live in Convex env, not `.env.local`. View with `pnpm --filter=@feel-good/convex exec convex env list`.
+Convex-side secrets (`BETTER_AUTH_SECRET`, `GOOGLE_*`, `RESEND_API_KEY`, `ANTHROPIC_API_KEY`, `PLAYWRIGHT_TEST_SECRET`) live in Convex env, not `.env.local`. **Each worktree's deployment has its own Convex env** — view from inside the worktree:
+
+```bash
+pnpm --filter=@feel-good/convex exec convex env list
+```
+
+To re-pull from main's deployment, run `./scripts/sync-worktree-convex-secrets.sh`.
 
 ## Worktree path discipline (general)
 
-Every Edit/Write inside a worktree must use the worktree's absolute path. Sub-agent reports that name a main-repo path (`/Users/disquiet/Desktop/mirror/...` instead of `/Users/disquiet/Desktop/mirror/.worktrees/<branch>/...`) are a trap — the file may be a symlink and the write may ripple.
+Every Edit/Write inside a worktree must use the worktree's absolute path. Sub-agent reports that name a main-repo path (`/Users/disquiet/Desktop/mirror/...` instead of `/Users/disquiet/Desktop/mirror/.worktrees/<branch>/...`) target the wrong file when the same path exists in both places.
+
+## Mirror scripts in lockstep
+
+`new-worktree.sh` exists in two places:
+
+- `.claude/skills/new-worktree/scripts/new-worktree.sh` (Claude Code)
+- `.agents/skills/new-worktree/scripts/new-worktree.sh` (codex / other harnesses)
+
+Any change to one MUST be applied to the other. The two scripts have different surface (logging verbosity, install flags) but the env-seeding logic must stay identical.

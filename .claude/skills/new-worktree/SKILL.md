@@ -40,7 +40,7 @@ bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
 
 The script bails on its own if the worktree path or branch already exists.
 
-### 3. Report
+### 3. Report and tell the user the next steps
 
 Tell the user:
 
@@ -48,3 +48,9 @@ Tell the user:
 - Branch name
 - That `pnpm install` completed
 - Reminder to use a different port if running dev servers in multiple worktrees
+- **Provision the worktree's dev Convex deployment** (one-time per worktree):
+  1. `cd .worktrees/<branch-name>`
+  2. `pnpm --filter=@feel-good/convex dev` — choose "create a new project" when prompted
+  3. `./scripts/sync-worktree-convex-env.sh` — points this worktree's frontend at the new deployment
+  4. `./scripts/sync-worktree-convex-secrets.sh` — copies Convex env secrets from main
+- Why this matters: see `.claude/rules/worktrees.md` § Per-worktree dev Convex deployment.
