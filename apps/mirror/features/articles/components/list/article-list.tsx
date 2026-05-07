@@ -44,12 +44,12 @@ export function ArticleList({
 }: ArticleListProps) {
   return (
     <section className="@container w-full mx-auto **:data-[slot=table-container]:overflow-visible pt-12 pb-20 max-w-4xl flex flex-col cursor-pointer">
-      <div className="flex flex-col gap-14 mb-10">
+      <div className="flex flex-col gap-4 mb-4">
         <div className="p-4.5 hover:underline">
           <div className="flex flex-row @max-[480px]:flex-col @max-[480px]:gap-0 gap-10 items-start justify-between">
             {/* Title */}
             <div className="flex flex-col justify-between @max-[480px]:mb-4">
-              <div className="md:text-4xl @max-[880px]:text-3xl @max-[480px]:text-2xl text-2xl leading-[1.05]">
+              <div className="md:text-3xl @max-[880px]:text-2xl @max-[480px]:text-2xl text-2xl leading-[1.05]">
                 Nature and the Creative Process of People
               </div>
               <div className="mt-4 @max-[480px]:mt-2 @max-[480px]:leading-[1.3] leading-[1.4] text-sm">
@@ -68,7 +68,7 @@ export function ArticleList({
             <div className="w-full aspect-video h-full bg-gray-5 max-w-[560px]" />
             {/* Title */}
             <div className="flex flex-col justify-between @max-[480px]:mb-4">
-              <div className="md:text-4xl @max-[880px]:text-3xl @max-[480px]:text-2xl text-2xl leading-[1.05]">
+              <div className="md:text-3xl @max-[880px]:text-2xl @max-[480px]:text-2xl text-2xl leading-[1.05]">
                 Nature and the Creative Process of People
               </div>
               <div className="mt-4 @max-[480px]:mt-2 @max-[480px]:leading-[1.3] leading-[1.4] text-sm">
