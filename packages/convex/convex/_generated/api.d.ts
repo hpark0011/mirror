@@ -15,6 +15,7 @@ import type * as articles_internalImages from "../articles/internalImages.js";
 import type * as articles_mutations from "../articles/mutations.js";
 import type * as articles_queries from "../articles/queries.js";
 import type * as auth_client from "../auth/client.js";
+import type * as auth_options from "../auth/options.js";
 import type * as auth_queries from "../auth/queries.js";
 import type * as auth_testHelpers from "../auth/testHelpers.js";
 import type * as auth_testMode from "../auth/testMode.js";
@@ -87,6 +88,7 @@ declare const fullApi: ApiFromModules<{
   "articles/mutations": typeof articles_mutations;
   "articles/queries": typeof articles_queries;
   "auth/client": typeof auth_client;
+  "auth/options": typeof auth_options;
   "auth/queries": typeof auth_queries;
   "auth/testHelpers": typeof auth_testHelpers;
   "auth/testMode": typeof auth_testMode;
