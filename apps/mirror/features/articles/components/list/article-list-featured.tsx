@@ -61,11 +61,13 @@ function FeaturedArticleCard({
       </div>
       <div className="mt-4 @max-[480px]:mt-2 @max-[480px]:leading-[1.3] leading-[1.4] text-sm">
         <div>{article.category}</div>
-        {article.publishedAt ? (
-          <time dateTime={new Date(article.publishedAt).toISOString()}>
-            {formatShortDate(article.publishedAt)}
-          </time>
-        ) : null}
+        {article.publishedAt
+          ? (
+            <time dateTime={new Date(article.publishedAt).toISOString()}>
+              {formatShortDate(article.publishedAt)}
+            </time>
+          )
+          : null}
       </div>
     </div>
   );
@@ -73,21 +75,23 @@ function FeaturedArticleCard({
   const imageBlock = (
     <div
       className={cn(
-        "relative w-full aspect-video h-full bg-gray-5 max-w-[560px] overflow-hidden",
+        "relative w-full aspect-video h-full bg-gray-5 max-w-[520px] overflow-hidden",
         imageFirst && "@max-[480px]:order-2",
       )}
     >
-      {article.coverImageUrl ? (
-        <Image
-          src={article.coverImageUrl}
-          alt=""
-          fill
-          sizes="(max-width: 880px) 100vw, 560px"
-          placeholder={blurDataUrl ? "blur" : "empty"}
-          blurDataURL={blurDataUrl ?? undefined}
-          className="object-cover"
-        />
-      ) : null}
+      {article.coverImageUrl
+        ? (
+          <Image
+            src={article.coverImageUrl}
+            alt=""
+            fill
+            sizes="(max-width: 880px) 100vw, 560px"
+            placeholder={blurDataUrl ? "blur" : "empty"}
+            blurDataURL={blurDataUrl ?? undefined}
+            className="object-cover"
+          />
+        )
+        : null}
     </div>
   );
 
@@ -98,18 +102,20 @@ function FeaturedArticleCard({
       onClick={handleClick}
       className="block p-4.5 hover:underline"
     >
-      <div className="flex flex-row @max-[480px]:flex-col @max-[480px]:gap-0 gap-10 items-start justify-between">
-        {imageFirst ? (
-          <>
-            {imageBlock}
-            {titleBlock}
-          </>
-        ) : (
-          <>
-            {titleBlock}
-            {imageBlock}
-          </>
-        )}
+      <div className="flex flex-row @max-[480px]:flex-col @max-[480px]:gap-0 gap-7 items-start justify-between">
+        {imageFirst
+          ? (
+            <>
+              {imageBlock}
+              {titleBlock}
+            </>
+          )
+          : (
+            <>
+              {titleBlock}
+              {imageBlock}
+            </>
+          )}
       </div>
     </Link>
   );
