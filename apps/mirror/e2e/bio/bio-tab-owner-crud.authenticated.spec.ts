@@ -61,6 +61,9 @@ function monthEpoch(year: number, month: number): number {
  * is out of scope for Wave 4 and tracked as a follow-up.
  */
 async function waitForAuthReady(page: Page): Promise<void> {
+  // TODO: replace with a `window.__auth_ready` (or equivalent client signal)
+  // wait — see `.claude/rules/verification.md` § "Deterministic e2e waits".
+  // eslint-disable-next-line no-restricted-syntax -- pending auth-ready signal
   await page.waitForTimeout(1500);
 }
 
