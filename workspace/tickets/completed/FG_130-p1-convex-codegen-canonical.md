@@ -3,7 +3,7 @@ id: FG_130
 title: "_generated/api.d.ts matches the canonical convex codegen output"
 date: 2026-05-05
 type: chore
-status: to-do
+status: completed
 priority: p1
 description: "The generated api.d.ts shrank 27135 to 172 lines on this branch with no convex CLI version change in pnpm-lock — confirm which form is correct and regenerate the wrong branch before merge."
 dependencies: []
