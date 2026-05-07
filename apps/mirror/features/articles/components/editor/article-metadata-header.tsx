@@ -105,7 +105,9 @@ export function ArticleMetadataHeader({
 
   const handleSlugChange = useCallback(
     (next: string, fieldOnChange: (value: string) => void) => {
-      slugDirtyRef.current = next.length > 0;
+      // Mirror the trim-based rule used at init (line above) and at save —
+      // a whitespace-only slug should re-enable auto-derive, not pin it off.
+      slugDirtyRef.current = next.trim().length > 0;
       fieldOnChange(next);
     },
     [],

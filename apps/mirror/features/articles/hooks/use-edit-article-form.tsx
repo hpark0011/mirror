@@ -223,7 +223,14 @@ export function useEditArticleForm({
               reject(err);
             }
           },
-          () => resolve(),
+          // Reject (not resolve) on validation failure so the publish
+          // confirmation dialog stays open instead of silently closing
+          // on a no-op publish. Inline form errors render via
+          // <FormMessage />; the toast in the catch tells the user why.
+          () =>
+            reject(
+              new Error("Please fix the highlighted fields before publishing."),
+            ),
         )();
       });
     } catch (err) {

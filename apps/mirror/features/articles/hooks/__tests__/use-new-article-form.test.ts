@@ -392,4 +392,88 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
     expect(mockCreate).toHaveBeenCalledTimes(1);
     expect(mockDeleteOrphanCoverImage).not.toHaveBeenCalled();
   });
+
+  // Pins the retry-after-orphan-cleanup invariant: once the orphan delete is
+  // enqueued, the local cover reference must be cleared. Otherwise a retry
+  // (e.g. user fixes the slug and saves again) re-sends a storageId whose
+  // bytes the orphan-sweep mutation has already deleted, persisting a
+  // dangling cover reference.
+  it("clears local cover state when orphan cleanup is scheduled", async () => {
+    mockUploadCover.mockResolvedValue({ storageId: "storage_id_def", thumbhash: "" });
+    mockCreate.mockRejectedValue(new Error("An article with slug already exists"));
+    mockDeleteOrphanCoverImage.mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("Will Fail");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    // Sanity: cover state populated before the failed save.
+    expect(result.current.coverImageUrl).not.toBeNull();
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockDeleteOrphanCoverImage).toHaveBeenCalledTimes(1);
+    // After orphan cleanup is scheduled the local cover reference is wiped
+    // so a retry (with a corrected slug) must re-upload.
+    expect(result.current.coverImageUrl).toBeNull();
+  });
+});
+
+describe("useNewArticleForm — togglePublish validation", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockDeleteOrphanCoverImage.mockReset();
+    mockReplace.mockReset();
+    mockShowToast.mockReset();
+    mockUploadCover.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Pins the dialog-stays-open contract for ArticlePublishToggle:
+  // togglePublish must REJECT on validation failure (not silently resolve)
+  // so the AlertDialog's catch keeps the dialog open. Resolving would close
+  // the dialog while no row was actually created — a silent no-op publish.
+  it("rejects when the form is invalid and surfaces an error toast", async () => {
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    // Title left empty (default ""), category set — schema requires both.
+    act(() => {
+      result.current.setCategory("Process");
+    });
+
+    let caught: unknown = null;
+    await act(async () => {
+      try {
+        await result.current.togglePublish();
+      } catch (err) {
+        caught = err;
+      }
+    });
+
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(caught).toBeInstanceOf(Error);
+    expect(mockShowToast).toHaveBeenCalledTimes(1);
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(result.current.isSaving).toBe(false);
+  });
 });

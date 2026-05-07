@@ -179,6 +179,24 @@ describe("ArticleMetadataHeader", () => {
     expect(slugEl().value).toBe("reactivated");
   });
 
+  it("treats a whitespace-only slug as empty so auto-derive re-engages", () => {
+    // Pin the trim-based dirty rule: the init read uses `.trim().length`,
+    // and updates must too. Otherwise typing only spaces pins auto-derive
+    // off even though the save path treats the slug as empty.
+    render(<TestHarness />);
+    const slugEl = () =>
+      screen.getByTestId("article-slug-input") as HTMLInputElement;
+
+    fireEvent.change(slugEl(), { target: { value: "   " } });
+    expect(slugEl().value).toBe("   ");
+
+    // Whitespace-only slug must still let the title auto-derive run.
+    fireEvent.change(screen.getByTestId("article-title-input"), {
+      target: { value: "Reactivated" },
+    });
+    expect(slugEl().value).toBe("reactivated");
+  });
+
   it("renders the published-at field as empty placeholder when null", () => {
     render(<TestHarness />);
     const published = screen.getByTestId("article-published-at");
