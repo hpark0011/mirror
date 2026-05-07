@@ -5,8 +5,17 @@
 #
 # Steps:
 #   1. Validate the branch-name argument.
-#   2. Create a fresh worktree under .worktrees/<branch-name> branched off main.
-#   3. Run the same local setup script Codex uses for new worktrees.
+#   2. Verify apps/mirror/.env.local is present in main. (gitignored, only
+#      lives in the main checkout — the worktree inherits a copy in step 5.)
+#   3. Create a fresh worktree under .worktrees/<branch-name> branched off main.
+#   4. Install dependencies with pnpm.
+#   5. COPY apps/mirror/.env.local from main (no symlink — see worktrees.md).
+#      packages/convex/.env.local is intentionally NOT seeded; the user
+#      provisions a per-worktree dev Convex deployment on first run of
+#      `pnpm --filter=@feel-good/convex dev`. This makes cross-worktree
+#      schema divergence impossible (sibling branches' `convex dev` push
+#      can no longer be broken by a field one branch wrote on a shared
+#      deployment).
 
 set -e  # Exit immediately on any failed command.
 
@@ -15,30 +24,69 @@ set -e  # Exit immediately on any failed command.
 BRANCH_NAME="$1"
 [[ -z "$BRANCH_NAME" ]] && echo "Error: branch name required" && exit 1
 
-# Resolve repo root so the script works no matter where it's invoked from.
 GIT_ROOT=$(git rev-parse --show-toplevel)
 WORKTREE_PATH="$GIT_ROOT/.worktrees/$BRANCH_NAME"
 
-# Bail out if a worktree already lives at the target path — never overwrite.
 [[ -d "$WORKTREE_PATH" ]] && echo "Error: worktree already exists at $WORKTREE_PATH" && exit 1
 
-# --- 2. Create the worktree --------------------------------------------------
+# --- 2. Verify apps/mirror/.env.local is present in main --------------------
 
-# Verify setup prerequisites before creating anything. The full setup runs again
-# inside the new worktree after checkout.
-bash "$GIT_ROOT/scripts/setup-codex-worktree.sh" --check
+APP_ENV_REL="apps/mirror/.env.local"
+APP_ENV_SRC="$GIT_ROOT/$APP_ENV_REL"
 
-# Ensure the .worktrees/ container directory exists.
+if [[ ! -f "$APP_ENV_SRC" ]]; then
+  echo "Error: $APP_ENV_REL is missing from the main repo." >&2
+  echo "  seed: copy from apps/mirror/.env.local.example and fill in values" >&2
+  exit 1
+fi
+
+# --- 3. Create the worktree --------------------------------------------------
+
 mkdir -p "$GIT_ROOT/.worktrees"
-
-# Create a new branch from main and check it out into the worktree path.
-# --quiet suppresses the per-percent "Updating files:" progress spam.
 git worktree add --quiet -b "$BRANCH_NAME" "$WORKTREE_PATH" main
 
 # --- 3. Run local setup ------------------------------------------------------
 
 cd "$WORKTREE_PATH"
-bash "$GIT_ROOT/scripts/setup-codex-worktree.sh"
+pnpm install --frozen-lockfile --prefer-offline --reporter=append-only
 
+# --- 5. Seed the worktree's env files ---------------------------------------
+# Copy (not symlink) apps/mirror/.env.local so this worktree's secrets are
+# decoupled from main and from sibling worktrees. The Convex coords in this
+# file (CONVEX_DEPLOYMENT, NEXT_PUBLIC_CONVEX_URL, NEXT_PUBLIC_CONVEX_SITE_URL)
+# still point at main's dev Convex deployment until the user runs the
+# next-step commands printed below.
+
+APP_ENV_DEST="$WORKTREE_PATH/$APP_ENV_REL"
+mkdir -p "$(dirname "$APP_ENV_DEST")"
+cp "$APP_ENV_SRC" "$APP_ENV_DEST"
 echo ""
-echo "Worktree created: $WORKTREE_PATH"
+echo "Copied $APP_ENV_REL from main (independent file — edits here stay here)"
+
+# packages/convex/.env.local is intentionally NOT created. The user runs
+# `pnpm --filter=@feel-good/convex dev` in this worktree to provision a
+# fresh dev Convex deployment for this branch. See .claude/rules/worktrees.md.
+
+cat <<EOF
+
+Worktree created: $WORKTREE_PATH
+
+Next steps (one-time per worktree):
+  1. cd "$WORKTREE_PATH"
+  2. pnpm --filter=@feel-good/convex dev
+       Choose "create a new project" when prompted. The CLI writes
+       packages/convex/.env.local with this worktree's deployment coords.
+  3. ./scripts/sync-worktree-convex-env.sh
+       Rewrites the three CONVEX_* lines in apps/mirror/.env.local so
+       Next.js targets this worktree's deployment.
+  4. ./scripts/sync-worktree-convex-secrets.sh
+       Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
+       main's deployment into this worktree's deployment.
+  5. pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
+       Populates this deployment with the rick-rubin demo workspace
+       (3 articles, 10 posts, 2 chat conversations). Browse at
+       http://localhost:3001/@rick-rubin once \`pnpm dev:safe\` is up.
+
+Why a per-worktree deployment? See .claude/rules/worktrees.md.
+
+EOF
