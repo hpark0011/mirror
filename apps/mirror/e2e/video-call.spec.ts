@@ -60,6 +60,10 @@ test.describe("Tavus CVI Video Calling", () => {
       await videoButton.click();
 
       // Wait for call to connect
+      // TODO: replace with a `data-call-state="connected"` data-attribute
+      // wait once Tavus/Daily exposes a deterministic ready signal — see
+      // `.claude/rules/verification.md` § "Deterministic e2e waits".
+      // eslint-disable-next-line no-restricted-syntax -- third-party call connect, no ready signal yet
       await page.waitForTimeout(5000);
 
       // Camera toggle button should exist
@@ -78,6 +82,10 @@ test.describe("Tavus CVI Video Calling", () => {
       const videoButton = page.locator("text=Video").first();
       await videoButton.click();
 
+      // TODO: replace with a `data-call-state="connected"` data-attribute
+      // wait once Tavus/Daily exposes a deterministic ready signal — see
+      // `.claude/rules/verification.md` § "Deterministic e2e waits".
+      // eslint-disable-next-line no-restricted-syntax -- third-party call connect, no ready signal yet
       await page.waitForTimeout(5000);
 
       // Mic toggle button should exist
@@ -96,6 +104,10 @@ test.describe("Tavus CVI Video Calling", () => {
       const videoButton = page.locator("text=Video").first();
       await videoButton.click();
 
+      // TODO: replace with a `data-call-state="connected"` data-attribute
+      // wait once Tavus/Daily exposes a deterministic ready signal — see
+      // `.claude/rules/verification.md` § "Deterministic e2e waits".
+      // eslint-disable-next-line no-restricted-syntax -- third-party call connect, no ready signal yet
       await page.waitForTimeout(5000);
 
       // End Call button should exist
@@ -114,6 +126,10 @@ test.describe("Tavus CVI Video Calling", () => {
       const videoButton = page.locator("text=Video").first();
       await videoButton.click();
 
+      // TODO: replace with a `data-call-state="connected"` data-attribute
+      // wait once Tavus/Daily exposes a deterministic ready signal — see
+      // `.claude/rules/verification.md` § "Deterministic e2e waits".
+      // eslint-disable-next-line no-restricted-syntax -- third-party call connect, no ready signal yet
       await page.waitForTimeout(5000);
 
       // Click end call or close button
