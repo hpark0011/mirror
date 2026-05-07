@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import type { UIMessage } from "@convex-dev/agent/react";
+import { type UIMessage } from "@convex-dev/agent/react";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { isContentKind, type ContentKind } from "@/features/content";
 

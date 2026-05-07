@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 type RateLimitErrorData = {
   code: "RATE_LIMIT_MINUTE" | "RATE_LIMIT_DAILY";

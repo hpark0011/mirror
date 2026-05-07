@@ -7,7 +7,7 @@ import { Checkbox } from "@feel-good/ui/primitives/checkbox";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { formatShortDate, getContentHref } from "@/features/content";
-import type { ArticleSummary } from "../../types";
+import { type ArticleSummary } from "../../types";
 import { AnimatedArticleRow } from "./animated-article-row";
 import { cn } from "@feel-good/utils/cn";
 

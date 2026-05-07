@@ -3,7 +3,7 @@
 import { useQuery } from "convex/react";
 import { useUIMessages, type UIMessage } from "@convex-dev/agent/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 // Our listThreadMessages query uses `conversationId` alongside `threadId` for
 // access control, but useUIMessages expects `threadId` as the sole identifier.

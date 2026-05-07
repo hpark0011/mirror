@@ -6,7 +6,7 @@ import {
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
 import { cn } from "@feel-good/utils/cn";
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 
 interface ToolbarButtonProps {
   label: string;

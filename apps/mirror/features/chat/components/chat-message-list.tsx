@@ -1,6 +1,6 @@
 "use client";
 
-import type { UIMessage } from "@convex-dev/agent/react";
+import { type UIMessage } from "@convex-dev/agent/react";
 import { ArrowDownIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { cn } from "@feel-good/utils/cn";

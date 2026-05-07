@@ -10,7 +10,7 @@ import { LinkIcon } from "@feel-good/icons";
 import { Input } from "@feel-good/ui/primitives/input";
 import { cn } from "@feel-good/utils/cn";
 import { type EditorState, TextSelection } from "@tiptap/pm/state";
-import type { Editor } from "@tiptap/react";
+import { type Editor } from "@tiptap/react";
 import { BubbleMenu } from "@tiptap/react/menus";
 import {
   type KeyboardEvent,

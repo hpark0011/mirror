@@ -1,6 +1,6 @@
 "use client";
 
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { useChatMessages } from "./use-chat-messages";
 import { useChatOptimistic } from "./use-chat-optimistic";
 import { useChatSend } from "./use-chat-send";

@@ -6,7 +6,7 @@ import {
   DailyAudio,
   useLocalSessionId,
 } from "@daily-co/daily-react";
-import type { CallState } from "../types";
+import { type CallState } from "../types";
 import { CallControls } from "./call-controls";
 import { ConnectionStatus } from "./connection-status";
 

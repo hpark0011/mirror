@@ -7,7 +7,7 @@
 import { useCallback } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { uploadToStorage } from "@/lib/upload-to-storage";
 
 export type UseArticleCoverImageUploadReturn = {

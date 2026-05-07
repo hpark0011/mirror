@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { type SVGProps } from "react";
 
 export function DocRichTextFillIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (

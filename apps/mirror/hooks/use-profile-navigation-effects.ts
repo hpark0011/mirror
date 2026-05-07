@@ -1,7 +1,7 @@
 "use client";
 
 import { useLayoutEffect, useRef } from "react";
-import type { ContentRouteState } from "@/features/content";
+import { type ContentRouteState } from "@/features/content";
 
 export type RouteMode = "list" | "detail";
 

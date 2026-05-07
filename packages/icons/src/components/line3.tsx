@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { type SVGProps } from "react";
 
 export function Line3Icon({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (

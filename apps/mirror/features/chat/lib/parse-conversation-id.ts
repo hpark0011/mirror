@@ -1,4 +1,4 @@
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 export type ParsedConversationId =
   | { status: "none" }

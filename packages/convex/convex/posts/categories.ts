@@ -1,4 +1,4 @@
-import type { Doc } from "../_generated/dataModel";
+import { type Doc } from "../_generated/dataModel";
 
 export const DEFAULT_POST_CATEGORY = "Creativity";
 export const MAX_POST_CATEGORY_LENGTH = 100;

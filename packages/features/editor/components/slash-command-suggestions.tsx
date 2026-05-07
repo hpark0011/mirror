@@ -13,7 +13,7 @@ import {
   CommandSeparator,
 } from "@feel-good/ui/primitives/command";
 import { useImperativeHandle, useRef, type Ref } from "react";
-import type { SlashCommandItem } from "../extensions/slash-command";
+import { type SlashCommandItem } from "../extensions/slash-command";
 
 interface SlashCommandSuggestionsProps {
   items: SlashCommandItem[];

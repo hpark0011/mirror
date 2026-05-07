@@ -10,8 +10,8 @@ import {
   type SortOrder,
   type UseContentSearchReturn,
 } from "@/features/content";
-import type { PostSummary } from "../../types";
-import type { UsePostFilterReturn } from "../../hooks/use-post-filter";
+import { type PostSummary } from "../../types";
+import { type UsePostFilterReturn } from "../../hooks/use-post-filter";
 import { PostCategoryFilterRow } from "./post-category-filter-row";
 
 type PostListToolbarProps = {

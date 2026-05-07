@@ -1,9 +1,9 @@
 import { internalMutation } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import { type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { createThread, saveMessage } from "@convex-dev/agent";
 import { components } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import { type Id } from "./_generated/dataModel";
 import { getPostCategoryForSlug } from "./posts/categories";
 
 // ── Seed data ───────────────────────────────────────────────────────

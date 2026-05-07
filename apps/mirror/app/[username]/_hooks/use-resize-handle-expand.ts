@@ -1,9 +1,9 @@
 "use client";
 
 import { useCallback, type ComponentProps } from "react";
-import type { ResizableHandle } from "@feel-good/ui/primitives/resizable";
-import type { ContentPanelController } from "./use-content-panel-controller";
-import type { InteractionPanelController } from "./use-interaction-panel-controller";
+import { type ResizableHandle } from "@feel-good/ui/primitives/resizable";
+import { type ContentPanelController } from "./use-content-panel-controller";
+import { type InteractionPanelController } from "./use-interaction-panel-controller";
 
 type ResizableHandlePointerDownCapture = NonNullable<
   ComponentProps<typeof ResizableHandle>["onPointerDownCapture"]

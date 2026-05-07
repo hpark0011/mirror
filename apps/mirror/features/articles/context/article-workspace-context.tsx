@@ -19,7 +19,7 @@ import {
   useContentSort,
   type SortOrder,
 } from "@/features/content";
-import type { ArticleSummary } from "../types";
+import { type ArticleSummary } from "../types";
 import { useArticlePagination } from "../hooks/use-article-pagination";
 import { useArticleSelection } from "../hooks/use-article-selection";
 import { useArticleFilter } from "../hooks/use-article-filter";

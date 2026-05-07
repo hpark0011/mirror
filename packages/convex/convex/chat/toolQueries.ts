@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { type Id } from "../_generated/dataModel";
 import {
   buildBioHref,
   buildContentHref,

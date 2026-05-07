@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import type { QueryCtx, MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { type QueryCtx, type MutationCtx } from "../_generated/server";
+import { type Id } from "../_generated/dataModel";
 import { tonePresetValidator, type TonePreset } from "../chat/tonePresets";
 
 export const RESERVED_USERNAMES = new Set([

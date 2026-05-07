@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { AuthError, AuthStatus, OTPStep } from "../types";
+import { type AuthError, type AuthStatus, type OTPStep } from "../types";
 import { OTPView } from "./otp-view";
 
 export interface OTPLoginViewProps {

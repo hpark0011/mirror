@@ -9,9 +9,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { useConversations, type Conversation } from "@/features/chat";
-import type { ChatRouteResolution } from "@/features/chat/types";
+import { type ChatRouteResolution } from "@/features/chat/types";
 import { parseConversationId } from "@/features/chat/lib/parse-conversation-id";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "./profile-route-data-context";

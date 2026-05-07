@@ -15,7 +15,7 @@ import {
   mapInlineImages,
   type JSONContent,
 } from "../content/bodyWalk";
-import type { Id } from "../_generated/dataModel";
+import { type Id } from "../_generated/dataModel";
 
 /**
  * Rewrite every inline image node's `src` from its `storageId` so the body

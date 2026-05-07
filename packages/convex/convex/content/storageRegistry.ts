@@ -8,8 +8,8 @@
 // `content/__tests__/orphanSweep.test.ts` will fail until both the
 // schema source and this list agree (set equality on `<table>.<field>`).
 
-import type { MutationCtx } from "../_generated/server";
-import type { Doc, Id } from "../_generated/dataModel";
+import { type MutationCtx } from "../_generated/server";
+import { type Doc, type Id } from "../_generated/dataModel";
 import { extractInlineImageStorageIds } from "./bodyWalk";
 
 /**

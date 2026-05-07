@@ -29,7 +29,7 @@ vi.mock("../../auth/client", () => {
 });
 
 import { api } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import { type Id } from "../../_generated/dataModel";
 import schema from "../../schema";
 
 function normalizeConvexGlob(

@@ -36,8 +36,8 @@
 //        a human-supplied slug via the regular update mutation.
 
 import { v } from "convex/values";
-import type { Id } from "../_generated/dataModel";
-import type { MutationCtx } from "../_generated/server";
+import { type Id } from "../_generated/dataModel";
+import { type MutationCtx } from "../_generated/server";
 import { internalMutation } from "../_generated/server";
 import { MAX_SLUG_LENGTH } from "../content/schema";
 import { validateContentStringLength } from "./helpers";

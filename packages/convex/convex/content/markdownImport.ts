@@ -30,14 +30,14 @@
 // `_patchInlineImageBody` mutation for that entity) so this helper itself
 // stays entity-agnostic.
 
-import type { ActionCtx } from "../_generated/server";
+import { type ActionCtx } from "../_generated/server";
 import {
   collectExternalImageSrcs,
   type JSONContent,
 } from "./bodyWalk";
 import { safeFetchImage, SafeFetchError } from "./safeFetch";
 import { MAX_IMPORT_IMAGES_PER_ACTION } from "./storagePolicy";
-import type { Id } from "../_generated/dataModel";
+import { type Id } from "../_generated/dataModel";
 
 export type ImageFailure = { src: string; reason: string };
 

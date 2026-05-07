@@ -7,7 +7,7 @@ import {
   useMemo,
   useState,
 } from "react";
-import type { DockConfig, DockContextValue, DockState } from "../lib/types";
+import { type DockConfig, type DockContextValue, type DockState } from "../lib/types";
 
 const DockContext = createContext<DockContextValue | null>(null);
 

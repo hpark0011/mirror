@@ -74,7 +74,7 @@ import { buildCloneTools } from "../tools";
 import { buildContentHref } from "../toolQueries";
 import { buildBioHref } from "../../content/href";
 import { normalizeConvexGlob } from "./testUtils";
-import type { Id } from "../../_generated/dataModel";
+import { type Id } from "../../_generated/dataModel";
 
 const rawModules = import.meta.glob("../../**/*.{ts,js}");
 const modules = normalizeConvexGlob(rawModules);
