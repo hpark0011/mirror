@@ -79,5 +79,20 @@ if ! (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set --force < "$TMP
   exit 1
 fi
 
+MIRROR_PORT=$(node "$GIT_ROOT/scripts/with-worktree-port.mjs" mirror --print)
+WORKTREE_SITE_URL="http://localhost:$MIRROR_PORT"
+MAIN_ALLOWED_HOSTS=$(grep '^AUTH_ALLOWED_HOSTS=' "$TMPFILE" | head -n1 | cut -d= -f2- || true)
+WORKTREE_ALLOWED_HOSTS="localhost:*,127.0.0.1:*"
+if [[ -n "$MAIN_ALLOWED_HOSTS" ]]; then
+  WORKTREE_ALLOWED_HOSTS="$MAIN_ALLOWED_HOSTS,$WORKTREE_ALLOWED_HOSTS"
+fi
+
+echo ""
+echo "Setting worktree-specific auth origin:"
+echo "  SITE_URL=$WORKTREE_SITE_URL"
+echo "  AUTH_ALLOWED_HOSTS=$WORKTREE_ALLOWED_HOSTS"
+(cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set SITE_URL "$WORKTREE_SITE_URL" >/dev/null)
+(cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set AUTH_ALLOWED_HOSTS "$WORKTREE_ALLOWED_HOSTS" >/dev/null)
+
 echo ""
 echo "Synced $COUNT env vars from main → this worktree's deployment."

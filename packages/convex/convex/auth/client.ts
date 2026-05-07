@@ -9,6 +9,11 @@ import { type DataModel } from "../_generated/dataModel";
 import authConfig from "../auth.config";
 import { isPlaywrightTestEmail, isPlaywrightTestMode } from "./testMode";
 import { env } from "../env";
+import {
+  resolveAuthBaseURL,
+  resolveOAuthProxyPlugins,
+  resolveTrustedOrigins,
+} from "./options";
 
 /**
  * Tier 2 — early-rejection UX gate helper. Extracted from the inline
@@ -116,10 +121,12 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
   // createAuth is called from HTTP actions, so ctx supports runAction at runtime.
   // GenericCtx is a union type, so we narrow to the action context for email calls.
   const actionCtx = ctx as GenericActionCtx<DataModel>;
+  const baseURL = resolveAuthBaseURL(env);
+  const trustedOrigins = resolveTrustedOrigins(baseURL, env.SITE_URL);
 
   return betterAuth({
-    baseURL: env.SITE_URL,
-    trustedOrigins: [env.SITE_URL],
+    baseURL,
+    ...(trustedOrigins ? { trustedOrigins } : {}),
     database: authComponent.adapter(ctx),
 
     emailVerification: {
@@ -164,6 +171,7 @@ export const createAuth = (ctx: GenericCtx<DataModel>) => {
     },
 
     plugins: [
+      ...resolveOAuthProxyPlugins(env),
       convex({ authConfig }),
       magicLink({
         sendMagicLink: async ({ email, url }) => {
