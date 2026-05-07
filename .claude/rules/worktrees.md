@@ -35,9 +35,26 @@ pnpm --filter=@feel-good/convex dev
 ./scripts/sync-worktree-convex-secrets.sh
   # Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
   # main's deployment into this worktree's deployment.
+pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
+  # Populates the deployment with the rick-rubin demo workspace
+  # (3 articles, 10 posts, 2 chat conversations). The seed is the
+  # canonical way to populate a fresh deployment — it's schema-safe by
+  # construction and idempotent. Browse at
+  # http://localhost:3001/@rick-rubin once `pnpm dev:safe` is up.
 ```
 
 After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
+
+### Why code-based seeding instead of `convex export` / `import`?
+
+The Convex Stack article on [seeding preview deployments](https://stack.convex.dev/seeding-data-for-preview-deployments) recommends code-based seeding (`convex/seed.ts`) over data import for cross-deployment workflows. For our case the trade-offs come out clearly in favor of seeding:
+
+- Doesn't depend on main's data state — sibling branches' schema-divergent rows can't poison the seed.
+- Schema-safe by construction — the seed runs through the current branch's validators.
+- Idempotent — re-running adds nothing if data exists.
+- Reviewable in PRs — the seed lives in source, not in a binary zip.
+
+`convex export` / `convex import` is still the right tool when you specifically need to replicate a real user-by-user snapshot (e.g., reproducing a production bug locally). For everyday "make this worktree browseable for dev work," use the seed.
 
 ### Migrating an existing symlinked worktree
 
@@ -49,6 +66,7 @@ cp ../../apps/mirror/.env.local apps/mirror/.env.local
 pnpm --filter=@feel-good/convex dev   # choose "create a new project"
 ./scripts/sync-worktree-convex-env.sh
 ./scripts/sync-worktree-convex-secrets.sh
+pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
 ```
 
 Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both should show `-rw-` (regular file), not `lrwxr` (symlink). The two `sync-worktree-*.sh` scripts will refuse to run if either file is still a symlink.

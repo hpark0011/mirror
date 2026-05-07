@@ -89,6 +89,10 @@ Next steps (one-time per worktree):
   4. ./scripts/sync-worktree-convex-secrets.sh
        Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
        main's deployment into this worktree's deployment.
+  5. pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
+       Populates this deployment with the rick-rubin demo workspace
+       (3 articles, 10 posts, 2 chat conversations). Browse at
+       http://localhost:3001/@rick-rubin once \`pnpm dev:safe\` is up.
 
 Why a per-worktree deployment? See .claude/rules/worktrees.md.
 
