@@ -20,7 +20,7 @@ Pause and surface instead of pressing on when:
 
 ## Workflow
 
-```text
+```
 - [ ] 1. Ingest    — scope, changed files, untracked check, worktree-clean check, read each file fully, load matching rules
 - [ ] 2. Intent    — infer change type, goal, expected behavior, invariants, risk surface; grep workspace/lessons.md for past incidents
 - [ ] 3. Route     — pick reviewers based on the risk map (correctness/convention/tests/maintainability/agent-native always)
@@ -42,12 +42,7 @@ Determine scope and build the review packet. Read files in full; context lives o
 | `--staged`     | `git diff --staged`                                                                    |
 | Branch name    | `git diff main...<branch>`                                                             |
 | File or dir    | `git diff main -- <path>`                                                              |
-| `--base <ref>` | See fenced block below — fast-path for skill-to-skill callers that already know the base. Skip merge-base detection. Do not combine with branch arg. |
-
-```bash
-BASE=$(git merge-base HEAD <ref>) || BASE=<ref>
-git diff $BASE
-```
+| `--base <ref>` | `BASE=$(git merge-base HEAD <ref>) \|\| BASE=<ref>; git diff $BASE` — fast-path for skill-to-skill callers that already know the base. Skip merge-base detection. Do not combine with branch arg. |
 
 **Pre-flight checks** before computing the diff (run in this order):
 
@@ -56,7 +51,7 @@ git diff $BASE
 
 **Rule mapping** — load only the rule files relevant to the diff. Every loaded rule costs tokens.
 
-1. **Discover.** List `.claude/rules/**/*.md`. If that directory doesn't exist, fall back to whatever convention docs the repo uses (`AGENTS.md`, `AGENTS.md`, `CONTRIBUTING.md`, `docs/conventions/`).
+1. **Discover.** List `.claude/rules/**/*.md`. If that directory doesn't exist, fall back to whatever convention docs the repo uses (`AGENTS.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `docs/conventions/`).
 2. **Match by topic, not by hard-coded path.** Rule filenames name their domain — use the filename as the trigger.
    - `forms.md` → diff touches form components or imports a form library
    - `typescript.md` → diff touches `.ts` / `.tsx`
@@ -67,7 +62,7 @@ git diff $BASE
    - `file-organization.md` → diff creates, moves, or renames files
    - _(same pattern for any other rule file — the name is the trigger)_
 3. **Nested scopes.** If `.claude/rules/apps/<app>/` or `.claude/rules/<topic>/` exists and the diff lives under that scope, load those too.
-4. **Always-on rule.** Load the repo's dev-process / always-on rule if one exists (e.g. `dev-process.md`). The project's `AGENTS.md` / `AGENTS.md` topic-rules index usually marks which rule is always-on.
+4. **Always-on rule.** Load the repo's dev-process / always-on rule if one exists (e.g. `dev-process.md`). The project's `AGENTS.md` / `CLAUDE.md` topic-rules index usually marks which rule is always-on.
 
 Principle: rule filename = domain trigger. A new rule file added to the project auto-applies without editing this skill.
 
@@ -113,7 +108,7 @@ Typical subset on a real PR: 5–8 agents total, cap at 9. Every agent spawn is 
 
 Cross-cutting contract used by every reviewer in Phase 4 and by Normalize, Critique, and Compose downstream. Every candidate finding fills:
 
-```text
+```
 id:                    short slug
 reviewer:              correctness | convention | tests | maintainability | agent-native | concurrency | security | performance | data | reliability | previous-comments
 title:                 one-line (must name the concrete failure mode or risk)
@@ -155,7 +150,7 @@ Each reviewer prompt must include:
 
 Example orchestration (one message, parallel tool calls):
 
-```text
+```
 Agent(subagent_type: "code-review-correctness", prompt: <scope + files + intent + schema reminder>)
 Agent(subagent_type: "code-review-convention",  prompt: <same>)
 Agent(subagent_type: "code-review-tests",       prompt: <same>)

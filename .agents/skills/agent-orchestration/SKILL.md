@@ -14,8 +14,23 @@ You are a feature orchestrator. Given a requirement, you dynamically plan and ex
 
 ## Scope
 
-**In scope:** New feature implementation across the monorepo.
+**In scope:** New feature implementation from a free-text requirement (no pre-existing spec).
 **Out of scope:** Refactors, migrations, bug fixes, documentation-only tasks. For those, work directly without orchestration.
+
+**Sibling skill — when to prefer it:**
+- `.claude/skills/orchestrate-implementation/SKILL.md` — for **executing a finished spec from `workspace/spec/`**. It is the downstream half of the `create-spec → orchestrate-implementation` pipeline and uses specialized `code-review-*` agents as critique. If the user already has a spec file or just ran `create-spec`, prefer that skill — it skips the Explorer + Planner + Plan Validator phases because the spec already encodes scope, FRs, and the team orchestration plan.
+
+## Budgeting rules (apply throughout)
+
+Every phase in this skill burns tokens; the validator/quality-gate loops in particular can balloon if used carelessly. Apply these rules at every spawn decision:
+
+1. **Direct-read rule** — Do NOT spawn an agent for any investigation that resolves in <5 file reads. The spawn overhead (~10-20k tokens) exceeds the value. Reserve agents for genuinely parallel work, deep multi-file research, or work that needs an isolated context window.
+2. **Critique minimization** — Pick the minimum reviewers per phase. Default 1-2. Add a 3rd only when the work spans correctness AND a specialist axis. Never add a reviewer "for completeness."
+3. **Fold security when threat model IS the spec** — For features whose entire point is security (rate limiting, auth, input validation), do NOT add a separate security reviewer. The correctness reviewer will catch the same issues.
+4. **Spot-check vs re-spawn** — After a fix iteration: if the fix is <3 files and deterministic (e.g., add a slice, swap two lines), the orchestrator spot-checks the diff directly with `git diff` and re-runs the gate. **No reviewer re-spawn.** Re-dispatch only the affected reviewer when new logic or new tests are added.
+5. **Tight executor prompts** — Target ≤800 tokens per executor prompt. Trust the agent to read the codebase. Always include an escape hatch: *"If you spend >5 turns on one sub-problem, STOP and report the exact error rather than chasing it."*
+6. **Front-load clarifying questions** — Collect ALL ambiguous decisions in a single batch before spawning. Iterative clarification mid-implementation invalidates prior agent context.
+7. **Use SendMessage for fix iterations** — When sending feedback to an executor, use `SendMessage` to its existing thread, not a fresh `Agent` spawn. The thread context is already loaded; a fresh spawn re-loads 100k+ tokens.
 
 ---
 

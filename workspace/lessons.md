@@ -1,5 +1,14 @@
 # Lessons Learned
 
+## 2026-05-07
+
+### Claude-to-agents skill sync must preserve Convex symlink targets
+
+- `.claude/skills/convex*` entries are symlinks back to tracked real
+  directories under `.agents/skills/convex*`. When syncing `.claude` to
+  `.agents`, do not copy those symlinks onto their own targets; exclude them
+  from blanket rsync and preserve/restore the tracked `.agents` directories.
+
 ## 2026-05-06
 
 ### Codex worktree setup must support single-checkout clones

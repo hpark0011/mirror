@@ -9,7 +9,7 @@ argument-hint: "[domain-name]"
 
 Scaffold a **self-improving codebase expert agent** — a domain agent that owns a bounded coding layer. The system has three parts.
 
-1. **Agent spec** (`.Codex/agents/<name>.md`) — domain boundary, how to operate, guiding principles, available skills/tools
+1. **Agent spec** (`.claude/agents/<name>.md`) — domain boundary, how to operate, guiding principles, available skills/tools
 2. **Knowledge** (`agent-memory/<name>/knowledge.md`) — architecture, data flow & contracts, gotchas, references
 3. **Logs** (`agent-memory/<name>/logs.md`) — append-only session evals against 4 criteria, bottleneck identification, patches applied
 
@@ -25,7 +25,7 @@ The agent improves itself by ending every session with a log entry that patches 
 /create-codebase-expert chat-backend-developer
 ```
 
-Answer the boundary question when prompted (files/dirs owned, what it does NOT own). The skill writes `.Codex/agents/<name>.md` + `.Codex/agent-memory/<name>/{knowledge.md,logs.md}`, installs the `SubagentStop` hook, and runs `validate-scaffold.mjs`. Done when the validator exits 0.
+Answer the boundary question when prompted (files/dirs owned, what it does NOT own). The skill writes `.claude/agents/<name>.md` + `.claude/agent-memory/<name>/{knowledge.md,logs.md}`, installs the `SubagentStop` hook, and runs `validate-scaffold.mjs`. Done when the validator exits 0.
 
 ## Guiding principles (encoded in every agent)
 
@@ -51,14 +51,14 @@ Derive:
 
 Quality of the agent is bounded by quality of this step.
 
-1. Read `.Codex/agents/` to detect overlap (two agents must never own the same file) and pick an unused color
+1. Read `.claude/agents/` to detect overlap (two agents must never own the same file) and pick an unused color
 2. Read `codebase-expert-template/agent-spec.md` for current structure
 3. Glob the domain's source — read entry points, key abstractions, any local README/docs
 4. Identify: key files, architecture, data flow, contracts, recurring gotchas, build/test commands, relevant skills
 
 ### 3. Write the agent spec
 
-Create `.Codex/agents/<name>.md` from `codebase-expert-template/agent-spec.md`. Required sections, in order:
+Create `.claude/agents/<name>.md` from `codebase-expert-template/agent-spec.md`. Required sections, in order:
 
 - Frontmatter (`name`, `description`, `model: opus`, unique `color`, `memory: project`, `tools:` **allowlist** scoped to the domain, `maxTurns: 40` as a safety ceiling)
 - Domain Boundary (own / do NOT own — both explicit)
@@ -72,7 +72,7 @@ Keep it short. Long specs are smell — real intelligence belongs in `knowledge.
 
 ### 4. Bootstrap memory
 
-Create `.Codex/agent-memory/<name>/` with `knowledge.md` and `logs.md` copied from `codebase-expert-template/` (the `agent-spec.md` in that directory is for step 3 only — do NOT copy it into the agent's memory dir):
+Create `.claude/agent-memory/<name>/` with `knowledge.md` and `logs.md` copied from `codebase-expert-template/` (the `agent-spec.md` in that directory is for step 3 only — do NOT copy it into the agent's memory dir):
 
 | File           | Customization                                                                                                                        |
 | -------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
@@ -83,9 +83,9 @@ Do NOT pre-fill knowledge. Unverified content pollutes the signal.
 
 ### 5. Register the SubagentStop enforcement hook
 
-Step 5 of the agent's operating loop (Log & Patch) is the load-bearing self-improvement step, so it must be enforced mechanically — not left to prompt discipline. Register a `SubagentStop` hook in `.Codex/settings.json` that runs `scripts/validate-session-log.mjs`. The validator:
+Step 5 of the agent's operating loop (Log & Patch) is the load-bearing self-improvement step, so it must be enforced mechanically — not left to prompt discipline. Register a `SubagentStop` hook in `.claude/settings.json` that runs `scripts/validate-session-log.mjs`. The validator:
 
-- Identifies whether the stopping subagent is a domain expert (has both `.Codex/agents/<name>.md` and `.Codex/agent-memory/<name>/`)
+- Identifies whether the stopping subagent is a domain expert (has both `.claude/agents/<name>.md` and `.claude/agent-memory/<name>/`)
 - Scans the subagent's transcript for a `Write` or `Edit` to `agent-memory/<name>/logs.md` during the session
 - Re-reads `logs.md` and requires all three markers: `Bottleneck`, `Counterfactual`, `Patch`
 - Exits 2 with a blocking message if either check fails, forcing the subagent to loop back and actually write the entry before it can end
@@ -94,7 +94,7 @@ Step 5 of the agent's operating loop (Log & Patch) is the load-bearing self-impr
 Run the installer — it is idempotent, preserves other hooks, and creates `settings.json` if missing:
 
 ```bash
-node .Codex/skills/create-codebase-expert/scripts/install-hook.mjs
+node .claude/skills/create-codebase-expert/scripts/install-hook.mjs
 ```
 
 It prints either `installed …` or `already present …`. Require exit 0. Subsequent agent creations will detect the hook already present and no-op.
@@ -104,8 +104,8 @@ It prints either `installed …` or `already present …`. Require exit 0. Subse
 Confirm the layout exists:
 
 ```
-.Codex/agents/<name>.md
-.Codex/agent-memory/<name>/
+.claude/agents/<name>.md
+.claude/agent-memory/<name>/
 ├── knowledge.md
 └── logs.md
 ```
@@ -113,10 +113,10 @@ Confirm the layout exists:
 Then run the scaffold validator and require exit 0 before proceeding:
 
 ```bash
-node .Codex/skills/create-codebase-expert/scripts/validate-scaffold.mjs <name>
+node .claude/skills/create-codebase-expert/scripts/validate-scaffold.mjs <name>
 ```
 
-The validator deterministically checks: YAML frontmatter parses, required fields present (`name`, `description`, `model`, `color`, `memory`, `tools`, `maxTurns`), `name` matches filename, `description` starts with "Use this agent when", `color` is unique across existing agents, `tools` is a non-empty subset of the known Codex tool allowlist (plus any `mcp__*`), memory files exist, and the spec body contains all 7 required H2 section headings.
+The validator deterministically checks: YAML frontmatter parses, required fields present (`name`, `description`, `model`, `color`, `memory`, `tools`, `maxTurns`), `name` matches filename, `description` starts with "Use this agent when", `color` is unique across existing agents, `tools` is a non-empty subset of the known Claude Code tool allowlist (plus any `mcp__*`), memory files exist, and the spec body contains all 7 required H2 section headings.
 
 If the validator reports errors, fix them and re-run before reporting completion. Do not skip this step.
 

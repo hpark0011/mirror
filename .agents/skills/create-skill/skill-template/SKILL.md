@@ -21,7 +21,7 @@ What NOT to do and why. Encodes past failure modes.
 Optional sections — add only if they earn their keep:
 
 ## Scope & non-goals
-Include when sibling skills could misfire (e.g. reviewing-code vs review-pr vs security-review).
+Include when sibling skills could misfire (e.g. review-code vs review-pr vs security-review).
 Name the sibling and the disambiguation rule. Skip for isolated skills.
 
 ## References

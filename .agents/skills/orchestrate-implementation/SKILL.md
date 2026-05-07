@@ -24,7 +24,7 @@ The architecture is sound. The cost is in execution efficiency. Every rule in th
 - **Re-authoring waves on the fly** — if the spec is wrong, fix it in `create-spec` first, then come back.
 
 **Sibling skill — when to prefer it**:
-- `.Codex/skills/agent-orchestration/SKILL.md` — for **free-text requirements without a spec**. It has its own Explorer + Planner phase to figure out what to build. Use it when the user says "build X" without prior spec authoring. This skill is for the spec-driven case where create-spec already produced the plan. If you don't know which to use: do you have a `workspace/spec/{feature}-spec.md`? Yes → this skill. No → either run create-spec first, or use `agent-orchestration`.
+- `.claude/skills/agent-orchestration/SKILL.md` — for **free-text requirements without a spec**. It has its own Explorer + Planner phase to figure out what to build. Use it when the user says "build X" without prior spec authoring. This skill is for the spec-driven case where create-spec already produced the plan. If you don't know which to use: do you have a `workspace/spec/{feature}-spec.md`? Yes → this skill. No → either run create-spec first, or use `agent-orchestration`.
 
 ## Quick start
 
@@ -90,7 +90,7 @@ Trust direct reads over a subagent's summary for any small, verifiable claim. *"
 
 #### 3c. Verifier dispatch (with budget discipline)
 
-After the executor returns a diff, spawn verifiers on the diff. Critique agents come from `.Codex/agents/code-review-*`. **Pick the minimum** needed. This table is the canonical reviewer roster — the spec template intentionally does not duplicate it, so this is the only place in the pipeline where reviewer selection is decided.
+After the executor returns a diff, spawn verifiers on the diff. Critique agents come from `.claude/agents/code-review-*`. **Pick the minimum** needed. This table is the canonical reviewer roster — the spec template intentionally does not duplicate it, so this is the only place in the pipeline where reviewer selection is decided.
 
 **Critique-minimization rule**:
 - Default 1-2 reviewers per wave. Add a 3rd only when the work spans correctness AND a specialist axis (concurrency, security, data-integrity).
@@ -194,6 +194,6 @@ Total avoidable: ~250k tokens for the same outcome.
 
 ## References
 
-- `.Codex/skills/create-spec/SKILL.md` — the upstream half of the pipeline. Produces the spec this skill consumes.
-- `.Codex/agents/code-review-*.md` — the verifier roster.
+- `.claude/skills/create-spec/SKILL.md` — the upstream half of the pipeline. Produces the spec this skill consumes.
+- `.claude/agents/code-review-*.md` — the verifier roster.
 - https://www.anthropic.com/engineering/harness-design-long-running-apps — rationale for executor/verifier separation.
