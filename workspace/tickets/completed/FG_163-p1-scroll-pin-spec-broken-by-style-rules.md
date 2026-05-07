@@ -3,7 +3,7 @@ id: FG_163
 title: "Restore scroll-pin E2E under STYLE_RULES short-reply contract"
 date: 2026-05-07
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The second test in chat-assistant-placeholder.spec.ts (keeps streaming replies pinned to bottom until the user scrolls away) has been failing reliably since 2026-04-29 because its prompt asks for an 80-line numbered list, a format the clone agent's system-prompt STYLE_RULES explicitly forbids. The persona refuses with a short conversational reply, the chat container does not overflow, and pixel-based scroll assertions time out. Pick one of four documented remediation paths and restore the spec to deterministic 3-of-3 green."
 dependencies: []
