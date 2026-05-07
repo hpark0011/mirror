@@ -3,7 +3,7 @@ id: FG_164
 title: "orphanSweep schema introspector mis-attributes coverImageOwnership.storageId to articles"
 date: 2026-05-07
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The FR-10 schema-introspection regression test in orphanSweep.test.ts fails on pristine main because its introspector infers a table name from the schema file's parent directory. coverImageOwnership is defined inside articles/schema.ts so its storageId field is mis-keyed as articles.storageId, which is not in STORAGE_FIELD_REFERENCES, so the set-equality assertion explodes. The bug ships one broken test on main HEAD that every PR inherits."
 dependencies: []

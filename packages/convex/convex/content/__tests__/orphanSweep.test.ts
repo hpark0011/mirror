@@ -279,9 +279,133 @@ type SchemaStorageRef = {
 };
 
 /**
+ * Build a map from line index → table key. Handles two schema patterns:
+ *
+ *   Pattern A — named fields variable:
+ *     export const <fieldsVar>Fields = { ... };
+ *     export const <tableKey>Table = defineTable(<fieldsVar>Fields)
+ *
+ *   Pattern B — inline object literal:
+ *     export const <tableKey>Table = defineTable({
+ *       ...
+ *     })
+ *
+ * For Pattern A, first build a fieldsVar→tableKey map from defineTable(...)
+ * calls, then track the line range of each `<fieldsVar>Fields = { ... }` block.
+ * For Pattern B, track the line range of the inline `{ ... }` inside the
+ * `defineTable({...})` call.
+ *
+ * Each line inside a tracked block maps to the table key that owns that block.
+ */
+function buildLineToTableMap(lines: string[]): Map<number, string> {
+  const lineToTable = new Map<number, string>();
+
+  // Pass 1: find all defineTable(...) calls and what they bind to.
+  // Pattern A: defineTable(<varName>) — named variable reference.
+  // Pattern B: defineTable({ — inline object literal opened on this line.
+  const defineTableNamedRe =
+    /export\s+const\s+(\w+)Table\s*=\s*defineTable\(\s*(\w+)\s*\)/;
+  const defineTableInlineRe =
+    /export\s+const\s+(\w+)Table\s*=\s*defineTable\(\s*\{/;
+
+  // Map: fieldsVarName → tableKey (for Pattern A).
+  const fieldsVarToTable = new Map<string, string>();
+  // List of {lineIdx, tableKey} for inline defineTable starts (Pattern B).
+  const inlineStarts: Array<{ lineIdx: number; tableKey: string }> = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]!;
+    const mNamed = line.match(defineTableNamedRe);
+    if (mNamed) {
+      fieldsVarToTable.set(mNamed[2]!, mNamed[1]!);
+      continue;
+    }
+    const mInline = line.match(defineTableInlineRe);
+    if (mInline) {
+      inlineStarts.push({ lineIdx: i, tableKey: mInline[1]! });
+    }
+  }
+
+  // Pass 2: track line ranges for Pattern A blocks.
+  // Scan for `export const <name> = {` where <name> is in fieldsVarToTable.
+  const blockStartRe = /^(export\s+const\s+)(\w+)\s*=\s*\{/;
+
+  {
+    let activeTable: string | null = null;
+    let depth = 0;
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]!;
+
+      if (activeTable !== null) {
+        for (const ch of line) {
+          if (ch === "{") depth++;
+          else if (ch === "}") depth--;
+        }
+        lineToTable.set(i, activeTable);
+        if (depth <= 0) {
+          activeTable = null;
+          depth = 0;
+        }
+      } else {
+        const m = line.match(blockStartRe);
+        if (m) {
+          const varName = m[2]!;
+          const tableKey = fieldsVarToTable.get(varName);
+          if (tableKey !== undefined) {
+            activeTable = tableKey;
+            depth = 0;
+            for (const ch of line) {
+              if (ch === "{") depth++;
+              else if (ch === "}") depth--;
+            }
+            lineToTable.set(i, activeTable);
+          }
+        }
+      }
+    }
+  }
+
+  // Pass 3: track line ranges for Pattern B inline blocks.
+  // For each inline defineTable({ ... }) start, count from the opening `{`
+  // until the matching `}` to find the block's extent.
+  for (const { lineIdx, tableKey } of inlineStarts) {
+    let depth = 0;
+    let started = false;
+
+    for (let i = lineIdx; i < lines.length; i++) {
+      const line = lines[i]!;
+      for (const ch of line) {
+        if (ch === "{") {
+          depth++;
+          started = true;
+        } else if (ch === "}") {
+          depth--;
+        }
+      }
+      // Mark lines inside the inline object literal (depth > 0 after the
+      // first `{`; the block starts inside the `defineTable({` line itself
+      // but we only want interior lines that can contain field declarations).
+      if (started && depth > 0) {
+        lineToTable.set(i, tableKey);
+      }
+      if (started && depth <= 0) {
+        break;
+      }
+    }
+  }
+
+  return lineToTable;
+}
+
+/**
  * Parses `defineTable({...})` blocks from Convex *_schema.ts_*-shaped files
- * and finds keys whose value contains `v.id("_storage")`. Tables here are
- * inferred by file convention: `<dir>/schema.ts` defines `<dir>` table.
+ * and finds keys whose value contains `v.id("_storage")`. Tables are inferred
+ * by matching each `v.id("_storage")` line against the line-range of the
+ * object literal that is bound to a table via `defineTable(...)` — NOT from
+ * the file's parent directory, which would mis-attribute fields when multiple
+ * tables share a single schema file (e.g. articles/schema.ts defines both
+ * `articlesTable` and `coverImageOwnershipTable`).
  */
 function findSchemaStorageRefs(): SchemaStorageRef[] {
   const out: SchemaStorageRef[] = [];
@@ -306,7 +430,12 @@ function findSchemaStorageRefs(): SchemaStorageRef[] {
     // (`coverImageStorageId: v.id("_storage")`) silently slipped past
     // the introspection set, opening the cron sweep to delete their blobs.
     const lines = text.split("\n");
-    for (const line of lines) {
+
+    // Build the line→table attribution map for this file.
+    const lineToTable = buildLineToTableMap(lines);
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i]!;
       // Anchored to the line so we only match top-level schema fields —
       // `<key>: v.id("_storage"),` — and reject inline shapes like
       // `args: { storageId: v.id("_storage") }`. The optional `\)?` swallows
@@ -315,9 +444,13 @@ function findSchemaStorageRefs(): SchemaStorageRef[] {
         /^\s*(\w+)\s*:\s*v\.(?:optional\(\s*v\.)?id\("_storage"\)\)?\s*,?\s*$/,
       );
       if (match) {
-        // Infer the table name from the directory the schema lives in.
-        const tableDir = path.basename(path.dirname(file));
-        out.push({ file, table: tableDir, field: match[1]! });
+        const table = lineToTable.get(i);
+        if (table !== undefined) {
+          out.push({ file, table, field: match[1]! });
+        }
+        // If no table mapping exists for this line, the field is inside a
+        // block that isn't bound to a `defineTable(...)` call (e.g. inline
+        // args validators) — intentionally skipped.
       }
     }
   }
@@ -331,12 +464,27 @@ describe("STORAGE_FIELD_REFERENCES — schema-introspection regression test (FR-
     // posts cover, users avatar).
     expect(declared.length).toBeGreaterThanOrEqual(3);
 
+    // Intentional non-sweep exclusions: tables whose `v.id("_storage")` fields
+    // are ownership/metadata rows — NOT live blob references — and therefore
+    // must NOT appear in STORAGE_FIELD_REFERENCES (sweep would treat them as
+    // keep-forever anchors). Each entry must have a documented rationale.
+    //
+    // FG_147: coverImageOwnership.storageId tracks who uploaded a cover image.
+    // Adding it to STORAGE_FIELD_REFERENCES would prevent the sweep from ever
+    // reclaiming abandoned upload blobs — which is the exact opposite of what
+    // the sweep is for.
+    const INTENTIONAL_NON_SWEEP_FIELDS = new Set([
+      "coverImageOwnership.storageId",
+    ]);
+
     // Canonical key shape: `<table>.<field>`. Build the same shape from
     // BOTH the schema source AND the scalar entries in
     // `STORAGE_FIELD_REFERENCES`, then assert set equality. No description
     // substring matching — `field` is the load-bearing key.
     const declaredKeys = new Set(
-      declared.map((d) => `${d.table}.${d.field}`),
+      declared
+        .map((d) => `${d.table}.${d.field}`)
+        .filter((k) => !INTENTIONAL_NON_SWEEP_FIELDS.has(k)),
     );
     const coveredKeys = new Set(
       STORAGE_FIELD_REFERENCES.filter((r) => r.kind === "scalar").map(
@@ -394,5 +542,23 @@ describe("STORAGE_FIELD_REFERENCES — schema-introspection regression test (FR-
     expect(
       re.exec('args: { storageId: v.id("_storage") }')?.[1],
     ).toBeUndefined();
+  });
+
+  it("introspector attributes multiple tables in the same schema file correctly (FG_164)", () => {
+    // articles/schema.ts defines two tables: articlesTable (coverImageStorageId)
+    // and coverImageOwnershipTable (storageId). The introspector must attribute
+    // each field to its actual table, not the containing directory ("articles").
+    const refs = findSchemaStorageRefs();
+    const keys = refs.map((r) => `${r.table}.${r.field}`);
+
+    // coverImageOwnership.storageId must be attributed correctly.
+    expect(keys).toContain("coverImageOwnership.storageId");
+
+    // articles.storageId is NOT a real field — directory-based inference
+    // would produce it, but the correct introspector must NOT.
+    expect(keys).not.toContain("articles.storageId");
+
+    // The articles table's real storage field must still be found.
+    expect(keys).toContain("articles.coverImageStorageId");
   });
 });
