@@ -44,6 +44,16 @@ export function ArticleList({
 }: ArticleListProps) {
   return (
     <section className="w-full mx-auto **:data-[slot=table-container]:overflow-visible pt-7">
+      <div className="px-4.5 mb-8">
+        <div className="flex gap-6 items-start justify-between">
+          {/* Title */}
+          <div className="text-4xl mb-4 leading-[1.05]">
+            Nature and the Creative Process of People
+          </div>
+          {/* Image */}
+          <div className="w-full aspect-video h-full bg-gray-5 max-w-[560px]" />
+        </div>
+      </div>
       <Table>
         <TableHeader className="[&_tr]:border-b-0">
           <TableRow className="border-b-0 hover:bg-transparent">
