@@ -1,5 +1,28 @@
 # Lessons Learned
 
+## 2026-05-06
+
+### Codex worktree setup must support single-checkout clones
+
+- Setup scripts cannot assume `git worktree list` includes a `main` worktree.
+  Codex review checkouts and fresh single-worktree clones are often checked out
+  directly on the feature branch, so environment setup must fall back to the
+  current checkout for dependency installation. Keep canonical `.env.local`
+  checks strict for secondary worktree creation, but do not block standalone
+  installs before the user has a chance to seed local env files.
+
+### PR hygiene — keep cosmetic tweaks out of feat/refactor PRs
+
+- Cosmetic/visual tweaks (e.g. a `py-12 → py-10` swap on `post-list-item`)
+  must ship in their own commit and PR. Bundling them into a `feat`/
+  `refactor` PR pollutes the bisect history (a future investigation of a
+  post-list spacing regression will land on a "feat(articles): add Edit
+  button" commit and waste investigation time) and breaks the trust that
+  PR titles summarize the change set.
+- Surfaced by FG_158 after PR #39 silently included a `py-12 → py-10`
+  change on `apps/mirror/features/posts/components/list/post-list-item.tsx`
+  alongside the article Edit button + back-button refactor commits.
+
 ## 2026-05-05
 
 ### Convex client-auth race in authenticated Playwright specs
@@ -49,6 +72,10 @@ signal is the `useConvexAuth` boolean mirrored into the DOM.
 
 ## 2026-05-03
 
+- For Convex env sync helpers, preserve the CLI's round-trip format instead
+  of parsing `convex env list` line by line. Convex 1.33+ intentionally
+  supports `convex env list > file` plus `convex env set --force < file`,
+  which keeps multi-line secrets intact and avoids bespoke parser drift.
 - Inline storage cascade deletes must prove a blob is globally unreferenced after the write lands, not merely removed from the current body. Same-owner copy/paste can leave the same `storageId` in another article or post, so immediate cleanup needs a current article/post/user reference scan before `ctx.storage.delete`.
 - When a hook records a result in React state and the caller must branch on it immediately, return the result as well. Relying on just-set state from the connector can race the close/reset path and hide user-visible import failures.
 - "Always Choose the Compounding Option" means *less error-prone over time*, not *abstractly cleaner architecture*. Following the framework's idiom (e.g. the convex CLI's per-package `.env.local` auto-write) compounds; fighting it with custom config (`--env-file`, version pins, relative-path coupling) accumulates bespoke complexity even when it eliminates duplication. Single-source-of-truth appeal is real but it's a tradeoff, not a trump card — ask whether the proposed shape stays on the well-trodden path that future framework releases will keep working without intervention.

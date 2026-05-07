@@ -1,6 +1,6 @@
-import type { DatePreset } from "./date-preset";
+import { type DatePreset } from "./date-preset";
 import { getDateRange } from "./date-preset";
-import type { SortOrder } from "../hooks/use-content-sort";
+import { type SortOrder } from "../hooks/use-content-sort";
 
 /**
  * Shared filter state used by every content list (articles, posts, …).

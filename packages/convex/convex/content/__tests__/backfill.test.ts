@@ -11,7 +11,7 @@ process.env.GOOGLE_CLIENT_SECRET =
 import { describe, expect, it } from "vitest";
 import { convexTest } from "convex-test";
 import { internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import { type Id } from "../../_generated/dataModel";
 import schema from "../../schema";
 
 // See `betaAllowlist/__tests__/allowlist.test.ts` for the rationale behind

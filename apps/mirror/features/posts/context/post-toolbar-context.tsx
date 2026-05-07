@@ -1,12 +1,12 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type {
-  SortOrder,
-  UseContentSearchReturn,
+import {
+  type SortOrder,
+  type UseContentSearchReturn,
 } from "@/features/content";
-import type { PostSummary } from "../types";
-import type { UsePostFilterReturn } from "../hooks/use-post-filter";
+import { type PostSummary } from "../types";
+import { type UsePostFilterReturn } from "../hooks/use-post-filter";
 
 export type PostToolbarContextValue = {
   isOwner: boolean;

@@ -3,7 +3,7 @@
 import { useIsProfileOwner } from "@/features/profile/context/profile-context";
 import { usePublishToggle } from "../../hooks/use-publish-toggle";
 import { PublishToggle } from "./publish-toggle";
-import type { PostSummary } from "../../types";
+import { type PostSummary } from "../../types";
 
 type PublishToggleConnectorProps = {
   post: PostSummary;

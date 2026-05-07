@@ -26,7 +26,10 @@ export function ChatThread() {
             onProfileClick={closeChat}
           />
         </div>
-        <div className="flex-1 flex items-center justify-center pb-20">
+        <div
+          data-slot="chat-thread-resolving"
+          className="flex-1 flex items-center justify-center pb-20"
+        >
           <ArcSphere />
         </div>
       </div>

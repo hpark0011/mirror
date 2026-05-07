@@ -6,7 +6,6 @@
 //
 // Ported from greyboard/packages/features/editor/src/extensions/slash-command.ts.
 import {
-  CheckListIcon,
   CodeIcon,
   ListBulletIcon,
   ListNumberIcon,
@@ -16,11 +15,11 @@ import {
   TextFormatIcon,
   TextFormatSizeLargerIcon,
 } from "@feel-good/icons";
-import type { Editor } from "@tiptap/core";
+import { type Editor } from "@tiptap/core";
 import { Extension } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import Suggestion from "@tiptap/suggestion";
-import type { ComponentType } from "react";
+import { type ComponentType } from "react";
 
 import { SlashCommandSuggestions } from "../components/slash-command-suggestions";
 import { createSuggestionRenderer } from "../utils/suggestion-popup";
@@ -46,7 +45,19 @@ export interface SlashCommandOptions {
   onError?: (message: string) => void;
 }
 
-let isPickerOpen = false;
+interface SlashCommandStorage {
+  isPickerOpen: boolean;
+}
+
+/**
+ * Returns the per-instance picker-lock storage for a given editor,
+ * avoiding the repetition of the `as` cast.
+ */
+function getSlashStorage(editor: Editor): SlashCommandStorage {
+  return (
+    editor.storage as unknown as { slashCommand: SlashCommandStorage }
+  ).slashCommand;
+}
 
 export function buildSlashCommandItems(
   options: SlashCommandOptions = {},
@@ -123,33 +134,6 @@ export function buildSlashCommandItems(
       },
     },
     {
-      title: "Task List",
-      icon: CheckListIcon,
-      keywords: ["todo", "checkbox", "checklist"],
-      group: "Lists",
-      command: (editor, range) => {
-        // StarterKit doesn't ship task lists; treat as a no-op when the
-        // extension isn't loaded so the slash menu list stays parity-clean
-        // with greyboard. The unit-test suite only inspects the menu shape.
-        if (
-          (
-            editor.commands as {
-              toggleTaskList?: () => boolean;
-            }
-          ).toggleTaskList
-        ) {
-          editor
-            .chain()
-            .focus()
-            .deleteRange(range)
-            .toggleTaskList()
-            .run();
-        } else {
-          editor.chain().focus().deleteRange(range).run();
-        }
-      },
-    },
-    {
       title: "Code Block",
       icon: CodeIcon,
       keywords: ["code", "pre", "snippet"],
@@ -186,10 +170,11 @@ export function buildSlashCommandItems(
           onError?.("Image picker not configured");
           return;
         }
-        if (isPickerOpen) return;
+        const slashStorage = getSlashStorage(editor);
+        if (slashStorage.isPickerOpen) return;
         editor.chain().focus().deleteRange(range).run();
         (async () => {
-          isPickerOpen = true;
+          slashStorage.isPickerOpen = true;
           try {
             const result = await pickInlineImage();
             if (!result) return;
@@ -197,10 +182,10 @@ export function buildSlashCommandItems(
             editor.chain().focus().setImage({ src: result.src }).run();
           } catch (error) {
             onError?.(
-              `Failed to insert image: ${(error as Error).message}`,
+              `Failed to insert image: ${error instanceof Error ? error.message : String(error)}`,
             );
           } finally {
-            isPickerOpen = false;
+            slashStorage.isPickerOpen = false;
           }
         })();
       },
@@ -225,6 +210,10 @@ export const SlashCommand = Extension.create<SlashCommandOptions>({
 
   addOptions() {
     return {};
+  },
+
+  addStorage() {
+    return { isPickerOpen: false };
   },
 
   addProseMirrorPlugins() {

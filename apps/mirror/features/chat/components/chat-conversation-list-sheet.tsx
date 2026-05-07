@@ -7,8 +7,8 @@ import {
   SheetTitle,
 } from "@feel-good/ui/primitives/sheet";
 import { ConversationList } from "./conversation-list";
-import type { Conversation } from "../types";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Conversation } from "../types";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 type ChatConversationListSheetProps = {
   open: boolean;

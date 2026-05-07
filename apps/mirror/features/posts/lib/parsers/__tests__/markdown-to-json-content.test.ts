@@ -3,7 +3,7 @@
 // silently). The parser owns the entry point used by the import flow.
 import { describe, expect, it } from "vitest";
 import { markdownToJsonContent } from "../markdown-to-json-content";
-import type { JSONContent } from "@feel-good/features/editor/types";
+import { type JSONContent } from "@feel-good/features/editor/types";
 
 function findImageNode(node: JSONContent): JSONContent | null {
   if (node.type === "image") return node;

@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
+import { type Doc, type Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";

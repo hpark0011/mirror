@@ -11,7 +11,7 @@ import {
 } from "@feel-good/ui/primitives/card";
 import { Field, FieldGroup, FieldLabel } from "@feel-good/ui/primitives/field";
 import { Input } from "@feel-good/ui/primitives/input";
-import type { AuthError, AuthStatus } from "../types";
+import { type AuthError, type AuthStatus } from "../types";
 import { FormError } from "../components/shared/form-error";
 import { FormSuccess } from "../components/shared/form-success";
 

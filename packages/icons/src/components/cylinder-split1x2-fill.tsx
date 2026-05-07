@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { type SVGProps } from "react";
 
 export function CylinderSplit1x2FillIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (

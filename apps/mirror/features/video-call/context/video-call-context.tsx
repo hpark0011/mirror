@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { CallState } from "../types";
+import { type CallState } from "../types";
 
 type VideoCallContextValue = {
   callState: CallState;

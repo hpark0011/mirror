@@ -17,3 +17,4 @@ export const contentBaseFields = {
 
 export const MAX_TITLE_LENGTH = 500;
 export const MAX_SLUG_LENGTH = 200;
+export const MAX_CATEGORY_LENGTH = 100;

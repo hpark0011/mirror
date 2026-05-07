@@ -1,9 +1,9 @@
 import { internalMutation } from "./_generated/server";
-import type { MutationCtx } from "./_generated/server";
+import { type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { createThread, saveMessage } from "@convex-dev/agent";
 import { components } from "./_generated/api";
-import type { Id } from "./_generated/dataModel";
+import { type Id } from "./_generated/dataModel";
 import { getPostCategoryForSlug } from "./posts/categories";
 
 // ── Seed data ───────────────────────────────────────────────────────
@@ -197,7 +197,7 @@ async function ensureRickRubinUser(
     email: "rick@example.com",
     username: "rick-rubin",
     name: "Rick Rubin",
-    bio: "Rick Rubin has been a singular, transformative creative muse for artists across genres and generations — from the Beastie Boys to Johnny Cash, from Public Enemy to the Red Hot Chili Peppers, from Adele to Jay-Z.",
+    tagline: "Rick Rubin has been a singular, transformative creative muse for artists across genres and generations — from the Beastie Boys to Johnny Cash, from Public Enemy to the Red Hot Chili Peppers, from Adele to Jay-Z.",
     onboardingComplete: true,
   });
 }

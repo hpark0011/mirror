@@ -91,7 +91,7 @@ Run `git worktree list` and check if a worktree for this branch already exists. 
 bash .agents/skills/new-worktree/scripts/new-worktree.sh <branch-name>
 ```
 
-### 3. Report result
+### 3. Report result and next steps
 
 Tell the user:
 
@@ -99,3 +99,10 @@ Tell the user:
 - The branch name created
 - That `pnpm install` completed
 - Remind them to use a different port if running dev servers in multiple worktrees
+- **Provision the worktree's dev Convex deployment** (one-time per worktree):
+  1. `cd .worktrees/<branch-name>`
+  2. `pnpm --filter=@feel-good/convex dev` — choose "create a new project" when prompted
+  3. `./scripts/sync-worktree-convex-env.sh` — points this worktree's frontend at the new deployment
+  4. `./scripts/sync-worktree-convex-secrets.sh` — copies Convex env secrets from main
+  5. `pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo` — populates the deployment with the rick-rubin demo workspace (3 articles, 10 posts, 2 chat conversations)
+- Why this matters: see `.claude/rules/worktrees.md` § Per-worktree dev Convex deployment.

@@ -8,7 +8,7 @@ import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentHref } from "@/features/content";
 import { PostMetadata } from "../detail/post-metadata";
-import type { PostSummary } from "../../types";
+import { type PostSummary } from "../../types";
 
 type PostListItemProps = {
   post: PostSummary;

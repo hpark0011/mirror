@@ -1,4 +1,4 @@
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 /**
  * Upload a file to Convex storage using a presigned URL produced by a

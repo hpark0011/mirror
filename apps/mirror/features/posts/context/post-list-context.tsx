@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { PostSummary } from "../types";
+import { type PostSummary } from "../types";
 
 export type PostListContextValue = {
   posts: PostSummary[];

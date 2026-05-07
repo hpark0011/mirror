@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import type { QueryCtx, MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { type QueryCtx, type MutationCtx } from "../_generated/server";
+import { type Id } from "../_generated/dataModel";
 import { contentStatusValidator } from "../content/schema";
 import { resolveStorageUrl, validateContentStringLength } from "../content/helpers";
 

@@ -10,7 +10,7 @@ import { act, renderHook } from "@testing-library/react";
 const mockUpdate = vi.fn();
 const mockUploadCover = vi.fn();
 const mockReplace = vi.fn();
-const mockToastError = vi.fn();
+const mockShowToast = vi.fn();
 const mockRefresh = vi.fn();
 
 vi.mock("convex/react", () => ({
@@ -48,12 +48,9 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({ username: "test-user" }),
 }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    custom: (fn: (id: string) => unknown) => {
-      mockToastError(fn);
-      return "toast-id";
-    },
+vi.mock("@feel-good/ui/components/toast", () => ({
+  showToast: (opts: unknown) => {
+    mockShowToast(opts);
   },
 }));
 
@@ -86,7 +83,7 @@ describe("useEditArticleForm — cover clear", () => {
     mockUploadCover.mockReset();
     mockReplace.mockReset();
     mockRefresh.mockReset();
-    mockToastError.mockReset();
+    mockShowToast.mockReset();
   });
 
   afterEach(() => {
@@ -240,5 +237,43 @@ describe("useEditArticleForm — cover clear", () => {
     expect(mockUpdate).toHaveBeenCalledWith(
       expect.not.objectContaining({ coverImageThumbhash: expect.anything() }),
     );
+  });
+});
+
+describe("useEditArticleForm — cancel", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUploadCover.mockReset();
+    mockReplace.mockReset();
+    mockRefresh.mockReset();
+    mockShowToast.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("navigates to the original slug even after the slug field has been edited", () => {
+    // Cancel must use `initial.slug`, never the editable form-state slug.
+    // Otherwise an unsaved slug edit would route the user to a 404.
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    act(() => {
+      result.current.setSlug("edited-slug");
+    });
+
+    act(() => {
+      result.current.cancel();
+    });
+
+    expect(mockReplace).toHaveBeenCalledTimes(1);
+    const target = mockReplace.mock.calls[0]![0] as string;
+    expect(target).toContain("/existing-piece");
+    expect(target).not.toContain("/edited-slug");
   });
 });

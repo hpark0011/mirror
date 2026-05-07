@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { type SVGProps } from "react";
 
 export function StopWatchFillIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (

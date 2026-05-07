@@ -12,17 +12,22 @@
  *       `isNavigateOutput`) is never dispatched.
  *   (f) Two distinct toolCallIds in one assistant turn each dispatch once.
  *
- * The hook reads `useCloneActions().navigateToContent`. We mock the
- * provider module so the hook can run outside `<CloneActionsProvider>`.
+ * The hook reads `useCloneActions().navigateToContent` and
+ * `.navigateToProfileSection`. We mock the provider module so the hook can
+ * run outside `<CloneActionsProvider>`.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, renderHook } from "@testing-library/react";
-import type { UIMessage } from "@convex-dev/agent/react";
+import { type UIMessage } from "@convex-dev/agent/react";
 
 const navigateToContentMock = vi.fn();
+const navigateToProfileSectionMock = vi.fn();
 
 vi.mock("@/app/[username]/_providers/clone-actions-context", () => ({
-  useCloneActions: () => ({ navigateToContent: navigateToContentMock }),
+  useCloneActions: () => ({
+    navigateToContent: navigateToContentMock,
+    navigateToProfileSection: navigateToProfileSectionMock,
+  }),
 }));
 
 // Import after the mock so the hook picks up the mocked provider.
@@ -68,6 +73,7 @@ function makeNavigateOutputPart(toolCallId: string, slug = "hello-world") {
 describe("useAgentIntentWatcher", () => {
   beforeEach(() => {
     navigateToContentMock.mockReset();
+    navigateToProfileSectionMock.mockReset();
     handledByConversation.clear();
   });
 
@@ -196,6 +202,118 @@ describe("useAgentIntentWatcher", () => {
       slug: "second-slug",
       href: "/@rick-rubin/articles/second-slug",
     });
+  });
+
+  for (const section of ["bio", "articles", "posts"] as const) {
+    it(`dispatches navigateToProfileSection when a tool-openProfileSection { section: ${section} } output-available part lands`, () => {
+      // Profile-tabs parity: the watcher must recognize
+      // `tool-openProfileSection` parts and route them through
+      // `useCloneActions().navigateToProfileSection` with the server-built
+      // href. Mirrors the navigateToContent contract so a future regression
+      // that forgets to handle the new tool type fails this assertion
+      // loudly.
+      const href = `/@rick-rubin/${section}`;
+      const messages = [
+        makeAssistantMessage([
+          {
+            type: "tool-openProfileSection",
+            state: "output-available",
+            toolCallId: `call_open_${section}`,
+            output: {
+              kind: section,
+              href,
+              hasEntries: true,
+            },
+          },
+        ]),
+      ];
+
+      renderHook(() =>
+        useAgentIntentWatcher(messages, `conv_open_${section}`),
+      );
+
+      expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
+      expect(navigateToProfileSectionMock).toHaveBeenCalledWith({
+        section,
+        href,
+      });
+      // Negative control — navigateToContent must not fire.
+      expect(navigateToContentMock).not.toHaveBeenCalled();
+    });
+  }
+
+  it("dispatches openProfileSection once per toolCallId across re-render and remount", () => {
+    // Mirrors tests (a) and (b) for navigateToContent. The `handled` set is
+    // shared and type-agnostic in production today, so this assertion pins
+    // the contract for the openProfileSection path — a future refactor
+    // that moves `handled.add` into per-type branches cannot regress
+    // section idempotency without failing this test.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-openProfileSection",
+          state: "output-available",
+          toolCallId: "call_open_section_idem",
+          output: {
+            kind: "bio",
+            href: "/@rick-rubin/bio",
+            hasEntries: true,
+          },
+        },
+      ]),
+    ];
+
+    const first = renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_section_idem"),
+    );
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
+
+    // Same-mount re-render must not re-dispatch — the per-conversation
+    // `handled` set is the in-mount idempotency boundary.
+    first.rerender();
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
+
+    first.unmount();
+    renderHook(() => useAgentIntentWatcher(messages, "conv_section_idem"));
+
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not dispatch openProfileSection when output payload is malformed (kind missing or wrong)", () => {
+    // Defense-in-depth: the runtime narrowing in
+    // `isOpenProfileSectionOutput` must reject any output that doesn't
+    // include a recognized `kind` and a non-empty `href` string. A typo
+    // in the server-side return shape would otherwise route the visitor
+    // to `/undefined` and a 404.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-openProfileSection",
+          state: "output-available",
+          toolCallId: "call_open_section_malformed",
+          output: { hasEntries: true },
+        },
+        {
+          type: "tool-openProfileSection",
+          state: "output-available",
+          toolCallId: "call_open_section_wrong_kind",
+          // `clone-settings` is not in the visitor-visible enum, so the
+          // narrowing must reject it even though the dispatcher's section
+          // type is wider.
+          output: {
+            kind: "clone-settings",
+            href: "/@rick-rubin/clone-settings",
+            hasEntries: false,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_section_malformed"),
+    );
+
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
   });
 
   it("isolates handled toolCallIds per conversationId", () => {

@@ -5,17 +5,22 @@
 //   - on slug-conflict (or other ConvexError), the toast surfaces it and the
 //     hook's `error` is exposed so the editor stays open with state intact
 //   - status passes through verbatim — the mutation auto-sets publishedAt
+//   - FG_129: on create failure with a cover uploaded, deleteOrphanCoverImage
+//     is called with the storageId so the orphan blob is cleaned up eagerly
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { act, renderHook } from "@testing-library/react";
 
 const mockCreate = vi.fn();
+const mockDeleteOrphanCoverImage = vi.fn();
 const mockReplace = vi.fn();
-const mockToastError = vi.fn();
+const mockShowToast = vi.fn();
+// Mutable upload spy — tests can call mockUploadCover.mockResolvedValue(...).
 const mockUploadCover = vi.fn();
 
 vi.mock("convex/react", () => ({
   useMutation: (ref: unknown) => {
     const s = String(ref);
+    if (s.includes("deleteOrphan")) return mockDeleteOrphanCoverImage;
     if (s.includes("create")) return mockCreate;
     return vi.fn();
   },
@@ -35,6 +40,7 @@ vi.mock("@feel-good/convex/convex/_generated/api", () => ({
     articles: {
       mutations: {
         create: "articles.mutations.create",
+        deleteOrphanCoverImage: "articles.mutations.deleteOrphanCoverImage",
       },
     },
   },
@@ -45,12 +51,9 @@ vi.mock("next/navigation", () => ({
   useParams: () => ({ username: "test-user" }),
 }));
 
-vi.mock("sonner", () => ({
-  toast: {
-    custom: (fn: (id: string) => unknown) => {
-      mockToastError(fn);
-      return "toast-id";
-    },
+vi.mock("@feel-good/ui/components/toast", () => ({
+  showToast: (opts: unknown) => {
+    mockShowToast(opts);
   },
 }));
 
@@ -65,8 +68,9 @@ const SAMPLE_BODY: any = {
 describe("useNewArticleForm — defer-create-on-first-save", () => {
   beforeEach(() => {
     mockCreate.mockReset();
+    mockDeleteOrphanCoverImage.mockReset();
     mockReplace.mockReset();
-    mockToastError.mockReset();
+    mockShowToast.mockReset();
     mockUploadCover.mockReset();
   });
 
@@ -75,7 +79,19 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
   });
 
   it("does NOT call create on mount or on metadata edits — only on save", () => {
-    renderHook(() => useNewArticleForm({ username: "test-user" }));
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+    expect(mockCreate).not.toHaveBeenCalled();
+
+    // Editing every metadata field must NOT fire create — the deferred-
+    // create contract is the most distinctive promise of the new-article
+    // flow. Abandoning the page leaves no trace in the DB.
+    act(() => {
+      result.current.setTitle("foo");
+      result.current.setSlug("foo-bar");
+      result.current.setCategory("cat");
+    });
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
@@ -175,7 +191,10 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     });
 
     expect(mockReplace).not.toHaveBeenCalled();
-    expect(mockToastError).toHaveBeenCalledTimes(1);
+    expect(mockShowToast).toHaveBeenCalledTimes(1);
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" }),
+    );
     expect(result.current.isSaving).toBe(false);
   });
 
@@ -239,5 +258,80 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     expect(mockCreate).toHaveBeenCalledWith(
       expect.not.objectContaining({ coverImageThumbhash: expect.anything() }),
     );
+  });
+});
+
+describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockDeleteOrphanCoverImage.mockReset();
+    mockUploadCover.mockReset();
+    mockReplace.mockReset();
+    mockShowToast.mockReset();
+    // Stub URL.createObjectURL / revokeObjectURL so the hook can run in jsdom
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn().mockReturnValue("blob:fake-url"),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("calls deleteOrphanCoverImage with the storageId when create fails after cover upload", async () => {
+    mockUploadCover.mockResolvedValue("storage_id_abc");
+    mockCreate.mockRejectedValue(new Error("An article with slug already exists"));
+    mockDeleteOrphanCoverImage.mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("My Article");
+      result.current.setCategory("Process");
+    });
+
+    // Simulate cover upload — this populates coverImageStorageId in state
+    await act(async () => {
+      await result.current.handleCoverImageUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+
+    // Now save — create will fail
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockDeleteOrphanCoverImage).toHaveBeenCalledTimes(1);
+    expect(mockDeleteOrphanCoverImage).toHaveBeenCalledWith({
+      storageId: "storage_id_abc",
+    });
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call deleteOrphanCoverImage when create fails without a cover upload", async () => {
+    mockCreate.mockRejectedValue(new Error("An article with slug already exists"));
+    mockDeleteOrphanCoverImage.mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("No Cover Article");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockDeleteOrphanCoverImage).not.toHaveBeenCalled();
   });
 });

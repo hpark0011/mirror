@@ -1,7 +1,7 @@
-import type {
-  CreateConversationRequest,
-  CreateConversationResponse,
-  TavusErrorBody,
+import {
+  type CreateConversationRequest,
+  type CreateConversationResponse,
+  type TavusErrorBody,
 } from "./types";
 
 const TAVUS_API_BASE = "https://tavusapi.com/v2";

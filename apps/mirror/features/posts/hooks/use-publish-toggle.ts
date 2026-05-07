@@ -4,7 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { showToast } from "@feel-good/ui/components/toast";
-import type { PostSummary } from "../types";
+import { type PostSummary } from "../types";
 
 export type UsePublishToggleArgs = {
   postId: PostSummary["_id"];

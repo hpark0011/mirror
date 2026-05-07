@@ -1,4 +1,4 @@
-import type { AuthError } from "../../types";
+import { type AuthError } from "../../types";
 
 interface FormErrorProps {
   error: AuthError | null;

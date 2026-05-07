@@ -1,7 +1,7 @@
 import { usePreloadedQuery } from "convex/react";
-import type { Preloaded } from "convex/react";
-import type { api } from "@feel-good/convex/convex/_generated/api";
-import type { Profile } from "../types";
+import { type Preloaded } from "convex/react";
+import { type api } from "@feel-good/convex/convex/_generated/api";
+import { type Profile } from "../types";
 
 type UseProfileDataArgs = {
   initialProfile: Profile;
@@ -22,7 +22,7 @@ export function useProfileData({
       authId: reactiveProfile.authId,
       username: reactiveProfile.username ?? initialProfile.username,
       name: reactiveProfile.name ?? "",
-      bio: reactiveProfile.bio ?? "",
+      tagline: reactiveProfile.tagline ?? "",
       avatarUrl: reactiveProfile.avatarUrl,
       media: initialProfile.media,
     }

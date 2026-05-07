@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
-import type { JSONContent } from "@tiptap/core";
+import { type JSONContent } from "@tiptap/core";
 import { cn } from "@feel-good/utils/cn";
 import { createArticleExtensions } from "../lib/extensions";
 import { sanitizeContent } from "../lib/sanitize-content";

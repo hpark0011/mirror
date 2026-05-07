@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { type SVGProps } from "react";
 
 export function ThreeCircleFillIcon({ className, ...props }: SVGProps<SVGSVGElement>) {
   return (

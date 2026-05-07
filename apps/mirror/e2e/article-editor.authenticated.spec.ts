@@ -155,7 +155,7 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
 
     await page.keyboard.type("Hello world");
     // Select all the body text
-    await page.keyboard.press("Meta+A");
+    await page.keyboard.press("ControlOrMeta+A");
 
     const bubble = page.getByTestId("text-bubble-menu");
     await expect(bubble).toBeVisible({ timeout: 5000 });
@@ -198,7 +198,7 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     const editor = page.locator(".tiptap-content .ProseMirror");
     await editor.click();
     await page.keyboard.type("scratch");
-    await page.keyboard.press("Meta+A");
+    await page.keyboard.press("ControlOrMeta+A");
 
     const boldBtn = toolbar.getByRole("button", { name: /^Bold/ });
     await boldBtn.click();
@@ -219,7 +219,8 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     });
     await waitForAuthReady(page);
 
-    await page.getByTestId("article-title-input").fill("Article with cover");
+    const title = `Article with cover ${Date.now()}`;
+    await page.getByTestId("article-title-input").fill(title);
     await page.getByTestId("article-category-input").fill("Process");
 
     const png = writeTempPng("article-cover.png");
@@ -239,7 +240,7 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
 
     await page.getByTestId("save-article-btn").click();
     await expect(page).toHaveURL(
-      new RegExp(`/@${username}/articles/article-with-cover/edit$`),
+      new RegExp(`/@${username}/articles/article-with-cover-\\d+/edit$`),
       { timeout: 15_000 },
     );
 
@@ -259,7 +260,8 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     });
     await waitForAuthReady(page);
 
-    await page.getByTestId("article-title-input").fill("Brand new piece");
+    const title = `Brand new piece ${Date.now()}`;
+    await page.getByTestId("article-title-input").fill(title);
     await page.getByTestId("article-category-input").fill("Inspiration");
 
     const editor = page.locator(".tiptap-content .ProseMirror");
@@ -268,14 +270,14 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
 
     await page.getByTestId("save-article-btn").click();
     await expect(page).toHaveURL(
-      new RegExp(`/@${username}/articles/brand-new-piece/edit$`),
+      new RegExp(`/@${username}/articles/brand-new-piece-\\d+/edit$`),
       { timeout: 15_000 },
     );
 
     // List query reflects it
     await page.goto(`/@${username}/articles`, { waitUntil: "domcontentloaded" });
     await expect(
-      page.getByRole("link", { name: "Brand new piece" }),
+      page.getByRole("link", { name: title }),
     ).toBeVisible({ timeout: 10_000 });
   });
 
@@ -288,7 +290,8 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     });
     await waitForAuthReady(page);
 
-    await page.getByTestId("article-title-input").fill("Publish me");
+    const title = `Publish me ${Date.now()}`;
+    await page.getByTestId("article-title-input").fill(title);
     await page.getByTestId("article-category-input").fill("Process");
     const editor = page.locator(".tiptap-content .ProseMirror");
     await editor.click();
@@ -305,7 +308,7 @@ test.describe("Article editor — new article flow (FR-01..08)", () => {
     await confirmDialog.getByRole("button", { name: /^Publish$/ }).click();
 
     await expect(page).toHaveURL(
-      new RegExp(`/@${username}/articles/publish-me/edit$`),
+      new RegExp(`/@${username}/articles/publish-me-\\d+/edit$`),
       { timeout: 15_000 },
     );
 
@@ -369,7 +372,7 @@ test.describe("Article editor — inline image via slash (FR-10)", () => {
     });
     await waitForAuthReady(page);
 
-    await page.getByTestId("article-title-input").fill("With inline image");
+    await page.getByTestId("article-title-input").fill(`With inline image ${Date.now()}`);
     await page.getByTestId("article-category-input").fill("Process");
 
     const editor = page.locator(".tiptap-content .ProseMirror");

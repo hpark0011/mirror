@@ -1,9 +1,9 @@
 "use client";
 
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { cn } from "@feel-good/utils/cn";
 import * as React from "react";
-import type { Conversation } from "../types";
+import { type Conversation } from "../types";
 import { formatRelativeTime } from "../utils/format-relative-time";
 import { WireframeSphere } from "../../../components/animated-geometries/wireframe-sphere";
 

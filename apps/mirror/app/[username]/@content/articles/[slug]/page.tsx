@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { ArticleDetailToolbar, ArticleDetail } from "@/features/articles";
-import type { ArticleWithBody } from "@/features/articles/types";
+import { type ArticleWithBody } from "@/features/articles/types";
 import { fetchAuthQuery } from "@/lib/auth-server";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";

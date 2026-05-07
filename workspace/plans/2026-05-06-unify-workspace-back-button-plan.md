@@ -1,13 +1,15 @@
 ---
+id: PLAN_007
+slug: unify-workspace-back-button
+title: "Unify the workspace toolbar back button"
 date: 2026-05-06
-branch: feature-edit-article-button
-owner: Hyunsol
----
-
-# Plan — Unify the workspace toolbar back button
-
-**Scope:** Replace the two diverging "Back" implementations across workspace toolbars with a single `WorkspaceBackButton` component matching the article-editor's visual spec.
-
+type: refactor
+status: completed
+branch: feature-edit-article-button  # intentionally shared with PLAN_003 — both plans shipped on this branch
+worktree: null
+scope: "Replace the two diverging Back implementations across workspace toolbars with a single WorkspaceBackButton component matching the article-editor visual spec."
+apps: [mirror]
+verification_tier: 5
 ---
 
 ## Goal

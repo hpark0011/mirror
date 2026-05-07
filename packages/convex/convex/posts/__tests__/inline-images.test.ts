@@ -44,7 +44,7 @@ vi.mock("../../content/safeFetch", () => {
 });
 
 import { api, internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import { type Id } from "../../_generated/dataModel";
 import schema from "../../schema";
 
 function normalizeConvexGlob(

@@ -1,13 +1,15 @@
 ---
+id: PLAN_003
+slug: edit-article-button
+title: 'Add "Edit" button to article detail toolbar'
 date: 2026-05-06
+type: feature
+status: completed
 branch: feature-edit-article-button
-owner: Hyunsol
----
-
-# Plan — Add "Edit" button to article detail toolbar
-
-**Scope:** Single owner-only entry point from the article detail view into the existing edit route. No backend, schema, or routing changes.
-
+worktree: null
+scope: "Single owner-only entry point from the article detail view into the existing edit route. No backend, schema, or routing changes."
+apps: [mirror]
+verification_tier: 5
 ---
 
 ## Goal

@@ -11,7 +11,7 @@ import {
   MinusSmallIcon,
   PhotoFillIcon,
 } from "@feel-good/icons";
-import type { Editor } from "@tiptap/react";
+import { type Editor } from "@tiptap/react";
 import {
   BLOCK_FORMAT_ACTIONS,
   LIST_FORMAT_ACTIONS,
@@ -41,7 +41,7 @@ export function EditorToolbar({
       if (editor.isDestroyed) return;
       editor.chain().focus().setImage({ src: result.src }).run();
     } catch (error) {
-      onError?.(`Failed to insert image: ${(error as Error).message}`);
+      onError?.(`Failed to insert image: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 

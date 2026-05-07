@@ -1,5 +1,5 @@
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
-import type { JSONContent } from "@feel-good/features/editor/types";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type JSONContent } from "@feel-good/features/editor/types";
 
 export type ArticleSummary = {
   _id: Id<"articles">;

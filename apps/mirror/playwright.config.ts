@@ -1,4 +1,5 @@
 import { resolve } from "node:path";
+import { execFileSync } from "node:child_process";
 import { config as loadEnv } from "dotenv";
 import { defineConfig, devices } from "@playwright/test";
 
@@ -6,6 +7,28 @@ import { defineConfig, devices } from "@playwright/test";
 // for the dev server, but the test runner is separate). Existing process.env
 // values win so CI overrides are respected.
 loadEnv({ path: resolve(__dirname, ".env.local"), override: false });
+
+function resolvePort(): number {
+  const explicitPort = process.env.MIRROR_PORT ?? process.env.PORT;
+  if (explicitPort) {
+    return Number.parseInt(explicitPort, 10);
+  }
+
+  const allocatedPort = execFileSync(
+    process.execPath,
+    [
+      resolve(__dirname, "../../scripts/with-worktree-port.mjs"),
+      "mirror",
+      "--print",
+    ],
+    { encoding: "utf8" },
+  ).trim();
+
+  return Number.parseInt(allocatedPort, 10);
+}
+
+const port = resolvePort();
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -15,7 +38,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: "html",
   use: {
-    baseURL: "http://localhost:3001",
+    baseURL,
     trace: "on-first-retry",
   },
   projects: [
@@ -39,8 +62,8 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
-    url: "http://localhost:3001",
+    command: `MIRROR_PORT=${port} PORT=${port} PLAYWRIGHT_BASE_URL=${baseURL} pnpm dev`,
+    url: baseURL,
     reuseExistingServer: !process.env.CI,
   },
 });

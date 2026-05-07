@@ -1,13 +1,15 @@
 ---
+id: PLAN_002
+slug: articles-components-grouping
+title: "Group features/articles/components/ by surface"
 date: 2026-05-06
+type: refactor
+status: completed
 branch: improvements-article-editor
-owner: Hyunsol
----
-
-# Plan — Group `features/articles/components/` by surface
-
-**Scope:** `apps/mirror/features/articles/components/` reorg only — no behavior changes.
-
+worktree: null
+scope: "apps/mirror/features/articles/components/ reorg only — no behavior changes."
+apps: [mirror]
+verification_tier: 5
 ---
 
 ## Goal

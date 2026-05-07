@@ -77,7 +77,7 @@ const DEFAULT_PERSONA =
 // the inventory sentence so the agent learns nouns ("articles", "posts") and
 // verbs ("getLatestPublished", "navigateToContent") in the same region.
 const TOOLS_VOCABULARY =
-  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug.";
+  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug. Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background, and with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use getLatestPublished and navigateToContent instead).";
 
 export const SYSTEM_PROMPT_MAX_CHARS = 6000;
 
@@ -93,7 +93,7 @@ const SEPARATOR = "\n\n";
  * system prompt fits within `SYSTEM_PROMPT_MAX_CHARS` (FR-09).
  *
  * Safety prefix and tone clause are never touched in the *normal* case —
- * they are load-bearing safety content. Only the persona/bio/topics
+ * they are load-bearing safety content. Only the persona/tagline/topics
  * sections are proportionally shrunk.
  *
  * There is ONE pathological case: if the fixed sections alone (a very long
@@ -104,7 +104,7 @@ const SEPARATOR = "\n\n";
  * into the safety prefix. That is the lesser evil vs. blowing the cap.
  *
  * Section ORDER is preserved:
- *   safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+ *   safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
  * The first four are fixed (load-bearing) — safety prefix, style rules, the
  * optional tone clause, and TOOLS_VOCABULARY (the only place the system
  * prompt names `getLatestPublished` / `navigateToContent`). The rest are
@@ -154,7 +154,7 @@ function truncateToBudget(
 
 export function composeSystemPrompt(opts: {
   name?: string | null;
-  bio?: string | null;
+  tagline?: string | null;
   personaPrompt?: string | null;
   tonePreset?: TonePreset | null;
   topicsToAvoid?: string | null;
@@ -172,7 +172,7 @@ export function composeSystemPrompt(opts: {
   // apply regardless of tone preset or persona prompt. TOOLS_VOCABULARY is
   // load-bearing too — it is the only place the system prompt names
   // `getLatestPublished` / `navigateToContent`, so under budget pressure
-  // (verbose persona + bio + topics) it must not be proportionally shrunk
+  // (verbose persona + tagline + topics) it must not be proportionally shrunk
   // away. The verb names are identical across users — the per-request
   // factory only binds `profileOwnerId`, never tool args — so the line is
   // a constant, not user-derived content.
@@ -182,15 +182,15 @@ export function composeSystemPrompt(opts: {
   }
   fixed.push(TOOLS_VOCABULARY);
 
-  // Truncatable sections — bio, persona, topics, inventory. Order:
-  // safety → style → tone → tools-vocab → bio → persona → topics → inventory.
+  // Truncatable sections — tagline, persona, topics, inventory. Order:
+  // safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
   // The inventory sentence is appended last so it does not destabilize
   // existing prompt ordering for users without structured content; it is
   // genuinely user-derived (depends on which kinds the owner has populated)
   // and may legitimately compress if context budget runs tight.
   const truncatable: Array<string> = [];
-  if (opts.bio) {
-    truncatable.push(`Bio: ${opts.bio}`);
+  if (opts.tagline) {
+    truncatable.push(`Tagline: ${opts.tagline}`);
   }
   truncatable.push(opts.personaPrompt || DEFAULT_PERSONA);
   if (opts.topicsToAvoid) {
@@ -205,7 +205,7 @@ export function composeSystemPrompt(opts: {
     }
   }
 
-  // Track which truncatable slots correspond to bio/persona/topics so we can
+  // Track which truncatable slots correspond to tagline/persona/topics so we can
   // reassemble in order after truncation.
   const assembled = truncateToBudget(fixed, truncatable);
   const joined = assembled.join(SEPARATOR);
@@ -282,7 +282,7 @@ export const loadStreamingContext = internalQuery({
       threadId: conversation.threadId,
       systemPrompt: composeSystemPrompt({
         name: profileOwner.name,
-        bio: profileOwner.bio,
+        tagline: profileOwner.tagline ?? null,
         personaPrompt: profileOwner.personaPrompt,
         tonePreset: profileOwner.tonePreset as TonePreset | null | undefined,
         topicsToAvoid: profileOwner.topicsToAvoid,

@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { AuthError, AuthStatus } from "../types";
+import { type AuthError, type AuthStatus } from "../types";
 import { MagicLinkView } from "./magic-link-view";
 
 export interface MagicLinkSignUpViewProps {

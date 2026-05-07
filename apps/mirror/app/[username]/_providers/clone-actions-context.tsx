@@ -9,24 +9,28 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { getContentHref, type ContentKind } from "@/features/content";
+import {
+  getProfileTabHref,
+  type ProfileTabKind,
+} from "@/features/profile-tabs/types";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "./profile-route-data-context";
 
 /**
  * Single dispatcher for clone-level actions.
  *
- * Both routes — the user's own UI clicks (article/post list items) and the
- * agent's tool-result watcher (`useAgentIntentWatcher`) — funnel through
- * the same `useCloneActions().navigateToContent(...)` call. There is no
+ * Both routes — the user's own UI clicks (article/post list items, profile
+ * tabs) and the agent's tool-result watcher (`useAgentIntentWatcher`) —
+ * funnel through the same `useCloneActions().<verb>(...)` calls. There is no
  * agent-only navigation path, which keeps the agent honest: it cannot
- * fire-and-forget invisible navigation, and any future confirmation,
- * audit, or UI affordance attaches in one place.
+ * fire-and-forget invisible navigation, and any future confirmation, audit,
+ * or UI affordance attaches in one place.
  *
- * The agent path passes a server-built `href` (returned from the
- * `navigateToContent` tool's structured result) directly so the client
- * never recomposes the URL template — the server is the source of truth
- * for the canonical href shape. The user-UI path omits `href` and the
- * dispatcher composes it from `username + kind + slug`.
+ * The agent path passes a server-built `href` (returned from a tool's
+ * structured result) directly so the client never recomposes the URL
+ * template — the server is the source of truth for the canonical href shape.
+ * The user-UI path omits `href` and the dispatcher composes it from
+ * `username + kind` (or `username + kind + slug` for content).
  *
  * `buildChatAwareHref` preserves the chat query params (`?chat=1&conversation=...`)
  * across navigation, mirroring the current `<Link>` semantics in both
@@ -41,6 +45,22 @@ type CloneActions = {
      * pass the server-built href directly instead of recomposing
      * client-side. The user-UI path omits this and the dispatcher
      * builds the href from `username + kind + slug`.
+     */
+    href?: string;
+  }) => void;
+  /**
+   * Tab-level parallel of `navigateToContent`. User-UI caller:
+   * `apps/mirror/features/profile-tabs/components/profile-tabs.tsx`.
+   * Agent caller: `apps/mirror/features/chat/hooks/use-agent-intent-watcher.ts`.
+   * Both routes funnel here so the chat-aware suffix and `scroll: false`
+   * invariant are applied in exactly one place.
+   */
+  navigateToProfileSection: (args: {
+    section: ProfileTabKind;
+    /**
+     * Optional override — when called from the agent intent watcher,
+     * pass the server-built href directly. The user-UI path omits this
+     * and the dispatcher builds the href from `username + section`.
      */
     href?: string;
   }) => void;
@@ -77,9 +97,19 @@ export function CloneActionsProvider({ children }: CloneActionsProviderProps) {
     [router, profile.username, buildChatAwareHref],
   );
 
+  const navigateToProfileSection = useCallback<
+    CloneActions["navigateToProfileSection"]
+  >(
+    ({ section, href }) => {
+      const basePath = href ?? getProfileTabHref(profile.username, section);
+      router.push(buildChatAwareHref(basePath), { scroll: false });
+    },
+    [router, profile.username, buildChatAwareHref],
+  );
+
   const value = useMemo<CloneActions>(
-    () => ({ navigateToContent }),
-    [navigateToContent],
+    () => ({ navigateToContent, navigateToProfileSection }),
+    [navigateToContent, navigateToProfileSection],
   );
 
   return (

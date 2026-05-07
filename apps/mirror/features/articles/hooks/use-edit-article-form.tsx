@@ -6,27 +6,20 @@
 // same slug because slug renames are intentionally explicit (the user has
 // to type a new slug + Save).
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import {
   type InlineImageUploadResult,
   type JSONContent,
 } from "@feel-good/features/editor";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
-import { useCallback, useState } from "react";
-import { toast } from "sonner";
-import { OctagonXIcon } from "lucide-react";
-import {
-  Toast,
-  ToastClose,
-  ToastHeader,
-  ToastIcon,
-  ToastTitle,
-} from "@feel-good/ui/components/toast";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { showToast } from "@feel-good/ui/components/toast";
+import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
-import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
-import type { ArticleWithBody } from "../types";
+import { type ArticleStatus } from "../lib/schemas/article-metadata.schema";
+import { type ArticleWithBody } from "../types";
 
 interface UseEditArticleFormOptions {
   username: string;
@@ -71,33 +64,32 @@ export function useEditArticleForm({
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  const showErrorToast = useCallback((err: unknown) => {
-    const message =
-      typeof err === "string"
-        ? err
-        : err instanceof Error
-          ? err.message
-          : "Something went wrong";
-    toast.custom((t) => (
-      <Toast id={t}>
-        <ToastIcon className="text-red-9">
-          <OctagonXIcon />
-        </ToastIcon>
-        <ToastHeader>
-          <ToastTitle>{message}</ToastTitle>
-        </ToastHeader>
-        <ToastClose />
-      </Toast>
-    ));
+  // FG_132: track the active blob URL so we can revoke it before assigning a
+  // new one (replace/clear) and on unmount. Server URLs (not blob:) are not
+  // revoked.
+  const blobUrlRef = useRef<string | null>(null);
+
+  // FG_132: revoke the active blob URL on unmount to prevent memory leaks.
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current?.startsWith("blob:")) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
+    };
   }, []);
 
   const handleCoverImageUpload = useCallback(
     async (file: File) => {
       const { storageId, thumbhash } = await uploadCover(file);
       const objectUrl = URL.createObjectURL(file);
+      // FG_132: revoke the previous blob URL before assigning a new one.
+      setCoverImageUrl((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return objectUrl;
+      });
+      blobUrlRef.current = objectUrl;
       setCoverImageStorageId(storageId);
       setCoverImageThumbhash(thumbhash);
-      setCoverImageUrl(objectUrl);
       // A fresh upload supersedes any prior clear in the same session.
       setIsCoverCleared(false);
       return { storageId: storageId as string, thumbhash, url: objectUrl };
@@ -106,9 +98,14 @@ export function useEditArticleForm({
   );
 
   const handleCoverImageClear = useCallback(() => {
+    // FG_132: revoke blob URL on clear.
+    setCoverImageUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    blobUrlRef.current = null;
     setCoverImageStorageId(null);
     setCoverImageThumbhash("");
-    setCoverImageUrl(null);
     setIsCoverCleared(true);
   }, []);
 
@@ -129,10 +126,15 @@ export function useEditArticleForm({
         clearCoverImage: isCoverCleared ? true : undefined,
         ...(coverImageThumbhash && { coverImageThumbhash }),
       });
-      // Optimistically reflect the server-side publishedAt assignment so
-      // the UI doesn't wait for the next reactive query tick.
-      if (targetStatus === "published" && !publishedAt) {
+      // Optimistically reflect the server-side publish/unpublish timestamp
+      // change so the UI doesn't wait for the next reactive query tick.
+      // The optimistic re-set runs on every publish transition (not just the
+      // first) so a draft → publish → draft → publish flow shows the new
+      // publish time immediately, not the stale first-publish time.
+      if (targetStatus === "published") {
         setPublishedAt(Date.now());
+      } else {
+        setPublishedAt(null);
       }
       // After a successful save, the next reactive `getBySlug` tick
       // reflects the cleared cover; reset the flag so subsequent saves
@@ -178,13 +180,11 @@ export function useEditArticleForm({
     try {
       await persist(status);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save article";
-      showErrorToast(message);
+      showToast({ type: "error", title: getMutationErrorMessage(err) });
     } finally {
       setIsSaving(false);
     }
-  }, [hasPendingUploads, isSaving, persist, showErrorToast, status]);
+  }, [hasPendingUploads, isSaving, persist, status]);
 
   const togglePublish = useCallback(async () => {
     if (isSaving || hasPendingUploads) return;
@@ -195,18 +195,23 @@ export function useEditArticleForm({
       await persist(nextStatus);
       setStatus(nextStatus);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Failed to save article";
-      showErrorToast(message);
+      showToast({ type: "error", title: getMutationErrorMessage(err) });
       throw err;
     } finally {
       setIsSaving(false);
     }
-  }, [hasPendingUploads, isSaving, persist, showErrorToast, status]);
+  }, [hasPendingUploads, isSaving, persist, status]);
 
   const cancel = useCallback(() => {
     router.push(`/@${username}/articles/${initial.slug}`);
   }, [initial.slug, router, username]);
+
+  const onInlineImageError = useCallback(
+    (err: unknown) => {
+      showToast({ type: "error", title: getMutationErrorMessage(err) });
+    },
+    [],
+  );
 
   return {
     title,
@@ -229,7 +234,7 @@ export function useEditArticleForm({
     onInlineImageUpload: uploadInlineImage as (
       file: File,
     ) => Promise<InlineImageUploadResult>,
-    onInlineImageError: showErrorToast,
+    onInlineImageError,
     save,
     togglePublish,
     cancel,

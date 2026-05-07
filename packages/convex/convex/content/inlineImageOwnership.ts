@@ -22,8 +22,8 @@
 // FG_091: user B can no longer cause `ctx.storage.delete(<user A's
 // storageId>)` to fire by including A's storageId in B's body.
 
-import type { MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { type MutationCtx } from "../_generated/server";
+import { type Id } from "../_generated/dataModel";
 import {
   extractInlineImageStorageIds,
   type JSONContent,

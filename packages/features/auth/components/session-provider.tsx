@@ -9,7 +9,7 @@ import {
   useMemo,
   type ReactNode,
 } from "react";
-import type { AuthClient } from "../client";
+import { type AuthClient } from "../client";
 
 interface User {
   id: string;

@@ -17,7 +17,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
-import type { Editor } from "@tiptap/react";
+import { type Editor } from "@tiptap/react";
 
 type TextStyle = "paragraph" | "heading-1" | "heading-2" | "heading-3";
 

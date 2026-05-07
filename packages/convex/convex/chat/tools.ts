@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import { type Id } from "../_generated/dataModel";
 
 /**
  * Per-request tool factory for the clone agent.
@@ -87,6 +87,67 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
           slug: row.slug,
           title: row.title,
           href: row.href,
+        };
+      },
+    }),
+
+    openProfileSection: createTool({
+      description:
+        "Open one of the profile owner's tab panels for the visitor. Pass section: 'bio' to open the bio panel — the structured work history, education, and professional background. Pass section: 'articles' or 'posts' to open the visitor's list view of all published articles or posts (use this for list-level requests like 'show me your articles', not for opening a specific item — for that, call getLatestPublished + navigateToContent instead). The owner is resolved server-side from the chat context — do not pass any user identifier. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge that the section is currently empty before opening it.",
+      // The LLM-visible surface is `section` only. The owner is the
+      // closure-bound `profileOwnerId`, never a tool arg. The
+      // `inputSchema invariants` tests in `chat/__tests__/tools.test.ts`
+      // pin this. `clone-settings` is intentionally excluded — it is
+      // owner-only and not a visitor-reachable view.
+      inputSchema: z.object({
+        section: z
+          .enum(["bio", "articles", "posts"])
+          .describe(
+            "Which profile section to open — 'bio', 'articles' (list view), or 'posts' (list view).",
+          ),
+      }),
+      execute: async (ctx, { section }) => {
+        if (section === "bio") {
+          const row: {
+            username: string;
+            href: string;
+            hasEntries: boolean;
+          } | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryBioPanel,
+            { userId: profileOwnerId },
+          );
+          if (!row) {
+            // Mirrors `navigateToContent`'s "no row" path — surfaces a tool
+            // error so the LLM falls back to text. This branch only fires
+            // when the owner has no `username` (rare, but defensible: a row
+            // with no username can't produce `/@<username>/bio`).
+            throw new Error("Bio panel is unavailable for this profile.");
+          }
+          return {
+            kind: "bio" as const,
+            href: row.href,
+            hasEntries: row.hasEntries,
+          };
+        }
+
+        const row: {
+          kind: "articles" | "posts";
+          username: string;
+          href: string;
+          hasEntries: boolean;
+        } | null = await ctx.runQuery(
+          internal.chat.toolQueries.queryProfileSectionList,
+          { userId: profileOwnerId, section },
+        );
+        if (!row) {
+          throw new Error(
+            `${section === "articles" ? "Articles" : "Posts"} list is unavailable for this profile.`,
+          );
+        }
+        return {
+          kind: row.kind,
+          href: row.href,
+          hasEntries: row.hasEntries,
         };
       },
     }),

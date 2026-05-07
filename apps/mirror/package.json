@@ -3,13 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 3001",
+    "dev": "node ../../scripts/with-worktree-port.mjs mirror -- next dev --port {port}",
     "build": "next build",
-    "start": "next start --port 3001",
+    "start": "node ../../scripts/with-worktree-port.mjs mirror -- next start --port {port}",
     "lint": "eslint",
     "test:unit": "vitest run",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e": "node ../../scripts/with-worktree-port.mjs mirror -- playwright test",
+    "test:e2e:ui": "node ../../scripts/with-worktree-port.mjs mirror -- playwright test --ui"
   },
   "dependencies": {
     "@ai-sdk/provider-utils": "^4.0.26",

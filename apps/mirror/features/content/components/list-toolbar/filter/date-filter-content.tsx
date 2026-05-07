@@ -4,7 +4,7 @@ import {
   DropdownMenuRadioGroup,
   DropdownMenuRadioItem,
 } from "@feel-good/ui/primitives/dropdown-menu";
-import type { DatePreset } from "@/features/content/utils/date-preset";
+import { type DatePreset } from "@/features/content/utils/date-preset";
 
 type ContentDateFilterContentProps = {
   value: DatePreset | null;

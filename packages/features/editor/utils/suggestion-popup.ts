@@ -3,8 +3,8 @@
 // Owns positioning + Escape handling so each suggestion menu component only
 // has to render its own list and forward keys to whatever picker (cmdk, etc.)
 // it uses internally.
-import type { Editor } from "@tiptap/core";
 import { ReactRenderer } from "@tiptap/react";
+import { type Editor } from "@tiptap/core";
 
 export function updatePosition(
   popup: HTMLDivElement | null,

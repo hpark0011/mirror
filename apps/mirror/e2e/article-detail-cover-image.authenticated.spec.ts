@@ -69,6 +69,9 @@ test("article detail page renders the cover image below the title", async ({
   // waitForResponse resolves when the HTTP response arrives, before the
   // browser-side handler parses { storageId } and React flushes
   // setCoverImageStorageId. A short settle covers that microtask chain.
+  // TODO: replace with `data-cover-uploading="false"` data-attribute wait —
+  // see `.claude/rules/verification.md` § "Deterministic e2e waits".
+  // eslint-disable-next-line no-restricted-syntax -- pending data-attribute migration
   await page.waitForTimeout(500);
 
   await page.getByTestId("save-article-btn").click();

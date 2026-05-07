@@ -1,5 +1,5 @@
-import type { Doc, Id } from "../_generated/dataModel";
-import type { MutationCtx, QueryCtx } from "../_generated/server";
+import { type Doc, type Id } from "../_generated/dataModel";
+import { type MutationCtx, type QueryCtx } from "../_generated/server";
 import { authComponent } from "../auth/client";
 export { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "./schema";
 

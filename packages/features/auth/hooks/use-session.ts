@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import type { AuthClient } from "../client";
+import { type AuthClient } from "../client";
 
 interface User {
   id: string;

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
-import type { QueryCtx, MutationCtx } from "../_generated/server";
-import type { Id } from "../_generated/dataModel";
+import { type QueryCtx, type MutationCtx } from "../_generated/server";
+import { type Id } from "../_generated/dataModel";
 import { tonePresetValidator, type TonePreset } from "../chat/tonePresets";
 
 export const RESERVED_USERNAMES = new Set([
@@ -18,7 +18,7 @@ const profileReturnFields = {
   email: v.string(),
   username: v.optional(v.string()),
   name: v.optional(v.string()),
-  bio: v.optional(v.string()),
+  tagline: v.optional(v.string()),
   avatarUrl: v.union(v.string(), v.null()),
   onboardingComplete: v.boolean(),
 } as const;
@@ -41,7 +41,7 @@ export const publicProfileReturnValidator = v.object({
   authId: v.string(),
   username: v.optional(v.string()),
   name: v.optional(v.string()),
-  bio: v.optional(v.string()),
+  tagline: v.optional(v.string()),
   avatarUrl: v.union(v.string(), v.null()),
   onboardingComplete: v.boolean(),
   chatAuthRequired: v.optional(v.boolean()),

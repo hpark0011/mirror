@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useRef } from "react";
-import type { AuthClient } from "../client";
+import { type AuthClient } from "../client";
 import { getAuthErrorMessage, type AuthStatus, type AuthError } from "../types";
 import { getSafeRedirectUrl } from "../utils/validate-redirect";
 

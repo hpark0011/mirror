@@ -9,8 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, usePreloadedQuery } from "convex/react";
-import type { Preloaded } from "convex/react";
+import { useMutation, usePreloadedQuery, type Preloaded } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import {
   filterContent,
@@ -20,7 +19,7 @@ import {
   useContentSort,
   type SortOrder,
 } from "@/features/content";
-import type { ArticleSummary } from "../types";
+import { type ArticleSummary } from "../types";
 import { useArticlePagination } from "../hooks/use-article-pagination";
 import { useArticleSelection } from "../hooks/use-article-selection";
 import { useArticleFilter } from "../hooks/use-article-filter";

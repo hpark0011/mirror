@@ -3,14 +3,13 @@
 // the server normalizes it from `slug ?? title` (per identifiers.md).
 import { z } from "zod";
 import {
+  MAX_CATEGORY_LENGTH,
   MAX_SLUG_LENGTH,
   MAX_TITLE_LENGTH,
 } from "@feel-good/convex/convex/content/schema";
 
 export const ARTICLE_STATUSES = ["draft", "published"] as const;
 export type ArticleStatus = (typeof ARTICLE_STATUSES)[number];
-
-const MAX_CATEGORY_LENGTH = 64;
 
 export const articleMetadataSchema = z.object({
   title: z

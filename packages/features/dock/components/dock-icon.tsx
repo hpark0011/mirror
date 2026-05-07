@@ -1,6 +1,6 @@
 "use client";
 
-import type { ComponentType } from "react";
+import { type ComponentType } from "react";
 
 import { cn } from "@feel-good/ui/lib/utils";
 import React from "react";

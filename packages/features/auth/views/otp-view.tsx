@@ -17,7 +17,7 @@ import {
   InputOTPSeparator,
   InputOTPSlot,
 } from "@feel-good/ui/primitives/input-otp";
-import type { AuthError, AuthStatus, OTPStep } from "../types";
+import { type AuthError, type AuthStatus, type OTPStep } from "../types";
 import { FormError } from "../components/shared/form-error";
 
 export interface OTPViewProps {

@@ -265,6 +265,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t);
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Cover Test",
@@ -284,6 +287,12 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     await insertAppUserAndSignIn(t);
     const oldStorageId = await storeBlob(t, "old-cover");
     const newStorageId = await storeBlob(t, "new-cover");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: oldStorageId,
+    });
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: newStorageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Cover Update Both",
@@ -310,6 +319,12 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     await insertAppUserAndSignIn(t);
     const oldStorageId = await storeBlob(t, "old-cover");
     const newStorageId = await storeBlob(t, "new-cover");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: oldStorageId,
+    });
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: newStorageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Coupling Rule Test",
@@ -337,6 +352,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-to-clear");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Clear Cover Test",
@@ -399,6 +417,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-branch3");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Branch 3 Test",
@@ -424,6 +445,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-branch4");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Branch 4 Test",
@@ -450,6 +474,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-len-cap");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Length Cap Test",
@@ -475,6 +502,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-fmt");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Format Test",
@@ -497,6 +527,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     await insertAppUserAndSignIn(t);
     const originalStorageId = await storeBlob(t, "cover-original");
     const replacementStorageId = await storeBlob(t, "cover-replacement");
+    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
+      storageId: originalStorageId,
+    });
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Race Guard Test",

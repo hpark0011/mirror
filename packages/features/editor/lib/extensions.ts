@@ -1,7 +1,7 @@
 import StarterKit from "@tiptap/starter-kit";
 import Link from "@tiptap/extension-link";
 import { Markdown } from "tiptap-markdown";
-import type { Extensions } from "@tiptap/core";
+import { type Extensions } from "@tiptap/core";
 import { createInlineImageExtension } from "./inline-image-extension";
 
 export function createArticleExtensions(): Extensions {

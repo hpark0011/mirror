@@ -10,8 +10,8 @@ import {
   QuoteOpeningIcon,
   StrikethroughIcon,
 } from "@feel-good/icons";
-import type { ComponentType } from "react";
-import type { Editor } from "@tiptap/react";
+import { type ComponentType } from "react";
+import { type Editor } from "@tiptap/react";
 
 export interface FormatAction {
   key: string;

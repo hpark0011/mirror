@@ -12,7 +12,7 @@ import {
   act,
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 

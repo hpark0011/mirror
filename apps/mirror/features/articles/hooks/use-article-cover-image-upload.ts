@@ -7,7 +7,7 @@
 import { useCallback } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { uploadToStorage } from "@/lib/upload-to-storage";
 import { computeThumbhashFromFile } from "../utils/compute-thumbhash";
 
@@ -18,6 +18,9 @@ export type UseArticleCoverImageUploadReturn = {
 export function useArticleCoverImageUpload(): UseArticleCoverImageUploadReturn {
   const generateUploadUrl = useMutation(
     api.articles.mutations.generateArticleCoverImageUploadUrl,
+  );
+  const claimOwnership = useMutation(
+    api.articles.mutations.claimCoverImageOwnership,
   );
 
   const upload = useCallback(
@@ -30,9 +33,12 @@ export function useArticleCoverImageUpload(): UseArticleCoverImageUploadReturn {
           return "";
         }),
       ]);
+      // Claim ownership so create/update mutations pass FG_147's ownership
+      // check (first-claim-wins on the server side).
+      await claimOwnership({ storageId });
       return { storageId, thumbhash };
     },
-    [generateUploadUrl],
+    [generateUploadUrl, claimOwnership],
   );
 
   return { upload };

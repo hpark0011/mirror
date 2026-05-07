@@ -77,8 +77,9 @@ export function ArticleMetadataHeader({
 
   // Track whether the slug has been manually edited so subsequent title
   // changes don't overwrite the user's choice. Reset to "auto-derive" when
-  // the slug input is cleared.
-  const slugDirtyRef = useRef(false);
+  // the slug input is cleared. Initialised from the incoming slug so editing
+  // the title of an existing article does not silently rename its URL.
+  const slugDirtyRef = useRef(slug.trim().length > 0);
 
   const handleTitleChange = useCallback(
     (next: string) => {

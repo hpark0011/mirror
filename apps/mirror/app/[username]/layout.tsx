@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+import { type Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
-import type { Profile } from "@/features/profile";
+import { type Profile } from "@/features/profile";
 import { isReservedUsername } from "@/lib/reserved-usernames";
 import { fetchAuthQuery, preloadAuthQuery } from "@/lib/auth-server";
 import { enforceOnboardingGate } from "@/lib/route-guards";
@@ -28,7 +28,7 @@ export async function generateMetadata({
   if (!profile) return {};
 
   const displayName = profile.name || `@${profile.username ?? username}`;
-  const description = profile.bio || `${displayName}'s profile on Mirror`;
+  const description = profile.tagline || `${displayName}'s profile on Mirror`;
 
   return {
     title: { default: displayName, template: `%s | ${displayName}` },
@@ -72,7 +72,7 @@ export default async function ProfileLayout({
     authId: convexProfile.authId,
     username: convexProfile.username ?? username,
     name: convexProfile.name ?? "",
-    bio: convexProfile.bio ?? "",
+    tagline: convexProfile.tagline ?? "",
     avatarUrl: convexProfile.avatarUrl,
     ...(convexProfile.username === "rick-rubin" && {
       media: { video: "/portrait-video.mp4", poster: "/rr.webp" },

@@ -18,15 +18,15 @@ import {
 
 import { Form } from "@feel-good/ui/primitives/form";
 
-import type { Profile } from "../types";
+import { type Profile } from "../types";
 import { EditableProfileActions } from "./editable-profile-actions";
 import { EditableName } from "./editable-name";
 import { EditableAvatar } from "./editable-avatar";
-import { EditableBio } from "./editable-bio";
+import { EditableTagline } from "./editable-tagline";
 
 const editProfileSchema = z.object({
   name: z.string().max(100, "Name must be at most 100 characters"),
-  bio: z.string().max(300, "Bio must be at most 300 characters"),
+  tagline: z.string().max(300, "Tagline must be at most 300 characters"),
 });
 
 type ProfileInfoProps = {
@@ -70,7 +70,7 @@ export function ProfileInfo({
           {
             ...current,
             name: args.name ?? current.name,
-            bio: args.bio ?? current.bio,
+            tagline: args.tagline ?? current.tagline,
           },
         );
       }
@@ -84,16 +84,16 @@ export function ProfileInfo({
     resolver: zodResolver(editProfileSchema),
     defaultValues: {
       name: profile.name ?? "",
-      bio: profile.bio ?? "",
+      tagline: profile.tagline ?? "",
     },
     mode: "onChange",
   });
 
   useEffect(() => {
     if (!isEditing) {
-      form.reset({ name: profile.name ?? "", bio: profile.bio ?? "" });
+      form.reset({ name: profile.name ?? "", tagline: profile.tagline ?? "" });
     }
-  }, [isEditing, form, profile.name, profile.bio]);
+  }, [isEditing, form, profile.name, profile.tagline]);
 
   function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -122,7 +122,7 @@ export function ProfileInfo({
 
       await updateProfile({
         name: data.name,
-        bio: data.bio,
+        tagline: data.tagline,
       });
 
       toast.custom((t) => (
@@ -170,7 +170,7 @@ export function ProfileInfo({
         />
       </div>
       <div className="w-full">
-        <EditableBio isEditing={isEditing} bio={profile.bio} />
+        <EditableTagline isEditing={isEditing} tagline={profile.tagline} />
       </div>
     </>
   );

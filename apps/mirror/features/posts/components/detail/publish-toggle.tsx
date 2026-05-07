@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@feel-good/ui/primitives/alert-dialog";
-import type { PostSummary } from "../../types";
+import { type PostSummary } from "../../types";
 
 type PublishToggleProps = {
   status: PostSummary["status"];

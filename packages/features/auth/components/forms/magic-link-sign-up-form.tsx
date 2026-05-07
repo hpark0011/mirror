@@ -2,8 +2,8 @@
 
 import { useMagicLinkRequest } from "../../hooks";
 import { MagicLinkSignUpView } from "../../views";
-import type { AuthClient } from "../../client";
-import type { AuthError } from "../../types";
+import { type AuthClient } from "../../client";
+import { type AuthError } from "../../types";
 
 export interface MagicLinkSignUpFormProps {
   authClient: AuthClient;
