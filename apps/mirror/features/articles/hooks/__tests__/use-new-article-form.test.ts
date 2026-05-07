@@ -261,6 +261,41 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
   });
 });
 
+describe("useNewArticleForm — RHF validation", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockDeleteOrphanCoverImage.mockReset();
+    mockReplace.mockReset();
+    mockShowToast.mockReset();
+    mockUploadCover.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("save with an empty title does not call create and exposes a title error", async () => {
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    // Category is set but title is left empty (default "").
+    act(() => {
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    // Validation blocked the mutation.
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(result.current.isSaving).toBe(false);
+    // The schema's title error message is surfaced through formState.errors.
+    expect(result.current.errors.title?.message).toBe("Title is required");
+  });
+});
+
 describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
   beforeEach(() => {
     mockCreate.mockReset();
@@ -281,7 +316,7 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
   });
 
   it("calls deleteOrphanCoverImage with the storageId when create fails after cover upload", async () => {
-    mockUploadCover.mockResolvedValue("storage_id_abc");
+    mockUploadCover.mockResolvedValue({ storageId: "storage_id_abc", thumbhash: "" });
     mockCreate.mockRejectedValue(new Error("An article with slug already exists"));
     mockDeleteOrphanCoverImage.mockResolvedValue(null);
 

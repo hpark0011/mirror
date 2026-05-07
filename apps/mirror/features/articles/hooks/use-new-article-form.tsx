@@ -18,15 +18,21 @@ import {
   type InlineImageUploadResult,
   type JSONContent,
 } from "@feel-good/features/editor";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 import { showToast } from "@feel-good/ui/components/toast";
 import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
-import { type ArticleStatus } from "../lib/schemas/article-metadata.schema";
+import {
+  articleMetadataSchema,
+  type ArticleMetadataFormData,
+  type ArticleStatus,
+} from "../lib/schemas/article-metadata.schema";
 
 const EMPTY_BODY: JSONContent = {
   type: "doc",
@@ -46,10 +52,16 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   const { upload: uploadCover } = useArticleCoverImageUpload();
   const { upload: uploadInlineImage } = useArticleInlineImageUpload();
 
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [category, setCategory] = useState("");
-  const [status, setStatus] = useState<ArticleStatus>("draft");
+  const form = useForm<ArticleMetadataFormData>({
+    resolver: zodResolver(articleMetadataSchema),
+    defaultValues: {
+      title: "",
+      slug: "",
+      category: "",
+      status: "draft",
+    },
+  });
+
   const [body, setBody] = useState<JSONContent>(EMPTY_BODY);
   const [coverImageStorageId, setCoverImageStorageId] =
     useState<Id<"_storage"> | null>(null);
@@ -99,21 +111,15 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     setCoverImageThumbhash("");
   }, []);
 
-  const persist = useCallback(
-    async (targetStatus: ArticleStatus) => {
-      if (!title.trim()) {
-        throw new Error("Title is required");
-      }
-      if (!category.trim()) {
-        throw new Error("Category is required");
-      }
-      const slugSource = slug.trim() ? slug : title;
+  const persistValidated = useCallback(
+    async (data: ArticleMetadataFormData, targetStatus: ArticleStatus) => {
+      const slugSource = data.slug?.trim() ? data.slug : data.title;
       const finalSlug = generateSlug(slugSource);
       try {
         await create({
-          title: title.trim(),
+          title: data.title.trim(),
           slug: finalSlug,
-          category: category.trim(),
+          category: data.category.trim(),
           body,
           status: targetStatus,
           ...(coverImageStorageId ? { coverImageStorageId } : {}),
@@ -134,45 +140,66 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     },
     [
       body,
-      category,
       coverImageStorageId,
       coverImageThumbhash,
       create,
       deleteOrphanCoverImage,
       router,
-      slug,
-      title,
       username,
     ],
   );
 
   const save = useCallback(async () => {
     if (isSaving || hasPendingUploads) return;
+    const currentStatus = form.getValues("status");
     setIsSaving(true);
     try {
-      await persist(status);
+      await new Promise<void>((resolve, reject) => {
+        void form.handleSubmit(
+          async (data) => {
+            try {
+              await persistValidated(data, currentStatus);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
+          () => resolve(), // validation failed — silently resolve (form errors displayed by form state)
+        )();
+      });
     } catch (err) {
       showToast({ type: "error", title: getMutationErrorMessage(err) });
     } finally {
       setIsSaving(false);
     }
-  }, [hasPendingUploads, isSaving, persist, status]);
+  }, [form, hasPendingUploads, isSaving, persistValidated]);
 
   const togglePublish = useCallback(async () => {
     if (isSaving || hasPendingUploads) return;
     const nextStatus: ArticleStatus =
-      status === "draft" ? "published" : "draft";
+      form.getValues("status") === "draft" ? "published" : "draft";
     setIsSaving(true);
     try {
-      await persist(nextStatus);
-      setStatus(nextStatus);
+      await new Promise<void>((resolve, reject) => {
+        void form.handleSubmit(
+          async (data) => {
+            try {
+              await persistValidated(data, nextStatus);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
+          () => resolve(),
+        )();
+      });
     } catch (err) {
       showToast({ type: "error", title: getMutationErrorMessage(err) });
       throw err;
     } finally {
       setIsSaving(false);
     }
-  }, [hasPendingUploads, isSaving, persist, status]);
+  }, [form, hasPendingUploads, isSaving, persistValidated]);
 
   const onInlineImageError = useCallback(
     (err: unknown) => {
@@ -180,6 +207,12 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     },
     [],
   );
+
+  // Derive watched values for consumers that need reactive reads.
+  const title = form.watch("title");
+  const slug = form.watch("slug") ?? "";
+  const category = form.watch("category");
+  const status = form.watch("status");
 
   return {
     // Metadata getters
@@ -193,10 +226,13 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     body,
     hasPendingUploads,
     isSaving,
-    // Setters
-    setTitle,
-    setSlug,
-    setCategory,
+    // RHF form errors — consumers can display per-field error messages.
+    errors: form.formState.errors,
+    // Setters — bridge to RHF setValue so callers keep the same API surface.
+    setTitle: (value: string) => form.setValue("title", value),
+    setSlug: (value: string) =>
+      form.setValue("slug", value, { shouldValidate: false }),
+    setCategory: (value: string) => form.setValue("category", value),
     setBody,
     setHasPendingUploads,
     handleCoverImageUpload,

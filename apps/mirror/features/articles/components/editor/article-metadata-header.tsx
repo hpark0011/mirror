@@ -45,14 +45,14 @@ function TimestampField({
   testId,
 }: {
   label: string;
-  value: number;
+  value: number | null;
   testId: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
       <div>{label}</div>
       <div data-testid={testId} className="text-foreground">
-        {formatTimestamp(value)}
+        {value !== null ? formatTimestamp(value) : "—"}
       </div>
     </div>
   );
@@ -170,24 +170,18 @@ export function ArticleMetadataHeader({
           </div>
         </div>
 
-        {(createdAt || publishedAt) && (
-          <div className="grid grid-cols-2 gap-3 text-[13px] text-muted-foreground">
-            {createdAt && (
-              <TimestampField
-                label="Created"
-                value={createdAt}
-                testId="article-created-at"
-              />
-            )}
-            {publishedAt && (
-              <TimestampField
-                label="Published"
-                value={publishedAt}
-                testId="article-published-at"
-              />
-            )}
-          </div>
-        )}
+        <div className="grid grid-cols-2 gap-3 text-[13px] text-muted-foreground">
+          <TimestampField
+            label="Created"
+            value={createdAt}
+            testId="article-created-at"
+          />
+          <TimestampField
+            label="Published"
+            value={publishedAt}
+            testId="article-published-at"
+          />
+        </div>
       </div>
     </div>
   );

@@ -3,7 +3,7 @@ id: FG_127
 title: "Article metadata form is wired through React Hook Form and zodResolver"
 date: 2026-05-05
 type: refactor
-status: to-do
+status: completed
 priority: p1
 description: "Both article form hooks manage state via per-field useState and validate imperatively, while the existing Zod schema sits unused — violating the project forms rule."
 dependencies: []
