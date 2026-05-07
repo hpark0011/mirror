@@ -9,9 +9,9 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { useConversations, type Conversation } from "@/features/chat";
-import type { ChatRouteResolution } from "@/features/chat/types";
+import { type ChatRouteResolution } from "@/features/chat/types";
 import { parseConversationId } from "@/features/chat/lib/parse-conversation-id";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "./profile-route-data-context";
@@ -57,6 +57,8 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
   });
 
   const [newConversationIntent, setNewConversationIntent] = useState(false);
+  const [pendingNewConversationId, setPendingNewConversationId] =
+    useState<Id<"conversations"> | null>(null);
 
   const parsed = useMemo(
     () => parseConversationId(rawConversationId),
@@ -69,19 +71,36 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     (id: Id<"conversations"> | null) => {
       if (!id) {
         setNewConversationIntent(true);
+        setPendingNewConversationId(null);
         openChat();
       } else {
         setNewConversationIntent(false);
+        setPendingNewConversationId(id);
         setConversation(id);
       }
     },
     [openChat, setConversation],
   );
 
+  // Clear the bridge once the URL has caught up (conversationId now matches the
+  // optimistically-stored id). Adjusted during render rather than via an effect —
+  // React reruns render with the cleared value before painting, avoiding the
+  // cascading-render hazard the react-hooks/set-state-in-effect rule warns
+  // about. See:
+  // https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes
+  if (
+    pendingNewConversationId !== null &&
+    pendingNewConversationId === conversationId
+  ) {
+    setPendingNewConversationId(null);
+  }
+
+  const effectiveConversationId = conversationId ?? pendingNewConversationId;
+
   // Auto-select latest conversation when chat is open with no conversationId.
   useEffect(() => {
     if (!isChatOpen) return;
-    if (conversationId) return;
+    if (effectiveConversationId) return;
     if (conversationInvalid) return;
     if (conversationsLoading) return;
     if (newConversationIntent) return;
@@ -90,7 +109,7 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     }
   }, [
     isChatOpen,
-    conversationId,
+    effectiveConversationId,
     conversationInvalid,
     conversationsLoading,
     newConversationIntent,
@@ -100,13 +119,14 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
 
   const routeResolution = useMemo((): ChatRouteResolution => {
     if (conversationInvalid) return { status: "invalid" };
-    if (conversationId) return { status: "ready", conversationId };
+    if (effectiveConversationId)
+      return { status: "ready", conversationId: effectiveConversationId };
     if (newConversationIntent) return { status: "new_conversation" };
     if (conversationsLoading || conversations.length > 0)
       return { status: "resolving" };
     return { status: "empty" };
   }, [
-    conversationId,
+    effectiveConversationId,
     conversationInvalid,
     newConversationIntent,
     conversationsLoading,

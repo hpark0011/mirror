@@ -1,13 +1,25 @@
+// FG_163: second test is `test.fixme` until STYLE_RULES short replies stop
+// breaking pixel-based scroll-growth assertions. See
+// workspace/tickets/to-do/FG_163-*.md and the inline comment above the test.
 import { expect, test, type Page } from "@playwright/test";
 import { openChat, sendChatMessage } from "./helpers/chat";
+
+type TrackedWindow = typeof window & {
+  __pendingAssistantSeen?: boolean;
+  __chatLoadingStateSeen?: boolean;
+  __assistantTextSeen?: boolean;
+  __pendingAssistantDroppedBeforeText?: boolean;
+  __blankAssistantSeen?: boolean;
+  __resolvingStateSeen?: boolean;
+};
 
 const username = "rick-rubin";
 const firstMessage = "Reply with exactly: ok";
 const secondMessage = "Reply with exactly: hi";
 const longReplyMessage =
-  "Reply with exactly 80 numbered lines in plain text. Each line must begin with 'stream line' followed by the line number. No intro or outro.";
+  "What's one record you produced that taught you the most about creativity? Tell me what made it stand out.";
 const detachedReplyMessage =
-  "Reply with exactly 80 numbered lines in plain text. Each line must begin with 'detached line' followed by the line number. No intro or outro.";
+  "What's the single most important thing you've learned about helping artists do their best work?";
 
 type ScrollMetrics = {
   clientHeight: number;
@@ -18,15 +30,10 @@ type ScrollMetrics = {
 
 async function installChatStateTracking(page: Page) {
   await page.addInitScript(() => {
-    const trackedWindow = window as typeof window & {
-      __pendingAssistantSeen?: boolean;
-      __chatLoadingStateSeen?: boolean;
-      __assistantTextSeen?: boolean;
-      __pendingAssistantDroppedBeforeText?: boolean;
-      __blankAssistantSeen?: boolean;
-    };
+    const trackedWindow = window as TrackedWindow;
     const pendingAssistantSelector = '[data-pending-assistant="true"]';
     const loadingStateSelector = '[data-slot="chat-message-loading-state"]';
+    const resolvingStateSelector = '[data-slot="chat-thread-resolving"]';
     const blankAssistantSelector =
       '[data-assistant-empty="true"]:not([data-pending-assistant="true"])';
     const receivedBubbleSelector =
@@ -37,6 +44,7 @@ async function installChatStateTracking(page: Page) {
     trackedWindow.__assistantTextSeen = false;
     trackedWindow.__pendingAssistantDroppedBeforeText = false;
     trackedWindow.__blankAssistantSeen = false;
+    trackedWindow.__resolvingStateSeen = false;
 
     const markFlags = () => {
       const hasPendingAssistant = document.querySelector(pendingAssistantSelector)
@@ -63,6 +71,10 @@ async function installChatStateTracking(page: Page) {
 
       if (document.querySelector(loadingStateSelector)) {
         trackedWindow.__chatLoadingStateSeen = true;
+      }
+
+      if (document.querySelector(resolvingStateSelector)) {
+        trackedWindow.__resolvingStateSeen = true;
       }
 
       if (document.querySelector(blankAssistantSelector)) {
@@ -103,31 +115,20 @@ async function installChatStateTracking(page: Page) {
 
 async function resetChatStateTracking(page: Page) {
   await page.evaluate(() => {
-    const trackedWindow = window as typeof window & {
-      __pendingAssistantSeen?: boolean;
-      __chatLoadingStateSeen?: boolean;
-      __assistantTextSeen?: boolean;
-      __pendingAssistantDroppedBeforeText?: boolean;
-      __blankAssistantSeen?: boolean;
-    };
+    const trackedWindow = window as TrackedWindow;
 
     trackedWindow.__pendingAssistantSeen = false;
     trackedWindow.__chatLoadingStateSeen = false;
     trackedWindow.__assistantTextSeen = false;
     trackedWindow.__pendingAssistantDroppedBeforeText = false;
     trackedWindow.__blankAssistantSeen = false;
+    trackedWindow.__resolvingStateSeen = false;
   });
 }
 
 async function getChatStateTracking(page: Page) {
   return page.evaluate(() => {
-    const trackedWindow = window as typeof window & {
-      __pendingAssistantSeen?: boolean;
-      __chatLoadingStateSeen?: boolean;
-      __assistantTextSeen?: boolean;
-      __pendingAssistantDroppedBeforeText?: boolean;
-      __blankAssistantSeen?: boolean;
-    };
+    const trackedWindow = window as TrackedWindow;
 
     return {
       pendingAssistantSeen: trackedWindow.__pendingAssistantSeen ?? false,
@@ -136,6 +137,7 @@ async function getChatStateTracking(page: Page) {
       pendingAssistantDroppedBeforeText:
         trackedWindow.__pendingAssistantDroppedBeforeText ?? false,
       blankAssistantSeen: trackedWindow.__blankAssistantSeen ?? false,
+      resolvingStateSeen: trackedWindow.__resolvingStateSeen ?? false,
     };
   });
 }
@@ -162,10 +164,12 @@ async function waitForAssistantText(page: Page) {
 }
 
 async function waitForScrollGrowth(page: Page, baselineHeight: number) {
+  // FG_163: threshold lowered from 200 to 40 — organic replies under
+  // STYLE_RULES are typically 1–3 sentences, ~30–80px of bubble growth.
   await expect.poll(async () => {
     const metrics = await getScrollMetrics(page);
     return metrics.scrollHeight - baselineHeight;
-  }, { timeout: 30000 }).toBeGreaterThan(200);
+  }, { timeout: 30000 }).toBeGreaterThan(40);
 }
 
 async function scrollChatUp(page: Page, distance: number) {
@@ -210,6 +214,7 @@ test.describe("Chat assistant placeholder", () => {
     expect(firstSendTracking.chatLoadingStateSeen).toBe(false);
     expect(firstSendTracking.pendingAssistantDroppedBeforeText).toBe(false);
     expect(firstSendTracking.blankAssistantSeen).toBe(false);
+    expect(firstSendTracking.resolvingStateSeen).toBe(false);
 
     await expect(textarea).toBeEnabled({ timeout: 30000 });
 
@@ -230,11 +235,17 @@ test.describe("Chat assistant placeholder", () => {
     expect(secondSendTracking.chatLoadingStateSeen).toBe(false);
     expect(secondSendTracking.pendingAssistantDroppedBeforeText).toBe(false);
     expect(secondSendTracking.blankAssistantSeen).toBe(false);
+    expect(secondSendTracking.resolvingStateSeen).toBe(false);
   });
 
-  test("keeps streaming replies pinned to bottom until the user scrolls away", async ({
+  // FG_163: pixel-based scroll-growth assertions cannot pass with
+  // STYLE_RULES short replies on a single exchange. Unfixme once Option B
+  // (priming the chat with several messages to overflow the viewport)
+  // or Option C (test-mode bypass of STYLE_RULES) ships.
+  test.fixme("keeps streaming replies pinned to bottom until the user scrolls away", async ({
     page,
   }) => {
+    test.setTimeout(90000);
     await installChatStateTracking(page);
 
     const textarea = await openChat(page, username);
@@ -245,7 +256,7 @@ test.describe("Chat assistant placeholder", () => {
     await expect(textarea).toBeDisabled();
     await expect(page).toHaveURL(new RegExp(`/@${username}.*[?&]conversation=`));
     await expect(page.locator('[data-slot="chat-message"][data-variant="sent"]').last())
-      .toContainText("80 numbered lines");
+      .toContainText("one record you produced");
     await expect.poll(async () => {
       const tracking = await getChatStateTracking(page);
       return tracking.pendingAssistantSeen;
@@ -266,17 +277,22 @@ test.describe("Chat assistant placeholder", () => {
       '[data-slot="chat-message-scroll-to-bottom"]',
     );
     await expect(scrollToBottomButton).toBeVisible();
+    // FG_163: lowered from 200 to 100 — `AUTO_SCROLL_THRESHOLD_PX = 96` in
+    // chat-message-list.tsx is the boundary at which the scroll-to-bottom
+    // button appears, so >100 confirms the user is detached without
+    // requiring a 200px scrollback that organic-length content cannot
+    // guarantee.
     await expect.poll(async () => {
       const metrics = await getScrollMetrics(page);
       return metrics.distanceFromBottom;
-    }, { timeout: 5000 }).toBeGreaterThan(200);
+    }, { timeout: 5000 }).toBeGreaterThan(100);
 
     await resetChatStateTracking(page);
     await sendChatMessage(textarea, detachedReplyMessage);
 
     await expect(textarea).toBeDisabled();
     await expect(page.locator('[data-slot="chat-message"][data-variant="sent"]').last())
-      .toContainText("detached line");
+      .toContainText("single most important thing");
     await expect.poll(async () => {
       const tracking = await getChatStateTracking(page);
       return tracking.pendingAssistantSeen;
@@ -288,7 +304,7 @@ test.describe("Chat assistant placeholder", () => {
     await expect.poll(async () => {
       const metrics = await getScrollMetrics(page);
       return metrics.distanceFromBottom;
-    }, { timeout: 5000 }).toBeGreaterThan(200);
+    }, { timeout: 5000 }).toBeGreaterThan(100);
     await expect(scrollToBottomButton).toBeVisible();
 
     await scrollToBottomButton.click();
