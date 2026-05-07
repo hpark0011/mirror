@@ -8,9 +8,9 @@ import {
   type RefCallback,
   type RefObject,
 } from "react";
-import type {
-  ResizablePanel,
-  ResizablePanelGroup,
+import {
+  type ResizablePanel,
+  type ResizablePanelGroup,
 } from "@feel-good/ui/primitives/resizable";
 import { OPEN_LAYOUT } from "./workspace-layout-constants";
 

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { type PaginationStatus } from "convex/react";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import {
   countMessagesByRole,
   findFirstNewAssistant,

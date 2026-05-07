@@ -5,7 +5,7 @@ import { Icon } from "@feel-good/ui/components/icon";
 import { PageSection } from "@/components/page-section";
 import { PageSectionHeader } from "@/components/page-section-header";
 import { AppDock } from "@feel-good/features/dock/blocks";
-import type { DockConfig } from "@feel-good/features/dock/lib";
+import { type DockConfig } from "@feel-good/features/dock/lib";
 import {
   BubbleLeftFillIcon,
   CheckListIcon,

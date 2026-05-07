@@ -9,7 +9,7 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { type ReactNode } from "react";
 
 // WorkspaceToolbar portals children into a ToolbarSlotContext target element.
 // In the unit harness there is no provider, so we mock it to render children

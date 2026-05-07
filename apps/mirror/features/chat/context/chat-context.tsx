@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo } from "react";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
-import type { ChatRouteResolution, Conversation } from "../types";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type ChatRouteResolution, type Conversation } from "../types";
 
 type ChatContextValue = {
   profileOwnerId: Id<"users">;

@@ -8,9 +8,9 @@ import {
   type ReactNode,
 } from "react";
 import dynamic from "next/dynamic";
-import type { Preloaded } from "convex/react";
-import type { api } from "@feel-good/convex/convex/_generated/api";
-import type { Profile } from "@/features/profile";
+import { type Preloaded } from "convex/react";
+import { type api } from "@feel-good/convex/convex/_generated/api";
+import { type Profile } from "@/features/profile";
 import { ProfileProvider } from "@/features/profile";
 import { useProfileData } from "@/features/profile/hooks/use-profile-data";
 

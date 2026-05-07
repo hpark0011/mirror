@@ -6,7 +6,7 @@
 // same slug because slug renames are intentionally explicit (the user has
 // to type a new slug + Save).
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import {
   type InlineImageUploadResult,
   type JSONContent,
@@ -18,8 +18,8 @@ import { showToast } from "@feel-good/ui/components/toast";
 import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
-import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
-import type { ArticleWithBody } from "../types";
+import { type ArticleStatus } from "../lib/schemas/article-metadata.schema";
+import { type ArticleWithBody } from "../types";
 
 interface UseEditArticleFormOptions {
   username: string;

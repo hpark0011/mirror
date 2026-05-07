@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useAnimationControls } from "framer-motion";
 import { Icon } from "@feel-good/ui/components/icon";
 
-import type { Profile } from "../types";
+import { type Profile } from "../types";
 import { ProfileMedia } from "./profile-media";
 import { useIsProfileOwner } from "../context/profile-context";
 

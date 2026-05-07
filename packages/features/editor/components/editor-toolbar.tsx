@@ -11,7 +11,7 @@ import {
   MinusSmallIcon,
   PhotoFillIcon,
 } from "@feel-good/icons";
-import type { Editor } from "@tiptap/react";
+import { type Editor } from "@tiptap/react";
 import {
   BLOCK_FORMAT_ACTIONS,
   LIST_FORMAT_ACTIONS,

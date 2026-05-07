@@ -14,7 +14,7 @@ import {
   extractInlineImageStorageIds,
   mapInlineImages,
 } from "../content/bodyWalk";
-import type { Id } from "../_generated/dataModel";
+import { type Id } from "../_generated/dataModel";
 
 export const getByUsername = query({
   args: { username: v.string() },

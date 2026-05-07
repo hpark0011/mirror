@@ -1,7 +1,7 @@
-import type { Metadata } from "next";
+import { type Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
-import type { Profile } from "@/features/profile";
+import { type Profile } from "@/features/profile";
 import { isReservedUsername } from "@/lib/reserved-usernames";
 import { fetchAuthQuery, preloadAuthQuery } from "@/lib/auth-server";
 import { enforceOnboardingGate } from "@/lib/route-guards";

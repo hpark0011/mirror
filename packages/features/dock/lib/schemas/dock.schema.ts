@@ -1,4 +1,4 @@
-import type { ComponentType } from "react";
+import { type ComponentType } from "react";
 import { z } from "zod";
 
 export const dockPlacementSchema = z.enum(["bottom"]);

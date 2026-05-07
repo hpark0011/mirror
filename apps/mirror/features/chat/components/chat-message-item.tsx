@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import type { UIMessage } from "@convex-dev/agent/react";
+import { type UIMessage } from "@convex-dev/agent/react";
 import { useSmoothText } from "@convex-dev/agent/react";
 import {
   ChatMessage,

@@ -17,7 +17,7 @@ import {
   render,
   screen,
 } from "@testing-library/react";
-import type { ComponentProps } from "react";
+import { type ComponentProps } from "react";
 
 // ── Mocks ──────────────────────────────────────────────────────────────────
 

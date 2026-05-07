@@ -18,7 +18,7 @@ import {
 
 import { Form } from "@feel-good/ui/primitives/form";
 
-import type { Profile } from "../types";
+import { type Profile } from "../types";
 import { EditableProfileActions } from "./editable-profile-actions";
 import { EditableName } from "./editable-name";
 import { EditableAvatar } from "./editable-avatar";

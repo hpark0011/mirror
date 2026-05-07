@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useContext } from "react";
-import type { ArticleSummary } from "../types";
+import { type ArticleSummary } from "../types";
 
 export type ArticleListContextValue = {
   articles: ArticleSummary[];

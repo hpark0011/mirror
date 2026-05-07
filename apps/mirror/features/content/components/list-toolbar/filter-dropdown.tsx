@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
 import { cn } from "@feel-good/utils/cn";
-import type { DatePreset } from "@/features/content/utils/date-preset";
+import { type DatePreset } from "@/features/content/utils/date-preset";
 import { ContentCategoryFilterContent } from "./filter/category-filter-content";
 import { ContentDateFilterContent } from "./filter/date-filter-content";
 import { ContentStatusFilterContent } from "./filter/status-filter-content";

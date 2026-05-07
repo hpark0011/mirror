@@ -15,11 +15,11 @@ import {
   TextFormatIcon,
   TextFormatSizeLargerIcon,
 } from "@feel-good/icons";
-import type { Editor } from "@tiptap/core";
+import { type Editor } from "@tiptap/core";
 import { Extension } from "@tiptap/core";
 import { PluginKey } from "@tiptap/pm/state";
 import Suggestion from "@tiptap/suggestion";
-import type { ComponentType } from "react";
+import { type ComponentType } from "react";
 
 import { SlashCommandSuggestions } from "../components/slash-command-suggestions";
 import { createSuggestionRenderer } from "../utils/suggestion-popup";

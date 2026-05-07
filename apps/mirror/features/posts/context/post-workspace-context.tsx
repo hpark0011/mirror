@@ -2,8 +2,8 @@
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { usePreloadedQuery } from "convex/react";
-import type { Preloaded } from "convex/react";
-import type { api } from "@feel-good/convex/convex/_generated/api";
+import { type Preloaded } from "convex/react";
+import { type api } from "@feel-good/convex/convex/_generated/api";
 import { useIsProfileOwner } from "@/features/profile";
 import {
   filterContent,
@@ -12,7 +12,7 @@ import {
   useContentSearch,
   useContentSort,
 } from "@/features/content";
-import type { PostSummary } from "../types";
+import { type PostSummary } from "../types";
 import { usePostFilter } from "../hooks/use-post-filter";
 import { PostListContext } from "./post-list-context";
 import { PostToolbarContext } from "./post-toolbar-context";

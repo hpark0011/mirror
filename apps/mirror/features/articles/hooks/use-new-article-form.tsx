@@ -13,7 +13,7 @@
 //   `api.articles.mutations.deleteOrphanCoverImage` which re-verifies no
 //   articles row references the storageId before deleting.
 import { api } from "@feel-good/convex/convex/_generated/api";
-import type { Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import {
   type InlineImageUploadResult,
   type JSONContent,
@@ -26,7 +26,7 @@ import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
-import type { ArticleStatus } from "../lib/schemas/article-metadata.schema";
+import { type ArticleStatus } from "../lib/schemas/article-metadata.schema";
 
 const EMPTY_BODY: JSONContent = {
   type: "doc",

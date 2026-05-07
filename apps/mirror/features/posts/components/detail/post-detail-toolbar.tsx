@@ -7,7 +7,7 @@ import {
 } from "@/features/content";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { PublishToggleConnector } from "./publish-toggle-connector";
-import type { PostSummary } from "../../types";
+import { type PostSummary } from "../../types";
 
 type PostDetailToolbarProps = {
   username: string;

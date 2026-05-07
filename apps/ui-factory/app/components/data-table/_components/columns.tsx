@@ -1,6 +1,6 @@
 "use client";
 
-import type { ColumnDef } from "@tanstack/react-table";
+import { type ColumnDef } from "@tanstack/react-table";
 import { Button } from "@feel-good/ui/primitives/button";
 import { Checkbox } from "@feel-good/ui/primitives/checkbox";
 import {

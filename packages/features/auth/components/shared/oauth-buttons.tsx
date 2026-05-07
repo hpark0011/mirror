@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { GoogleIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
-import type { AuthClient } from "../../client";
-import type { AuthError } from "../../types";
+import { type AuthClient } from "../../client";
+import { type AuthError } from "../../types";
 import { getSafeRedirectUrl } from "../../utils/validate-redirect";
 
 export interface OAuthButtonsProps {

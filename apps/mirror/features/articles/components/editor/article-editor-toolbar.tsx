@@ -4,7 +4,7 @@ import { Button } from "@feel-good/ui/primitives/button";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import { WorkspaceBackButton } from "@/features/content";
 import { ArticlePublishToggle } from "./article-publish-toggle";
-import type { ArticleStatus } from "../../lib/schemas/article-metadata.schema";
+import { type ArticleStatus } from "../../lib/schemas/article-metadata.schema";
 
 export interface ArticleEditorToolbarProps {
   status: ArticleStatus;

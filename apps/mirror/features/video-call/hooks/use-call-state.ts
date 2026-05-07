@@ -1,7 +1,7 @@
 "use client";
 
 import { useReducer } from "react";
-import type { CallState, CallAction } from "../types";
+import { type CallState, type CallAction } from "../types";
 
 function callReducer(state: CallState, action: CallAction): CallState {
   switch (action.type) {

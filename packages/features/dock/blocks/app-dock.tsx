@@ -2,7 +2,7 @@
 
 import { DockContainer, DockIcon, DockItem, DockRoot } from "../components";
 import { useDockConfig, useDockVisibility } from "../hooks";
-import type { DockConfig } from "../lib/types";
+import { type DockConfig } from "../lib/types";
 import { DockProvider, useDock } from "../providers";
 
 export interface AppDockProps {

@@ -3,8 +3,8 @@
 import { useCallback } from "react";
 import { useOTPAuth } from "../../hooks/use-otp-auth";
 import { OTPSignUpView } from "../../views";
-import type { AuthClient } from "../../client";
-import type { AuthError } from "../../types";
+import { type AuthClient } from "../../client";
+import { type AuthError } from "../../types";
 import { getSafeRedirectUrl } from "../../utils/validate-redirect";
 
 export interface OTPSignUpFormProps {

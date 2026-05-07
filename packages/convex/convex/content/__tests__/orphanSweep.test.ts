@@ -11,7 +11,7 @@ import path from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { convexTest } from "convex-test";
 import { internal } from "../../_generated/api";
-import type { Id } from "../../_generated/dataModel";
+import { type Id } from "../../_generated/dataModel";
 import schema from "../../schema";
 import { ORPHAN_GRACE_MS } from "../storagePolicy";
 import { _internals, STORAGE_FIELD_REFERENCES } from "../../crons";

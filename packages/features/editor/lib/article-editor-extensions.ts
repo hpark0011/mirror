@@ -12,7 +12,7 @@
 import Link from "@tiptap/extension-link";
 import Placeholder from "@tiptap/extension-placeholder";
 import StarterKit from "@tiptap/starter-kit";
-import type { Extensions } from "@tiptap/core";
+import { type Extensions } from "@tiptap/core";
 import {
   SlashCommand,
   type SlashCommandOptions,

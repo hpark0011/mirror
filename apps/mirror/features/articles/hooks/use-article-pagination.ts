@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { ArticleSummary } from "../types";
+import { type ArticleSummary } from "../types";
 
 const PAGE_SIZE = 30;
 

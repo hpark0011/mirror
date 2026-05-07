@@ -1,5 +1,5 @@
 import { ConvexError, v } from "convex/values";
-import type { Doc, Id } from "../_generated/dataModel";
+import { type Doc, type Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
@@ -24,7 +24,7 @@ import {
   filterUnreferencedStorageIds,
 } from "../content/inlineImageOwnership";
 import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
-import type { MutationCtx } from "../_generated/server";
+import { type MutationCtx } from "../_generated/server";
 
 // FG_147: Verify that `storageId` belongs to `userId` via the
 // `coverImageOwnership` table. Throws `ConvexError` if the row is missing or

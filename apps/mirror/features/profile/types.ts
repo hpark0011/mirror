@@ -1,5 +1,5 @@
-import type { FunctionReturnType } from "convex/server";
-import type { api } from "@feel-good/convex/convex/_generated/api";
+import { type FunctionReturnType } from "convex/server";
+import { type api } from "@feel-good/convex/convex/_generated/api";
 
 /** Raw API response from getByUsername (public view) */
 type PublicProfileResponse = NonNullable<

@@ -2,7 +2,7 @@ import { InstrumentSerif, Inter } from "@/app/fonts/font";
 import { RootProvider } from "@/providers/root-provider";
 import { Toaster } from "@feel-good/ui/primitives/sonner";
 import "@/styles/globals.css";
-import type { Metadata } from "next";
+import { type Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 

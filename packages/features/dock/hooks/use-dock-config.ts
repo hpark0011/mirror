@@ -3,7 +3,7 @@
 import { useMemo } from "react";
 
 import { useDock } from "../providers";
-import type { DockApp } from "../lib/types";
+import { type DockApp } from "../lib/types";
 
 /**
  * Hook to access dock configuration and computed values

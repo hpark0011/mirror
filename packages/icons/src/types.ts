@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { type SVGProps } from "react";
 
 /**
  * Props for icon components, extending standard SVG props.

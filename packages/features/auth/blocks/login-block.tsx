@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import type { AuthClient } from "../client";
+import { type AuthClient } from "../client";
 import { OTPLoginForm } from "../components/forms/otp-login-form";
 import { OAuthButtons } from "../components/shared/oauth-buttons";
-import type { AuthError } from "../types";
+import { type AuthError } from "../types";
 import { AuthDivider } from "./shared/auth-divider";
 
 export interface LoginBlockProps {

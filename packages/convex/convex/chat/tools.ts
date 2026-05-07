@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
 import { internal } from "../_generated/api";
-import type { Id } from "../_generated/dataModel";
+import { type Id } from "../_generated/dataModel";
 
 /**
  * Per-request tool factory for the clone agent.
