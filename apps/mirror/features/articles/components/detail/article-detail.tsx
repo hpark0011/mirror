@@ -26,10 +26,10 @@ type ArticleDetailProps = {
 export function ArticleDetail({ article }: ArticleDetailProps) {
   const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
   return (
-    <div className="py-12 px-4.5 bg-background min-h-[calc(100vh-40px)]">
+    <div className="py-20 px-4.5 bg-background min-h-[calc(100vh-40px)]">
       <article className="max-w-xl mx-auto flex flex-col">
-        <div className="flex flex-col">
-          <div className="flex items-center justify-center gap-2 text-sm font-medium">
+        <div className="flex flex-col gap-0.5 max-w-xl">
+          <div className="flex items-center justify-start gap-2 text-[14px] font-medium ml-0.5">
             <span className="leading-[1.2]">
               {article.status === "draft"
                 ? "Draft"
@@ -45,8 +45,8 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
             </span>
           </div>
           <h1
-            className={`text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-center mt-3 ${
-              article.coverImageUrl ? "mb-7" : "mb-14"
+            className={`text-4xl font-medium leading-[1.0] tracking-[-0.04em] text-start ${
+              article.coverImageUrl ? "mb-20" : "mb-14"
             }`}
           >
             {article.title}
@@ -55,7 +55,7 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
 
         {article.coverImageUrl && (
           <div
-            className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-14"
+            className="relative left-1/2 -translate-x-1/2 aspect-video w-[min(calc(100%+240px),calc(100vw-36px))] overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-2"
             data-cover-thumbhash={article.coverImageThumbhash ?? ""}
           >
             <Image
