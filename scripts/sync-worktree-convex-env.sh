@@ -38,12 +38,31 @@ SITE_URL=$(grep   '^CONVEX_SITE_URL='   "$CONVEX_ENV" | head -n1 | cut -d= -f2-)
   exit 1
 }
 
-# macOS sed needs `-i ''` for in-place edits.
-sed -i '' \
-  -e "s|^CONVEX_DEPLOYMENT=.*|CONVEX_DEPLOYMENT=$DEPLOYMENT|" \
-  -e "s|^NEXT_PUBLIC_CONVEX_URL=.*|NEXT_PUBLIC_CONVEX_URL=$URL|" \
-  -e "s|^NEXT_PUBLIC_CONVEX_SITE_URL=.*|NEXT_PUBLIC_CONVEX_SITE_URL=$SITE_URL|" \
-  "$APP_ENV"
+APP_ENV_TMP=$(mktemp)
+trap 'rm -f "$APP_ENV_TMP"' EXIT
+cp -p "$APP_ENV" "$APP_ENV_TMP"
+
+awk \
+  -v deployment="$DEPLOYMENT" \
+  -v url="$URL" \
+  -v site_url="$SITE_URL" \
+  '
+    /^CONVEX_DEPLOYMENT=/ {
+      print "CONVEX_DEPLOYMENT=" deployment
+      next
+    }
+    /^NEXT_PUBLIC_CONVEX_URL=/ {
+      print "NEXT_PUBLIC_CONVEX_URL=" url
+      next
+    }
+    /^NEXT_PUBLIC_CONVEX_SITE_URL=/ {
+      print "NEXT_PUBLIC_CONVEX_SITE_URL=" site_url
+      next
+    }
+    { print }
+  ' "$APP_ENV" > "$APP_ENV_TMP"
+
+mv "$APP_ENV_TMP" "$APP_ENV"
 
 echo "Updated $APP_ENV with this worktree's Convex coords:"
 echo "  CONVEX_DEPLOYMENT=$DEPLOYMENT"

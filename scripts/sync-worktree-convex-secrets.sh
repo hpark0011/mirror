@@ -11,9 +11,9 @@
 #
 # Idempotent: re-running overwrites with the latest values from main.
 #
-# Implementation note: we parse `convex env list` output as whitespace-
-# separated `KEY VALUE` columns, skipping the header line. If Convex CLI
-# changes that format, adjust the awk filter below.
+# Implementation note: Convex CLI v1.33+ supports round-tripping
+# `convex env list` output into `convex env set` stdin. Keep that path
+# intact so multi-line values survive.
 
 set -e
 
@@ -51,36 +51,33 @@ echo "Source deployment (main): $MAIN_DEP"
 echo "Target deployment (this): $THIS_DEP"
 echo ""
 
-# Pull all env vars from main. `convex env list` prints one KEY=VALUE per
-# line, no quoting, no header. Values are the raw secret strings.
+# Pull all env vars from main in the CLI's round-trippable format.
 TMPFILE=$(mktemp)
-trap "rm -f $TMPFILE" EXIT
+ERRFILE=$(mktemp)
+trap 'rm -f "$TMPFILE" "$ERRFILE"' EXIT
 
-(cd "$MAIN_ROOT/packages/convex" && pnpm exec convex env list) > "$TMPFILE" 2>/dev/null
-
-if [[ ! -s "$TMPFILE" ]]; then
-  echo "Error: \`convex env list\` returned no output. Is main's deployment reachable?" >&2
+if ! (cd "$MAIN_ROOT/packages/convex" && pnpm exec convex env list) > "$TMPFILE" 2> "$ERRFILE"; then
+  echo "Error: \`convex env list\` failed. Is main's deployment reachable?" >&2
+  if [[ -s "$ERRFILE" ]]; then
+    cat "$ERRFILE" >&2
+  fi
   exit 1
 fi
 
-COUNT=0
-while IFS= read -r line; do
-  [[ -z "$line" ]] && continue
-  # Format: KEY=VALUE. Split on the first '='.
-  KEY="${line%%=*}"
-  VALUE="${line#*=}"
-  # KEY must look like an env-var name. This filters any future header
-  # rows or warnings the CLI might emit.
-  [[ "$KEY" =~ ^[A-Z_][A-Z0-9_]*$ ]] || continue
-  [[ -z "$VALUE" ]] && continue
+if [[ ! -s "$TMPFILE" ]]; then
+  echo "Error: \`convex env list\` returned no output. Is main's deployment reachable?" >&2
+  if [[ -s "$ERRFILE" ]]; then
+    cat "$ERRFILE" >&2
+  fi
+  exit 1
+fi
 
-  echo "  Setting $KEY"
-  (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set "$KEY" "$VALUE" >/dev/null 2>&1) || {
-    echo "    Warning: failed to set $KEY (skipping)" >&2
-    continue
-  }
-  COUNT=$((COUNT + 1))
-done < "$TMPFILE"
+COUNT=$(grep -c '^[A-Z_][A-Z0-9_]*=' "$TMPFILE" || true)
+
+if ! (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set --force < "$TMPFILE"); then
+  echo "Error: failed to sync env vars into this worktree's deployment." >&2
+  exit 1
+fi
 
 echo ""
 echo "Synced $COUNT env vars from main → this worktree's deployment."
