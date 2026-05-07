@@ -2,6 +2,15 @@
 
 ## 2026-05-06
 
+### Codex worktree setup must support single-checkout clones
+
+- Setup scripts cannot assume `git worktree list` includes a `main` worktree.
+  Codex review checkouts and fresh single-worktree clones are often checked out
+  directly on the feature branch, so environment setup must fall back to the
+  current checkout for dependency installation. Keep canonical `.env.local`
+  checks strict for secondary worktree creation, but do not block standalone
+  installs before the user has a chance to seed local env files.
+
 ### PR hygiene — keep cosmetic tweaks out of feat/refactor PRs
 
 - Cosmetic/visual tweaks (e.g. a `py-12 → py-10` swap on `post-list-item`)
