@@ -1,17 +1,17 @@
-// FG_163 (Option D, with prompt-swap kept for future use): the second test
-// (`keeps streaming replies pinned to bottom until the user scrolls away`)
-// is marked `test.fixme` because pixel-based scroll-growth assertions
-// cannot pass with STYLE_RULES short replies on a single exchange — the
-// chat panel's clientHeight exceeds the cumulative content height of one
-// user msg + one organic assistant reply, so `scrollHeight === clientHeight`
-// and no growth is observable. The long-reply prompts were updated to
-// organic single-item questions (instead of the original 80-numbered-lines
-// filler-content prompts that the persona refuses) so that a future
-// Option B redesign — build up scroll content with several short messages
-// before testing pin/un-pin behavior — only needs to add the priming step
-// and unfixme. See workspace/tickets/to-do/FG_163-*.md.
+// FG_163: second test is `test.fixme` until STYLE_RULES short replies stop
+// breaking pixel-based scroll-growth assertions. See
+// workspace/tickets/to-do/FG_163-*.md and the inline comment above the test.
 import { expect, test, type Page } from "@playwright/test";
 import { openChat, sendChatMessage } from "./helpers/chat";
+
+type TrackedWindow = typeof window & {
+  __pendingAssistantSeen?: boolean;
+  __chatLoadingStateSeen?: boolean;
+  __assistantTextSeen?: boolean;
+  __pendingAssistantDroppedBeforeText?: boolean;
+  __blankAssistantSeen?: boolean;
+  __resolvingStateSeen?: boolean;
+};
 
 const username = "rick-rubin";
 const firstMessage = "Reply with exactly: ok";
@@ -30,14 +30,7 @@ type ScrollMetrics = {
 
 async function installChatStateTracking(page: Page) {
   await page.addInitScript(() => {
-    const trackedWindow = window as typeof window & {
-      __pendingAssistantSeen?: boolean;
-      __chatLoadingStateSeen?: boolean;
-      __assistantTextSeen?: boolean;
-      __pendingAssistantDroppedBeforeText?: boolean;
-      __blankAssistantSeen?: boolean;
-      __resolvingStateSeen?: boolean;
-    };
+    const trackedWindow = window as TrackedWindow;
     const pendingAssistantSelector = '[data-pending-assistant="true"]';
     const loadingStateSelector = '[data-slot="chat-message-loading-state"]';
     const resolvingStateSelector = '[data-slot="chat-thread-resolving"]';
@@ -122,14 +115,7 @@ async function installChatStateTracking(page: Page) {
 
 async function resetChatStateTracking(page: Page) {
   await page.evaluate(() => {
-    const trackedWindow = window as typeof window & {
-      __pendingAssistantSeen?: boolean;
-      __chatLoadingStateSeen?: boolean;
-      __assistantTextSeen?: boolean;
-      __pendingAssistantDroppedBeforeText?: boolean;
-      __blankAssistantSeen?: boolean;
-      __resolvingStateSeen?: boolean;
-    };
+    const trackedWindow = window as TrackedWindow;
 
     trackedWindow.__pendingAssistantSeen = false;
     trackedWindow.__chatLoadingStateSeen = false;
@@ -142,14 +128,7 @@ async function resetChatStateTracking(page: Page) {
 
 async function getChatStateTracking(page: Page) {
   return page.evaluate(() => {
-    const trackedWindow = window as typeof window & {
-      __pendingAssistantSeen?: boolean;
-      __chatLoadingStateSeen?: boolean;
-      __assistantTextSeen?: boolean;
-      __pendingAssistantDroppedBeforeText?: boolean;
-      __blankAssistantSeen?: boolean;
-      __resolvingStateSeen?: boolean;
-    };
+    const trackedWindow = window as TrackedWindow;
 
     return {
       pendingAssistantSeen: trackedWindow.__pendingAssistantSeen ?? false,
@@ -260,8 +239,7 @@ test.describe("Chat assistant placeholder", () => {
   });
 
   // FG_163: pixel-based scroll-growth assertions cannot pass with
-  // STYLE_RULES short replies on a single exchange. The bridge fix on
-  // `fix-message-error` does not affect this test. Unfixme once Option B
+  // STYLE_RULES short replies on a single exchange. Unfixme once Option B
   // (priming the chat with several messages to overflow the viewport)
   // or Option C (test-mode bypass of STYLE_RULES) ships.
   test.fixme("keeps streaming replies pinned to bottom until the user scrolls away", async ({

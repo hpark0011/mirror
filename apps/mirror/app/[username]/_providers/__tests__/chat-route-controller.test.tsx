@@ -15,13 +15,13 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, act } from "@testing-library/react";
 import { useEffect, type ReactNode } from "react";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 // ── Mutable mock state ────────────────────────────────────────────────────────
 
 let mockIsChatOpen = true;
 let mockRawConversationId: string | undefined = undefined;
 let mockConversations: Array<{ _id: string; _creationTime: number }> = [];
-let mockConversationsLoading = false;
 
 const setConversationSpy = vi.fn();
 const openChatSpy = vi.fn();
@@ -43,7 +43,7 @@ vi.mock("@/hooks/use-chat-search-params", () => ({
 vi.mock("@/features/chat", () => ({
   useConversations: () => ({
     conversations: mockConversations,
-    isLoading: mockConversationsLoading,
+    isLoading: false,
   }),
 }));
 
@@ -113,7 +113,6 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     mockIsChatOpen = true;
     mockRawConversationId = undefined;
     mockConversations = [];
-    mockConversationsLoading = false;
   });
 
   it("routeResolution becomes 'ready' immediately after handleConversationIdChange(newId), before the URL flushes", () => {
@@ -131,7 +130,7 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
 
     const newId = "conv_new_id_abcdef";
     act(() => {
-      latest!.handleConversationIdChange(newId as never);
+      latest!.handleConversationIdChange(newId as Id<"conversations">);
     });
 
     // URL has NOT yet been updated (mockRawConversationId still undefined),
@@ -154,7 +153,7 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
 
     const newId = "conv_new_id_abcdef";
     act(() => {
-      latest!.handleConversationIdChange(newId as never);
+      latest!.handleConversationIdChange(newId as Id<"conversations">);
     });
 
     expect(latest!.routeResolution).toEqual({
@@ -197,5 +196,113 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
 
     expect(latest!.routeResolution).toEqual({ status: "new_conversation" });
     expect(openChatSpy).toHaveBeenCalledTimes(1);
+  });
+
+  it("Auto-select effect does not double-fire while the bridge is active even when conversations populate", () => {
+    let latest: Captured | null = null;
+
+    const { rerender } = render(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    // Initial: no URL conversation, no conversations → "empty".
+    expect(latest!.routeResolution).toEqual({ status: "empty" });
+
+    const newId = "conv_new_id_abcdef";
+    act(() => {
+      latest!.handleConversationIdChange(newId as Id<"conversations">);
+    });
+
+    // Bridge fires: setConversationSpy called once via handleConversationIdChange.
+    expect(setConversationSpy).toHaveBeenCalledTimes(1);
+    expect(setConversationSpy).toHaveBeenCalledWith(newId);
+
+    // Conversations list catches up — includes the bridged id plus another row.
+    mockConversations = [
+      { _id: newId, _creationTime: 2 },
+      { _id: "conv_other_id", _creationTime: 1 },
+    ];
+    rerender(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    // Auto-select effect MUST NOT double-fire while bridge is active.
+    expect(setConversationSpy).toHaveBeenCalledTimes(1);
+    expect(latest!.routeResolution).toEqual({
+      status: "ready",
+      conversationId: newId,
+    });
+  });
+
+  it("URL conversationId wins over the bridge when they disagree", () => {
+    let latest: Captured | null = null;
+
+    const { rerender } = render(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    act(() => {
+      latest!.handleConversationIdChange(
+        "conv_bridge" as Id<"conversations">,
+      );
+    });
+
+    // URL navigates to a different conversation than the bridged id.
+    mockRawConversationId = "conv_other";
+    rerender(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    expect(latest!.routeResolution).toEqual({
+      status: "ready",
+      conversationId: "conv_other",
+    });
+  });
+
+  // Documents intentional behavior — bridge persists across close because the
+  // orphaned id is benign (always equals the user's most recent intent).
+  it("Bridge persists across chat close and is still set when chat reopens", () => {
+    let latest: Captured | null = null;
+
+    const { rerender } = render(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    act(() => {
+      latest!.handleConversationIdChange(
+        "conv_bridge" as Id<"conversations">,
+      );
+    });
+
+    // Chat closes — URL still has no conversation.
+    mockIsChatOpen = false;
+    rerender(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    // Chat reopens — URL still has no conversation.
+    mockIsChatOpen = true;
+    rerender(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    expect(latest!.routeResolution).toEqual({
+      status: "ready",
+      conversationId: "conv_bridge",
+    });
   });
 });
