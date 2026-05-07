@@ -11,7 +11,6 @@ scope: "Rename the profile-level one-liner field from bio to tagline across sche
 apps: [mirror]
 packages: [convex]
 verification_tier: 5
-successor: feature-bio-pull-up
 ---
 
 > **Predecessor of:** `feature-bio-pull-up` — that branch's e2e is currently blocked by this naming collision; rebase + re-run after this lands.

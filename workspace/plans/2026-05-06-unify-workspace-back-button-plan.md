@@ -5,7 +5,7 @@ title: "Unify the workspace toolbar back button"
 date: 2026-05-06
 type: refactor
 status: completed
-branch: feature-edit-article-button
+branch: feature-edit-article-button  # intentionally shared with PLAN_003 — both plans shipped on this branch
 worktree: null
 scope: "Replace the two diverging Back implementations across workspace toolbars with a single WorkspaceBackButton component matching the article-editor visual spec."
 apps: [mirror]

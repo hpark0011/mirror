@@ -48,7 +48,7 @@ tickets: [FG_NNN, FG_NNN]       # tickets generated from this plan
 
 ### Field rules
 
-- **`id`** — `PLAN_NNN`, three-digit zero-padded, allocated sequentially across `workspace/plans/`. `ls workspace/plans/ | grep -oE 'PLAN_[0-9]+' | sort -n | tail -1` to find the next free number.
+- **`id`** — `PLAN_NNN`, three-digit zero-padded, allocated sequentially across `workspace/plans/`. The id only lives inside each plan's frontmatter (filenames are date/slug-based), so scan file contents to find the highest in use: `grep -hE '^id: PLAN_[0-9]+' workspace/plans/*.md | sort -V | tail -1`.
 - **`status`** — start at `draft`; flip to `active` when the branch starts; `completed` when merged; `superseded` when a later plan replaces this one (link the replacement in body); `blocked` only when an external constraint stops progress.
 - **`type`** — pick the verb that matches the dominant change: `feature` (new capability), `fix` (bug), `refactor` (no behavior change), `chore` (tooling/deps), `migration` (schema/data), `docs` (doc-only).
 - **`apps` / `packages`** — agents derive the right `pnpm build --filter=...` from these (per `.claude/rules/verification.md` § App Filter Reference). Omit the field entirely when empty (e.g., a mirror-only plan has `apps: [mirror]` and no `packages` key at all).
