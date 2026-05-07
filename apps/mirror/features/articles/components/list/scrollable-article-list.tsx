@@ -35,6 +35,7 @@ export function ScrollableArticleList() {
   return (
     <ArticleList
       articles={ctx.articles}
+      latestPublishedArticles={ctx.latestPublishedArticles}
       hasMore={ctx.hasMore}
       onLoadMore={ctx.onLoadMore}
       scrollRoot={scrollRoot}

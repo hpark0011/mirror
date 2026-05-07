@@ -5,6 +5,7 @@ import { type ArticleSummary } from "../types";
 
 export type ArticleListContextValue = {
   articles: ArticleSummary[];
+  latestPublishedArticles: ArticleSummary[];
   hasMore: boolean;
   onLoadMore: () => void;
   username: string;

@@ -96,6 +96,15 @@ export function ArticleWorkspaceProvider({
     [articles],
   );
 
+  const latestPublishedArticles = useMemo(
+    () =>
+      articles
+        .filter((a) => a.status === "published" && a.publishedAt !== undefined)
+        .sort((a, b) => (b.publishedAt ?? 0) - (a.publishedAt ?? 0))
+        .slice(0, 2),
+    [articles],
+  );
+
   // Clear selection when search opens or filter changes
   const prevSearchOpen = useRef(search.isOpen);
   const prevFilterState = useRef(filter.filterState);
@@ -185,6 +194,7 @@ export function ArticleWorkspaceProvider({
   const listValue = useMemo(
     () => ({
       articles: paginatedArticles,
+      latestPublishedArticles,
       hasMore,
       onLoadMore: loadMore,
       username,
@@ -201,6 +211,7 @@ export function ArticleWorkspaceProvider({
     }),
     [
       paginatedArticles,
+      latestPublishedArticles,
       hasMore,
       loadMore,
       username,
