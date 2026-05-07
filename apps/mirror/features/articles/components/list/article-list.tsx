@@ -9,12 +9,14 @@ import {
 } from "@feel-good/ui/primitives/table";
 import { Checkbox } from "@feel-good/ui/primitives/checkbox";
 import { type ArticleSummary } from "../../types";
+import { ArticleListFeatured } from "./article-list-featured";
 import { ArticleListItem } from "./article-list-item";
 import { ArticleListLoader } from "./article-list-loader";
 import { cn } from "@feel-good/utils/cn";
 
 type ArticleListProps = {
   articles: ArticleSummary[];
+  latestPublishedArticles: ArticleSummary[];
   hasMore: boolean;
   onLoadMore: () => void;
   scrollRoot?: HTMLElement | null;
@@ -30,6 +32,7 @@ type ArticleListProps = {
 
 export function ArticleList({
   articles,
+  latestPublishedArticles,
   hasMore,
   onLoadMore,
   scrollRoot,
@@ -43,17 +46,24 @@ export function ArticleList({
   shouldAnimate = false,
 }: ArticleListProps) {
   return (
-    <section className="w-full mx-auto **:data-[slot=table-container]:overflow-visible pt-7">
+    <section className="@container w-full mx-auto **:data-[slot=table-container]:overflow-visible pt-8 pb-20 max-w-4xl flex flex-col cursor-pointer">
+      <ArticleListFeatured
+        articles={latestPublishedArticles}
+        username={username}
+      />
+
       <Table>
         <TableHeader className="[&_tr]:border-b-0">
           <TableRow className="border-b-0 hover:bg-transparent">
             {isOwner && (
               <TableHead className="w-12 h-8 pl-4.5 [&:has([role=checkbox])]:pr-2">
-                <Checkbox
-                  checked={isIndeterminate ? "indeterminate" : isAllSelected}
-                  onCheckedChange={onToggleAll}
-                  aria-label="Select all articles"
-                />
+                <div>
+                  <Checkbox
+                    checked={isIndeterminate ? "indeterminate" : isAllSelected}
+                    onCheckedChange={onToggleAll}
+                    aria-label="Select all articles"
+                  />
+                </div>
               </TableHead>
             )}
             <TableHead

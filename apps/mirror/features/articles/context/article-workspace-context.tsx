@@ -23,6 +23,7 @@ import { type ArticleSummary } from "../types";
 import { useArticlePagination } from "../hooks/use-article-pagination";
 import { useArticleSelection } from "../hooks/use-article-selection";
 import { useArticleFilter } from "../hooks/use-article-filter";
+import { getLatestPublishedArticles } from "../utils/get-latest-published-articles";
 
 const getArticleSearchableFields = (article: ArticleSummary) => [
   article.title,
@@ -93,6 +94,11 @@ export function ArticleWorkspaceProvider({
 
   const uniqueCategories = useMemo(
     () => getUniqueContentCategories(articles),
+    [articles],
+  );
+
+  const latestPublishedArticles = useMemo(
+    () => getLatestPublishedArticles(articles, 2),
     [articles],
   );
 
@@ -185,6 +191,7 @@ export function ArticleWorkspaceProvider({
   const listValue = useMemo(
     () => ({
       articles: paginatedArticles,
+      latestPublishedArticles,
       hasMore,
       onLoadMore: loadMore,
       username,
@@ -201,6 +208,7 @@ export function ArticleWorkspaceProvider({
     }),
     [
       paginatedArticles,
+      latestPublishedArticles,
       hasMore,
       loadMore,
       username,

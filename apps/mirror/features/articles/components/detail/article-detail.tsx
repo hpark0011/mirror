@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import Image from "next/image";
+import { cn } from "@feel-good/utils/cn";
 import { formatLongDate } from "@/features/content";
 import { type ArticleWithBody } from "../../types";
 import { thumbhashToDataUrl } from "../../utils/thumbhash-to-data-url";
@@ -26,10 +27,10 @@ type ArticleDetailProps = {
 export function ArticleDetail({ article }: ArticleDetailProps) {
   const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
   return (
-    <div className="py-12 px-4.5 bg-background min-h-[calc(100vh-40px)]">
-      <article className="max-w-xl mx-auto flex flex-col">
-        <div className="flex flex-col">
-          <div className="flex items-center justify-center gap-2 text-sm font-medium">
+    <div className="py-18 px-4.5 bg-background min-h-[calc(100vh-40px)]">
+      <article className="mx-auto flex flex-col">
+        <div className="flex flex-col gap-0.5 max-w-xl mx-auto w-full">
+          <div className="flex items-center justify-start gap-2 text-[14px] font-medium ml-0.5">
             <span className="leading-[1.2]">
               {article.status === "draft"
                 ? "Draft"
@@ -45,9 +46,10 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
             </span>
           </div>
           <h1
-            className={`text-4xl font-medium leading-[1.05] tracking-[-0.04em] text-center mt-3 ${
-              article.coverImageUrl ? "mb-7" : "mb-14"
-            }`}
+            className={cn(
+              "text-3xl font-medium leading-[1.0] tracking-[-0.04em] text-start",
+              article.coverImageUrl ? "mb-20" : "mb-14",
+            )}
           >
             {article.title}
           </h1>
@@ -55,14 +57,13 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
 
         {article.coverImageUrl && (
           <div
-            className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-14"
+            className="relative left-1/2 -translate-x-1/2 aspect-video overflow-hidden bg-background-subtle [corner-shape:superellipse(1.3)] mb-4 max-w-4xl w-[calc(100%+36px)]"
             data-cover-thumbhash={article.coverImageThumbhash ?? ""}
           >
             <Image
               src={article.coverImageUrl}
               alt={`Cover image for ${article.title}`}
               fill
-              sizes="(min-width: 768px) 36rem, 100vw"
               priority
               placeholder={blurDataUrl ? "blur" : "empty"}
               blurDataURL={blurDataUrl ?? undefined}
@@ -72,7 +73,9 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
           </div>
         )}
 
-        <RichTextViewer content={article.body} />
+        <div className="max-w-xl mx-auto w-full">
+          <RichTextViewer content={article.body} />
+        </div>
       </article>
     </div>
   );

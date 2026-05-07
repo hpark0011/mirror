@@ -74,19 +74,15 @@ Worktree created: $WORKTREE_PATH
 Next steps (one-time per worktree):
   1. cd "$WORKTREE_PATH"
   2. pnpm --filter=@feel-good/convex dev
-       Choose "create a new project" when prompted. The CLI writes
-       packages/convex/.env.local with this worktree's deployment coords.
-  3. ./scripts/sync-worktree-convex-env.sh
-       Rewrites the three CONVEX_* lines in apps/mirror/.env.local so
-       Next.js targets this worktree's deployment.
-  4. ./scripts/sync-worktree-convex-secrets.sh
-       Copies BETTER_AUTH_SECRET, GOOGLE_*, ANTHROPIC_API_KEY, etc. from
-       main's deployment into this worktree's deployment, then sets
-       this worktree's auth SITE_URL to its stable Mirror port.
-  5. pnpm --filter=@feel-good/convex exec convex run seed:seedRickRubinDemo
-       Populates this deployment with the rick-rubin demo workspace
-       (3 articles, 10 posts, 2 chat conversations). Browse at
-       this worktree's Mirror URL once \`pnpm dev:safe\` is up.
+       Choose "create a new project" when prompted. Interactive — the
+       CLI writes packages/convex/.env.local with this worktree's
+       deployment coords. (Only step that can't be scripted.)
+  3. ./scripts/finalize-worktree.sh
+       One-shot wrapper: syncs Convex coords into apps/mirror/.env.local,
+       copies main's Convex env secrets into this deployment, sets
+       SITE_URL to the worktree's stable Mirror port, allowlists your
+       git email in betaAllowlist, and seeds the rick-rubin demo
+       workspace. Idempotent.
 
 Why a per-worktree deployment? See .claude/rules/worktrees.md.
 
