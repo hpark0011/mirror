@@ -1,9 +1,15 @@
-# Plan — Group `features/articles/components/` by surface
-
-**Date:** 2026-05-06
-**Branch:** `improvements-article-editor`
-**Scope:** `apps/mirror/features/articles/components/` reorg only — no behavior changes.
-
+---
+id: PLAN_002
+slug: articles-components-grouping
+title: "Group features/articles/components/ by surface"
+date: 2026-05-06
+type: refactor
+status: completed
+branch: improvements-article-editor
+worktree: null
+scope: "apps/mirror/features/articles/components/ reorg only — no behavior changes."
+apps: [mirror]
+verification_tier: 5
 ---
 
 ## Goal
