@@ -6,6 +6,7 @@ import {
   getContentHref,
 } from "@/features/content";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { DeletePostConnector } from "./delete-post-connector";
 import { PublishToggleConnector } from "./publish-toggle-connector";
 import { type PostSummary } from "../../types";
 
@@ -21,7 +22,10 @@ export function PostDetailToolbar({ username, post }: PostDetailToolbarProps) {
       <WorkspaceBackButton
         href={buildChatAwareHref(getContentHref(username, "posts"))}
       />
-      <PublishToggleConnector post={post} />
+      <div className="flex items-center gap-2">
+        <DeletePostConnector username={username} post={post} />
+        <PublishToggleConnector post={post} />
+      </div>
     </ContentToolbarShell>
   );
 }
