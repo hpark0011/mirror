@@ -47,8 +47,13 @@ vi.mock("next/navigation", () => ({
 // Replace the resizable primitives with minimal pass-through components.
 // react-resizable-panels relies on layout measurement that happy-dom does
 // not emulate, and the tests only care about callback invocation.
-// Imperative APIs (setLayout, collapse) are forwarded as no-op stubs so
-// component logic that invokes them through a ref does not explode.
+// Imperative APIs (setLayout, collapse) are forwarded as spies so PLAN_010
+// tests can assert the bridge's `ensureContentPanelOpen()` reaches
+// `groupRef.current.setLayout([50, 50])`.
+const { setLayoutSpy } = vi.hoisted(() => ({
+  setLayoutSpy: vi.fn(),
+}));
+
 vi.mock("@feel-good/ui/primitives/resizable", async () => {
   const React = await import("react");
   const Panel = React.forwardRef<
@@ -71,7 +76,7 @@ vi.mock("@feel-good/ui/primitives/resizable", async () => {
     { children?: React.ReactNode } & Record<string, unknown>
   >(({ children, ...rest }, ref) => {
     React.useImperativeHandle(ref, () => ({
-      setLayout: () => {},
+      setLayout: setLayoutSpy as (layout: number[]) => void,
       getLayout: () => [],
     }));
     return (
@@ -106,6 +111,12 @@ const { DesktopWorkspace } = await import("../desktop-workspace");
 const { useWorkspaceChrome } = await import(
   "@/app/[username]/_providers/workspace-chrome-context"
 );
+const {
+  WorkspacePanelBridgeProvider,
+  useWorkspacePanelBridge,
+} = await import(
+  "@/app/[username]/_providers/workspace-panel-bridge-context"
+);
 
 // Small harness so we can invoke toggleContentPanel as if a descendant button
 // inside WorkspaceChromeProvider were clicked. Using the real context keeps
@@ -122,18 +133,36 @@ function ContentToggleHarness() {
   );
 }
 
+// Sibling harness used by the PLAN_010 tests to invoke the bridge from
+// outside DesktopWorkspace — proves the imperative loop wires through the
+// real WorkspacePanelBridgeProvider.
+function BridgeOpenHarness() {
+  const { ensureContentPanelOpen } = useWorkspacePanelBridge();
+  return (
+    <button
+      type="button"
+      data-testid="bridge-open"
+      onClick={ensureContentPanelOpen}
+    />
+  );
+}
+
 type DesktopWorkspaceProps = ComponentProps<typeof DesktopWorkspace>;
 
 function renderWorkspace(overrides: Partial<DesktopWorkspaceProps> = {}) {
   const onOpenDefaultContent = vi.fn();
   const utils = render(
-    <DesktopWorkspace
-      hasContentRoute={overrides.hasContentRoute ?? false}
-      onOpenDefaultContent={overrides.onOpenDefaultContent ?? onOpenDefaultContent}
-      interaction={<div data-testid="interaction-slot" />}
-    >
-      <ContentToggleHarness />
-    </DesktopWorkspace>,
+    <WorkspacePanelBridgeProvider>
+      <DesktopWorkspace
+        hasContentRoute={overrides.hasContentRoute ?? false}
+        onOpenDefaultContent={
+          overrides.onOpenDefaultContent ?? onOpenDefaultContent
+        }
+        interaction={<div data-testid="interaction-slot" />}
+      >
+        <ContentToggleHarness />
+      </DesktopWorkspace>
+    </WorkspacePanelBridgeProvider>,
   );
   return { ...utils, onOpenDefaultContent };
 }
@@ -179,13 +208,15 @@ describe("DesktopWorkspace pending-navigation recovery (FG_075)", () => {
   it("clears the pending-navigation latch when hasContentRoute transitions true → false mid-flight", () => {
     const onOpenDefaultContent = vi.fn();
     const { rerender } = render(
-      <DesktopWorkspace
-        hasContentRoute={false}
-        onOpenDefaultContent={onOpenDefaultContent}
-        interaction={<div />}
-      >
-        <ContentToggleHarness />
-      </DesktopWorkspace>,
+      <WorkspacePanelBridgeProvider>
+        <DesktopWorkspace
+          hasContentRoute={false}
+          onOpenDefaultContent={onOpenDefaultContent}
+          interaction={<div />}
+        >
+          <ContentToggleHarness />
+        </DesktopWorkspace>
+      </WorkspacePanelBridgeProvider>,
     );
 
     const toggle = screen.getByTestId("toggle-content");
@@ -201,22 +232,26 @@ describe("DesktopWorkspace pending-navigation recovery (FG_075)", () => {
     // latch. Here we flip false → true, then back to false — the second
     // transition should still leave the guard clear.
     rerender(
-      <DesktopWorkspace
-        hasContentRoute={true}
-        onOpenDefaultContent={onOpenDefaultContent}
-        interaction={<div />}
-      >
-        <ContentToggleHarness />
-      </DesktopWorkspace>,
+      <WorkspacePanelBridgeProvider>
+        <DesktopWorkspace
+          hasContentRoute={true}
+          onOpenDefaultContent={onOpenDefaultContent}
+          interaction={<div />}
+        >
+          <ContentToggleHarness />
+        </DesktopWorkspace>
+      </WorkspacePanelBridgeProvider>,
     );
     rerender(
-      <DesktopWorkspace
-        hasContentRoute={false}
-        onOpenDefaultContent={onOpenDefaultContent}
-        interaction={<div />}
-      >
-        <ContentToggleHarness />
-      </DesktopWorkspace>,
+      <WorkspacePanelBridgeProvider>
+        <DesktopWorkspace
+          hasContentRoute={false}
+          onOpenDefaultContent={onOpenDefaultContent}
+          interaction={<div />}
+        >
+          <ContentToggleHarness />
+        </DesktopWorkspace>
+      </WorkspacePanelBridgeProvider>,
     );
 
     // Without waiting for the timeout, the toggle should already be
@@ -258,5 +293,77 @@ describe("DesktopWorkspace pending-navigation recovery (FG_075)", () => {
         vi.advanceTimersByTime(5000);
       });
     }).not.toThrow();
+  });
+});
+
+describe("DesktopWorkspace — panel-bridge registration (PLAN_010)", () => {
+  // Anchors the wiring contract: DesktopWorkspace registers
+  // `contentController.ensureExpanded` with `WorkspacePanelBridgeProvider`
+  // on mount, and the bridge's `ensureContentPanelOpen()` invocation
+  // reaches `groupRef.setLayout([50, 50])` end-to-end.
+  beforeEach(() => {
+    setLayoutSpy.mockClear();
+  });
+
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("invoking ensureContentPanelOpen() from a sibling consumer reaches the mocked panel group's setLayout([50, 50])", () => {
+    // Mount with hasContentRoute=false so the controller starts already
+    // collapsed — that's the bug repro state (visitor manually collapsed
+    // the panel; agent or user-UI is about to navigate to a content URL).
+    // ensureExpanded then has work to do regardless of hasContentRoute,
+    // because the dispatcher is responsible for the upcoming push.
+    render(
+      <WorkspacePanelBridgeProvider>
+        <DesktopWorkspace
+          hasContentRoute={false}
+          onOpenDefaultContent={vi.fn()}
+          interaction={<div />}
+        >
+          <ContentToggleHarness />
+        </DesktopWorkspace>
+        <BridgeOpenHarness />
+      </WorkspacePanelBridgeProvider>,
+    );
+
+    setLayoutSpy.mockClear();
+
+    fireEvent.click(screen.getByTestId("bridge-open"));
+
+    expect(setLayoutSpy).toHaveBeenCalledTimes(1);
+    expect(setLayoutSpy).toHaveBeenCalledWith([50, 50]);
+  });
+
+  it("after the desktop workspace unmounts, a fresh provider's bridge is unregistered (no setLayout call)", () => {
+    const { unmount } = render(
+      <WorkspacePanelBridgeProvider>
+        <DesktopWorkspace
+          hasContentRoute={false}
+          onOpenDefaultContent={vi.fn()}
+          interaction={<div />}
+        >
+          <ContentToggleHarness />
+        </DesktopWorkspace>
+        <BridgeOpenHarness />
+      </WorkspacePanelBridgeProvider>,
+    );
+
+    unmount();
+    setLayoutSpy.mockClear();
+
+    // Render a fresh consumer in a sibling tree against a fresh provider —
+    // proves the new provider's slot is empty (no DesktopWorkspace
+    // registered against it).
+    const utils = render(
+      <WorkspacePanelBridgeProvider>
+        <BridgeOpenHarness />
+      </WorkspacePanelBridgeProvider>,
+    );
+
+    fireEvent.click(utils.getByTestId("bridge-open"));
+
+    expect(setLayoutSpy).not.toHaveBeenCalled();
   });
 });

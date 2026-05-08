@@ -37,6 +37,15 @@ export type ContentPanelController = {
   toggle: () => void;
   /** Returns true if expansion (or default-content nav) was initiated. */
   expand: () => boolean;
+  /**
+   * Imperative "if collapsed, open without falling back to default-content
+   * navigation." Distinct from `expand()` because the caller (the dispatcher
+   * in `clone-actions-context.tsx`) is itself about to `router.push` to a
+   * specific content URL — falling back to `openDefaultContentRoute()` would
+   * race that push. Used by `WorkspacePanelBridgeProvider` to satisfy the
+   * panel-open invariant on every dispatcher navigation.
+   */
+  ensureExpanded: () => void;
 };
 
 export function useContentPanelController({
@@ -85,6 +94,17 @@ export function useContentPanelController({
     panelRef.current?.collapse();
   }, [expand, isCollapsed, pendingNav]);
 
+  // Called by the dispatcher (`useCloneActions`) via the panel-bridge
+  // before every `router.push`. Distinct from `expand()`: must NOT call
+  // `openDefaultContentRoute()` when `!hasContentRoute`, because the
+  // dispatcher is itself about to push a more specific content URL —
+  // a fallback default-content push would race it.
+  const ensureExpanded = useCallback(() => {
+    if (!isCollapsed) return;
+    if (pendingNav.isArmed()) return;
+    groupRef.current?.setLayout([...OPEN_LAYOUT]);
+  }, [groupRef, isCollapsed, pendingNav]);
+
   useLayoutEffect(() => {
     const previousHasContentRoute = previousHasContentRouteRef.current;
     previousHasContentRouteRef.current = hasContentRoute;
@@ -102,5 +122,13 @@ export function useContentPanelController({
     panelRef.current?.collapse();
   }, [groupRef, hasContentRoute, pendingNav]);
 
-  return { setPanelRef, isCollapsed, onCollapse, onExpand, toggle, expand };
+  return {
+    setPanelRef,
+    isCollapsed,
+    onCollapse,
+    onExpand,
+    toggle,
+    expand,
+    ensureExpanded,
+  };
 }

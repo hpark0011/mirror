@@ -70,6 +70,25 @@ vi.mock("@/hooks/use-chat-search-params", () => ({
   }),
 }));
 
+// PLAN_010 — pin the panel-bridge call ordering. The dispatcher MUST call
+// `ensureContentPanelOpen()` BEFORE `router.push`. We use `mock.invocationCallOrder`
+// to assert ordering deterministically.
+const ensureContentPanelOpenSpy = vi.fn();
+const registerSpy = vi.fn(() => () => {});
+vi.mock(
+  "@/app/[username]/_providers/workspace-panel-bridge-context",
+  () => {
+    return {
+      useWorkspacePanelBridge: () => ({
+        register: registerSpy,
+        ensureContentPanelOpen: ensureContentPanelOpenSpy,
+      }),
+      WorkspacePanelBridgeProvider: ({ children }: { children: ReactNode }) =>
+        children,
+    };
+  },
+);
+
 // ── Import after mocks ────────────────────────────────────────────────────────
 
 const { useCloneActions, CloneActionsProvider } = await import(
@@ -88,6 +107,7 @@ describe("CloneActionsProvider — navigateToContent href bypass (FG_129)", () =
   afterEach(() => {
     cleanup();
     pushSpy.mockReset();
+    ensureContentPanelOpenSpy.mockReset();
     // Reset to chat-open default between tests
     mockBuildChatAwareHref = buildChatAwareHrefOpen;
     mockIsChatOpen = true;
@@ -238,6 +258,7 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
   afterEach(() => {
     cleanup();
     pushSpy.mockReset();
+    ensureContentPanelOpenSpy.mockReset();
     mockBuildChatAwareHref = buildChatAwareHrefOpen;
     mockIsChatOpen = true;
   });
@@ -363,4 +384,103 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
       });
     });
   }
+});
+
+describe("CloneActionsProvider — panel-bridge integration (PLAN_010)", () => {
+  // The dispatcher is the single attachment point for the workspace panel
+  // bridge: every navigateToContent/navigateToProfileSection invocation
+  // MUST call ensureContentPanelOpen() BEFORE router.push so a manually-
+  // collapsed content panel re-opens. Closes the parity gap noted in
+  // PLAN_010.
+  afterEach(() => {
+    cleanup();
+    pushSpy.mockReset();
+    ensureContentPanelOpenSpy.mockReset();
+    mockBuildChatAwareHref = buildChatAwareHrefOpen;
+    mockIsChatOpen = true;
+  });
+
+  function expectBridgeCalledBeforePush() {
+    expect(ensureContentPanelOpenSpy).toHaveBeenCalledTimes(1);
+    expect(pushSpy).toHaveBeenCalledTimes(1);
+    const bridgeOrder =
+      ensureContentPanelOpenSpy.mock.invocationCallOrder[0];
+    const pushOrder = pushSpy.mock.invocationCallOrder[0];
+    expect(bridgeOrder).toBeLessThan(pushOrder);
+  }
+
+  it("navigateToContent (agent path with href) calls ensureContentPanelOpen before router.push", () => {
+    const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+    act(() => {
+      result.current.navigateToContent({
+        kind: "articles",
+        slug: "x",
+        href: "/@alice/articles/server-built",
+      });
+    });
+
+    expectBridgeCalledBeforePush();
+  });
+
+  it("navigateToContent (user-UI path, href omitted) calls ensureContentPanelOpen before router.push", () => {
+    const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+    act(() => {
+      result.current.navigateToContent({ kind: "articles", slug: "x" });
+    });
+
+    expectBridgeCalledBeforePush();
+  });
+
+  const sections = ["bio", "articles", "posts", "clone-settings"] as const;
+
+  for (const section of sections) {
+    it(`navigateToProfileSection({ section: ${section}, href }) calls ensureContentPanelOpen before router.push`, () => {
+      const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+      act(() => {
+        result.current.navigateToProfileSection({
+          section,
+          href: `/@alice/${section}/server-override`,
+        });
+      });
+
+      expectBridgeCalledBeforePush();
+    });
+
+    it(`navigateToProfileSection({ section: ${section} }) (user-UI) calls ensureContentPanelOpen before router.push`, () => {
+      const { result } = renderHook(() => useCloneActions(), { wrapper });
+
+      act(() => {
+        result.current.navigateToProfileSection({ section });
+      });
+
+      expectBridgeCalledBeforePush();
+    });
+  }
+
+  it("calls ensureContentPanelOpen regardless of whether isChatOpen is true", () => {
+    // Default: isChatOpen=true.
+    const { result: resultOpen } = renderHook(() => useCloneActions(), {
+      wrapper,
+    });
+    act(() => {
+      resultOpen.current.navigateToContent({ kind: "articles", slug: "x" });
+    });
+    expectBridgeCalledBeforePush();
+  });
+
+  it("calls ensureContentPanelOpen regardless of whether isChatOpen is false", () => {
+    mockBuildChatAwareHref = buildChatAwareHrefClosed;
+    mockIsChatOpen = false;
+
+    const { result: resultClosed } = renderHook(() => useCloneActions(), {
+      wrapper,
+    });
+    act(() => {
+      resultClosed.current.navigateToContent({ kind: "articles", slug: "x" });
+    });
+    expectBridgeCalledBeforePush();
+  });
 });

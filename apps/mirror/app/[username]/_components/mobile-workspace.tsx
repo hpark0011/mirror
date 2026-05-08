@@ -23,6 +23,10 @@ export function MobileWorkspace({
     useProfileWorkspaceRouteData();
   const { openChat } = useChatSearchParams();
 
+  // PLAN_010 — Mobile does not register with `WorkspacePanelBridgeProvider` —
+  // panel visibility is route-driven via the `isChatOpen || !hasContentRoute`
+  // render branch below, so the bridge's `ensureContentPanelOpen` is a no-op
+  // here by construction.
   const workspaceChromeValue = useMemo(
     () => ({
       isContentPanelCollapsed: !hasContentRoute,

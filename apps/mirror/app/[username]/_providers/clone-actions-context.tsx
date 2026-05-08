@@ -15,6 +15,7 @@ import {
 } from "@/features/profile-tabs/types";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "./profile-route-data-context";
+import { useWorkspacePanelBridge } from "./workspace-panel-bridge-context";
 
 /**
  * Single dispatcher for clone-level actions.
@@ -35,6 +36,13 @@ import { useProfileRouteData } from "./profile-route-data-context";
  * `buildChatAwareHref` preserves the chat query params (`?chat=1&conversation=...`)
  * across navigation, mirroring the current `<Link>` semantics in both
  * list items.
+ *
+ * Both verbs call `ensureContentPanelOpen()` from the workspace panel
+ * bridge before pushing — guarantees a manually-collapsed panel re-opens
+ * on every dispatcher navigation, regardless of whether `hasContentRoute`
+ * transitions. Closes the parity gap fixed in PLAN_010 (see
+ * `.claude/rules/agent-parity.md` § "Two routes, one dispatcher" — Panel-
+ * open invariant).
  */
 type CloneActions = {
   navigateToContent: (args: {
@@ -86,25 +94,30 @@ export function CloneActionsProvider({ children }: CloneActionsProviderProps) {
   const router = useRouter();
   const { profile } = useProfileRouteData();
   const { buildChatAwareHref } = useChatSearchParams();
+  const { ensureContentPanelOpen } = useWorkspacePanelBridge();
 
   const navigateToContent = useCallback<CloneActions["navigateToContent"]>(
     ({ kind, slug, href }) => {
+      // PLAN_010 — both routes funnel through the bridge; mobile no-ops by construction.
+      ensureContentPanelOpen();
       // Agent path: server provided the canonical href; do NOT recompose.
       // User path: build from username + kind + slug.
       const basePath = href ?? getContentHref(profile.username, kind, slug);
       router.push(buildChatAwareHref(basePath), { scroll: false });
     },
-    [router, profile.username, buildChatAwareHref],
+    [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
   );
 
   const navigateToProfileSection = useCallback<
     CloneActions["navigateToProfileSection"]
   >(
     ({ section, href }) => {
+      // PLAN_010 — both routes funnel through the bridge; mobile no-ops by construction.
+      ensureContentPanelOpen();
       const basePath = href ?? getProfileTabHref(profile.username, section);
       router.push(buildChatAwareHref(basePath), { scroll: false });
     },
-    [router, profile.username, buildChatAwareHref],
+    [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
   );
 
   const value = useMemo<CloneActions>(
