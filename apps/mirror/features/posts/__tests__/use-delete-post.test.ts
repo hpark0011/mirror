@@ -306,10 +306,10 @@ describe("useDeletePost", () => {
       // Verify dialog stays open and isPending is reset
       expect(result.current.dialogOpen).toBe(true);
       expect(result.current.isPending).toBe(false);
-      // Verify fallback toast message
+      // Verify fallback toast message (from getMutationErrorMessage)
       expect(mockShowToast).toHaveBeenCalledWith({
         type: "error",
-        title: "Something went wrong. Try again.",
+        title: "Something went wrong. Please try again.",
       });
     });
   });

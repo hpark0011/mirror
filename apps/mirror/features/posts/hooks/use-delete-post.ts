@@ -7,6 +7,7 @@ import { api } from "@feel-good/convex/convex/_generated/api";
 import { showToast } from "@feel-good/ui/components/toast";
 import { getContentHref } from "@/features/content";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
 import { type PostSummary } from "../types";
 
 export type UseDeletePostArgs = {
@@ -64,11 +65,7 @@ export function useDeletePost({
       showToast({ type: "success", title: "Post deleted" });
       setDialogOpen(false);
     } catch (err) {
-      showToast({
-        type: "error",
-        title:
-          err instanceof Error ? err.message : "Something went wrong. Try again.",
-      });
+      showToast({ type: "error", title: getMutationErrorMessage(err) });
       // Navigation already fired; error toast surfaces on the posts list page.
     } finally {
       isSubmittingRef.current = false;
