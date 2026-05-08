@@ -3,7 +3,7 @@ id: FG_168
 title: "Post detail does not blank-flash between mutation resolve and navigation"
 date: 2026-05-08
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "After useDeletePost awaits removePosts and before router.replace settles the new route, the Convex real-time subscription on the deleted post flips to null. PostDetailConnector returns null when post is null, so the toolbar plus content disappear for at least one frame on every successful delete. The result is a visible blank-flash. The fix is one of: a skeleton fallback in the connector, a sticky last-non-null ref so the UI stays populated until navigation completes, or reordering the success path so router.replace fires before await removePosts (Convex mutations do not depend on the originating component being mounted)."
 dependencies: []

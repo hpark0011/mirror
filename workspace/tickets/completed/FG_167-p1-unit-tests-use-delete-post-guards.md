@@ -3,7 +3,7 @@ id: FG_167
 title: "useDeletePost guards (double-submit, escape-block, error path) are unit tested"
 date: 2026-05-08
 type: improvement
-status: to-do
+status: completed
 priority: p1
 description: "The new useDeletePost hook at apps/mirror/features/posts/hooks/use-delete-post.ts introduces three conditional branches that protect destructive behavior — the double-submit isSubmittingRef guard at line 38, the escape/outside-click block at line 65, and the catch arm at lines 47-54 that keeps the dialog open after a mutation rejection. None of these have a unit test. Inverting any of the predicates would still pass the existing suite. Add a Vitest spec that drives the hook with a mocked mutation and asserts each guard behaves as designed."
 dependencies: []

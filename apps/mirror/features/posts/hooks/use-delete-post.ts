@@ -56,17 +56,20 @@ export function useDeletePost({
     setIsPending(true);
 
     try {
+      // FG_168: Navigate first so the post-detail unmount happens before Convex
+      // invalidates the getById subscription — prevents the blank-flash where
+      // PostDetailConnector renders null between mutation resolve and route paint.
+      router.replace(buildChatAwareHref(getContentHref(username, "posts")));
       await removePosts({ ids: [postId] });
       showToast({ type: "success", title: "Post deleted" });
       setDialogOpen(false);
-      router.replace(buildChatAwareHref(getContentHref(username, "posts")));
     } catch (err) {
       showToast({
         type: "error",
         title:
           err instanceof Error ? err.message : "Something went wrong. Try again.",
       });
-      // Dialog stays open so the user can retry.
+      // Navigation already fired; error toast surfaces on the posts list page.
     } finally {
       isSubmittingRef.current = false;
       setIsPending(false);

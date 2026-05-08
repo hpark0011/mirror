@@ -3,7 +3,7 @@ id: FG_166
 title: "Post delete authenticated owner E2E covers happy path, gate, and error path"
 date: 2026-05-08
 type: improvement
-status: to-do
+status: completed
 priority: p1
 description: "The new post delete feature on branch feature-post-delete-button (`apps/mirror/features/posts/components/detail/delete-post.tsx`, `delete-post-connector.tsx`, `hooks/use-delete-post.ts`) shipped without any e2e coverage. None of the six named invariants — visitor gate, confirm-disabled-during-pending, escape/outside-click block while pending, double-submit guard, error-keeps-dialog-open, success-navigates-to-list — are protected by an automated test. The verification rule (`.claude/rules/verification.md`) treats end-to-end features as Tier 5 and requires e2e or Chrome MCP interaction. The data-post-deleting attribute that was added on the trigger button gives the test a deterministic wait surface, so the only thing missing is the spec itself."
 dependencies: []
