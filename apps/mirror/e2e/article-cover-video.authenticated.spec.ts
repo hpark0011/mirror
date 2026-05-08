@@ -8,19 +8,17 @@
 //   - the detail-page render (autoPlay/loop/muted/playsInline +
 //     `media-src` CSP allowing `*.convex.cloud`)
 //
-// The MP4 fixture lives at `workspace/artifacts/software with less
-// input.mp4` (24.3 MiB; the cap is 25 MiB). Resolved at runtime so
-// the binary doesn't have to live under `apps/mirror/e2e/fixtures/`.
+// The MP4 fixture is intentionally tiny and committed under
+// `apps/mirror/e2e/fixtures/` so the upload tests run in CI.
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
 import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
 import path from "path";
-import fs from "fs";
 
 const username = "test-user";
 
 const COVER_VIDEO_FIXTURE = path.resolve(
   __dirname,
-  "../../../workspace/artifacts/software with less input.mp4",
+  "fixtures/cover-video.mp4",
 );
 
 test.describe("Article cover video picker (PLAN_010)", () => {
@@ -69,12 +67,8 @@ test.describe("Article cover video picker (PLAN_010)", () => {
   test("happy path: upload MP4 → save → detail page renders <video autoPlay loop muted playsInline>", async ({
     authenticatedPage: page,
   }) => {
-    test.skip(
-      !fs.existsSync(COVER_VIDEO_FIXTURE),
-      `Missing cover video fixture at ${COVER_VIDEO_FIXTURE}`,
-    );
-    // The fixture is 24 MiB and traverses the network twice (video +
-    // poster). 90s gives ample headroom for slow links.
+    // The fixture traverses the network twice (video + poster). 90s
+    // gives ample headroom for slow links.
     test.setTimeout(90_000);
 
     const { draftSlug } = await ensureTestArticleFixtures({
@@ -142,10 +136,6 @@ test.describe("Article cover video picker (PLAN_010)", () => {
   test("create flow: /new → upload MP4 → save → /edit page rehydrates with the video preview", async ({
     authenticatedPage: page,
   }) => {
-    test.skip(
-      !fs.existsSync(COVER_VIDEO_FIXTURE),
-      `Missing cover video fixture at ${COVER_VIDEO_FIXTURE}`,
-    );
     test.setTimeout(120_000);
 
     // Unique slug per run so re-running doesn't hit the

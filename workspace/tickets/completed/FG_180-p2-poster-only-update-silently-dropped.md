@@ -3,7 +3,7 @@ id: FG_180
 title: "articles.update silently drops a new poster id when video id is unchanged"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Branch 2 of the cover-patch logic only fires when args.coverVideoStorageId differs from the stored value. A caller that sends the same video id with a new poster id falls through to the no-op branch — the new poster blob is uploaded, claimed, billed in storage, but never persisted to the article row."
 dependencies: []

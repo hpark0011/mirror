@@ -34,37 +34,39 @@ export const getByUsername = query({
 
     const visible = filterVisibleContent(articles, isOwner);
 
-    const coverImageUrls = await Promise.all(
-      visible.map((a) => resolveArticleCoverImageUrl(ctx, a.coverImageStorageId)),
-    );
     // PLAN_010: resolve video + poster URLs alongside the image URL.
     // Reuses `resolveArticleCoverImageUrl` (a thin wrapper over
     // `ctx.storage.getUrl`) so the resolution rules — `null` for missing
     // blobs, signed URL otherwise — stay identical across cover kinds.
-    const coverVideoUrls = await Promise.all(
-      visible.map((a) => resolveArticleCoverImageUrl(ctx, a.coverVideoStorageId)),
-    );
-    const coverVideoPosterUrls = await Promise.all(
+    const coverUrlTriplets = await Promise.all(
       visible.map((a) =>
-        resolveArticleCoverImageUrl(ctx, a.coverVideoPosterStorageId),
+        Promise.all([
+          resolveArticleCoverImageUrl(ctx, a.coverImageStorageId),
+          resolveArticleCoverImageUrl(ctx, a.coverVideoStorageId),
+          resolveArticleCoverImageUrl(ctx, a.coverVideoPosterStorageId),
+        ]),
       ),
     );
 
-    return visible.map((article, i) => ({
-      _id: article._id,
-      _creationTime: article._creationTime,
-      userId: article.userId,
-      slug: article.slug,
-      title: article.title,
-      coverImageUrl: coverImageUrls[i]!,
-      coverImageThumbhash: article.coverImageThumbhash ?? null,
-      coverVideoUrl: coverVideoUrls[i]!,
-      coverVideoPosterUrl: coverVideoPosterUrls[i]!,
-      createdAt: article.createdAt,
-      publishedAt: article.publishedAt,
-      status: article.status,
-      category: article.category,
-    }));
+    return visible.map((article, i) => {
+      const [coverImageUrl, coverVideoUrl, coverVideoPosterUrl] =
+        coverUrlTriplets[i]!;
+      return {
+        _id: article._id,
+        _creationTime: article._creationTime,
+        userId: article.userId,
+        slug: article.slug,
+        title: article.title,
+        coverImageUrl,
+        coverImageThumbhash: article.coverImageThumbhash ?? null,
+        coverVideoUrl,
+        coverVideoPosterUrl,
+        createdAt: article.createdAt,
+        publishedAt: article.publishedAt,
+        status: article.status,
+        category: article.category,
+      };
+    });
   },
 });
 

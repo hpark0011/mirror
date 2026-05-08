@@ -3,7 +3,7 @@ id: FG_189
 title: "Hook tests must pin form-layer mutual exclusion (image upload clears video state and vice versa)"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Production hooks null out the opposite cover kind on each upload, but no test asserts coverImageStorageId becomes null after a video upload (or vice versa). A regression that removes the state-clearing lines would cause save to send both ids and the server would reject — uncovered."
 dependencies: []

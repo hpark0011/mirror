@@ -3,7 +3,7 @@ id: FG_172
 title: "Article list video covers must pause when scrolled offscreen"
 date: 2026-05-08
 type: perf
-status: to-do
+status: completed
 priority: p1
 description: "Every featured article card with a video cover renders autoPlay loop muted unconditionally with no IntersectionObserver-based pause. A profile with N video-cover articles spins up N concurrent hardware-decoder sessions even when most cards are offscreen, pegging mobile CPU/GPU."
 dependencies: []

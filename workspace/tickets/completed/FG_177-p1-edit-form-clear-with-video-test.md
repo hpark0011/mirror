@@ -3,7 +3,7 @@ id: FG_177
 title: "useEditArticleForm clear-cover-when-video has no test"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The clearCoverImage:true assertion uses an INITIAL_ARTICLE fixture that has only coverImageUrl set. No test asserts that clearing a video cover sends clearCoverImage:true with no video ids. The invariant 'clearCoverImage wipes EVERY cover surface' has only half coverage."
 dependencies: []

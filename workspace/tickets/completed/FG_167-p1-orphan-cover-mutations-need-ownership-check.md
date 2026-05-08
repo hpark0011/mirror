@@ -3,7 +3,7 @@ id: FG_167
 title: "deleteOrphanCoverVideo and deleteOrphanCoverImage must verify caller owns the blob"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "Both orphan-cleanup mutations accept any storage id from args and only check the articles table for references. Authenticated users can delete other users' pending uploads if they obtain the storage id from the network panel during upload — a cross-user storage-deletion vector."
 dependencies: []

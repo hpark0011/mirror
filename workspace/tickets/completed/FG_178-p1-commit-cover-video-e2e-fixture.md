@@ -3,7 +3,7 @@ id: FG_178
 title: "Cover-video e2e fixture must be committed so happy-path tests run in CI"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The MP4 fixture path resolved in apps/mirror/e2e/article-cover-video.authenticated.spec.ts is untracked. Both upload tests test.skip silently when missing — CI green is meaningless. Tier-5 verification of the upload pipeline, MIME guard, and render precedence is lost."
 dependencies: []

@@ -1,6 +1,9 @@
 import { type NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+// Convex hosts are wildcarded consistently across img-src, connect-src, and
+// media-src. Storage ids are opaque, Convex does not expose user-controlled
+// subdomains, and preview/dev deployments legitimately vary by subdomain.
 const cspDirectives = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vercel.live", // Next.js requires unsafe-inline/eval for HMR and inline scripts; va.vercel-scripts.com hosts Vercel Analytics + Speed Insights; vercel.live hosts the Vercel Toolbar/Live Feedback on preview deployments

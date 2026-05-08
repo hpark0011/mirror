@@ -3,7 +3,7 @@ id: FG_190
 title: "Article detail and featured-card need unit tests for video-wins render precedence"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The hasCoverVideo || hasCoverImage precedence JSX has no unit test that renders the component with coverVideoUrl set and asserts a video element is in the DOM. E2E indirectly covers it but only when the (until FG_178) untracked MP4 fixture exists."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_169
 title: "Cover-video upload aborts on mid-stream poster failure leaving video bytes orphaned"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "When the poster uploadToStorage rejects mid-stream while the video upload is still in flight, Promise.all rejects but the video fetch is not aborted. The video bytes complete uploading and stay in _storage with no ownership row and no eager orphan cleanup, leaking until the cron sweep."
 dependencies: []

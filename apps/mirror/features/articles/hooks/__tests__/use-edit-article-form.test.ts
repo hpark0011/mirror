@@ -9,6 +9,7 @@ import { act, renderHook } from "@testing-library/react";
 
 const mockUpdate = vi.fn();
 const mockUploadCover = vi.fn();
+const mockUploadCoverVideo = vi.fn();
 const mockReplace = vi.fn();
 const mockShowToast = vi.fn();
 const mockRefresh = vi.fn();
@@ -26,7 +27,7 @@ vi.mock("../use-article-cover-image-upload", () => ({
 }));
 
 vi.mock("../use-article-cover-video-upload", () => ({
-  useArticleCoverVideoUpload: () => ({ upload: vi.fn() }),
+  useArticleCoverVideoUpload: () => ({ upload: mockUploadCoverVideo }),
 }));
 
 vi.mock("../use-article-inline-image-upload", () => ({
@@ -81,10 +82,20 @@ const INITIAL_ARTICLE: any = {
   body: SAMPLE_BODY,
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- ArticleWithBody shape, irrelevant to mutation-arg assertions
+const INITIAL_ARTICLE_WITH_VIDEO: any = {
+  ...INITIAL_ARTICLE,
+  coverImageUrl: null,
+  coverImageThumbhash: undefined,
+  coverVideoUrl: "https://example.com/cover.mp4",
+  coverVideoPosterUrl: "https://example.com/poster.jpg",
+};
+
 describe("useEditArticleForm — cover clear", () => {
   beforeEach(() => {
     mockUpdate.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
     mockReplace.mockReset();
     mockRefresh.mockReset();
     mockShowToast.mockReset();
@@ -122,6 +133,75 @@ describe("useEditArticleForm — cover clear", () => {
     // it's not the removal signal. The server distinguishes "cleared" from
     // "no change" via `clearCoverImage`, not via undefined-vs-present.
     expect(args.coverImageStorageId).toBeUndefined();
+  });
+
+  it("save sends clearCoverImage:true with no video ids when video cover is cleared", async () => {
+    mockUpdate.mockResolvedValue(null);
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE_WITH_VIDEO,
+      }),
+    );
+
+    act(() => {
+      result.current.handleCoverClear();
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    const args = mockUpdate.mock.calls[0]![0] as {
+      clearCoverImage?: boolean;
+      coverImageStorageId?: unknown;
+      coverVideoStorageId?: unknown;
+      coverVideoPosterStorageId?: unknown;
+    };
+    expect(args.clearCoverImage).toBe(true);
+    expect(args.coverImageStorageId).toBeUndefined();
+    expect(args.coverVideoStorageId).toBeUndefined();
+    expect(args.coverVideoPosterStorageId).toBeUndefined();
+  });
+
+  it("does not resend clearCoverImage after a failed clear-cover save", async () => {
+    mockUpdate.mockRejectedValueOnce(new Error("Network dropped"));
+    mockUpdate.mockResolvedValueOnce(null);
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    act(() => {
+      result.current.handleCoverClear();
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate.mock.calls[0]![0]).toMatchObject({
+      clearCoverImage: true,
+    });
+    expect(mockShowToast).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      result.current.setTitle("Retried Title Only");
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(2);
+    const retryArgs = mockUpdate.mock.calls[1]![0] as {
+      clearCoverImage?: boolean;
+    };
+    expect(retryArgs.clearCoverImage).toBeUndefined();
   });
 
   it("save without a clear omits clearCoverImage entirely", async () => {
@@ -244,10 +324,126 @@ describe("useEditArticleForm — cover clear", () => {
   });
 });
 
+describe("useEditArticleForm — cover-kind mutual exclusion", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
+    mockReplace.mockReset();
+    mockRefresh.mockReset();
+    mockShowToast.mockReset();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn((file: Blob) =>
+        file.type.startsWith("video/") ? "blob:video-url" : "blob:image-url",
+      ),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("uploading a video after an image clears the image cover state", async () => {
+    mockUpdate.mockResolvedValue(null);
+    mockUploadCover.mockResolvedValue({
+      storageId: "image_storage_id",
+      thumbhash: "abc=",
+    });
+    mockUploadCoverVideo.mockResolvedValue({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+    expect(result.current.coverImageUrl).toBe("blob:image-url");
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.mp4", { type: "video/mp4" }),
+      );
+    });
+    expect(result.current.coverImageUrl).toBeNull();
+    expect(result.current.coverVideoUrl).toBe("blob:video-url");
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    const args = mockUpdate.mock.calls[0]![0] as {
+      coverImageStorageId?: unknown;
+      coverVideoStorageId?: unknown;
+      coverVideoPosterStorageId?: unknown;
+    };
+    expect(args.coverImageStorageId).toBeUndefined();
+    expect(args.coverVideoStorageId).toBe("video_storage_id");
+    expect(args.coverVideoPosterStorageId).toBe("poster_storage_id");
+  });
+
+  it("uploading an image after a video clears the video cover state", async () => {
+    mockUpdate.mockResolvedValue(null);
+    mockUploadCoverVideo.mockResolvedValue({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+    mockUploadCover.mockResolvedValue({
+      storageId: "image_storage_id",
+      thumbhash: "abc=",
+    });
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE_WITH_VIDEO,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.mp4", { type: "video/mp4" }),
+      );
+    });
+    expect(result.current.coverVideoUrl).toBe("blob:video-url");
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+    expect(result.current.coverVideoUrl).toBeNull();
+    expect(result.current.coverVideoPosterUrl).toBeNull();
+    expect(result.current.coverImageUrl).toBe("blob:image-url");
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    const args = mockUpdate.mock.calls[0]![0] as {
+      coverImageStorageId?: unknown;
+      coverVideoStorageId?: unknown;
+      coverVideoPosterStorageId?: unknown;
+    };
+    expect(args.coverImageStorageId).toBe("image_storage_id");
+    expect(args.coverVideoStorageId).toBeUndefined();
+    expect(args.coverVideoPosterStorageId).toBeUndefined();
+  });
+});
+
 describe("useEditArticleForm — cancel", () => {
   beforeEach(() => {
     mockUpdate.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
     mockReplace.mockReset();
     mockRefresh.mockReset();
     mockShowToast.mockReset();
@@ -286,6 +482,7 @@ describe("useEditArticleForm — publish status sync", () => {
   beforeEach(() => {
     mockUpdate.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
     mockReplace.mockReset();
     mockRefresh.mockReset();
     mockShowToast.mockReset();
@@ -327,6 +524,7 @@ describe("useEditArticleForm — togglePublish validation", () => {
   beforeEach(() => {
     mockUpdate.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
     mockReplace.mockReset();
     mockRefresh.mockReset();
     mockShowToast.mockReset();

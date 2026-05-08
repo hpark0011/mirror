@@ -3,7 +3,7 @@ id: FG_193
 title: "Remove dead posterBlobUrlRef from edit/new article form hooks (or document why it's null)"
 date: 2026-05-08
 type: refactor
-status: to-do
+status: completed
 priority: p3
 description: "posterBlobUrlRef is declared, cleaned up on unmount, and only ever assigned null. No code path creates a poster blob URL — the cleanup branch is permanently a no-op. use-new-article-form documents the intent in a comment; use-edit-article-form does not, leaving future readers to hunt for the missing assignment."
 dependencies: []

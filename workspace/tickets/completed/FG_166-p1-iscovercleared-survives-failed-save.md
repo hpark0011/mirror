@@ -3,7 +3,7 @@ id: FG_166
 title: "isCoverCleared flag persists across failed saves and silently wipes server cover"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "After a failed update mutation in the article editor, the local isCoverCleared flag stays true, so the next save (even an unrelated title-only edit) re-sends clearCoverImage:true and erases the cover the server preserved through the prior failure."
 dependencies: []

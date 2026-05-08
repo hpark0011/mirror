@@ -3,7 +3,7 @@ id: FG_176
 title: "useNewArticleForm video orphan cleanup branch needs dedicated test"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The useMutation mock in the existing test file routes both deleteOrphanCoverImage and deleteOrphanCoverVideo to the same spy via substring match. The video-upload-then-create-failure path has zero coverage — the entire video-orphan branch in use-new-article-form.tsx is unpinned."
 dependencies: []

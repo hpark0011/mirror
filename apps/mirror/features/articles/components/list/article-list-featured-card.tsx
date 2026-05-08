@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, useCallback } from "react";
+import { type MouseEvent, useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@feel-good/utils/cn";
@@ -17,6 +17,49 @@ export type FeaturedArticleCardProps = {
   username: string;
   variant: FeaturedVariant;
 };
+
+function useVisibilityGatedVideoPlayback() {
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
+    null,
+  );
+  const [visibleVideoElement, setVisibleVideoElement] =
+    useState<Element | null>(null);
+  const videoRef = useCallback((element: HTMLVideoElement | null) => {
+    setVideoElement(element);
+  }, []);
+
+  useEffect(() => {
+    if (!videoElement || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setVisibleVideoElement(entry?.isIntersecting ? entry.target : null);
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(videoElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [videoElement]);
+
+  useEffect(() => {
+    if (!videoElement) return;
+
+    if (visibleVideoElement !== videoElement) {
+      videoElement.pause();
+      return;
+    }
+
+    void videoElement.play().catch(() => {
+      // Browser autoplay policies can still reject muted playback.
+    });
+  }, [visibleVideoElement, videoElement]);
+
+  return videoRef;
+}
 
 export function FeaturedArticleCard({
   article,
@@ -53,6 +96,7 @@ export function FeaturedArticleCard({
   const hasCoverVideo = !!article.coverVideoUrl;
   const hasCoverImage = !!article.coverImageUrl;
   const showCover = hasCoverVideo || hasCoverImage;
+  const coverVideoRef = useVisibilityGatedVideoPlayback();
 
   const titleBlock = (
     <div
@@ -86,10 +130,10 @@ export function FeaturedArticleCard({
         )}
       >
         <video
+          ref={coverVideoRef}
           src={article.coverVideoUrl!}
           poster={article.coverVideoPosterUrl ?? undefined}
           preload="metadata"
-          autoPlay
           loop
           muted
           playsInline

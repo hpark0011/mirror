@@ -3,7 +3,7 @@ id: FG_170
 title: "extractPosterBlob hangs picker indefinitely on stalled MP4 decode"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The two awaited promises in extractPosterBlob (loadedmetadata and seeked) have no timeout. A container that fires loadedmetadata but stalls on seek hangs the picker forever — every interactive control is disabled and the user must reload the page."
 dependencies: []

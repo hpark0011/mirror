@@ -3,7 +3,7 @@ id: FG_194
 title: "deleteOrphanCoverVideo and deleteOrphanCoverImage should consult STORAGE_FIELD_REFERENCES"
 date: 2026-05-08
 type: refactor
-status: to-do
+status: completed
 priority: p3
 description: "Both orphan-cleanup mutations hardcode articles-only scans instead of using collectReferencedFromCandidates from storageRegistry.ts. No live bug today, but a future schema change adding video references to posts/users would silently delete blobs the new table references."
 dependencies: ["FG_171"]

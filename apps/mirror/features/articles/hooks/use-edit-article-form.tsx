@@ -83,7 +83,7 @@ export function useEditArticleForm({
   // True when the user clicked Remove on the existing cover. Distinct
   // from "no change" (no local storageId set on mount) — without this
   // flag the patch payload omits the cover fields and the server cover
-  // never clears. Reset on a successful save and on a fresh upload.
+  // never clears. Reset after each attempted save and on a fresh upload.
   const [isCoverCleared, setIsCoverCleared] = useState(false);
   const [publishedAt, setPublishedAt] = useState<number | null>(
     initial.publishedAt ?? null,
@@ -91,19 +91,15 @@ export function useEditArticleForm({
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // FG_132: track the active blob URLs so we can revoke them before
+  // FG_132: track the active image/video blob URL so we can revoke it before
   // reassignment and on unmount. Server URLs (not blob:) are not revoked.
   const blobUrlRef = useRef<string | null>(null);
-  const posterBlobUrlRef = useRef<string | null>(null);
 
-  // FG_132: revoke the active blob URLs on unmount to prevent leaks.
+  // FG_132: revoke the active blob URL on unmount to prevent leaks.
   useEffect(() => {
     return () => {
       if (blobUrlRef.current?.startsWith("blob:")) {
         URL.revokeObjectURL(blobUrlRef.current);
-      }
-      if (posterBlobUrlRef.current?.startsWith("blob:")) {
-        URL.revokeObjectURL(posterBlobUrlRef.current);
       }
     };
   }, []);
@@ -129,7 +125,6 @@ export function useEditArticleForm({
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
-        posterBlobUrlRef.current = null;
         setCoverVideoStorageId(videoStorageId);
         setCoverVideoPosterStorageId(posterStorageId);
         // A fresh upload supersedes any prior clear in the same session.
@@ -176,7 +171,6 @@ export function useEditArticleForm({
       return null;
     });
     blobUrlRef.current = null;
-    posterBlobUrlRef.current = null;
     setCoverImageStorageId(null);
     setCoverImageThumbhash("");
     setCoverVideoStorageId(null);
@@ -186,31 +180,39 @@ export function useEditArticleForm({
 
   const persistValidated = useCallback(
     async (data: ArticleMetadataFormData, targetStatus: ArticleStatus) => {
-      await update({
-        id: initial._id,
-        title: data.title.trim(),
-        slug: data.slug?.trim() ? data.slug : undefined,
-        category: data.category.trim(),
-        body,
-        status: targetStatus,
-        // Send each cover storage id only when the user uploaded a new
-        // cover in THIS session. Omit (undefined) means "no change".
-        // An explicit Remove travels through `clearCoverImage: true`
-        // instead and clears every cover surface server-side
-        // (PLAN_010). Mutual-exclusion in local state guarantees
-        // image and video ids are never both non-null at the same
-        // time.
-        coverImageStorageId:
-          coverImageStorageId !== null ? coverImageStorageId : undefined,
-        coverVideoStorageId:
-          coverVideoStorageId !== null ? coverVideoStorageId : undefined,
-        coverVideoPosterStorageId:
-          coverVideoPosterStorageId !== null
-            ? coverVideoPosterStorageId
-            : undefined,
-        clearCoverImage: isCoverCleared ? true : undefined,
-        ...(coverImageThumbhash && { coverImageThumbhash }),
-      });
+      const wasCoverCleared = isCoverCleared;
+      try {
+        await update({
+          id: initial._id,
+          title: data.title.trim(),
+          slug: data.slug?.trim() ? data.slug : undefined,
+          category: data.category.trim(),
+          body,
+          status: targetStatus,
+          // Send each cover storage id only when the user uploaded a new
+          // cover in THIS session. Omit (undefined) means "no change".
+          // An explicit Remove travels through `clearCoverImage: true`
+          // instead and clears every cover surface server-side
+          // (PLAN_010). Mutual-exclusion in local state guarantees
+          // image and video ids are never both non-null at the same
+          // time.
+          coverImageStorageId:
+            coverImageStorageId !== null ? coverImageStorageId : undefined,
+          coverVideoStorageId:
+            coverVideoStorageId !== null ? coverVideoStorageId : undefined,
+          coverVideoPosterStorageId:
+            coverVideoPosterStorageId !== null
+              ? coverVideoPosterStorageId
+              : undefined,
+          clearCoverImage: wasCoverCleared ? true : undefined,
+          ...(coverImageThumbhash && { coverImageThumbhash }),
+        });
+      } catch (err) {
+        if (wasCoverCleared) {
+          setIsCoverCleared(false);
+        }
+        throw err;
+      }
       // Optimistically reflect the server-side publish/unpublish timestamp
       // change so the UI doesn't wait for the next reactive query tick.
       // The optimistic re-set runs on every publish transition (not just the
@@ -224,7 +226,7 @@ export function useEditArticleForm({
       // After a successful save, the next reactive `getBySlug` tick
       // reflects the cleared cover; reset the flag so subsequent saves
       // don't re-clear an already-empty field.
-      if (isCoverCleared) {
+      if (wasCoverCleared) {
         setIsCoverCleared(false);
       }
       // FG_153: navigate to the read view after save. The post editor

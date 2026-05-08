@@ -3,7 +3,7 @@ id: FG_191
 title: "articles.update Branch 5 (video round-trip no-op) needs a regression test"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "There is a Branch 4 test for the image round-trip case but no analogous test for video — caller sends back the same coverVideoStorageId + coverVideoPosterStorageId and the row should be unchanged. If the != predicate were inverted, the round-trip would delete the live video blobs."
 dependencies: []

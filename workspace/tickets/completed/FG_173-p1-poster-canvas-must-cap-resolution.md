@@ -3,7 +3,7 @@ id: FG_173
 title: "Poster extraction canvas must cap resolution to prevent mobile OOM and over-cap JPEG"
 date: 2026-05-08
 type: perf
-status: to-do
+status: completed
 priority: p1
 description: "extractPosterBlob allocates the canvas at full video resolution. A 4K MP4 (legal under the 25 MiB cap) creates a ~33 MB bitmap risking mobile OOM, and the resulting JPEG at quality 0.85 will exceed the 5 MiB poster cap, causing claimCoverVideoPosterOwnership to reject after the upload completes — silent for the user."
 dependencies: []

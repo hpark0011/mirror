@@ -36,6 +36,10 @@ export type UseArticleCoverVideoUploadReturn = {
 
 const POSTER_FRAME_SECONDS = 0.1;
 const POSTER_JPEG_QUALITY = 0.85;
+const POSTER_TIMEOUT_MS = 10_000;
+// 1920px keeps 16:9 posters near 1080p, comfortably below the 5 MiB
+// inline-image cap while avoiding full-4K canvas allocation on mobile.
+const POSTER_MAX_DIMENSION = 1920;
 
 class CoverVideoValidationError extends Error {
   constructor(message: string) {
@@ -59,6 +63,65 @@ function validateFile(file: File): void {
   }
 }
 
+function waitForPosterVideoEvent(
+  video: HTMLVideoElement,
+  eventName: "loadedmetadata" | "seeked",
+  errorMessage: string,
+): Promise<void> {
+  let cleanup = () => {};
+  const eventPromise = new Promise<void>((resolve, reject) => {
+    const onEvent = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error(errorMessage));
+    };
+    cleanup = () => {
+      video.removeEventListener(eventName, onEvent);
+      video.removeEventListener("error", onError);
+    };
+    video.addEventListener(eventName, onEvent);
+    video.addEventListener("error", onError);
+  });
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      cleanup();
+      reject(
+        new Error(
+          `Video poster extraction timed out while waiting for ${eventName}`,
+        ),
+      );
+    }, POSTER_TIMEOUT_MS);
+  });
+
+  return Promise.race([eventPromise, timeoutPromise]).finally(() => {
+    if (timeoutId !== undefined) {
+      clearTimeout(timeoutId);
+    }
+    cleanup();
+  });
+}
+
+function getPosterCanvasSize(video: HTMLVideoElement): {
+  width: number;
+  height: number;
+} {
+  const sourceWidth = video.videoWidth || 1280;
+  const sourceHeight = video.videoHeight || 720;
+  const scale = Math.min(
+    1,
+    POSTER_MAX_DIMENSION / Math.max(sourceWidth, sourceHeight),
+  );
+
+  return {
+    width: Math.round(sourceWidth * scale),
+    height: Math.round(sourceHeight * scale),
+  };
+}
+
 // Render a single frame from `file` to a JPEG `Blob`. Used as the
 // `<video poster>` for the cover video so the first paint isn't a
 // black frame on slow networks.
@@ -77,20 +140,11 @@ async function extractPosterBlob(file: File): Promise<Blob> {
     video.crossOrigin = "anonymous";
     video.src = url;
 
-    await new Promise<void>((resolve, reject) => {
-      const onLoadedMetadata = () => {
-        video.removeEventListener("loadedmetadata", onLoadedMetadata);
-        video.removeEventListener("error", onError);
-        resolve();
-      };
-      const onError = () => {
-        video.removeEventListener("loadedmetadata", onLoadedMetadata);
-        video.removeEventListener("error", onError);
-        reject(new Error("Failed to load video metadata for poster extraction"));
-      };
-      video.addEventListener("loadedmetadata", onLoadedMetadata);
-      video.addEventListener("error", onError);
-    });
+    await waitForPosterVideoEvent(
+      video,
+      "loadedmetadata",
+      "Failed to load video metadata for poster extraction",
+    );
 
     // Clamp to the actual duration if the clip is shorter than the
     // default frame seek time.
@@ -99,25 +153,18 @@ async function extractPosterBlob(file: File): Promise<Blob> {
       Number.isFinite(video.duration) ? Math.max(video.duration - 0.05, 0) : POSTER_FRAME_SECONDS,
     );
 
-    await new Promise<void>((resolve, reject) => {
-      const onSeeked = () => {
-        video.removeEventListener("seeked", onSeeked);
-        video.removeEventListener("error", onError);
-        resolve();
-      };
-      const onError = () => {
-        video.removeEventListener("seeked", onSeeked);
-        video.removeEventListener("error", onError);
-        reject(new Error("Failed to seek video for poster extraction"));
-      };
-      video.addEventListener("seeked", onSeeked);
-      video.addEventListener("error", onError);
-      video.currentTime = seekTo;
-    });
+    const seeked = waitForPosterVideoEvent(
+      video,
+      "seeked",
+      "Failed to seek video for poster extraction",
+    );
+    video.currentTime = seekTo;
+    await seeked;
 
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 1280;
-    canvas.height = video.videoHeight || 720;
+    const posterSize = getPosterCanvasSize(video);
+    canvas.width = posterSize.width;
+    canvas.height = posterSize.height;
     const ctx = canvas.getContext("2d");
     if (!ctx) {
       throw new Error("Failed to create 2D canvas context for poster encoding");
@@ -176,10 +223,43 @@ export function useArticleCoverVideoUpload(): UseArticleCoverVideoUploadReturn {
         generatePosterUploadUrl(),
       ]);
 
-      const [videoStorageId, posterStorageId] = await Promise.all([
-        uploadToStorage(videoUrl, file),
-        uploadToStorage(posterUrl, posterFile),
-      ]);
+      const uploadController = new AbortController();
+      let videoStorageId: Id<"_storage"> | undefined;
+      let posterStorageId: Id<"_storage"> | undefined;
+      const videoUpload = uploadToStorage(videoUrl, file, {
+        signal: uploadController.signal,
+      }).then((storageId) => {
+        videoStorageId = storageId;
+        return storageId;
+      });
+      const posterUpload = uploadToStorage(posterUrl, posterFile, {
+        signal: uploadController.signal,
+      }).then((storageId) => {
+        posterStorageId = storageId;
+        return storageId;
+      });
+
+      try {
+        [videoStorageId, posterStorageId] = await Promise.all([
+          videoUpload,
+          posterUpload,
+        ]);
+      } catch (err) {
+        uploadController.abort();
+        await Promise.allSettled([videoUpload, posterUpload]);
+        if (videoStorageId !== undefined || posterStorageId !== undefined) {
+          deleteOrphanCoverVideo({
+            ...(videoStorageId !== undefined ? { videoStorageId } : {}),
+            ...(posterStorageId !== undefined ? { posterStorageId } : {}),
+          }).catch((cleanupErr) => {
+            console.error(
+              "[cover-video-upload] orphan cleanup failed after upload error",
+              cleanupErr,
+            );
+          });
+        }
+        throw err;
+      }
 
       // Claim ownership on both blobs. If either claim fails, fire the
       // orphan-cleanup mutation server-side so the leaked blob doesn't

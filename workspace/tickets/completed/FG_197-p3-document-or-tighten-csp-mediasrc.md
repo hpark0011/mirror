@@ -3,7 +3,7 @@ id: FG_197
 title: "Document or tighten CSP media-src wildcard for Convex hosts"
 date: 2026-05-08
 type: chore
-status: to-do
+status: completed
 priority: p3
 description: "media-src now allows any *.convex.cloud / *.convex.site deployment, not just our own. img-src and connect-src already have the same wildcard so this is consistent rather than novel attack surface, but it's wider than strictly necessary. Either scope to the deployment subdomain or document the consistency rationale."
 dependencies: []

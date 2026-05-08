@@ -3,7 +3,7 @@ id: FG_171
 title: "deleteOrphanCoverVideo and deleteOrphanCoverImage must use withIndex instead of filter"
 date: 2026-05-08
 type: refactor
-status: to-do
+status: canceled
 priority: p1
 description: "Both orphan-cleanup mutations use full-table .filter() scans on the articles table. This violates the Convex query guideline (use withIndex), and at the per-transaction read cap a malformed scan could cause a referenced blob to be incorrectly deleted via safeDeleteStorage's silent error swallow."
 dependencies: ["FG_167"]
@@ -92,3 +92,7 @@ const referencingVideo = await ctx.db
 
 - Rule: `.claude/rules/convex.md` § Query guidelines
 - Source: `packages/convex/convex/articles/mutations.ts:807-887`
+
+## Resolution
+
+Canceled as a standalone index-change ticket on 2026-05-08. FG_194 replaced the hardcoded orphan reference scans with the shared storage registry, so the `.filter()` violation is gone without adding one-off cover-field indexes.

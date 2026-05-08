@@ -3,7 +3,7 @@ id: FG_174
 title: "getByUsername must resolve all three cover URLs in one Promise.all instead of three sequential rounds"
 date: 2026-05-08
 type: perf
-status: to-do
+status: completed
 priority: p1
 description: "The query now does three separate await Promise.all rounds for cover-image, cover-video, and cover-poster URLs. They run sequentially instead of concurrently, tripling the minimum query latency before the response can return."
 dependencies: []

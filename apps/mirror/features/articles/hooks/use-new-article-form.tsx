@@ -86,20 +86,15 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // FG_132: track every active blob URL so we can revoke them before
-  // reassignment and on unmount. Two refs because the video and its
-  // poster can both have local previews.
+  // FG_132: track the active image/video blob URL so we can revoke it before
+  // reassignment and on unmount. Posters do not get a local blob preview.
   const blobUrlRef = useRef<string | null>(null);
-  const posterBlobUrlRef = useRef<string | null>(null);
 
-  // FG_132: revoke the active blob URLs on unmount to prevent leaks.
+  // FG_132: revoke the active blob URL on unmount to prevent leaks.
   useEffect(() => {
     return () => {
       if (blobUrlRef.current?.startsWith("blob:")) {
         URL.revokeObjectURL(blobUrlRef.current);
-      }
-      if (posterBlobUrlRef.current?.startsWith("blob:")) {
-        URL.revokeObjectURL(posterBlobUrlRef.current);
       }
     };
   }, []);
@@ -118,7 +113,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
       return null;
     });
     blobUrlRef.current = null;
-    posterBlobUrlRef.current = null;
     setCoverImageStorageId(null);
     setCoverImageThumbhash("");
     setCoverVideoStorageId(null);
@@ -149,7 +143,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
         // itself as the preview, and the server-resolved poster URL
         // arrives on the next reactive query tick after save.
         setCoverVideoPosterUrl(null);
-        posterBlobUrlRef.current = null;
         setCoverVideoStorageId(videoStorageId);
         setCoverVideoPosterStorageId(posterStorageId);
         return { kind: "video" };
