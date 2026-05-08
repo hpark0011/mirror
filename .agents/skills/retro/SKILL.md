@@ -81,10 +81,9 @@ python3 -c '<script_3>' /tmp/retro-summaries
 Read the individual JSON summaries into context. These are compact — typically 1-2KB each.
 
 Also read:
-- `references/rubric.md` — scoring criteria
+- `references/rubric.md` — scoring criteria (the operational source of truth for this skill)
 - `references/report-template.md` — output format
 - Current `MEMORY.md` — to avoid proposing duplicates
-- Current `dev-process.md` — the evaluation source of truth
 
 ---
 
