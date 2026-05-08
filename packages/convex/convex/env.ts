@@ -17,6 +17,10 @@ const envSchema = z.object({
     .url("OAUTH_PROXY_PRODUCTION_URL must be a valid URL")
     .optional(),
   OAUTH_PROXY_SECRET: z.string().min(1).optional(),
+  // Dev-only flag. When `"true"`, the user.onCreate trigger schedules
+  // seed:seedOwnerContent against newly-created users so a fresh worktree
+  // signs in to a pre-populated account. Never set on production.
+  DEV_AUTOSEED_OWNER: z.string().optional(),
 });
 
 function validateEnv() {

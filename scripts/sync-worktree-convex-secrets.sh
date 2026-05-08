@@ -82,17 +82,25 @@ fi
 MIRROR_PORT=$(node "$GIT_ROOT/scripts/with-worktree-port.mjs" mirror --print)
 WORKTREE_SITE_URL="http://localhost:$MIRROR_PORT"
 MAIN_ALLOWED_HOSTS=$(grep '^AUTH_ALLOWED_HOSTS=' "$TMPFILE" | head -n1 | cut -d= -f2- || true)
-WORKTREE_ALLOWED_HOSTS="localhost:*,127.0.0.1:*"
-if [[ -n "$MAIN_ALLOWED_HOSTS" ]]; then
-  WORKTREE_ALLOWED_HOSTS="$MAIN_ALLOWED_HOSTS,$WORKTREE_ALLOWED_HOSTS"
-fi
+# Merge main's value with the local-dev required entries, then dedupe.
+# Re-running the sync used to grow the list (`localhost:*,...,localhost:*,...`).
+WORKTREE_ALLOWED_HOSTS=$(printf '%s,localhost:*,127.0.0.1:*' "$MAIN_ALLOWED_HOSTS" \
+  | tr ',' '\n' \
+  | awk 'NF && !seen[$0]++' \
+  | paste -sd, -)
 
 echo ""
 echo "Setting worktree-specific auth origin:"
 echo "  SITE_URL=$WORKTREE_SITE_URL"
 echo "  AUTH_ALLOWED_HOSTS=$WORKTREE_ALLOWED_HOSTS"
+echo "  DEV_AUTOSEED_OWNER=true"
 (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set SITE_URL "$WORKTREE_SITE_URL" >/dev/null)
 (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set AUTH_ALLOWED_HOSTS "$WORKTREE_ALLOWED_HOSTS" >/dev/null)
+# Trigger auth/client.ts user.onCreate to seed Rick's content under the
+# owner's account on first sign-in. Never set on production (auto-seed
+# cloning on prod would silently inject Rick's articles into real users'
+# profiles).
+(cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set DEV_AUTOSEED_OWNER "true" >/dev/null)
 
 # Auto-allowlist the worktree owner so first Google sign-in doesn't trip
 # the BETA_CLOSED gate (`?error=unable_to_create_user`). The mutation

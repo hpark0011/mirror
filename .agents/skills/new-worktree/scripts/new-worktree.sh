@@ -52,38 +52,35 @@ pnpm install --frozen-lockfile --prefer-offline --reporter=append-only
 
 # --- 5. Seed the worktree's env files ---------------------------------------
 # Copy (not symlink) apps/mirror/.env.local so this worktree's secrets are
-# decoupled from main and from sibling worktrees. The Convex coords in this
-# file (CONVEX_DEPLOYMENT, NEXT_PUBLIC_CONVEX_URL, NEXT_PUBLIC_CONVEX_SITE_URL)
-# still point at main's dev Convex deployment until the user runs the
-# next-step commands printed below.
+# decoupled from main and from sibling worktrees.
 
 APP_ENV_DEST="$WORKTREE_PATH/$APP_ENV_REL"
 mkdir -p "$(dirname "$APP_ENV_DEST")"
 cp "$APP_ENV_SRC" "$APP_ENV_DEST"
 echo ""
-echo "Copied $APP_ENV_REL from main (independent file — edits here stay here)"
+echo "Copied $APP_ENV_REL from main"
 
-# packages/convex/.env.local is intentionally NOT created. The user runs
-# `pnpm --filter=@feel-good/convex dev` in this worktree to provision a
-# fresh dev Convex deployment for this branch. See .claude/rules/worktrees.md.
+# --- 6. Provision a per-worktree Convex dev deployment ----------------------
+# Non-interactive — `convex deployment create` adds a new dev deployment
+# under the existing `mirror` project, named `dev/<ns>/<branch>`. No new
+# Convex project gets created. Per
+# https://docs.convex.dev/production/multiple-deployments.
+
+echo ""
+echo "==> Provisioning Convex dev deployment + seeding"
+"$WORKTREE_PATH/scripts/provision-worktree-convex.sh"
+
+# --- 7. Sync env coords + secrets into the new deployment -------------------
+
+echo ""
+echo "==> Finalizing worktree (env sync + secrets sync + allowlist)"
+"$WORKTREE_PATH/scripts/finalize-worktree.sh"
 
 cat <<EOF
 
-Worktree created: $WORKTREE_PATH
+Worktree ready: $WORKTREE_PATH
 
-Next steps (one-time per worktree):
-  1. cd "$WORKTREE_PATH"
-  2. pnpm --filter=@feel-good/convex dev
-       Choose "create a new project" when prompted. Interactive — the
-       CLI writes packages/convex/.env.local with this worktree's
-       deployment coords. (Only step that can't be scripted.)
-  3. ./scripts/finalize-worktree.sh
-       One-shot wrapper: syncs Convex coords into apps/mirror/.env.local,
-       copies main's Convex env secrets into this deployment, sets
-       SITE_URL to the worktree's stable Mirror port, allowlists your
-       git email in betaAllowlist, and seeds the rick-rubin demo
-       workspace. Idempotent.
-
-Why a per-worktree deployment? See .claude/rules/worktrees.md.
+Start the dev servers:
+  cd "$WORKTREE_PATH" && pnpm dev:safe
 
 EOF

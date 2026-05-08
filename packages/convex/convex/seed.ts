@@ -59,6 +59,33 @@ export const seedRickRubinDemo = internalMutation({
   },
 });
 
+// Dev-only: clones Rick's article/post/conversation/bio fixtures under an
+// already-existing `users` row AND patches profile fields (username/name/
+// tagline/onboardingComplete) so `/onboarding` redirects straight to
+// `/@<username>`. Idempotent — per-field guards never overwrite values
+// the owner has already set.
+//
+// Called from two places:
+//   - `seedWorktreeOwnerDemo` (manual / by-email lookup)
+//   - `auth/client.ts user.onCreate` trigger (auto, on first sign-in,
+//      gated by env.DEV_AUTOSEED_OWNER on dev deployments)
+export const seedOwnerContent = internalMutation({
+  args: {
+    userId: v.id("users"),
+    email: v.string(),
+    name: v.optional(v.string()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ensureWorktreeOwnerProfile(ctx, args.userId, args.email, args.name);
+    await ensureWorktreeOwnerBio(ctx, args.userId);
+    await ensureRickRubinArticles(ctx, args.userId);
+    await ensureRickRubinPosts(ctx, args.userId);
+    await ensureRickRubinConversations(ctx, args.userId);
+    return null;
+  },
+});
+
 // Dev-only: clones Rick's article/post/conversation/bio fixtures under the
 // worktree owner's existing `users` row so `/@<your-username>` is
 // pre-populated for in-app browsing AND patches the user row with

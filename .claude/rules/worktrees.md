@@ -14,39 +14,46 @@ If branch A adds an optional field to a table and writes a row, branch B (whose 
 
 The previous symlink model (shared `packages/convex/.env.local` across worktrees) made this collision automatic. Per-worktree deployments make it impossible.
 
-### What's seeded vs what you provision
+### What's seeded vs what gets provisioned
 
 | File                         | How the worktree gets it                                                                                                                                                                         |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `apps/mirror/.env.local`     | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
-| `packages/convex/.env.local` | **provisioned per worktree** — Convex CLI writes it on first `pnpm --filter=@feel-good/convex dev` run                                                                                           |
+| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select`, which creates a new dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. |
 
 ### Workflow for a fresh worktree
 
 ```bash
 bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
+# new-worktree.sh runs end-to-end:
+#   1. git worktree add .worktrees/<branch-name>
+#   2. pnpm install
+#   3. cp apps/mirror/.env.local from main
+#   4. ./scripts/provision-worktree-convex.sh
+#        - convex deployment create dev/<ns>/<branch> --type dev --select
+#        - convex dev --once --run seed:seedRickRubinDemo (push code + seed)
+#   5. ./scripts/finalize-worktree.sh
+#        - sync-worktree-convex-env.sh: rewrite CONVEX_* in apps/mirror/.env.local
+#        - sync-worktree-convex-secrets.sh: copy BETTER_AUTH_SECRET, GOOGLE_*,
+#          OAUTH_PROXY_*, ANTHROPIC_API_KEY etc. from main; set SITE_URL +
+#          AUTH_ALLOWED_HOSTS for this worktree's port; allowlist
+#          `git config user.email` for first Google sign-in.
+# Idempotent end-to-end. Safe to re-run if any step fails partway.
+
 cd .worktrees/<branch-name>
-pnpm --filter=@feel-good/convex dev
-  # When prompted, choose "create a new project". The CLI writes
-  # packages/convex/.env.local for this branch. Interactive — this is
-  # the only step that can't be automated.
-./scripts/finalize-worktree.sh
-  # One-shot wrapper that runs, in order:
-  #   1. sync-worktree-convex-env.sh — rewrites the three CONVEX_* lines
-  #      in apps/mirror/.env.local so Next.js targets this deployment.
-  #   2. sync-worktree-convex-secrets.sh — copies BETTER_AUTH_SECRET,
-  #      GOOGLE_*, ANTHROPIC_API_KEY, etc. from main's deployment, then
-  #      sets SITE_URL to the worktree's stable Mirror port and inserts
-  #      `git config user.email` into `betaAllowlist` (so first Google
-  #      sign-in doesn't hit `?error=unable_to_create_user`).
-  #   3. seed:seedRickRubinDemo — populates the deployment with the
-  #      rick-rubin demo workspace (3 articles, 10 posts, 2 chat
-  #      conversations). Browse at the worktree's localhost URL once
-  #      `pnpm dev:safe` is up.
-  # Idempotent end-to-end. Safe to re-run if any step fails partway.
+pnpm dev:safe
 ```
 
 After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
+
+### Why `convex deployment create` and not `convex dev` interactive?
+
+Per [Convex multi-deployment docs](https://docs.convex.dev/production/multiple-deployments), the canonical pattern for parallel feature-branch development is creating a separate **dev deployment under the same project** for each branch, named `dev/<namespace>/<branch>`. This is what `provision-worktree-convex.sh` does. Trade-offs of the alternatives we rejected:
+
+- **Plain `convex dev` interactive prompt** (the previous flow): forces the user through 4 questions per worktree. Marginally automatable; never fully scriptable.
+- **`convex dev --configure new` with a fresh project per worktree**: non-interactive but creates a new Convex project for every branch — pollutes the dashboard forever, no documented cleanup path.
+- **Preview deployments (`--preview-create`)**: 5-day TTL on free / 14-day on paid, every schema change wipes data, no `convex dev` file-watch. Designed for CI previews, not local dev iteration.
+- **Local mode (`--dev-deployment local`)**: in beta; no public URL means inbound webhooks (Stripe, Twilio) require ngrok; vector search and `ctx.storage` parity are undocumented. Worth revisiting once GA.
 
 ### Optional: pre-populate your own profile
 
@@ -78,18 +85,20 @@ The Convex Stack article on [seeding preview deployments](https://stack.convex.d
 
 `convex export` / `convex import` is still the right tool when you specifically need to replicate a real user-by-user snapshot (e.g., reproducing a production bug locally). For everyday "make this worktree browseable for dev work," use the seed.
 
-### Migrating an existing symlinked worktree
+### Migrating an existing worktree to the per-project-deployment model
+
+Worktrees provisioned before this rule applied may either (a) symlink `apps/mirror/.env.local` to main's, or (b) point at a separate Convex *project* (created via the old interactive `convex dev` prompt) rather than a `dev/<ns>/<branch>` deployment under the shared `mirror` project. To migrate:
 
 ```bash
 cd .worktrees/<branch-name>
 rm apps/mirror/.env.local             # removes the symlink, NOT main's file
-rm packages/convex/.env.local         # ditto
+rm packages/convex/.env.local         # discards the old deployment pointer
 cp ../../apps/mirror/.env.local apps/mirror/.env.local
-pnpm --filter=@feel-good/convex dev   # choose "create a new project"
-./scripts/finalize-worktree.sh        # env-sync + secret-sync + demo seed
+./scripts/provision-worktree-convex.sh   # new dev deployment under mirror
+./scripts/finalize-worktree.sh           # env-sync + secret-sync
 ```
 
-Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both should show `-rw-` (regular file), not `lrwxr` (symlink). The `sync-worktree-*.sh` scripts (run by `finalize-worktree.sh`) refuse to write through a symlink.
+Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both should show `-rw-` (regular file), not `lrwxr` (symlink). The old per-worktree Convex *project* in the dashboard can be deleted manually; new deployments now live under the canonical `mirror` project.
 
 ## Vercel CLI footgun: `--yes` in an unlinked dir auto-pulls env
 
@@ -126,23 +135,47 @@ To re-pull from main's deployment, run `./scripts/sync-worktree-convex-secrets.s
 ### Google OAuth on worktree ports
 
 Mirror worktrees run on a stable per-worktree localhost port allocated by
-`scripts/with-worktree-port.mjs`. Google OAuth callback URLs are exact, so do
-not register every generated localhost port in Google.
+`scripts/with-worktree-port.mjs`. Google OAuth callback URLs are exact —
+**we never register per-worktree localhost ports in Google Cloud Console.**
+Instead, every dev/preview host bounces through production via the Better
+Auth OAuth Proxy plugin
+([docs](https://www.better-auth.com/docs/plugins/oauth-proxy)).
 
-Better Auth is configured to support dynamic local hosts via Convex env:
+The single registered redirect URI in Google Console is:
 
-- `SITE_URL` — this worktree's current app URL, e.g. `http://localhost:3350`
-- `AUTH_ALLOWED_HOSTS` — should include `localhost:*` and `127.0.0.1:*`
-- `OAUTH_PROXY_ENABLED` / `OAUTH_PROXY_PRODUCTION_URL` — optional, but needed
-  when Google only has the stable production callback registered
+```
+https://greymirror.ai/api/auth/callback/google
+```
 
-`./scripts/sync-worktree-convex-secrets.sh` sets the first two automatically
-after copying main's Convex env. If main has OAuth Proxy env vars configured,
-they are copied too. If Google login still redirects to `localhost:3001`, rerun
-the sync script from inside the worktree and verify:
+The bounce flow: dev (`localhost:3350`) initiates OAuth using prod's
+redirect URI → Google → `greymirror.ai` (the bounce hub) → encrypted
+payload back to dev's `currentURL` → dev decrypts and creates a session.
+
+Required Convex env (set on **every** deployment — prod, main dev, every
+worktree dev):
+
+| Var | Prod value | Worktree dev value |
+|-----|------------|---------------------|
+| `SITE_URL` | `https://greymirror.ai` | this worktree's URL, e.g. `http://localhost:3350` |
+| `AUTH_ALLOWED_HOSTS` | (omit) | `localhost:*,127.0.0.1:*` |
+| `OAUTH_PROXY_ENABLED` | `true` | `true` |
+| `OAUTH_PROXY_PRODUCTION_URL` | `https://greymirror.ai` | `https://greymirror.ai` |
+| `OAUTH_PROXY_SECRET` | shared 32-byte base64 | identical shared value |
+
+**Why `OAUTH_PROXY_SECRET` must match across deployments:** the proxy
+encrypts the user payload on prod and decrypts it on dev. If the secret
+diverges, dev rejects the bounced payload with a decryption error.
+Setting `OAUTH_PROXY_SECRET` explicitly decouples this from
+`BETTER_AUTH_SECRET`, which can rotate independently per deployment.
+
+`./scripts/sync-worktree-convex-secrets.sh` copies all five vars from
+main's deployment, then overrides `SITE_URL` with the worktree's port and
+appends `localhost:*,127.0.0.1:*` to `AUTH_ALLOWED_HOSTS`. If Google login
+still redirects to the wrong host or fails after the bounce, rerun the
+sync script and verify:
 
 ```bash
-pnpm --filter=@feel-good/convex exec convex env list
+pnpm --filter=@feel-good/convex exec convex env list | grep -E '(OAUTH_PROXY|SITE_URL|AUTH_ALLOWED_HOSTS)'
 ```
 
 ## Worktree path discipline (general)
