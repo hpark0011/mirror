@@ -18,6 +18,8 @@ function makeArticle(overrides: Partial<ArticleSummary>): ArticleSummary {
     title: "Default Title",
     coverImageUrl: null,
     coverImageThumbhash: null,
+    coverVideoUrl: null,
+    coverVideoPosterUrl: null,
     createdAt: 0,
     status: "published",
     category: "general",

@@ -31,6 +31,10 @@ vi.mock("../use-article-cover-image-upload", () => ({
   useArticleCoverImageUpload: () => ({ upload: mockUploadCover }),
 }));
 
+vi.mock("../use-article-cover-video-upload", () => ({
+  useArticleCoverVideoUpload: () => ({ upload: vi.fn() }),
+}));
+
 vi.mock("../use-article-inline-image-upload", () => ({
   useArticleInlineImageUpload: () => ({ upload: vi.fn() }),
 }));
@@ -41,6 +45,7 @@ vi.mock("@feel-good/convex/convex/_generated/api", () => ({
       mutations: {
         create: "articles.mutations.create",
         deleteOrphanCoverImage: "articles.mutations.deleteOrphanCoverImage",
+        deleteOrphanCoverVideo: "articles.mutations.deleteOrphanCoverVideo",
       },
     },
   },
@@ -218,7 +223,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     });
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -246,7 +251,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     });
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -355,7 +360,7 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
 
     // Simulate cover upload — this populates coverImageStorageId in state
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -414,7 +419,7 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
     });
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });

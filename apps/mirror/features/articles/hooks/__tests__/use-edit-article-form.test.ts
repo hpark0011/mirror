@@ -1,5 +1,5 @@
 // Pins the cover-clear-on-save flow:
-//   - handleCoverImageClear flips an internal `isCoverCleared` flag
+//   - handleCoverClear flips an internal `isCoverCleared` flag
 //   - on save, `update` is called with `clearCoverImage: true` (an explicit
 //     removal signal) — NOT `coverImageStorageId: undefined` masquerading as
 //     "no change"
@@ -23,6 +23,10 @@ vi.mock("convex/react", () => ({
 
 vi.mock("../use-article-cover-image-upload", () => ({
   useArticleCoverImageUpload: () => ({ upload: mockUploadCover }),
+}));
+
+vi.mock("../use-article-cover-video-upload", () => ({
+  useArticleCoverVideoUpload: () => ({ upload: vi.fn() }),
 }));
 
 vi.mock("../use-article-inline-image-upload", () => ({
@@ -100,7 +104,7 @@ describe("useEditArticleForm — cover clear", () => {
     );
 
     act(() => {
-      result.current.handleCoverImageClear();
+      result.current.handleCoverClear();
     });
 
     await act(async () => {
@@ -154,11 +158,11 @@ describe("useEditArticleForm — cover clear", () => {
     );
 
     act(() => {
-      result.current.handleCoverImageClear();
+      result.current.handleCoverClear();
     });
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -195,7 +199,7 @@ describe("useEditArticleForm — cover clear", () => {
     );
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -224,7 +228,7 @@ describe("useEditArticleForm — cover clear", () => {
     );
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });

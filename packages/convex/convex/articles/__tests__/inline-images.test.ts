@@ -1369,7 +1369,7 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
         status: "draft",
         coverImageStorageId: cover,
       }),
-    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+    ).rejects.toThrow(/cover blob storage id does not belong to caller/i);
   });
 
   it("create: user A cannot use user B's coverImageStorageId", async () => {
@@ -1400,7 +1400,7 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
         status: "draft",
         coverImageStorageId: coverA, // B attempts to use A's blob
       }),
-    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+    ).rejects.toThrow(/cover blob storage id does not belong to caller/i);
   });
 
   it("update: user A cannot update their article's cover to user B's storageId", async () => {
@@ -1442,7 +1442,7 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
         id: articleId,
         coverImageStorageId: coverB, // A tries to use B's blob
       }),
-    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+    ).rejects.toThrow(/cover blob storage id does not belong to caller/i);
 
     // Sanity: article still has no cover.
     const after = await t.run(async (ctx) => ctx.db.get(articleId));
@@ -1494,7 +1494,7 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
         status: "draft",
         coverImageStorageId: cover,
       }),
-    ).rejects.toThrow(/cover image storage id does not belong to caller/i);
+    ).rejects.toThrow(/cover blob storage id does not belong to caller/i);
   });
 });
 

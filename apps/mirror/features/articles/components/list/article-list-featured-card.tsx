@@ -48,13 +48,17 @@ export function FeaturedArticleCard({
 
   const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
   const imageFirst = variant === "image-first";
-  const showImage = !!article.coverImageUrl;
+  // PLAN_010 render precedence: video wins when set, otherwise the
+  // image cover (or none). Both flags drive the same layout slot.
+  const hasCoverVideo = !!article.coverVideoUrl;
+  const hasCoverImage = !!article.coverImageUrl;
+  const showCover = hasCoverVideo || hasCoverImage;
 
   const titleBlock = (
     <div
       className={cn(
         "flex flex-col justify-between @max-[480px]:mb-4",
-        imageFirst && showImage && "@max-[480px]:order-1",
+        imageFirst && showCover && "@max-[480px]:order-1",
       )}
     >
       <div className="md:text-3xl @max-[880px]:text-2xl @max-[480px]:text-2xl text-2xl leading-[1.0] @max-[880px]:leading-[1.05]">
@@ -73,7 +77,28 @@ export function FeaturedArticleCard({
     </div>
   );
 
-  const imageBlock = article.coverImageUrl
+  const coverBlock = hasCoverVideo
+    ? (
+      <div
+        className={cn(
+          "relative w-full aspect-video h-full bg-gray-5 max-w-[520px] overflow-hidden",
+          imageFirst && "@max-[480px]:order-2",
+        )}
+      >
+        <video
+          src={article.coverVideoUrl!}
+          poster={article.coverVideoPosterUrl ?? undefined}
+          preload="metadata"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          data-testid="article-list-cover-video"
+        />
+      </div>
+    )
+    : hasCoverImage
     ? (
       <div
         className={cn(
@@ -82,7 +107,7 @@ export function FeaturedArticleCard({
         )}
       >
         <Image
-          src={article.coverImageUrl}
+          src={article.coverImageUrl!}
           alt=""
           fill
           sizes="(max-width: 880px) 100vw, 560px"
@@ -106,14 +131,14 @@ export function FeaturedArticleCard({
         {imageFirst
           ? (
             <>
-              {imageBlock}
+              {coverBlock}
               {titleBlock}
             </>
           )
           : (
             <>
               {titleBlock}
-              {imageBlock}
+              {coverBlock}
             </>
           )}
       </div>

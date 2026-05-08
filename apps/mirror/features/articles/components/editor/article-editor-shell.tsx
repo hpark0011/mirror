@@ -26,14 +26,12 @@ export interface ArticleEditorShellProps {
   form: UseFormReturn<ArticleMetadataFormData>;
   status: ArticleStatus;
   coverImageUrl: string | null;
+  coverVideoUrl: string | null;
+  coverVideoPosterUrl: string | null;
   createdAt: number | null;
   publishedAt: number | null;
-  onCoverImageUpload: (file: File) => Promise<{
-    storageId: string;
-    thumbhash: string;
-    url: string;
-  }>;
-  onCoverImageClear: () => void;
+  onCoverUpload: (file: File) => Promise<{ kind: "image" | "video" }>;
+  onCoverClear: () => void;
 
   // Body
   body: JSONContent;
@@ -59,10 +57,12 @@ export function ArticleEditorShell({
   form,
   status,
   coverImageUrl,
+  coverVideoUrl,
+  coverVideoPosterUrl,
   createdAt,
   publishedAt,
-  onCoverImageUpload,
-  onCoverImageClear,
+  onCoverUpload,
+  onCoverClear,
   body,
   onBodyChange,
   onInlineImageUpload,
@@ -89,10 +89,12 @@ export function ArticleEditorShell({
           <ArticleMetadataHeader
             form={form}
             coverImageUrl={coverImageUrl}
+            coverVideoUrl={coverVideoUrl}
+            coverVideoPosterUrl={coverVideoPosterUrl}
             createdAt={createdAt}
             publishedAt={publishedAt}
-            onCoverImageUpload={onCoverImageUpload}
-            onCoverImageClear={onCoverImageClear}
+            onCoverUpload={onCoverUpload}
+            onCoverClear={onCoverClear}
           />
           <ArticleRichTextEditor
             content={body}

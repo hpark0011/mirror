@@ -32,6 +32,12 @@ const articleSummaryFields = {
   title: v.string(),
   coverImageUrl: v.union(v.string(), v.null()),
   coverImageThumbhash: v.union(v.string(), v.null()),
+  // PLAN_010: video cover sibling URLs. Both null when the article has
+  // no video cover. The list card and detail view branch on
+  // `coverVideoUrl` first (video wins), falling back to
+  // `coverImageUrl`.
+  coverVideoUrl: v.union(v.string(), v.null()),
+  coverVideoPosterUrl: v.union(v.string(), v.null()),
   createdAt: v.number(),
   publishedAt: v.optional(v.number()),
   status: contentStatusValidator,

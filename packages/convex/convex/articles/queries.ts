@@ -37,6 +37,18 @@ export const getByUsername = query({
     const coverImageUrls = await Promise.all(
       visible.map((a) => resolveArticleCoverImageUrl(ctx, a.coverImageStorageId)),
     );
+    // PLAN_010: resolve video + poster URLs alongside the image URL.
+    // Reuses `resolveArticleCoverImageUrl` (a thin wrapper over
+    // `ctx.storage.getUrl`) so the resolution rules — `null` for missing
+    // blobs, signed URL otherwise — stay identical across cover kinds.
+    const coverVideoUrls = await Promise.all(
+      visible.map((a) => resolveArticleCoverImageUrl(ctx, a.coverVideoStorageId)),
+    );
+    const coverVideoPosterUrls = await Promise.all(
+      visible.map((a) =>
+        resolveArticleCoverImageUrl(ctx, a.coverVideoPosterStorageId),
+      ),
+    );
 
     return visible.map((article, i) => ({
       _id: article._id,
@@ -46,6 +58,8 @@ export const getByUsername = query({
       title: article.title,
       coverImageUrl: coverImageUrls[i]!,
       coverImageThumbhash: article.coverImageThumbhash ?? null,
+      coverVideoUrl: coverVideoUrls[i]!,
+      coverVideoPosterUrl: coverVideoPosterUrls[i]!,
       createdAt: article.createdAt,
       publishedAt: article.publishedAt,
       status: article.status,
@@ -105,6 +119,15 @@ export const getBySlug = query({
       ctx,
       article.coverImageStorageId,
     );
+    // PLAN_010: video + poster URLs travel alongside the image URL.
+    const coverVideoUrl = await resolveArticleCoverImageUrl(
+      ctx,
+      article.coverVideoStorageId,
+    );
+    const coverVideoPosterUrl = await resolveArticleCoverImageUrl(
+      ctx,
+      article.coverVideoPosterStorageId,
+    );
 
     // Rewrite inline image `src` from `storageId` so the body always renders
     // with a fresh signed URL (FR-05). `mapInlineImages` is sync, so we
@@ -143,6 +166,8 @@ export const getBySlug = query({
       title: article.title,
       coverImageUrl,
       coverImageThumbhash: article.coverImageThumbhash ?? null,
+      coverVideoUrl,
+      coverVideoPosterUrl,
       createdAt: article.createdAt,
       publishedAt: article.publishedAt,
       status: article.status,

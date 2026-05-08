@@ -34,6 +34,20 @@ export const ALLOWED_INLINE_IMAGE_TYPES: ReadonlySet<string> = new Set([
   "image/webp",
 ]);
 
+// video-cover policy — separate cap from image. PLAN_010 (article cover
+// video). Articles can opt in to a short looping MP4 cover; the picker
+// validates against these constants client-side and the
+// `claimCoverVideoOwnership` mutation re-validates against `_storage`
+// metadata server-side. WebM, HEVC, MOV are intentionally out of scope.
+export const ALLOWED_COVER_VIDEO_TYPES: ReadonlySet<string> = new Set([
+  "video/mp4",
+]);
+
+// 25 MiB ≈ ~10–15s of 720p H.264 at a sane bitrate, which fits the
+// looping-clip use case. 5 MiB (the inline-image cap) is too small for
+// usable video; 50 MiB is large enough to invite abuse.
+export const MAX_COVER_VIDEO_BYTES = 25 * 1024 * 1024;
+
 /**
  * Maximum number of redirect hops `safeFetchImage` will follow when
  * importing markdown image references. Each hop is re-resolved via DNS and
