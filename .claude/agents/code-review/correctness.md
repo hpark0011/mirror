@@ -54,7 +54,7 @@ Return a JSON array of findings. Every finding MUST fill:
 
 **Routing defaults for this reviewer:** real correctness bugs are almost always `manual` / `downstream-resolver` — the right fix usually requires a human judgment call about the broken invariant. Pick `safe_auto` only for trivially mechanical fixes (a missing `await`, an obviously dead branch). Set `requires_verification: true` when the fix has no regression test in the diff.
 
-**Hard rule:** if you cannot write a concrete `risk` (a real failure mode or broken invariant, not a preference), drop the finding yourself. Do not emit vibe findings — the orchestrator's Critic phase will reject them anyway.
+**Hard rule:** if you cannot write a concrete `risk` (a real failure mode or broken invariant, not a preference), drop the finding yourself. Findings missing `risk` are dropped at validation (Phase 5 step 1), so vibe findings just waste tokens.
 
 If the diff is clean from a correctness standpoint, return `[]` with a one-line summary saying so. Do not invent findings.
 

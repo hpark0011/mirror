@@ -1,6 +1,6 @@
 # Scoring Rubric
 
-7 dimensions derived from `dev-process.md`. Each session is scored 1-5 per dimension.
+7 dimensions covering session discipline, problem-solving flow, fix quality, and execution efficiency. Each session is scored 1-5 per dimension.
 
 ## Weights
 
@@ -15,8 +15,6 @@
 ---
 
 ## Dimension 1: Session Discipline (x3)
-
-_Source: dev-process.md > Session Discipline_
 
 Does the session have a single focused outcome? Does it avoid scope creep?
 
@@ -38,8 +36,6 @@ Does the session have a single focused outcome? Does it avoid scope creep?
 
 ## Dimension 2: Problem-Solving Flow (x3)
 
-_Source: dev-process.md > Problem-Solving Flow_
-
 Does the session follow: describe → investigate → hypothesize → align → implement → verify?
 
 | Score | Criteria |
@@ -58,8 +54,6 @@ Does the session follow: describe → investigate → hypothesize → align → 
 ---
 
 ## Dimension 3: Clean Fix Quality (x2)
-
-_Source: dev-process.md > Solution Quality_
 
 Are solutions root-cause fixes, not bandaids?
 
@@ -80,8 +74,6 @@ Are solutions root-cause fixes, not bandaids?
 
 ## Dimension 4: Debugging Efficiency (x2)
 
-_Source: dev-process.md > Debugging UI/Visual Bugs, Solution Quality_
-
 Is progress steady, or are there spirals and repeated failed attempts?
 
 | Score | Criteria |
@@ -100,8 +92,6 @@ Is progress steady, or are there spirals and repeated failed attempts?
 ---
 
 ## Dimension 5: Communication Quality (x2)
-
-_Source: dev-process.md > Problem-Solving Flow, Session Discipline_
 
 Are hypotheses stated? Is the developer consulted before changes?
 
@@ -122,8 +112,6 @@ Are hypotheses stated? Is the developer consulted before changes?
 
 ## Dimension 6: Context Management (x1)
 
-_Source: dev-process.md > Session Discipline (don't let sessions balloon)_
-
 Is the session kept to a manageable size? Are sub-agents used appropriately?
 
 | Score | Criteria |
@@ -142,8 +130,6 @@ Is the session kept to a manageable size? Are sub-agents used appropriately?
 ---
 
 ## Dimension 7: Tool Efficiency (x1)
-
-_Source: general best practice_
 
 Is the right tool used for the right job? Is parallelism leveraged?
 

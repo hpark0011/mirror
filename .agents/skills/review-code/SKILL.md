@@ -6,9 +6,9 @@ description: Reviews pending code changes in this monorepo against AGENTS.md and
 
 # Reviewing Code
 
-Senior-engineer code review tuned to this repo's conventions. A pipeline of judgment: understand intent, route to narrow reviewers, collect findings, critique them, compose only what matters.
+Senior-engineer code review tuned to this repo's conventions. A pipeline of judgment: understand intent, route to narrow reviewers, collect findings, compose only what matters.
 
-**Core rule:** every finding must name a concrete failure mode or broken invariant. Style preferences without a risk story get dropped by the Critic.
+**Core rule:** every finding must name a concrete failure mode or broken invariant. Style preferences without a risk story are dropped at validation (Phase 5).
 
 ## Stop conditions
 
@@ -16,7 +16,7 @@ Pause and surface instead of pressing on when:
 
 - Working tree is clean and no arg given — ask what to review.
 - The PR description contradicts the diff — surface the contradiction in the report; do not produce line-level findings on a misread goal.
-- A reviewer sub-agent times out or errors — note it in the "Filtered by critic" footer and proceed; don't block on a single specialist.
+- A reviewer sub-agent times out or errors — note it in the Coverage footer and proceed; don't block on a single specialist.
 
 ## Workflow
 
@@ -26,10 +26,9 @@ Pause and surface instead of pressing on when:
 - [ ] 3. Route     — pick reviewers based on the risk map (correctness/convention/tests/maintainability/agent-native always)
 - [ ] 4. Review    — spawn selected reviewers AND run build+lint in parallel
 - [ ] 5. Normalize — validate, confidence-gate (0.60 / P0@0.50), fingerprint dedup, agreement boost, disagreement preservation, pre-existing partition
-- [ ] 6. Critique  — reject speculative/stylistic/misread findings; log reasons
-- [ ] 7. Compose   — group by priority tier; render tables with Route column; pre-existing in its own section; format-verification self-check
-- [ ] 8. Tickets   — file blockers/should-fix via generate-issue-tickets
-- [ ] 9. Offer fixes — only `safe_auto → review-fixer` items qualify for in-skill auto-apply
+- [ ] 6. Compose   — group by priority tier; render tables with Route column; pre-existing in its own section; format-verification self-check
+- [ ] 7. Tickets   — file blockers/should-fix via generate-issue-tickets
+- [ ] 8. Offer fixes — only `safe_auto → review-fixer` items qualify for in-skill auto-apply; do not exit until build + lint are green on the patched diff
 ```
 
 ### Phase 1 — Ingest
@@ -106,7 +105,7 @@ Typical subset on a real PR: 5–8 agents total, cap at 9. Every agent spawn is 
 
 ## Finding schema
 
-Cross-cutting contract used by every reviewer in Phase 4 and by Normalize, Critique, and Compose downstream. Every candidate finding fills:
+Cross-cutting contract used by every reviewer in Phase 4 and by Normalize and Compose downstream. Every candidate finding fills:
 
 ```
 id:                    short slug
@@ -133,9 +132,11 @@ Routing rules enforced in Phase 5:
 - `requires_verification: true` means a fix is not complete without a targeted test, a focused re-review, or operational validation.
 - `pre_existing: true` findings inform but do not block; they go in their own report section and do not count toward the verdict.
 
-A finding with no `risk` is dropped by the Critic. Nits can skip `suggestedFix` but still need `risk`.
+A finding with no `risk` is dropped at validation (Phase 5). Nits can skip `suggestedFix` but still need `risk`.
 
 ### Phase 4 — Review (parallel)
+
+**Fleet-dispatch constraint.** If you have not dispatched the always-on reviewers (`code-review-correctness`, `code-review-convention`, `code-review-tests`, `code-review-maintainability`, `code-review-agent-native`) via the Agent tool by the end of this phase, **you have not run review-code**. Stop and dispatch. There is no small-diff bypass — a "quick inline review" is not this skill.
 
 Spawn selected reviewers in parallel **and** run the repo's build + lint commands in parallel (discover from `package.json` scripts, `Makefile`, `justfile`, or whatever the repo uses). Each reviewer holds full attention on one dimension and proposes findings — they do not publish.
 
@@ -157,7 +158,7 @@ Agent(subagent_type: "code-review-tests",       prompt: <same>)
 Agent(subagent_type: "code-review-concurrency", prompt: <same>)   // only if routed
 ```
 
-Collect all agent results and the build/lint result before Phase 5. The build/lint outcome feeds the `Verified:` line in Phase 7's report header.
+Collect all agent results and the build/lint result before Phase 5. The build/lint outcome feeds the `Verified:` line in Phase 6's report header.
 
 Reviewer agent definitions live in `.claude/agents/code-review/` — each has its own failure-mode checklist. Update those files when a reviewer needs to evolve, not this SKILL.md.
 
@@ -174,22 +175,9 @@ Convert raw reviewer outputs into one deduplicated, confidence-gated finding set
 
 Output: two finding lists — `findings` (this-PR-introduced) and `pre_existing`, both sorted by priority → confidence → file → line.
 
-### Phase 6 — Critique (mandatory quality gate)
+### Phase 6 — Rank + compose
 
-The single biggest lever on review quality. For each normalized finding, answer:
-
-1. Is it grounded in the diff and the surrounding code I actually read? (Not speculation.)
-2. Does it name a real invariant or failure mode, not a preference?
-3. Is severity proportional to blast radius?
-4. Would a senior engineer on this repo actually say this?
-5. Does it contradict the PR's stated intent — i.e., did I misread the goal?
-6. Does the always-on dev-process rule apply — am I about to ship a bandaid or rubber-stamp?
-
-Reject findings that fail any check. **Log each rejection with a one-line reason** — this becomes the "Filtered by critic" footer and is how the user can challenge the filter.
-
-**Self-check:** if the Critic rejects zero findings on a non-trivial diff, the phase didn't actually run. Go back and re-apply it honestly.
-
-### Phase 7 — Rank + compose
+**Halt-on-missing-fleet.** If fewer than 3 always-on reviewer results are present in this run's dispatch ledger when this phase begins, abort with `error: reviewer fleet not run` and return to Phase 4. Do not compose a report from a partial fleet.
 
 Findings carry their priority directly (`P0`/`P1`/`P2`/`P3`). Within each tier, order by `confidence` desc → `file` → `line`. Tier definitions:
 
@@ -215,20 +203,22 @@ Compose the report (template below). Rules:
 
 **Format verification self-check** (mandatory before delivering): re-read the report and confirm findings rendered as pipe-delimited table rows (`| # | File | Issue | ... |`), not as freeform prose blocks separated by horizontal rules. If you catch yourself using prose, stop and reformat into tables.
 
-### Phase 8 — Tickets
+### Phase 7 — Tickets
 
 Invoke [`generate-issue-tickets`](../generate-issue-tickets/SKILL.md) for every blocker and should-fix finding. One ticket per finding. Preserve the `file:line` anchor and the `risk` sentence in the ticket body. Do this **before** offering fixes so tickets exist even if the user defers the work.
 
-### Phase 9 — Offer fixes
+### Phase 8 — Offer fixes
 
 Build the action sets from the merged finding list:
 
 - **Fixer queue** — findings with `autofix_class: safe_auto` and `owner: review-fixer`. These are mechanical, behavior-preserving, scoped enough to apply without owner judgment.
 - **Gated queue** — findings with `autofix_class: gated_auto`. Concrete fix exists but it changes behavior, contracts, or permissions; needs user approval before applying.
-- **Manual queue** — `autofix_class: manual` findings handed off via Phase 8 tickets. Don't try to auto-resolve.
+- **Manual queue** — `autofix_class: manual` findings handed off via Phase 7 tickets. Don't try to auto-resolve.
 - **Advisory** — `autofix_class: advisory` findings (e.g. `previous-comments` audit). Stay in the report; don't auto-act.
 
-End with: _"Want me to apply the safe fixes (N)? The gated fixes (M) need your approval per item."_ — wording adapted to whatever queues are non-empty. Do not fix preemptively. If the user agrees, apply only the safe queue (and any approved gated items), then re-run build + lint. If a finding has `requires_verification: true`, the round is incomplete until the targeted regression test runs and the report is updated.
+End with: _"Want me to apply the safe fixes (N)? The gated fixes (M) need your approval per item."_ — wording adapted to whatever queues are non-empty. Do not fix preemptively. If the user agrees, apply only the safe queue (and any approved gated items), then re-run build + lint.
+
+**Exit gate.** The skill does not exit until `pnpm build && pnpm lint` (or the repo's equivalent) are green on the patched diff. If a finding has `requires_verification: true`, the round is incomplete until the targeted regression test runs and the report is updated.
 
 ## Report format
 
@@ -245,9 +235,9 @@ End with: _"Want me to apply the safe fixes (N)? The gated fixes (M) need your a
 
 ### P0 — Critical (<count>)
 
-| #   | File                  | Issue                           | Reviewer(s)       | Route     | Confidence |
-| --- | --------------------- | ------------------------------- | ----------------- | --------- | ---------- |
-| 1   | `path/to/file.tsx:42` | <title — concrete failure mode> | <reviewer list>   | manual    | 0.XX       |
+| #   | File                  | Issue                           | Route     | Confidence |
+| --- | --------------------- | ------------------------------- | --------- | ---------- |
+| 1   | `path/to/file.tsx:42` | <title — concrete failure mode> | manual    | 0.XX       |
 
 ### P1 — High (<count>)
 
@@ -263,15 +253,11 @@ End with: _"Want me to apply the safe fixes (N)? The gated fixes (M) need your a
 
 ### Pre-existing (<count>)
 
-| #   | File                  | Issue                           | Reviewer(s)       | Priority | Confidence |
-| --- | --------------------- | ------------------------------- | ----------------- | -------- | ---------- |
-| 1   | `path/to/file.tsx:88` | <title>                         | <reviewer list>   | P2       | 0.XX       |
+| #   | File                  | Issue                           | Priority | Confidence |
+| --- | --------------------- | ------------------------------- | -------- | ---------- |
+| 1   | `path/to/file.tsx:88` | <title>                         | P2       | 0.XX       |
 
 These predate this diff. They do not count toward the verdict but are surfaced for awareness.
-
-### Filtered by critic (<count>)
-
-- <finding title> — <rejection reason>
 
 ### Summary
 
@@ -311,13 +297,9 @@ Want me to apply fixes for the P0/P1 items?
 
 ### P0 — Critical (1)
 
-| #   | File                                     | Issue                                                                                                                 | Reviewer(s)              | Route  | Confidence |
-| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------ | ------ | ---------- |
-| 1   | `packages/convex/chat/stream.ts:118-131` | Cleanup skipped on early return — `streamingInProgress` stays set after cancellation, blocking all subsequent streams | concurrency, correctness | manual | 0.95       |
-
-### Filtered by critic (1)
-
-- "Rename `expectedStartedAt` to `streamToken`" — style preference, no risk named.
+| #   | File                                     | Issue                                                                                                                 | Route  | Confidence |
+| --- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------ | ---------- |
+| 1   | `packages/convex/chat/stream.ts:118-131` | Cleanup skipped on early return — `streamingInProgress` stays set after cancellation, blocking all subsequent streams | manual | 0.95       |
 
 ### Summary
 
