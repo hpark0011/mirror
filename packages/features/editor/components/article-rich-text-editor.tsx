@@ -37,7 +37,7 @@ type ArticleRichTextEditorProps = {
    */
   renderToolbar?: (args: {
     editor: NonNullable<ReturnType<typeof useEditor>>;
-    pickInlineImage: () => Promise<{ src: string } | null>;
+    pickInlineImage: () => Promise<{ src: string; storageId: string } | null>;
   }) => ReactNode;
 };
 
@@ -75,7 +75,7 @@ export function ArticleRichTextEditor({
   // Slash-menu Image picker reuses the same upload pipeline that paste/drop
   // already use; we open a hidden file input on demand.
   const pickInlineImage = useMemo(
-    () => async (): Promise<{ src: string } | null> => {
+    () => async (): Promise<{ src: string; storageId: string } | null> => {
       const file = await new Promise<File | null>((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
@@ -88,7 +88,7 @@ export function ArticleRichTextEditor({
       if (!file) return null;
       try {
         const result = await onImageUploadRef.current(file);
-        return { src: result.url };
+        return { src: result.url, storageId: result.storageId };
       } catch (err) {
         onImageUploadErrorRef.current?.(err);
         return null;
