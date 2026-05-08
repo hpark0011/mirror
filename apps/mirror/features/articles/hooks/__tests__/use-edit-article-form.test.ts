@@ -278,6 +278,47 @@ describe("useEditArticleForm — cancel", () => {
   });
 });
 
+describe("useEditArticleForm — publish status sync", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUploadCover.mockReset();
+    mockReplace.mockReset();
+    mockRefresh.mockReset();
+    mockShowToast.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("keeps RHF status in sync after a successful publish toggle", async () => {
+    mockUpdate.mockResolvedValue(null);
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.togglePublish();
+    });
+
+    expect(mockUpdate.mock.calls[0]![0]).toMatchObject({
+      status: "published",
+    });
+    expect(result.current.status).toBe("published");
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate.mock.calls[1]![0]).toMatchObject({
+      status: "published",
+    });
+  });
+});
+
 describe("useEditArticleForm — togglePublish validation", () => {
   beforeEach(() => {
     mockUpdate.mockReset();

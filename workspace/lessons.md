@@ -2,6 +2,14 @@
 
 ## 2026-05-07
 
+### RHF migrations must preserve every former state write
+
+- When replacing local `useState` fields with React Hook Form, audit every old
+  setter call and preserve its semantic equivalent. A mutation path that used
+  to call `setStatus(nextStatus)` after a successful publish toggle must now
+  call `form.setValue("status", nextStatus)`; otherwise watched UI state and
+  later submit payloads can silently fall back to the stale pre-submit value.
+
 ### Claude-to-agents skill sync must preserve Convex symlink targets
 
 - `.claude/skills/convex*` entries are symlinks back to tracked real

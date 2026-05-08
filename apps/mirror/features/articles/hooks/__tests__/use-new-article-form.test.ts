@@ -173,6 +173,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     expect(mockCreate.mock.calls[0]![0]).toMatchObject({
       status: "published",
     });
+    expect(result.current.status).toBe("published");
   });
 
   it("on rejection, surfaces a toast and does NOT navigate; isSaving resets", async () => {

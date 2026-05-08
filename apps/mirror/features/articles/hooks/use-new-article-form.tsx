@@ -193,6 +193,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
           async (data) => {
             try {
               await persistValidated(data, nextStatus);
+              form.setValue("status", nextStatus, { shouldValidate: false });
               resolve();
             } catch (err) {
               reject(err);
