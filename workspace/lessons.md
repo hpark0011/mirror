@@ -1,5 +1,26 @@
 # Lessons Learned
 
+## 2026-05-08
+
+### Idempotent setup scripts must verify post-conditions, not trust subshell exit codes
+
+- `sync-worktree-convex-secrets.sh` ran a `convex run` mutation inside `(...)`
+  with `set -e` to auto-allowlist the worktree owner. The subshell silently
+  swallowed the failure, the script printed "Allowlisted: …" and exited 0, but
+  the row was never written — the user only learned about it minutes later
+  when Google OAuth redirected back with the opaque
+  `?error=unable_to_create_user`.
+- Two patches lock this down: (1) run the mutation outside any subshell with
+  an explicit `if !` failure check, and (2) immediately re-query
+  `betaAllowlist/queries:isEmailAllowed` and fail loudly if it returns
+  anything other than `true`. The second check also catches the "wrote to a
+  different deployment" mode (stale `CONVEX_DEPLOYMENT`, CLI auth drift) that
+  exit-code checks can never detect.
+- Pattern beyond this script: any setup step that mutates remote state and
+  reports success should re-read its own write before exiting. Exit codes
+  prove "the call returned" — they do not prove "the row landed where I think
+  it did."
+
 ## 2026-05-07
 
 ### RHF migrations must preserve every former state write

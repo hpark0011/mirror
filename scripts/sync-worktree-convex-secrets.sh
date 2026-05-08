@@ -111,8 +111,32 @@ echo "Allowlisting worktree owner for first Google sign-in:"
 echo "  email=$OWNER_EMAIL"
 ALLOWLIST_ARG=$(printf '{"email":%s,"note":"worktree owner (auto)"}' \
   "$(node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' "$OWNER_EMAIL")")
-(cd "$GIT_ROOT/packages/convex" \
-  && pnpm exec convex run betaAllowlist/mutations:addAllowlistEntry "$ALLOWLIST_ARG" >/dev/null)
+QUERY_ARG=$(printf '{"email":%s}' \
+  "$(node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' "$OWNER_EMAIL")")
+
+# Run the mutation OUTSIDE a subshell — bash `set -e` does not always propagate
+# from `(...)` reliably, which is the silent-failure mode that previously left
+# the owner un-allowlisted while the script still printed success.
+cd "$GIT_ROOT/packages/convex"
+if ! pnpm exec convex run betaAllowlist/mutations:addAllowlistEntry "$ALLOWLIST_ARG" >/dev/null; then
+  cd "$GIT_ROOT"
+  echo "Error: failed to add $OWNER_EMAIL to betaAllowlist." >&2
+  exit 1
+fi
+
+# Verify the row landed. Catches the case where the mutation appeared to
+# succeed but wrote to a different deployment (stale CONVEX_DEPLOYMENT
+# export, CLI auth drift, etc.). Without this check the user would only
+# discover the gap when Google OAuth redirects back with
+# `?error=unable_to_create_user`.
+ALLOWED=$(pnpm exec convex run betaAllowlist/queries:isEmailAllowed "$QUERY_ARG" 2>/dev/null | tail -n1)
+cd "$GIT_ROOT"
+if [[ "$ALLOWED" != "true" ]]; then
+  echo "Error: betaAllowlist verify failed for $OWNER_EMAIL (got: $ALLOWED)." >&2
+  echo "       The add mutation reported success but the row isn't readable." >&2
+  echo "       Check that packages/convex/.env.local points at this worktree's deployment." >&2
+  exit 1
+fi
 
 echo ""
 echo "Synced $COUNT env vars from main → this worktree's deployment."

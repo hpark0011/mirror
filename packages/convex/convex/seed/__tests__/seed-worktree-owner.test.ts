@@ -56,7 +56,13 @@ vi.mock("@ai-sdk/google", () => {
 
 import { internal } from "../../_generated/api";
 import schema from "../../schema";
-import { SEED_ARTICLES, SEED_POSTS, SEED_CONVERSATIONS } from "../data";
+import {
+  SEED_ARTICLES,
+  SEED_BIO,
+  SEED_CONVERSATIONS,
+  SEED_OWNER_PROFILE,
+  SEED_POSTS,
+} from "../data";
 
 // Vite's `import.meta.glob` normalizes keys to the shortest possible
 // relative path from the importing file, which gives mixed prefixes when
@@ -90,15 +96,17 @@ function makeT() {
 async function insertWorktreeOwner(
   t: ReturnType<typeof makeT>,
   email: string,
-  username = "worktree-owner",
+  // `null` represents the fresh-sign-in state (no username, onboarding
+  // pending). A string sets username + marks onboarding complete.
+  username: string | null = "worktree-owner",
 ): Promise<Id<"users">> {
   return t.run(async (ctx) =>
     ctx.db.insert("users", {
-      authId: `auth_${username}`,
+      authId: `auth_${username ?? "no-username"}`,
       email,
-      username,
-      name: "Worktree Owner",
-      onboardingComplete: true,
+      ...(username !== null ? { username } : {}),
+      ...(username !== null ? { name: "Worktree Owner" } : {}),
+      onboardingComplete: username !== null,
     }),
   );
 }
@@ -128,7 +136,7 @@ describe("seed.seedWorktreeOwnerDemo", () => {
     expect(result).toBe(ownerId);
   });
 
-  it("inserts article/post/conversation fixtures under the matching user", async () => {
+  it("inserts article/post/conversation/bio fixtures under the matching user", async () => {
     const t = makeT();
     const ownerId = await insertWorktreeOwner(
       t,
@@ -169,6 +177,61 @@ describe("seed.seedWorktreeOwnerDemo", () => {
     expect(conversations.every((c) => c.profileOwnerId === ownerId)).toBe(
       true,
     );
+
+    const bio = await t.run(async (ctx) =>
+      ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", ownerId))
+        .collect(),
+    );
+    expect(bio).toHaveLength(SEED_BIO.length);
+    expect(bio.every((b) => b.userId === ownerId)).toBe(true);
+  });
+
+  it("patches profile fields on a fresh sign-in (no username, onboardingComplete:false)", async () => {
+    const t = makeT();
+    // Simulate Better Auth's user.onCreate: row exists but onboarding has
+    // not run yet (no username, no name, no tagline, onboardingComplete:false).
+    const ownerId = await insertWorktreeOwner(
+      t,
+      "hpark0011@gmail.com",
+      null, // fresh sign-in: no username, onboarding pending
+    );
+
+    await t.mutation(internal.seed.seedWorktreeOwnerDemo, {
+      email: "hpark0011@gmail.com",
+      name: "Hyunsol Park",
+    });
+
+    const owner = await t.run(async (ctx) => ctx.db.get(ownerId));
+    expect(owner?.username).toBe("hpark0011");
+    expect(owner?.name).toBe("Hyunsol Park");
+    expect(owner?.tagline).toBe(SEED_OWNER_PROFILE.tagline);
+    expect(owner?.onboardingComplete).toBe(true);
+  });
+
+  it("does not overwrite profile fields the owner has already set", async () => {
+    const t = makeT();
+    const ownerId = await insertWorktreeOwner(
+      t,
+      "worktree-owner@example.com",
+      "custom-handle",
+    );
+    // Pre-populate tagline so we can prove the seed leaves it alone.
+    await t.run(async (ctx) =>
+      ctx.db.patch(ownerId, { tagline: "my real tagline" }),
+    );
+
+    await t.mutation(internal.seed.seedWorktreeOwnerDemo, {
+      email: "worktree-owner@example.com",
+      name: "Should Not Overwrite",
+    });
+
+    const owner = await t.run(async (ctx) => ctx.db.get(ownerId));
+    expect(owner?.username).toBe("custom-handle");
+    expect(owner?.name).toBe("Worktree Owner");
+    expect(owner?.tagline).toBe("my real tagline");
+    expect(owner?.onboardingComplete).toBe(true);
   });
 
   it("matches the email case-insensitively", async () => {
@@ -215,10 +278,15 @@ describe("seed.seedWorktreeOwnerDemo", () => {
           q.eq("profileOwnerId", ownerId),
         )
         .collect();
+      const bio = await ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", ownerId))
+        .collect();
       return {
         articles: articles.length,
         posts: posts.length,
         conversations: conversations.length,
+        bio: bio.length,
       };
     });
 
@@ -242,10 +310,15 @@ describe("seed.seedWorktreeOwnerDemo", () => {
           q.eq("profileOwnerId", ownerId),
         )
         .collect();
+      const bio = await ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", ownerId))
+        .collect();
       return {
         articles: articles.length,
         posts: posts.length,
         conversations: conversations.length,
+        bio: bio.length,
       };
     });
 

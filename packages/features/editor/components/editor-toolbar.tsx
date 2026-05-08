@@ -23,7 +23,7 @@ import { ToolbarSeparator } from "./toolbar/toolbar-separator";
 interface EditorToolbarProps {
   editor: Editor;
   /** Optional handler to insert an inline image via the app's upload flow. */
-  onInsertImage?: () => Promise<{ src: string } | null>;
+  onInsertImage?: () => Promise<{ src: string; storageId: string } | null>;
   /** Optional callback to surface upload errors as a toast. */
   onError?: (message: string) => void;
 }
@@ -39,7 +39,20 @@ export function EditorToolbar({
       const result = await onInsertImage();
       if (!result) return;
       if (editor.isDestroyed) return;
-      editor.chain().focus().setImage({ src: result.src }).run();
+      // `insertContent` rather than `setImage(...)`: the upstream
+      // `@tiptap/extension-image` `SetImageOptions` type omits `storageId`
+      // (we add it in `createInlineImageExtension`), but the body validator
+      // in `articles/mutations.ts` rejects image nodes that have a `src`
+      // and no `storageId`. Inserting the node directly with both attrs
+      // is what paste/drop does too — see `inline-image-upload-plugin.ts`.
+      editor
+        .chain()
+        .focus()
+        .insertContent({
+          type: "image",
+          attrs: { src: result.src, storageId: result.storageId },
+        })
+        .run();
     } catch (error) {
       onError?.(`Failed to insert image: ${error instanceof Error ? error.message : String(error)}`);
     }
