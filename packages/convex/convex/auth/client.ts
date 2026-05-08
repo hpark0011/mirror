@@ -79,11 +79,21 @@ export const authComponent: ReturnType<typeof createClient<DataModel>> =
               throw new Error("BETA_CLOSED: " + doc.email);
             }
           }
-          await ctx.db.insert("users", {
+          const userId = await ctx.db.insert("users", {
             authId: doc._id,
             email: doc.email,
             onboardingComplete: false,
           });
+
+          // Dev-only: pre-populate the new account with Rick's fixtures so
+          // a fresh worktree's first sign-in lands in a non-empty profile.
+          // Scheduled (not awaited) so a seed failure doesn't roll back the
+          // user creation, and so sign-in latency stays predictable.
+          if (env.DEV_AUTOSEED_OWNER === "true") {
+            await ctx.scheduler.runAfter(0, internal.seed.seedOwnerContent, {
+              userId,
+            });
+          }
         },
         onUpdate: async (ctx, newDoc, oldDoc) => {
           if (newDoc.email !== oldDoc.email) {

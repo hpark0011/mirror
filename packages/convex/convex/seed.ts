@@ -57,13 +57,31 @@ export const seedRickRubinDemo = internalMutation({
   },
 });
 
-// Dev-only: clones Rick's article/post/conversation fixtures under the
-// worktree owner's existing `users` row so `/@<your-username>` is
-// pre-populated for in-app browsing. Caller must have signed in with
-// Google first (the auth `user.onCreate` flow is what provisions the
-// `users` row this seed targets — the seed deliberately does NOT create
-// it). Slugs are unique-per-user (see `articles/schema.ts:by_userId_and_slug`),
-// so reusing Rick's slugs under another userId is safe. Idempotent.
+// Dev-only: clones Rick's article/post/conversation fixtures under an
+// already-existing `users` row. Idempotent. Slugs are unique-per-user
+// (see `articles/schema.ts:by_userId_and_slug`), so reusing Rick's slugs
+// under another userId is safe.
+//
+// Called from two places:
+//   - `seedWorktreeOwnerDemo` (manual / by-email lookup)
+//   - `auth/client.ts user.onCreate` trigger (auto, on first sign-in,
+//      gated by env.DEV_AUTOSEED_OWNER on dev deployments)
+export const seedOwnerContent = internalMutation({
+  args: { userId: v.id("users") },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    await ensureRickRubinArticles(ctx, args.userId);
+    await ensureRickRubinPosts(ctx, args.userId);
+    await ensureRickRubinConversations(ctx, args.userId);
+    return null;
+  },
+});
+
+// Dev-only: clones Rick's fixtures under the worktree owner's existing
+// `users` row so `/@<your-username>` is pre-populated for in-app browsing.
+// Caller must have signed in with Google first (the auth `user.onCreate`
+// flow is what provisions the `users` row this seed targets — the seed
+// deliberately does NOT create it).
 export const seedWorktreeOwnerDemo = internalMutation({
   args: { email: v.string() },
   returns: v.id("users"),

@@ -93,8 +93,14 @@ echo ""
 echo "Setting worktree-specific auth origin:"
 echo "  SITE_URL=$WORKTREE_SITE_URL"
 echo "  AUTH_ALLOWED_HOSTS=$WORKTREE_ALLOWED_HOSTS"
+echo "  DEV_AUTOSEED_OWNER=true"
 (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set SITE_URL "$WORKTREE_SITE_URL" >/dev/null)
 (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set AUTH_ALLOWED_HOSTS "$WORKTREE_ALLOWED_HOSTS" >/dev/null)
+# Trigger auth/client.ts user.onCreate to seed Rick's content under the
+# owner's account on first sign-in. Never set on production (auto-seed
+# cloning on prod would silently inject Rick's articles into real users'
+# profiles).
+(cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set DEV_AUTOSEED_OWNER "true" >/dev/null)
 
 # Auto-allowlist the worktree owner so first Google sign-in doesn't trip
 # the BETA_CLOSED gate (`?error=unable_to_create_user`). The mutation
