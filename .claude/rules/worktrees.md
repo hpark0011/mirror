@@ -126,23 +126,47 @@ To re-pull from main's deployment, run `./scripts/sync-worktree-convex-secrets.s
 ### Google OAuth on worktree ports
 
 Mirror worktrees run on a stable per-worktree localhost port allocated by
-`scripts/with-worktree-port.mjs`. Google OAuth callback URLs are exact, so do
-not register every generated localhost port in Google.
+`scripts/with-worktree-port.mjs`. Google OAuth callback URLs are exact —
+**we never register per-worktree localhost ports in Google Cloud Console.**
+Instead, every dev/preview host bounces through production via the Better
+Auth OAuth Proxy plugin
+([docs](https://www.better-auth.com/docs/plugins/oauth-proxy)).
 
-Better Auth is configured to support dynamic local hosts via Convex env:
+The single registered redirect URI in Google Console is:
 
-- `SITE_URL` — this worktree's current app URL, e.g. `http://localhost:3350`
-- `AUTH_ALLOWED_HOSTS` — should include `localhost:*` and `127.0.0.1:*`
-- `OAUTH_PROXY_ENABLED` / `OAUTH_PROXY_PRODUCTION_URL` — optional, but needed
-  when Google only has the stable production callback registered
+```
+https://greymirror.ai/api/auth/callback/google
+```
 
-`./scripts/sync-worktree-convex-secrets.sh` sets the first two automatically
-after copying main's Convex env. If main has OAuth Proxy env vars configured,
-they are copied too. If Google login still redirects to `localhost:3001`, rerun
-the sync script from inside the worktree and verify:
+The bounce flow: dev (`localhost:3350`) initiates OAuth using prod's
+redirect URI → Google → `greymirror.ai` (the bounce hub) → encrypted
+payload back to dev's `currentURL` → dev decrypts and creates a session.
+
+Required Convex env (set on **every** deployment — prod, main dev, every
+worktree dev):
+
+| Var | Prod value | Worktree dev value |
+|-----|------------|---------------------|
+| `SITE_URL` | `https://greymirror.ai` | this worktree's URL, e.g. `http://localhost:3350` |
+| `AUTH_ALLOWED_HOSTS` | (omit) | `localhost:*,127.0.0.1:*` |
+| `OAUTH_PROXY_ENABLED` | `true` | `true` |
+| `OAUTH_PROXY_PRODUCTION_URL` | `https://greymirror.ai` | `https://greymirror.ai` |
+| `OAUTH_PROXY_SECRET` | shared 32-byte base64 | identical shared value |
+
+**Why `OAUTH_PROXY_SECRET` must match across deployments:** the proxy
+encrypts the user payload on prod and decrypts it on dev. If the secret
+diverges, dev rejects the bounced payload with a decryption error.
+Setting `OAUTH_PROXY_SECRET` explicitly decouples this from
+`BETTER_AUTH_SECRET`, which can rotate independently per deployment.
+
+`./scripts/sync-worktree-convex-secrets.sh` copies all five vars from
+main's deployment, then overrides `SITE_URL` with the worktree's port and
+appends `localhost:*,127.0.0.1:*` to `AUTH_ALLOWED_HOSTS`. If Google login
+still redirects to the wrong host or fails after the bounce, rerun the
+sync script and verify:
 
 ```bash
-pnpm --filter=@feel-good/convex exec convex env list
+pnpm --filter=@feel-good/convex exec convex env list | grep -E '(OAUTH_PROXY|SITE_URL|AUTH_ALLOWED_HOSTS)'
 ```
 
 ## Worktree path discipline (general)

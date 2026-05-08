@@ -82,10 +82,12 @@ fi
 MIRROR_PORT=$(node "$GIT_ROOT/scripts/with-worktree-port.mjs" mirror --print)
 WORKTREE_SITE_URL="http://localhost:$MIRROR_PORT"
 MAIN_ALLOWED_HOSTS=$(grep '^AUTH_ALLOWED_HOSTS=' "$TMPFILE" | head -n1 | cut -d= -f2- || true)
-WORKTREE_ALLOWED_HOSTS="localhost:*,127.0.0.1:*"
-if [[ -n "$MAIN_ALLOWED_HOSTS" ]]; then
-  WORKTREE_ALLOWED_HOSTS="$MAIN_ALLOWED_HOSTS,$WORKTREE_ALLOWED_HOSTS"
-fi
+# Merge main's value with the local-dev required entries, then dedupe.
+# Re-running the sync used to grow the list (`localhost:*,...,localhost:*,...`).
+WORKTREE_ALLOWED_HOSTS=$(printf '%s,localhost:*,127.0.0.1:*' "$MAIN_ALLOWED_HOSTS" \
+  | tr ',' '\n' \
+  | awk 'NF && !seen[$0]++' \
+  | paste -sd, -)
 
 echo ""
 echo "Setting worktree-specific auth origin:"
