@@ -277,3 +277,92 @@ describe("useEditArticleForm — cancel", () => {
     expect(target).not.toContain("/edited-slug");
   });
 });
+
+describe("useEditArticleForm — publish status sync", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUploadCover.mockReset();
+    mockReplace.mockReset();
+    mockRefresh.mockReset();
+    mockShowToast.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("keeps RHF status in sync after a successful publish toggle", async () => {
+    mockUpdate.mockResolvedValue(null);
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.togglePublish();
+    });
+
+    expect(mockUpdate.mock.calls[0]![0]).toMatchObject({
+      status: "published",
+    });
+    expect(result.current.status).toBe("published");
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate.mock.calls[1]![0]).toMatchObject({
+      status: "published",
+    });
+  });
+});
+
+describe("useEditArticleForm — togglePublish validation", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUploadCover.mockReset();
+    mockReplace.mockReset();
+    mockRefresh.mockReset();
+    mockShowToast.mockReset();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  // Pins the dialog-stays-open contract for ArticlePublishToggle:
+  // togglePublish must REJECT on validation failure (not silently resolve)
+  // so the AlertDialog's catch keeps the dialog open. Resolving would close
+  // the dialog while no row was actually published — a silent no-op.
+  it("rejects when the form is invalid and surfaces an error toast", async () => {
+    const invalidInitial = {
+      ...INITIAL_ARTICLE,
+      title: "",
+    };
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: invalidInitial,
+      }),
+    );
+
+    let caught: unknown = null;
+    await act(async () => {
+      try {
+        await result.current.togglePublish();
+      } catch (err) {
+        caught = err;
+      }
+    });
+
+    expect(mockUpdate).not.toHaveBeenCalled();
+    expect(caught).toBeInstanceOf(Error);
+    expect(mockShowToast).toHaveBeenCalledTimes(1);
+    expect(mockShowToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "error" }),
+    );
+    expect(result.current.isSaving).toBe(false);
+  });
+});

@@ -12,22 +12,22 @@ import {
   type JSONContent,
   type InlineImageUploadResult,
 } from "@feel-good/features/editor";
+import { type UseFormReturn } from "react-hook-form";
 import { ArticleEditorToolbar } from "./article-editor-toolbar";
 import { ArticleMetadataHeader } from "./article-metadata-header";
-import { type ArticleStatus } from "../../lib/schemas/article-metadata.schema";
+import {
+  type ArticleMetadataFormData,
+  type ArticleStatus,
+} from "../../lib/schemas/article-metadata.schema";
 
 export interface ArticleEditorShellProps {
-  // Metadata
-  title: string;
-  slug: string;
-  category: string;
+  // Metadata — title/slug/category live on the RHF form; the header binds to
+  // it directly via FormField/FormMessage.
+  form: UseFormReturn<ArticleMetadataFormData>;
   status: ArticleStatus;
   coverImageUrl: string | null;
   createdAt: number | null;
   publishedAt: number | null;
-  onTitleChange: (value: string) => void;
-  onSlugChange: (value: string) => void;
-  onCategoryChange: (value: string) => void;
   onCoverImageUpload: (file: File) => Promise<{
     storageId: string;
     thumbhash: string;
@@ -55,22 +55,25 @@ export interface ArticleEditorShellProps {
   cancelHref?: string;
 }
 
-export function ArticleEditorShell(props: ArticleEditorShellProps) {
-  const {
-    body,
-    onBodyChange,
-    onInlineImageUpload,
-    onInlineImageError,
-    onPendingUploadsChange,
-    onSave,
-    onPublishToggle,
-    onCancel,
-    isSaving,
-    hasPendingUploads,
-    status,
-    ...metadata
-  } = props;
-
+export function ArticleEditorShell({
+  form,
+  status,
+  coverImageUrl,
+  createdAt,
+  publishedAt,
+  onCoverImageUpload,
+  onCoverImageClear,
+  body,
+  onBodyChange,
+  onInlineImageUpload,
+  onInlineImageError,
+  onPendingUploadsChange,
+  onSave,
+  onPublishToggle,
+  onCancel,
+  isSaving,
+  hasPendingUploads,
+}: ArticleEditorShellProps) {
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
       <ArticleEditorToolbar
@@ -83,7 +86,14 @@ export function ArticleEditorShell(props: ArticleEditorShellProps) {
       />
       <div className="flex-1 overflow-auto">
         <div className="mx-auto flex w-full max-w-xl flex-col px-6 pt-4 pb-20">
-          <ArticleMetadataHeader {...metadata} />
+          <ArticleMetadataHeader
+            form={form}
+            coverImageUrl={coverImageUrl}
+            createdAt={createdAt}
+            publishedAt={publishedAt}
+            onCoverImageUpload={onCoverImageUpload}
+            onCoverImageClear={onCoverImageClear}
+          />
           <ArticleRichTextEditor
             content={body}
             onChange={onBodyChange}

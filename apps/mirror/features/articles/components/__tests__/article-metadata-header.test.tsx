@@ -1,19 +1,32 @@
-// Pins the metadata header's controlled-input contract:
-//   - title is a required text input
+// Pins the metadata header's RHF-bound contract:
+//   - title, slug, category render via FormField/FormMessage
 //   - slug auto-derives from title via generateSlug() unless the user has
 //     manually edited the slug input ("dirty" sticky behavior)
 //   - clearing the slug input re-enables auto-derivation
+//   - validation errors surface as <FormMessage /> after a failed submit
 //   - cover image picker calls into the upload callback and renders preview
 // Publish/unpublish lives in the workspace toolbar, not here.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
+  act,
   cleanup,
   fireEvent,
   render,
   screen,
 } from "@testing-library/react";
-import { useState } from "react";
+import {
+  useForm,
+  useWatch,
+  type Control,
+  type UseFormReturn,
+} from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect } from "react";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
+import {
+  articleMetadataSchema,
+  type ArticleMetadataFormData,
+} from "@/features/articles/lib/schemas/article-metadata.schema";
 
 vi.mock("next/link", () => ({
   default: ({
@@ -37,19 +50,60 @@ const noopUpload = vi.fn(async (_file: File) => ({
   url: "https://example.convex.cloud/cover.png",
 }));
 
-const baseProps = {
-  title: "",
-  slug: "",
-  category: "",
-  coverImageUrl: null,
-  createdAt: null as number | null,
-  publishedAt: null as number | null,
-  onTitleChange: vi.fn(),
-  onSlugChange: vi.fn(),
-  onCategoryChange: vi.fn(),
-  onCoverImageUpload: noopUpload,
-  onCoverImageClear: vi.fn(),
+type HarnessProps = {
+  initialValues?: Partial<ArticleMetadataFormData>;
+  onCoverImageUpload?: (file: File) => Promise<{
+    storageId: string;
+    thumbhash: string;
+    url: string;
+  }>;
+  publishedAt?: number | null;
+  onFormReady?: (form: UseFormReturn<ArticleMetadataFormData>) => void;
 };
+
+function TestHarness({
+  initialValues,
+  onCoverImageUpload,
+  publishedAt = null,
+  onFormReady,
+}: HarnessProps) {
+  const form = useForm<ArticleMetadataFormData>({
+    resolver: zodResolver(articleMetadataSchema),
+    defaultValues: {
+      title: "",
+      slug: "",
+      category: "",
+      status: "draft",
+      ...initialValues,
+    },
+  });
+  // Hand the form back to the test so it can drive `form.handleSubmit` and
+  // assert validation state without leaking RHF wiring into every test.
+  useEffect(() => {
+    onFormReady?.(form);
+  }, [form, onFormReady]);
+  return (
+    <>
+      <SlugReader control={form.control} />
+      <ArticleMetadataHeader
+        form={form}
+        coverImageUrl={null}
+        createdAt={null}
+        publishedAt={publishedAt}
+        onCoverImageUpload={onCoverImageUpload ?? noopUpload}
+        onCoverImageClear={vi.fn()}
+      />
+    </>
+  );
+}
+
+// Subscribed read of the slug field via `useWatch` (instead of `form.watch`)
+// so the React Compiler / `react-hooks/incompatible-library` lint doesn't
+// flag the test as it does in production code.
+function SlugReader({ control }: { control: Control<ArticleMetadataFormData> }) {
+  const slug = useWatch({ control, name: "slug" }) ?? "";
+  return <div data-testid="watched-slug">{slug}</div>;
+}
 
 describe("ArticleMetadataHeader", () => {
   afterEach(() => {
@@ -58,7 +112,7 @@ describe("ArticleMetadataHeader", () => {
   });
 
   it("renders all required fields with stable test ids", () => {
-    render(<ArticleMetadataHeader {...baseProps} />);
+    render(<TestHarness />);
     expect(screen.getByTestId("article-title-input")).toBeTruthy();
     expect(screen.getByTestId("article-slug-input")).toBeTruthy();
     expect(screen.getByTestId("article-category-input")).toBeTruthy();
@@ -68,85 +122,75 @@ describe("ArticleMetadataHeader", () => {
   });
 
   it("auto-derives slug from title until the user manually edits the slug", () => {
-    const onTitleChange = vi.fn();
-    const onSlugChange = vi.fn();
-    render(
-      <ArticleMetadataHeader
-        {...baseProps}
-        onTitleChange={onTitleChange}
-        onSlugChange={onSlugChange}
-      />,
-    );
+    render(<TestHarness />);
 
     fireEvent.change(screen.getByTestId("article-title-input"), {
       target: { value: "My First Article!" },
     });
-    expect(onTitleChange).toHaveBeenCalledWith("My First Article!");
-    expect(onSlugChange).toHaveBeenLastCalledWith(
+    expect(screen.getByTestId("watched-slug").textContent).toBe(
       generateSlug("My First Article!"),
     );
 
-    onSlugChange.mockClear();
+    // Manual edit pins the slug
     fireEvent.change(screen.getByTestId("article-slug-input"), {
       target: { value: "custom-slug" },
     });
-    expect(onSlugChange).toHaveBeenCalledWith("custom-slug");
+    expect(screen.getByTestId("watched-slug").textContent).toBe("custom-slug");
 
-    // After manual edit, further title changes should NOT overwrite the slug
-    onSlugChange.mockClear();
+    // After manual edit, further title changes must NOT overwrite the slug
     fireEvent.change(screen.getByTestId("article-title-input"), {
       target: { value: "Another Title" },
     });
-    expect(onSlugChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("watched-slug").textContent).toBe("custom-slug");
   });
 
   it("does NOT auto-derive slug when mounting with an existing slug (edit-mode)", () => {
     // Editing the title of an already-published article must not silently
-    // rename its slug. The dirty-ref must initialise from the slug prop.
-    const onSlugChange = vi.fn();
+    // rename its slug. The dirty-ref must initialise from the slug value.
     render(
-      <ArticleMetadataHeader
-        {...baseProps}
-        title="Existing Title"
-        slug="existing-slug"
-        onSlugChange={onSlugChange}
+      <TestHarness
+        initialValues={{ title: "Existing Title", slug: "existing-slug" }}
       />,
     );
 
     fireEvent.change(screen.getByTestId("article-title-input"), {
       target: { value: "Updated Title" },
     });
-    expect(onSlugChange).not.toHaveBeenCalled();
+    expect(screen.getByTestId("watched-slug").textContent).toBe(
+      "existing-slug",
+    );
   });
 
   it("re-derives slug from title after the user clears the slug field", () => {
-    // Use a tiny stateful wrapper so the slug input's bound value actually
-    // tracks the user's edits — without this, React's controlled-input
-    // dedup swallows the second fireEvent.change for slug="" (it matches
-    // the prop), and `slugDirtyRef` never resets.
-    const TestHarness = () => {
-      const [slug, setSlug] = useState("");
-      const [title, setTitle] = useState("");
-      return (
-        <ArticleMetadataHeader
-          {...baseProps}
-          title={title}
-          slug={slug}
-          onTitleChange={(next: string) => setTitle(next)}
-          onSlugChange={(next: string) => setSlug(next)}
-        />
-      );
-    };
     render(<TestHarness />);
-
-    // Manually edit slug, then clear it
     const slugEl = () =>
       screen.getByTestId("article-slug-input") as HTMLInputElement;
+
+    // Manually edit slug, then clear it
     fireEvent.change(slugEl(), { target: { value: "custom" } });
     expect(slugEl().value).toBe("custom");
     fireEvent.change(slugEl(), { target: { value: "" } });
     expect(slugEl().value).toBe("");
 
+    // Title change after clear must re-engage auto-derive
+    fireEvent.change(screen.getByTestId("article-title-input"), {
+      target: { value: "Reactivated" },
+    });
+    expect(slugEl().value).toBe("reactivated");
+  });
+
+  it("treats a whitespace-only slug as empty so auto-derive re-engages", () => {
+    // Pin the trim-based dirty rule: the init read uses `.trim().length`,
+    // and updates must too. Otherwise typing only spaces pins auto-derive
+    // off even though the save path treats the slug as empty.
+    render(<TestHarness />);
+    const slugEl = () =>
+      screen.getByTestId("article-slug-input") as HTMLInputElement;
+
+    fireEvent.change(slugEl(), { target: { value: "   " } });
+    expect(slugEl().value).toBe("   ");
+
+    // Whitespace-only slug must still let the title auto-derive run.
     fireEvent.change(screen.getByTestId("article-title-input"), {
       target: { value: "Reactivated" },
     });
@@ -154,15 +198,13 @@ describe("ArticleMetadataHeader", () => {
   });
 
   it("renders the published-at field as empty placeholder when null", () => {
-    render(<ArticleMetadataHeader {...baseProps} />);
+    render(<TestHarness />);
     const published = screen.getByTestId("article-published-at");
     expect(published.textContent || "").toMatch(/—|Not yet|Unpublished/i);
   });
 
   it("renders a relative timestamp once publishedAt is set", () => {
-    render(
-      <ArticleMetadataHeader {...baseProps} publishedAt={Date.now() - 60_000} />,
-    );
+    render(<TestHarness publishedAt={Date.now() - 60_000} />);
     const published = screen.getByTestId("article-published-at");
     expect(published.textContent || "").not.toMatch(
       /^—$|Not yet|Unpublished/i,
@@ -175,12 +217,7 @@ describe("ArticleMetadataHeader", () => {
       thumbhash: "",
       url: "https://example.convex.cloud/cover.png",
     }));
-    render(
-      <ArticleMetadataHeader
-        {...baseProps}
-        onCoverImageUpload={onCoverImageUpload}
-      />,
-    );
+    render(<TestHarness onCoverImageUpload={onCoverImageUpload} />);
 
     const file = new File([new Uint8Array([1, 2, 3])], "cover.png", {
       type: "image/png",
@@ -195,5 +232,36 @@ describe("ArticleMetadataHeader", () => {
     expect(onCoverImageUpload).toHaveBeenCalledTimes(1);
     const firstArg = onCoverImageUpload.mock.calls[0]?.[0];
     expect(firstArg).toBeInstanceOf(File);
+  });
+
+  // FG_127: the whole point of wiring through RHF + zodResolver is to surface
+  // validation messages in the UI. Pin that here so a future regression that
+  // drops `<FormMessage />` (or skips wiring `errors` through) fails loudly.
+  it("renders schema error messages via <FormMessage /> after a failed submit", async () => {
+    let capturedForm: UseFormReturn<ArticleMetadataFormData> | undefined;
+    render(
+      <TestHarness
+        onFormReady={(f) => {
+          capturedForm = f;
+        }}
+      />,
+    );
+    expect(capturedForm).toBeDefined();
+
+    // Trigger the resolver with empty title and category. Async because the
+    // zodResolver runs on submit.
+    await act(async () => {
+      await capturedForm!.handleSubmit(
+        () => {},
+        () => {},
+      )();
+    });
+
+    expect(
+      screen.getByTestId("article-title-error").textContent,
+    ).toMatch(/Title is required/i);
+    expect(
+      screen.getByTestId("article-category-error").textContent,
+    ).toMatch(/Category is required/i);
   });
 });

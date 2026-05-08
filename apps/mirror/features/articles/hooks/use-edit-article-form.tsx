@@ -11,14 +11,20 @@ import {
   type InlineImageUploadResult,
   type JSONContent,
 } from "@feel-good/features/editor";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "convex/react";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useForm } from "react-hook-form";
 import { showToast } from "@feel-good/ui/components/toast";
 import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
-import { type ArticleStatus } from "../lib/schemas/article-metadata.schema";
+import {
+  articleMetadataSchema,
+  type ArticleMetadataFormData,
+  type ArticleStatus,
+} from "../lib/schemas/article-metadata.schema";
 import { type ArticleWithBody } from "../types";
 
 interface UseEditArticleFormOptions {
@@ -35,10 +41,16 @@ export function useEditArticleForm({
   const { upload: uploadCover } = useArticleCoverImageUpload();
   const { upload: uploadInlineImage } = useArticleInlineImageUpload();
 
-  const [title, setTitle] = useState(initial.title);
-  const [slug, setSlug] = useState(initial.slug);
-  const [category, setCategory] = useState(initial.category);
-  const [status, setStatus] = useState<ArticleStatus>(initial.status);
+  const form = useForm<ArticleMetadataFormData>({
+    resolver: zodResolver(articleMetadataSchema),
+    defaultValues: {
+      title: initial.title,
+      slug: initial.slug,
+      category: initial.category,
+      status: initial.status,
+    },
+  });
+
   const [body, setBody] = useState<JSONContent>(initial.body as JSONContent);
   // The query intentionally returns `coverImageUrl` only — the server-side
   // `_storage` ID is not exposed. Until the user uploads a new cover, we
@@ -109,13 +121,13 @@ export function useEditArticleForm({
     setIsCoverCleared(true);
   }, []);
 
-  const persist = useCallback(
-    async (targetStatus: ArticleStatus) => {
+  const persistValidated = useCallback(
+    async (data: ArticleMetadataFormData, targetStatus: ArticleStatus) => {
       await update({
         id: initial._id,
-        title: title.trim(),
-        slug: slug.trim() ? slug : undefined,
-        category: category.trim(),
+        title: data.title.trim(),
+        slug: data.slug?.trim() ? data.slug : undefined,
+        category: data.category.trim(),
         body,
         status: targetStatus,
         // Send the storage ID only when the user uploaded a new cover in
@@ -154,21 +166,17 @@ export function useEditArticleForm({
       // and AC #5 (post mirror) cannot be exercised end-to-end. Use the
       // post-save slug — `slug` reflects the user's edited value, which is
       // what the server normalized and persisted.
-      const targetSlug = slug.trim() ? slug.trim() : initial.slug;
+      const targetSlug = data.slug?.trim() ? data.slug.trim() : initial.slug;
       router.push(`/@${username}/articles/${targetSlug}`);
     },
     [
       body,
-      category,
       coverImageStorageId,
       coverImageThumbhash,
       initial._id,
       initial.slug,
       isCoverCleared,
-      publishedAt,
       router,
-      slug,
-      title,
       update,
       username,
     ],
@@ -176,31 +184,63 @@ export function useEditArticleForm({
 
   const save = useCallback(async () => {
     if (isSaving || hasPendingUploads) return;
+    const currentStatus = form.getValues("status");
     setIsSaving(true);
     try {
-      await persist(status);
+      await new Promise<void>((resolve, reject) => {
+        void form.handleSubmit(
+          async (data) => {
+            try {
+              await persistValidated(data, currentStatus);
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
+          () => resolve(), // validation failed — form errors displayed by form state
+        )();
+      });
     } catch (err) {
       showToast({ type: "error", title: getMutationErrorMessage(err) });
     } finally {
       setIsSaving(false);
     }
-  }, [hasPendingUploads, isSaving, persist, status]);
+  }, [form, hasPendingUploads, isSaving, persistValidated]);
 
   const togglePublish = useCallback(async () => {
     if (isSaving || hasPendingUploads) return;
     const nextStatus: ArticleStatus =
-      status === "draft" ? "published" : "draft";
+      form.getValues("status") === "draft" ? "published" : "draft";
     setIsSaving(true);
     try {
-      await persist(nextStatus);
-      setStatus(nextStatus);
+      await new Promise<void>((resolve, reject) => {
+        void form.handleSubmit(
+          async (data) => {
+            try {
+              await persistValidated(data, nextStatus);
+              form.setValue("status", nextStatus, { shouldValidate: false });
+              resolve();
+            } catch (err) {
+              reject(err);
+            }
+          },
+          // Reject (not resolve) on validation failure so the publish
+          // confirmation dialog stays open instead of silently closing
+          // on a no-op publish. Inline form errors render via
+          // <FormMessage />; the toast in the catch tells the user why.
+          () =>
+            reject(
+              new Error("Please fix the highlighted fields before publishing."),
+            ),
+        )();
+      });
     } catch (err) {
       showToast({ type: "error", title: getMutationErrorMessage(err) });
       throw err;
     } finally {
       setIsSaving(false);
     }
-  }, [hasPendingUploads, isSaving, persist, status]);
+  }, [form, hasPendingUploads, isSaving, persistValidated]);
 
   const cancel = useCallback(() => {
     router.push(`/@${username}/articles/${initial.slug}`);
@@ -213,10 +253,25 @@ export function useEditArticleForm({
     [],
   );
 
+  // Status is surfaced separately because the toolbar's publish-toggle button
+  // reads it outside the metadata-header's RHF tree.
+  const status = form.watch("status");
+
+  // Read formState.errors here so RHF registers a subscription on this hook —
+  // that's what makes the hook re-render when validation fails. Without this
+  // read, `form.formState.errors` returned via `form` stays empty in callers
+  // that don't themselves access the proxy (notably `renderHook` unit tests
+  // that don't mount the header). The metadata header has its own subscription
+  // via `<FormField>` / `<FormMessage>`, so this is purely the headless-caller
+  // anchor.
+  const errors = form.formState.errors;
+
   return {
-    title,
-    slug,
-    category,
+    // The RHF form instance. The metadata header binds to it directly via
+    // `<Form>` + `<FormField>`, which is what surfaces validation errors as
+    // `<FormMessage />`. Callers needing read access use `form.watch(...)`.
+    form,
+    errors,
     status,
     coverImageUrl,
     createdAt: initial.createdAt,
@@ -224,9 +279,11 @@ export function useEditArticleForm({
     body,
     hasPendingUploads,
     isSaving,
-    setTitle,
-    setSlug,
-    setCategory,
+    // Test-only convenience setters — production callers drive RHF directly.
+    setTitle: (value: string) => form.setValue("title", value),
+    setSlug: (value: string) =>
+      form.setValue("slug", value, { shouldValidate: false }),
+    setCategory: (value: string) => form.setValue("category", value),
     setBody,
     setHasPendingUploads,
     handleCoverImageUpload,
