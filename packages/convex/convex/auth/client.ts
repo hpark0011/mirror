@@ -85,13 +85,16 @@ export const authComponent: ReturnType<typeof createClient<DataModel>> =
             onboardingComplete: false,
           });
 
-          // Dev-only: pre-populate the new account with Rick's fixtures so
-          // a fresh worktree's first sign-in lands in a non-empty profile.
-          // Scheduled (not awaited) so a seed failure doesn't roll back the
-          // user creation, and so sign-in latency stays predictable.
+          // Dev-only: pre-populate the new account with Rick's fixtures + an
+          // onboarding-complete profile so a fresh worktree's first sign-in
+          // lands at /@<username> instead of /onboarding. Scheduled (not
+          // awaited) so a seed failure doesn't roll back the user creation,
+          // and so sign-in latency stays predictable.
           if (env.DEV_AUTOSEED_OWNER === "true") {
             await ctx.scheduler.runAfter(0, internal.seed.seedOwnerContent, {
               userId,
+              email: doc.email,
+              ...(doc.name ? { name: doc.name } : {}),
             });
           }
         },

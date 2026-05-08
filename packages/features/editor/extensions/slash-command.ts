@@ -38,10 +38,12 @@ export interface SlashCommandItem {
 export interface SlashCommandOptions {
   /**
    * If supplied, the "Image" item runs this picker. The picker should resolve
-   * to a `{ src }` to insert (typically the URL the inline-image upload
-   * pipeline returned), or `null` to abort.
+   * to `{ src, storageId }` to insert (the URL + Convex `_storage` ID the
+   * inline-image upload pipeline returned), or `null` to abort. `storageId`
+   * is required so the saved body passes the server-side
+   * `hasExternalImageSrcs` validator.
    */
-  pickInlineImage?: () => Promise<{ src: string } | null>;
+  pickInlineImage?: () => Promise<{ src: string; storageId: string } | null>;
   onError?: (message: string) => void;
 }
 
@@ -179,7 +181,18 @@ export function buildSlashCommandItems(
             const result = await pickInlineImage();
             if (!result) return;
             if (editor.isDestroyed) return;
-            editor.chain().focus().setImage({ src: result.src }).run();
+            // `insertContent` rather than `setImage(...)`: see comment in
+            // `editor-toolbar.tsx#handleInsertImage` — `SetImageOptions`
+            // upstream omits `storageId`, but the body validator requires
+            // it on every persisted image node.
+            editor
+              .chain()
+              .focus()
+              .insertContent({
+                type: "image",
+                attrs: { src: result.src, storageId: result.storageId },
+              })
+              .run();
           } catch (error) {
             onError?.(
               `Failed to insert image: ${error instanceof Error ? error.message : String(error)}`,
