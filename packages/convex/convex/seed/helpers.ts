@@ -3,7 +3,41 @@ import { type Id } from "../_generated/dataModel";
 import { components } from "../_generated/api";
 import { createThread, saveMessage } from "@convex-dev/agent";
 import { getPostCategoryForSlug } from "../posts/categories";
-import { SEED_ARTICLES, SEED_POSTS, SEED_CONVERSATIONS } from "./data";
+import { RESERVED_USERNAMES } from "../users/helpers";
+import {
+  SEED_ARTICLES,
+  SEED_BIO,
+  SEED_CONVERSATIONS,
+  SEED_OWNER_PROFILE,
+  SEED_POSTS,
+} from "./data";
+
+const USERNAME_PATTERN = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
+
+// Email local-part → valid username per `users/mutations.ts:setUsername`
+// (3-30 chars, lowercase alphanumeric + hyphens, no leading/trailing hyphen).
+// Seeds that hand-pick the local-part (e.g. `hpark0011`) succeed; otherwise
+// throw with the same intent the onboarding wizard surfaces — the caller
+// must pick a different name. Idempotent.
+function deriveUsernameFromEmail(email: string): string {
+  const localPart = email.split("@")[0]?.toLowerCase() ?? "";
+  const cleaned = localPart
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 30);
+  if (!USERNAME_PATTERN.test(cleaned)) {
+    throw new Error(
+      `Cannot derive a valid username from email "${email}". Pass a username explicitly to seedWorktreeOwnerDemo.`,
+    );
+  }
+  if (RESERVED_USERNAMES.has(cleaned)) {
+    throw new Error(
+      `Derived username "${cleaned}" is reserved. Pass a username explicitly to seedWorktreeOwnerDemo.`,
+    );
+  }
+  return cleaned;
+}
 
 export async function ensureRickRubinUser(
   ctx: MutationCtx,
@@ -141,5 +175,90 @@ export async function ensureRickRubinConversations(
         });
       }
     }
+  }
+}
+
+// Patches the worktree owner's existing `users` row with onboarding-equivalent
+// fields (username/name/tagline/onboardingComplete) so /onboarding redirects
+// to the profile page. Per-field idempotency: each field is only set when the
+// current value is empty/false. Re-running never overwrites a value the user
+// has changed via the real onboarding flow.
+export async function ensureWorktreeOwnerProfile(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+  email: string,
+  preferredName?: string,
+): Promise<void> {
+  const user = await ctx.db.get(userId);
+  if (!user) {
+    throw new Error(`ensureWorktreeOwnerProfile: user ${userId} not found`);
+  }
+
+  const patch: {
+    username?: string;
+    name?: string;
+    tagline?: string;
+    onboardingComplete?: boolean;
+  } = {};
+
+  if (!user.username) {
+    const derived = deriveUsernameFromEmail(email);
+    const existingByUsername = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", derived))
+      .unique();
+    if (existingByUsername !== null && existingByUsername._id !== userId) {
+      throw new Error(
+        `ensureWorktreeOwnerProfile: username "${derived}" is already taken by another user`,
+      );
+    }
+    patch.username = derived;
+  }
+
+  if (!user.name && preferredName !== undefined && preferredName.trim() !== "") {
+    patch.name = preferredName.trim();
+  }
+
+  if (!user.tagline) {
+    patch.tagline = SEED_OWNER_PROFILE.tagline;
+  }
+
+  if (!user.onboardingComplete) {
+    patch.onboardingComplete = true;
+  }
+
+  if (Object.keys(patch).length > 0) {
+    await ctx.db.patch(userId, patch);
+  }
+}
+
+export async function ensureWorktreeOwnerBio(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<void> {
+  // Per (kind+title) dedup. The bioEntries schema has no natural unique key,
+  // and a "any row exists" short-circuit would skip seeding for an owner who
+  // already added one of their own entries.
+  const existingEntries = await ctx.db
+    .query("bioEntries")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  const existingKeys = new Set(
+    existingEntries.map((e) => `${e.kind}::${e.title}`),
+  );
+
+  for (const entry of SEED_BIO) {
+    const key = `${entry.kind}::${entry.title}`;
+    if (existingKeys.has(key)) {
+      continue;
+    }
+    await ctx.db.insert("bioEntries", {
+      userId,
+      kind: entry.kind,
+      title: entry.title,
+      startDate: entry.startDate,
+      endDate: entry.endDate,
+      description: entry.description,
+    });
   }
 }

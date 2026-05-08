@@ -141,6 +141,56 @@ export const SEED_POSTS = [
   },
 ];
 
+// Worktree-owner profile copy. Reused by `ensureWorktreeOwnerProfile` to
+// patch the existing `users` row (provisioned by Better Auth on first
+// sign-in) with onboarding-equivalent fields so /onboarding redirects to
+// the profile page. The articles/posts/bio fixtures are Rick-Rubin-style;
+// the tagline matches that voice.
+export const SEED_OWNER_PROFILE = {
+  tagline:
+    "Producer-in-residence, listening for the signal in the noise. Notes on creativity, attention, and getting out of the work's way.",
+};
+
+// UTC first-of-month epoch ms — bio dates are calendar-month-granular per
+// `bio/schema.ts`. Constructed at module load (deterministic).
+function ymUtc(year: number, monthIndex: number): number {
+  return Date.UTC(year, monthIndex, 1);
+}
+
+export const SEED_BIO = [
+  {
+    kind: "work" as const,
+    title: "Producer-in-residence at Shangri-La",
+    startDate: ymUtc(2011, 0), // Jan 2011
+    endDate: null,
+    description:
+      "Producing records and shaping creative direction at the Shangri-La studio in Malibu.",
+  },
+  {
+    kind: "work" as const,
+    title: "Co-president, Columbia Records",
+    startDate: ymUtc(2007, 4), // May 2007
+    endDate: ymUtc(2012, 6), // Jul 2012
+    description:
+      "Joint label leadership while continuing to produce records across genres.",
+  },
+  {
+    kind: "work" as const,
+    title: "Founder, Def Jam Recordings",
+    startDate: ymUtc(1984, 0),
+    endDate: ymUtc(1988, 11),
+    description:
+      "Co-founded the label out of an NYU dorm room. First releases set the template for hip-hop's next decade.",
+  },
+  {
+    kind: "education" as const,
+    title: "B.A., Philosophy — New York University",
+    startDate: ymUtc(1981, 8), // Sep 1981
+    endDate: ymUtc(1985, 4), // May 1985
+    description: "Studied philosophy while running Def Jam from a dorm room.",
+  },
+];
+
 export const SEED_CONVERSATIONS = [
   {
     title: "What inspires your production style?",
