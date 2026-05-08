@@ -48,7 +48,7 @@ This ticket adds the field and the backfill. FG_181 consumes the field at the as
 ## Out of Scope
 
 - Updating `assertCoverBlobOwnership` to consume the field (FG_181).
-- Renaming the table to `coverBlobOwnership` (FG_198 — pure naming).
+- Renaming the table to `coverBlobOwnership` (out of scope; not currently ticketed).
 - Per-kind size/MIME tightening (FG_182).
 
 ## Approach
@@ -63,7 +63,7 @@ export const coverImageOwnershipFields = {
 };
 ```
 
-Convex requires schema changes to be compatible with existing data. Add the field as `v.optional(...)` first, deploy backfill, then tighten to required in a follow-up. OR add as required and run the backfill in the same migration if Convex tolerates it (verify via `convex dev --once`).
+Convex requires schema changes to be compatible with existing data. Add the field as `v.optional(...)` first, deploy the backfill, then tighten to required in a follow-up deploy. The widen → backfill → narrow path is the only safe option for any populated deployment: Convex rejects a deploy where existing rows would fail the new required field's validator, so adding `kind` as required up front is not a viable alternative.
 
 Backfill (using the @convex-dev/migrations pattern):
 ```ts
@@ -106,4 +106,4 @@ Claim mutations: insert `kind: 'image' | 'video' | 'poster'` matching the mutati
 
 - `convex-migration-helper` skill
 - Source: `packages/convex/convex/articles/schema.ts:58-66` and the three claim mutations
-- Related: FG_181 (consumer), FG_198 (table rename)
+- Related: FG_181 (consumer of the new `kind` field at the assertion boundary)

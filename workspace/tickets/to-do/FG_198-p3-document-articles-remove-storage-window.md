@@ -101,7 +101,7 @@ await safeDeleteStorage(ctx, article.coverVideoPosterStorageId);
 ## Constraints
 
 - Comment must stay concise — max ~12 lines.
-- Do not rename the table `coverImageOwnership` here — that's FG_198 (separate ticket).
+- This ticket is documentation-only — no rename of `coverImageOwnership`, no behavior change. Renaming the table to `coverBlobOwnership` is out of scope (not currently ticketed).
 
 ## Resources
 
