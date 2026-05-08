@@ -2,7 +2,7 @@
 
 import { useIsProfileOwner } from "@/features/profile/context/profile-context";
 import { useDeletePost } from "../../hooks/use-delete-post";
-import { DeletePostButton } from "./delete-post-button";
+import { DeletePost } from "./delete-post";
 import { type PostSummary } from "../../types";
 
 type DeletePostConnectorProps = {
@@ -20,7 +20,7 @@ export function DeletePostConnector({
   if (!isOwner) return null;
 
   return (
-    <DeletePostButton
+    <DeletePost
       isPending={remove.isPending}
       dialogOpen={remove.dialogOpen}
       onOpenChange={remove.handleOpenChange}

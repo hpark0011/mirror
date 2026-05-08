@@ -19,7 +19,7 @@ import {
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
 
-type DeletePostButtonProps = {
+type DeletePostProps = {
   isPending: boolean;
   dialogOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,13 +27,13 @@ type DeletePostButtonProps = {
   onCancel: () => void;
 };
 
-export function DeletePostButton({
+export function DeletePost({
   isPending,
   dialogOpen,
   onOpenChange,
   onConfirm,
   onCancel,
-}: DeletePostButtonProps) {
+}: DeletePostProps) {
   return (
     <AlertDialog open={dialogOpen} onOpenChange={onOpenChange}>
       <Tooltip>
@@ -44,6 +44,7 @@ export function DeletePostButton({
               size="icon-sm"
               aria-label="Delete post"
               data-testid="delete-post-btn"
+              data-post-deleting={isPending ? "true" : "false"}
             >
               <Icon name="TrashFillIcon" />
             </Button>
