@@ -63,7 +63,7 @@ Return a JSON array of findings. Every finding MUST fill:
 - Premature abstraction unwind, unrequested-cleanup carve-out, public API rename → `manual` / `downstream-resolver`. The author needs to make the call.
 - Mark `pre_existing: true` when the smell predates this diff (the change touched the area but didn't introduce the issue). Pre-existing findings inform but do not block.
 
-**Hard rule:** every finding must name the concrete maintainability cost — "future readers will have to X" or "the next bug fix here will be harder because Y." "I'd write this differently" is not a finding. Drop it yourself; the Critic will reject it anyway.
+**Hard rule:** every finding must name the concrete maintainability cost — "future readers will have to X" or "the next bug fix here will be harder because Y." "I'd write this differently" is not a finding. Drop it yourself; findings missing `risk` are dropped at validation (Phase 5 step 1).
 
 If the diff is maintainability-clean, return `[]` with a one-line summary.
 
