@@ -91,6 +91,62 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
       },
     }),
 
+    deletePost: createTool({
+      description:
+        "Permanently delete one of the profile owner's posts by slug. Use this only when the visitor (who is the profile owner — verify by their phrasing such as 'delete my post titled X') explicitly asks to remove a post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The slug must come from getLatestPublished or from a post the profile owner has authored. The result includes a `deleted` boolean and the canonical posts-list href; the client uses the href to navigate the visitor away from the now-deleted detail page. If `deleted` is false the slug did not match a post owned by this profile — acknowledge the miss and offer to look it up with getLatestPublished.",
+      // The LLM-visible surface is `slug` only. The owner is the closure-bound
+      // `profileOwnerId`, never a tool arg — same cross-user isolation
+      // boundary `navigateToContent` and `openProfileSection` enforce. The
+      // `inputSchema invariants` tests in `chat/__tests__/tools.test.ts` pin
+      // this.
+      inputSchema: z.object({
+        slug: z
+          .string()
+          .min(1)
+          .describe("The slug of the post to permanently delete."),
+      }),
+      execute: async (ctx, { slug }) => {
+        const result: {
+          deleted: boolean;
+          title?: string;
+          slug: string;
+        } = await ctx.runMutation(
+          internal.posts.mutations.deleteByUserAndSlug,
+          { userId: profileOwnerId, slug },
+        );
+
+        // Resolve the posts-list href once on the server (same single source
+        // of truth `openProfileSection` uses for `section: "posts"`). The
+        // client-side intent watcher passes this through `buildChatAwareHref`
+        // — never recomposing the URL template.
+        const list: {
+          kind: "articles" | "posts";
+          username: string;
+          href: string;
+          hasEntries: boolean;
+        } | null = await ctx.runQuery(
+          internal.chat.toolQueries.queryProfileSectionList,
+          { userId: profileOwnerId, section: "posts" },
+        );
+        if (!list) {
+          // The owner row is missing or has no username. The delete may have
+          // already succeeded (cross-user isolation is enforced by
+          // `deleteByUserAndSlug` regardless), but we cannot produce a valid
+          // post-list href to navigate the visitor to. Mirror the
+          // null-row pattern in `openProfileSection`.
+          throw new Error("Posts list is unavailable for this profile.");
+        }
+
+        return {
+          kind: "posts" as const,
+          deleted: result.deleted,
+          slug: result.slug,
+          title: result.title,
+          href: list.href,
+        };
+      },
+    }),
+
     openProfileSection: createTool({
       description:
         "Open one of the profile owner's tab panels for the visitor. Pass section: 'bio' to open the bio panel — the structured work history, education, and professional background. Pass section: 'articles' or 'posts' to open the visitor's list view of all published articles or posts (use this for list-level requests like 'show me your articles', not for opening a specific item — for that, call getLatestPublished + navigateToContent instead). The owner is resolved server-side from the chat context — do not pass any user identifier. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge that the section is currently empty before opening it.",

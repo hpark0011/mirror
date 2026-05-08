@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
@@ -32,7 +32,23 @@ export function useDeletePost({
   const [isPending, setIsPending] = useState(false);
   const isSubmittingRef = useRef(false);
 
-  const removePosts = useMutation(api.posts.mutations.remove);
+  const removeMutation = useMutation(api.posts.mutations.remove);
+
+  const removePosts = useMemo(
+    () =>
+      removeMutation.withOptimisticUpdate((store, args) => {
+        const current = store.getQuery(api.posts.queries.getByUsername, {
+          username,
+        });
+        if (current == null) return;
+        store.setQuery(
+          api.posts.queries.getByUsername,
+          { username },
+          current.filter((post) => !args.ids.includes(post._id)),
+        );
+      }),
+    [removeMutation, username],
+  );
 
   const handleConfirm = useCallback(async () => {
     if (isSubmittingRef.current) return;
@@ -58,6 +74,7 @@ export function useDeletePost({
   }, [postId, removePosts, router, buildChatAwareHref, username]);
 
   const handleCancel = useCallback(() => {
+    if (isSubmittingRef.current) return;
     setDialogOpen(false);
   }, []);
 

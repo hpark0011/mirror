@@ -66,6 +66,7 @@ export function DeletePostButton({
             variant="outline"
             className="dark:bg-dialog"
             onClick={onCancel}
+            disabled={isPending}
           >
             Cancel
           </AlertDialogCancel>

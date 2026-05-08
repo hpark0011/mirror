@@ -353,6 +353,99 @@ export const remove = authMutation({
   },
 });
 
+/**
+ * Internal mutation powering the chat agent's `deletePost` tool. Mirrors the
+ * single-post slice of `remove` but with two key differences:
+ *
+ *  1. Caller is the chat action (no `ctx.user`), so this is `internalMutation`
+ *     with an explicit `userId` arg. The arg is server-derived in the tool
+ *     factory's closure (`profileOwnerId`) and is NEVER reachable from the
+ *     LLM-visible `inputSchema`. See `.claude/rules/agent-parity.md` and
+ *     `.claude/rules/embeddings.md` — same cross-user isolation invariant the
+ *     RAG vector-search uses.
+ *
+ *  2. Identifies the post by `(userId, slug)` via the `by_userId_and_slug`
+ *     compound index. Slug-not-found and cross-user collisions both return
+ *     `{ deleted: false }` rather than throwing — so a stale slug from the
+ *     LLM (typo, hallucination, or already-deleted) surfaces as a normal
+ *     tool result the agent can recover from in text, not as an error.
+ *
+ * Returns `{ deleted, title?, slug }` so the tool can echo a confirmation
+ * back through the streamed response and the client-side intent watcher can
+ * navigate the visitor to the posts list.
+ */
+export const deleteByUserAndSlug = internalMutation({
+  args: {
+    userId: v.id("users"),
+    slug: v.string(),
+  },
+  returns: v.union(
+    v.object({
+      deleted: v.literal(true),
+      title: v.string(),
+      slug: v.string(),
+    }),
+    v.object({
+      deleted: v.literal(false),
+      slug: v.string(),
+    }),
+  ),
+  handler: async (ctx, args) => {
+    const post = await ctx.db
+      .query("posts")
+      .withIndex("by_userId_and_slug", (q) =>
+        q.eq("userId", args.userId).eq("slug", args.slug),
+      )
+      .unique();
+
+    // Belt-and-suspenders: the index already pins `userId`, but assert again
+    // so a future edit that loosens the index clause cannot quietly produce
+    // a cross-user delete.
+    if (!post || !isOwnedByUser(post, args.userId)) {
+      return { deleted: false as const, slug: args.slug };
+    }
+
+    const inlineIds = Array.from(
+      new Set(extractInlineImageStorageIds(post.body)),
+    ) as Id<"_storage">[];
+
+    await ctx.db.delete(post._id);
+
+    if (post.coverImageStorageId) {
+      try {
+        await ctx.storage.delete(post.coverImageStorageId);
+      } catch {
+        // Cron sweep is the safety net.
+      }
+    }
+
+    const callerOwned = await filterCallerOwnedInlineIds(
+      ctx,
+      inlineIds,
+      args.userId,
+    );
+    const inlineToDelete = await filterUnreferencedStorageIds(
+      ctx,
+      callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION),
+    );
+    for (const id of inlineToDelete) {
+      try {
+        await ctx.storage.delete(id);
+      } catch {
+        // Cron sweep is the safety net.
+      }
+    }
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.embeddings.mutations.deleteBySource,
+      { sourceTable: "posts" as const, sourceId: post._id },
+    );
+
+    return { deleted: true as const, title: post.title, slug: post.slug };
+  },
+});
+
 export const generatePostCoverImageUploadUrl = authMutation({
   args: {},
   returns: v.string(),
