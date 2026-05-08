@@ -65,8 +65,11 @@ async function safeDeleteStorage(
   if (!storageId) return;
   try {
     await ctx.storage.delete(storageId);
-  } catch {
-    // Ignore — orphan-sweep cron will reclaim it later.
+  } catch (err) {
+    // Surface the failure in Convex function logs so a systematic backend
+    // regression (auth change, API shape drift) is visible — the cron
+    // sweep still owns recovery, but silent failures defeat observability.
+    console.error("[safeDeleteStorage] ctx.storage.delete failed", storageId, err);
   }
 }
 
@@ -479,15 +482,13 @@ export const update = authMutation({
     //   - Branch 3 (replacedImage): delete the prior image blob AND the
     //     prior video + poster if they were set.
     if (clearedAllCover || replacedVideo || replacedImage) {
+      // Image and video share the same trigger condition for deletion
+      // — clearing or replacing either kind vacates the other surface.
+      // safeDeleteStorage guards undefined so the inner checks could be
+      // dropped, but they keep intent clear.
       if (article.coverImageStorageId) {
         await safeDeleteStorage(ctx, article.coverImageStorageId);
       }
-    }
-    if (clearedAllCover || replacedVideo || replacedImage) {
-      // For replacedVideo we only delete the prior video blob if it
-      // actually changed. The "no swap" branch above already filters
-      // that case out, so reaching here means video was replaced and
-      // article.coverVideoStorageId was non-empty.
       if (article.coverVideoStorageId) {
         await safeDeleteStorage(ctx, article.coverVideoStorageId);
       }

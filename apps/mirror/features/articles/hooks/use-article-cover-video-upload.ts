@@ -190,9 +190,14 @@ export function useArticleCoverVideoUpload(): UseArticleCoverVideoUploadReturn {
           claimPosterOwnership({ storageId: posterStorageId }),
         ]);
       } catch (err) {
-        void deleteOrphanCoverVideo({
+        deleteOrphanCoverVideo({
           videoStorageId,
           posterStorageId,
+        }).catch((cleanupErr) => {
+          console.error(
+            "[cover-video-upload] orphan cleanup failed after claim error",
+            cleanupErr,
+          );
         });
         throw err;
       }

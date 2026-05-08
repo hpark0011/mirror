@@ -178,10 +178,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     [uploadCoverImage, uploadCoverVideo],
   );
 
-  const handleCoverClear = useCallback(() => {
-    clearCoverState();
-  }, [clearCoverState]);
-
   const persistValidated = useCallback(
     async (data: ArticleMetadataFormData, targetStatus: ArticleStatus) => {
       const slugSource = data.slug?.trim() ? data.slug : data.title;
@@ -215,16 +211,28 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
         // orphan delete completes. Forcing a re-upload keeps things
         // consistent.
         if (coverImageStorageId) {
-          void deleteOrphanCoverImage({ storageId: coverImageStorageId });
+          deleteOrphanCoverImage({ storageId: coverImageStorageId }).catch(
+            (cleanupErr) => {
+              console.error(
+                "[new-article-form] cover-image orphan cleanup failed",
+                cleanupErr,
+              );
+            },
+          );
         }
         if (coverVideoStorageId || coverVideoPosterStorageId) {
-          void deleteOrphanCoverVideo({
+          deleteOrphanCoverVideo({
             ...(coverVideoStorageId
               ? { videoStorageId: coverVideoStorageId }
               : {}),
             ...(coverVideoPosterStorageId
               ? { posterStorageId: coverVideoPosterStorageId }
               : {}),
+          }).catch((cleanupErr) => {
+            console.error(
+              "[new-article-form] cover-video orphan cleanup failed",
+              cleanupErr,
+            );
           });
         }
         if (
@@ -357,7 +365,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     setBody,
     setHasPendingUploads,
     handleCoverUpload,
-    handleCoverClear,
+    handleCoverClear: clearCoverState,
     onInlineImageUpload: uploadInlineImage as (
       file: File,
     ) => Promise<InlineImageUploadResult>,
