@@ -39,6 +39,7 @@ import { isContentKind, type ContentKind } from "@/features/content";
  */
 const NAVIGATE_TO_CONTENT_TYPE = "tool-navigateToContent";
 const OPEN_PROFILE_SECTION_TYPE = "tool-openProfileSection";
+const DELETE_POST_TYPE = "tool-deletePost";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -126,6 +127,35 @@ function isOpenProfileSectionOutput(
   );
 }
 
+type DeletePostOutput = {
+  // The agent's `deletePost` tool result mirrors `openProfileSection`'s
+  // section-level navigation contract: a server-built href pointing at the
+  // posts-list route the visitor should land on after the post they were
+  // viewing was removed. Slug-level navigation (`navigateToContent`) is the
+  // wrong shape here — the post is gone, so its detail href would 404.
+  kind: "posts";
+  // Whether the server actually deleted a row. False when the slug did not
+  // match a post owned by this profile (stale slug, hallucination,
+  // already-deleted). The watcher still navigates because the user-visible
+  // expectation ("take me to the posts list") holds either way — and
+  // navigating away from a possibly-stale detail page is the safe move.
+  deleted: boolean;
+  slug: string;
+  href: string;
+};
+
+function isDeletePostOutput(output: unknown): output is DeletePostOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  return (
+    o.kind === "posts" &&
+    typeof o.deleted === "boolean" &&
+    typeof o.slug === "string" &&
+    typeof o.href === "string" &&
+    o.href.length > 0
+  );
+}
+
 export function useAgentIntentWatcher(
   messages: UIMessage[],
   conversationId: string | null,
@@ -145,7 +175,8 @@ export function useAgentIntentWatcher(
       for (const part of message.parts) {
         if (
           part.type !== NAVIGATE_TO_CONTENT_TYPE &&
-          part.type !== OPEN_PROFILE_SECTION_TYPE
+          part.type !== OPEN_PROFILE_SECTION_TYPE &&
+          part.type !== DELETE_POST_TYPE
         ) {
           continue;
         }
@@ -177,6 +208,22 @@ export function useAgentIntentWatcher(
         if (toolPart.type === OPEN_PROFILE_SECTION_TYPE) {
           if (!isOpenProfileSectionOutput(toolPart.output)) continue;
           handled.add(toolPart.toolCallId);
+          navigateToProfileSection({
+            section: toolPart.output.kind,
+            href: toolPart.output.href,
+          });
+          continue;
+        }
+
+        if (toolPart.type === DELETE_POST_TYPE) {
+          if (!isDeletePostOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+          // Tab-level navigation (server-built href). The deletion already
+          // happened server-side via `internal.posts.mutations.deleteByUserAndSlug`;
+          // the only client-side responsibility is moving the visitor off the
+          // possibly-stale detail page. Funnels through the same dispatcher
+          // the user-UI delete flow would route to (`router.replace` to the
+          // posts list) — see `apps/mirror/features/posts/hooks/use-delete-post.ts`.
           navigateToProfileSection({
             section: toolPart.output.kind,
             href: toolPart.output.href,

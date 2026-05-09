@@ -196,3 +196,38 @@ Secondary friction: needed to update three existing `helpers.test.ts` assertions
 - `resolveBySlug` scopes posts independently from articles when a user has the same slug across both kinds (defensive — prevents future regression if anyone unifies the lookup).
 
 **Open follow-ups**: None for Wave 1 backend. Wave 2 (mirror-frontend dispatcher + intent watcher) and Wave 3 (project rules) are explicitly out of scope and untouched.
+
+---
+
+## 2026-05-08 — Agent parity: `deletePost` clone-agent verb (feature-post-delete-button)
+
+**Task**: PR #68 added a Delete button to the post detail toolbar (`apps/mirror/features/posts/components/detail/delete-post-button.tsx`). Per `.claude/rules/agent-parity.md`, every UI verb must have a matching clone-agent tool. Add a `deletePost` tool routed through the same kind of dispatcher path the existing `navigateToContent` / `openProfileSection` tools use, with the same cross-user isolation invariants.
+
+**Reuse audit**: knowledge.md §"Agent tools" gave the full contract (inputSchema/execute, no userId in inputSchema, factory closes over profileOwnerId, `createTool: vi.fn((def) => def)` mock requirement, tools.ts is "use node" but toolQueries stays V8) on first pass. Prior 2026-05-04 log's tests-mocking-trap pre-emption made the mock surface a non-issue this session. `agent-parity.md` four-step checklist drove the task list verbatim. `embeddings.md` cross-user `userId` provenance rule extended cleanly to the new mutation (server-derived `userId` arg, no client surface).
+
+**Evidence**:
+- `pnpm --filter=@feel-good/convex test` exit 0 — **357/357 tests pass across 30 files** (was 272/25 in the prior log; +6 new in `tools.test.ts` covering the `deletePost` inputSchema invariants and execute behaviour incl. cross-user isolation, plus other domains' growth between sessions).
+- `pnpm --filter=@feel-good/convex check-types` exit 0.
+- `pnpm --filter=@feel-good/convex exec convex codegen --typecheck disable` exit 0 — added `internal.posts.mutations.deleteByUserAndSlug` to the API surface.
+- `pnpm build --filter=@feel-good/mirror` exit 0 (24.9s).
+- `pnpm lint --filter=@feel-good/mirror` exit 0 (2 pre-existing warnings, 0 errors).
+- Greppable invariant `grep -nE "userId\s*:" packages/convex/convex/chat/tools.ts | grep -v profileOwnerId` exit 1 (zero hits).
+- `chat/actions.ts:170` `finally` block still calls `clearStreamingLock` with `expectedStartedAt: lockStartedAt`. RAG fall-through at `chat/actions.ts:144` (`console.error` + empty `ragContext`) intact.
+
+**Bottleneck**: Recognising that the chat tool's mutation cannot reuse `posts.mutations.remove` directly because that's an `authMutation` and the chat action runs without an authed `ctx.user`. The natural-looking path was "have the tool call `posts.mutations.remove`," which would have required either making remove dual-mode or threading auth through actions — both fights the existing isolation contract. The right shape — a parallel `internalMutation` keyed on a server-derived `userId` arg — fell straight out of the `queryLatestPublished` / `resolveBySlug` precedent: the agent's data-resolution path already takes `userId: v.id("users")` as a server-only arg, never exposing it to the LLM. Mutation by the same shape is the correct extension of the pattern. Cost: ~0 iterations once the precedent was recognised; ~1 reading pass to confirm `authMutation` does not propagate through `ctx.runMutation` from an action context.
+
+Secondary nit: the result shape for `deletePost` looks like it should be slug-level (mirror `navigateToContent`), but the post is *gone* — its detail href would 404. Section-level navigation (`navigateToProfileSection({ section: "posts", href })`) is the correct dispatch because that's where `useDeletePost` already redirects via `router.replace(getContentHref(username, "posts"))`. Once that mapping was clear, the watcher branch was a copy of the `OPEN_PROFILE_SECTION_TYPE` branch with a different recogniser.
+
+**Counterfactual**: *"If knowledge.md §'Agent tools' had a one-line note like 'Mutation tools follow the same pattern: a parallel `internalMutation` taking `userId: v.id(\"users\")` as a server-only arg + closure-bound `profileOwnerId` from the factory, NEVER `authMutation` (the chat action has no `ctx.user`)', this would have cost ~0 reading passes instead of ~1, because the mutation shape would have been obvious from the start."*
+
+**Patches applied**:
+
+1. (knowledge.md §"Agent tools (learned Wave 1 — agent-UI parity)") Add a "Mutation tools" sub-bullet capturing: (a) chat actions have no `ctx.user`, so tools that mutate state MUST call `internalMutation` (not `authMutation`); (b) the mutation takes a server-only `userId: v.id("users")` arg derived from the factory's closure-bound `profileOwnerId` — same invariant as the data queries; (c) the mutation belt-and-suspenders re-asserts ownership via `isOwnedByUser` even though the compound index already pins `userId` (defence-in-depth against future index loosening); (d) "stale slug / cross-user collision" returns `{ deleted: false }` rather than throwing so the LLM has a recoverable result instead of breaking the stream.
+
+2. (knowledge.md §"composeSystemPrompt section order") No structural change needed — `TOOLS_VOCABULARY` got a new clause but it's still one fixed-region segment; segment counts in `helpers.test.ts` (UT-02 expects 7, UT-03 expects 5) are unchanged. Worth noting in knowledge: appending a new tool to `TOOLS_VOCABULARY` does NOT change the segment count, only its content — segment-count tests stay green for tool additions.
+
+3. (knowledge.md §"Agent tools" → new "Section-level vs slug-level result shape") Pin the rule that **destructive verbs** (delete, archive, etc.) must return section-level navigation results (`{ kind: "<section>", href }`) rather than slug-level (`{ kind, slug, href }`) — the post-mutation detail href is dead, so the watcher must dispatch `navigateToProfileSection`, not `navigateToContent`. Mirrors what `useDeletePost` already does on the user-UI side.
+
+**Scope deviation**: None. Followed the prompt's four-step checklist verbatim and the agent-parity rule's reference shapes. Did NOT modify `use-delete-post.ts` or `delete-post-button.tsx` per the explicit constraint. Added 4 behavioural tests beyond the two `inputSchema invariants` assertions: success path, stale-slug returns deleted=false, cross-user isolation (B's post survives A's tool call), post-only scoping (article with same slug untouched).
+
+**Open follow-ups**: None for the agent-parity slice. The `deleteByUserAndSlug` internal mutation duplicates the per-row body of `posts.mutations.remove`; if a future change adds more cleanup steps (analytics events, audit log), there's a refactoring opportunity to extract the per-post delete body into a shared helper. Not done now because (a) it would touch `use-delete-post.ts`'s call path which was explicitly out of scope, and (b) the duplication is ~30 lines and easier to keep verbatim until the cleanup surface stabilizes.

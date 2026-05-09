@@ -1,6 +1,6 @@
 # chat-backend-developer — Knowledge
 
-*Last updated: 2026-04-30*
+*Last updated: 2026-05-08*
 
 ## Architecture
 
@@ -176,6 +176,21 @@ Files: `chat/tools.ts` (`"use node"`, `buildCloneTools(profileOwnerId)` factory)
 
 **Why tools.ts is `"use node"`**:
 - Only consumed by `actions.ts` (already `"use node"`). Marking tools.ts the same way is conservative and prevents accidental V8-runtime imports in the future. `toolQueries.ts` is **NOT** `"use node"` — those are `internalQuery`s and run in V8.
+
+**Mutation tools (learned 2026-05-08 — `deletePost` / agent parity)**:
+- Chat actions run without `ctx.user` (the action context inherits from `streamResponse`'s `internalAction`, not from a Better Auth session). Tools that **mutate** state CANNOT call `authMutation` and MUST call `internalMutation` instead.
+- The internal mutation takes a server-only `userId: v.id("users")` arg derived from the factory's closure-bound `profileOwnerId` — same isolation contract as the data queries (`queryLatestPublished`, `resolveBySlug`). Greppable invariant for chat-tool mutations: `grep -nE "userId\s*:" packages/convex/convex/chat/tools.ts | grep -v profileOwnerId` MUST stay zero hits.
+- Belt-and-suspenders: re-assert ownership via `isOwnedByUser(row, userId)` inside the handler even though the compound index already pins `userId`. Defence-in-depth against future index loosening.
+- "Stale slug / cross-user collision / already-deleted" returns a structured `{ deleted: false }` (or `{ resolved: null }`) result rather than throwing, so the LLM has a recoverable result instead of breaking the stream. Throwing is reserved for genuine "tool surface is unavailable" cases (e.g., owner row missing — same null-row pattern `openProfileSection` uses).
+- Canonical example: `internal.posts.mutations.deleteByUserAndSlug` (callsite: `chat/tools.ts:deletePost.execute`).
+
+**Section-level vs slug-level result shape** (learned 2026-05-08):
+- **Destructive verbs** (delete, archive, hide) must return **section-level** navigation results — `{ kind: "<section>", href }` shaped like `openProfileSection`'s output — NOT slug-level. The mutated row's detail href is dead post-mutation; dispatching `navigateToContent` would 404 the visitor.
+- The watcher branch for a destructive verb dispatches `navigateToProfileSection({ section, href })`, NOT `navigateToContent`. Mirrors what the user-UI hook already does (e.g., `useDeletePost` calls `router.replace(getContentHref(username, "posts"))`).
+- Adding a new destructive verb? Reuse the `queryProfileSectionList` lookup to build the post-mutation list href — single source of truth across `openProfileSection` and any destructive verb.
+
+**TOOLS_VOCABULARY additions are content-only** (learned 2026-05-08):
+- Appending a new tool's verb-name to the `TOOLS_VOCABULARY` string in `chat/helpers.ts` does NOT change the prompt's segment count — it's still one fixed-region segment, just longer. The `helpers.test.ts` segment-count assertions (UT-02 expects 7, UT-03 expects 5) stay green for tool additions; they only need updating if a new fixed/truncatable segment is introduced or removed.
 
 **Username href construction**:
 - `users.username` is `v.optional(v.string())`. `resolveBySlug` must guard against missing username before returning a row, otherwise the href would be malformed (`/@/articles/...`). The query returns `null` on missing username, treating it as not-resolvable.

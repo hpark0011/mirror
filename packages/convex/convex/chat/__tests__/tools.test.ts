@@ -633,6 +633,42 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     );
   });
 
+  it("deletePost.inputSchema does not expose userId (or any user identifier)", () => {
+    // Cross-user isolation invariant — `deletePost` mutates state, so a
+    // userId leak in `inputSchema` would let the LLM target another user's
+    // post. The closure binds `profileOwnerId` server-side; the LLM-visible
+    // surface is `slug` only, and the internal mutation re-checks ownership
+    // against the closure-bound id (`isOwnedByUser`) before deleting.
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.deletePost.inputSchema as
+      | { shape?: Record<string, unknown> }
+      | undefined;
+
+    expect(schema).toBeDefined();
+    expect(schema!.shape).toBeDefined();
+    expect("userId" in schema!.shape!).toBe(false);
+    expect("user_id" in schema!.shape!).toBe(false);
+    expect("ownerId" in schema!.shape!).toBe(false);
+
+    const allKeys = collectAllKeys(schema!.shape!);
+    expect(allKeys.every((k) => !/^(userId|user_id|ownerId)$/i.test(k))).toBe(
+      true,
+    );
+  });
+
+  it("deletePost.inputSchema exposes only `slug` (no user identifier, no kind)", () => {
+    // `deletePost` is post-only by design — there's no `kind` slot, so the
+    // LLM cannot ask the tool to delete an article by reusing the same verb.
+    // (The agent does not have an article-delete verb today; if one is added,
+    // it should be a separate tool with its own `inputSchema invariants`
+    // test, not a `kind` enum widening on this one.)
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.deletePost.inputSchema as {
+      shape: Record<string, unknown>;
+    };
+    expect(Object.keys(schema.shape).sort()).toEqual(["slug"]);
+  });
+
   it("openProfileSection.inputSchema exposes only `section`, bounded to the visitor-visible subset", () => {
     // Pins both the shape (one key, `section`) and the enum range
     // (`bio | articles | posts` only — `clone-settings` is owner-only and
@@ -841,6 +877,176 @@ describe("chat/tools.openProfileSection — execute", () => {
       section: "posts",
     });
     expect(bResult.hasEntries).toBe(true);
+  });
+});
+
+describe("chat/tools.deletePost — execute", () => {
+  // Behavioural coverage for the agent verb that mirrors the post-detail
+  // toolbar's Delete button. The execute path must:
+  //   - resolve the post by `(profileOwnerId, slug)` via the cross-user-safe
+  //     compound index in `internal.posts.mutations.deleteByUserAndSlug`,
+  //   - delete only when the post is owned by the closure-bound owner,
+  //   - return a structured result with `deleted`, `slug`, `title?`, and a
+  //     server-built posts-list `href` so the client-side intent watcher can
+  //     navigate the visitor away from the now-deleted detail page.
+  // The `inputSchema invariants` block above pins that no userId reaches
+  // the LLM-visible surface.
+  type DeletePostArgs = { slug: string };
+  function buildCtx(t: ReturnType<typeof makeT>) {
+    return {
+      runMutation: (
+        ref: unknown,
+        args: { userId: Id<"users">; slug: string },
+      ) => t.mutation(ref as never, args as never),
+      runQuery: (
+        ref: unknown,
+        args: { userId: Id<"users">; section?: "articles" | "posts" },
+      ) => t.query(ref as never, args as never),
+    } as unknown as Parameters<
+      ReturnType<typeof buildCloneTools>["deletePost"]["execute"]
+    >[0];
+  }
+
+  async function insertPublishedPost(
+    t: ReturnType<typeof makeT>,
+    owner: Id<"users">,
+    slug: string,
+    title: string,
+  ) {
+    return t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug,
+        title,
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+  }
+
+  it("deletes the post and returns the canonical posts-list href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_delete_post");
+    const postId = await insertPublishedPost(
+      t,
+      owner,
+      "to-delete",
+      "Going Away",
+    );
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.deletePost.execute(buildCtx(t), {
+      slug: "to-delete",
+    } satisfies DeletePostArgs);
+
+    expect(result.kind).toBe("posts");
+    expect(result.deleted).toBe(true);
+    expect(result.slug).toBe("to-delete");
+    expect(result.title).toBe("Going Away");
+    expect(result.href).toBe(
+      buildContentHref("owner_delete_post", "posts"),
+    );
+
+    // The row is actually gone — not a soft delete or status flip.
+    const remaining = await t.run(async (ctx) => ctx.db.get(postId));
+    expect(remaining).toBeNull();
+  });
+
+  it("returns deleted=false (not throw) when the slug does not match a post for this owner", async () => {
+    // Stale slug from the LLM (typo, hallucination, already-deleted) must
+    // surface as a normal tool result the agent can recover from in text,
+    // not as an error that breaks the stream. The href is still resolved so
+    // the watcher can move the visitor off any stale detail page.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_missing_slug");
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.deletePost.execute(buildCtx(t), {
+      slug: "never-existed",
+    });
+
+    expect(result.kind).toBe("posts");
+    expect(result.deleted).toBe(false);
+    expect(result.slug).toBe("never-existed");
+    expect(result.title).toBeUndefined();
+    expect(result.href).toBe(
+      buildContentHref("owner_missing_slug", "posts"),
+    );
+  });
+
+  it("SECURITY: a slug owned by a DIFFERENT user is NOT deleted (cross-user isolation)", async () => {
+    // The most important regression guard for this verb. User A's clone
+    // agent must not be able to delete a post owned by user B by passing
+    // B's slug. The internal mutation keys on `(profileOwnerId, slug)` via
+    // the compound index AND re-asserts `isOwnedByUser` — both must hold
+    // for the row to be reachable.
+    const t = makeT();
+    const userA = await insertOwner(t, "user_a_delete_iso");
+    const userB = await insertOwner(t, "user_b_delete_iso");
+
+    const bPostId = await insertPublishedPost(
+      t,
+      userB,
+      "shared-slug",
+      "B's post",
+    );
+
+    const toolsForA = buildCloneTools(userA);
+    const result = await toolsForA.deletePost.execute(buildCtx(t), {
+      slug: "shared-slug",
+    });
+
+    expect(result.deleted).toBe(false);
+    // B's post is still alive — same-row read confirms the delete did NOT
+    // cross the user boundary.
+    const stillThere = await t.run(async (ctx) => ctx.db.get(bPostId));
+    expect(stillThere).not.toBeNull();
+    expect(stillThere!.title).toBe("B's post");
+  });
+
+  it("scopes posts-only — does NOT delete an article that happens to share a slug", async () => {
+    // Defensive parity with `resolveBySlug`'s "scopes posts independently
+    // from articles" test. The verb is post-only by `inputSchema` (no `kind`
+    // slot), and the internal mutation only queries the `posts` table, so
+    // an article with the same slug must be untouched.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_post_only");
+
+    const articleId = await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "shared-slug",
+        title: "An Article",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+    const postId = await insertPublishedPost(
+      t,
+      owner,
+      "shared-slug",
+      "A Post",
+    );
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.deletePost.execute(buildCtx(t), {
+      slug: "shared-slug",
+    });
+
+    expect(result.deleted).toBe(true);
+    expect(result.title).toBe("A Post");
+    // The post is gone, but the article (different table, different verb)
+    // is still alive.
+    expect(await t.run(async (ctx) => ctx.db.get(postId))).toBeNull();
+    expect(
+      await t.run(async (ctx) => ctx.db.get(articleId)),
+    ).not.toBeNull();
   });
 });
 
