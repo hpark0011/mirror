@@ -38,31 +38,12 @@ vi.mock("../../auth/client", () => {
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import schema from "../../schema";
-
-// Vite's `import.meta.glob` normalizes keys to the shortest possible
-// relative path from the importing file, which gives mixed prefixes when
-// the test lives in a nested __tests__/ dir. `convex-test` needs a single
-// uniform prefix rooted at the `_generated/` entry, so we rewrite every
-// key to start with `../../<dir>/...` (relative to the convex/ root when
-// viewed from here).
-function normalizeConvexGlob(
-  raw: Record<string, () => Promise<unknown>>,
-): Record<string, () => Promise<unknown>> {
-  const out: Record<string, () => Promise<unknown>> = {};
-  for (const [key, loader] of Object.entries(raw)) {
-    let k = key;
-    if (k.startsWith("./")) {
-      k = "../../articles/__tests__/" + k.slice(2);
-    } else if (k.startsWith("../") && !k.startsWith("../../")) {
-      k = "../../articles/" + k.slice(3);
-    }
-    out[k] = loader;
-  }
-  return out;
-}
+import { normalizeConvexTestModules } from "../../__tests__/testUtils";
 
 const rawModules = import.meta.glob("../../**/*.{ts,js}");
-const modules = normalizeConvexGlob(rawModules);
+const modules = normalizeConvexTestModules(rawModules, {
+  sourceDir: "articles",
+});
 
 function makeT() {
   return convexTest(schema, modules);

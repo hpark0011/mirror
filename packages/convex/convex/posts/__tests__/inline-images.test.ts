@@ -46,25 +46,12 @@ vi.mock("../../content/safeFetch", () => {
 import { api, internal } from "../../_generated/api";
 import { type Id } from "../../_generated/dataModel";
 import schema from "../../schema";
-
-function normalizeConvexGlob(
-  raw: Record<string, () => Promise<unknown>>,
-): Record<string, () => Promise<unknown>> {
-  const out: Record<string, () => Promise<unknown>> = {};
-  for (const [key, loader] of Object.entries(raw)) {
-    let k = key;
-    if (k.startsWith("./")) {
-      k = "../../posts/__tests__/" + k.slice(2);
-    } else if (k.startsWith("../") && !k.startsWith("../../")) {
-      k = "../../posts/" + k.slice(3);
-    }
-    out[k] = loader;
-  }
-  return out;
-}
+import { normalizeConvexTestModules } from "../../__tests__/testUtils";
 
 const rawModules = import.meta.glob("../../**/*.{ts,js}");
-const modules = normalizeConvexGlob(rawModules);
+const modules = normalizeConvexTestModules(rawModules, {
+  sourceDir: "posts",
+});
 
 function makeT() {
   return convexTest(schema, modules);

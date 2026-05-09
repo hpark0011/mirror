@@ -81,7 +81,7 @@ import { internal } from "../../_generated/api";
 import { normalizeConvexGlob } from "./testUtils";
 
 const rawModules = import.meta.glob("../../**/*.{ts,js}");
-const modules = normalizeConvexGlob(rawModules);
+const modules = normalizeConvexGlob(rawModules, { embeddings: "real" });
 
 function makeT() {
   return convexTest(schema, modules);

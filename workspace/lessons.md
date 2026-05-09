@@ -23,6 +23,19 @@
   the thrown error/no-row contract. A live `convex dev --once` deployment plus
   focused e2e is the right check for storage side effects.
 
+### Convex tests should isolate scheduled embedding side effects
+
+- CRUD/tool tests that schedule embedding cleanup or generation through
+  `ctx.scheduler.runAfter(0, ...)` should use a shared `convex-test` module map
+  that replaces embedding functions with no-op shims. That keeps tests focused
+  on the behavior under assertion instead of accidentally exercising the RAG
+  pipeline.
+- For scheduled cleanup specifically, the test-only `deleteBySource` shim must
+  resolve as an internal action, not an internal mutation. `convex-test` can
+  print a rollback stderr line for immediately scheduled mutations after the
+  parent mutation commits, even when the scheduled mutation is intentionally
+  empty. RAG/embedding tests should opt into the real modules explicitly.
+
 ## 2026-05-08
 
 ### Idempotent setup scripts must verify post-conditions, not trust subshell exit codes
