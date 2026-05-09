@@ -2,6 +2,18 @@
 
 ## 2026-05-08
 
+### Temporary blob previews need an explicit ownership handoff
+
+- A child picker may need a temporary `blob:` URL for immediate preview, while
+  the parent hook owns the post-upload URL used by the rest of the form. Do not
+  let a generic "keep blob previews" sync guard preserve the child URL forever:
+  when upload settles, re-sync from parent props and revoke only the temporary
+  preview URL.
+- Regression shape: MP4 cover upload succeeds, tests that only assert the
+  `<video>` element exists stay green, but the preview can hold a revoked or
+  stale local URL. Add a regression test that checks the preview `src` actually
+  hands off to the parent-owned URL after upload.
+
 ### Idempotent setup scripts must verify post-conditions, not trust subshell exit codes
 
 - `sync-worktree-convex-secrets.sh` ran a `convex run` mutation inside `(...)`

@@ -1,18 +1,18 @@
 ---
 id: FG_185
-title: "Cover-image-picker finally-block must not revoke the URL the parent now stores"
+title: "Cover-image-picker must hand off its temporary preview URL after upload"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
-description: "The picker creates objectUrl and the parent hook copies it into coverVideoUrl state and blobUrlRef. The picker's finally then revokes objectUrl. The parent's state still carries the now-revoked URL until the next reactive query tick replaces it; direct reads (analytics, SSR re-mount) get a dead URL."
+description: "The picker creates a temporary objectUrl for immediate preview and the parent hook creates its own post-upload objectUrl. The old effect preserved any blob preview forever while the picker's finally revoked the temporary URL, so the preview could hold a stale/broken blob instead of handing off to parent state."
 dependencies: []
 parent_plan_id: PLAN_010
 acceptance_criteria:
-  - "`grep -n 'URL.revokeObjectURL' apps/mirror/features/articles/components/editor/cover-image-picker.tsx` shows zero revokes inside the picker — revocation is owned exclusively by the parent hook (clearCoverState, blobUrlRef cleanup)"
-  - "A vitest test mounts the picker, simulates a successful upload, asserts URL.revokeObjectURL is NOT called by the picker"
-  - "Manual Chrome MCP: upload a video cover, save, navigate, return — confirm no broken-URL console errors"
-  - "`pnpm --filter=@feel-good/mirror lint && pnpm --filter=@feel-good/mirror build` exit 0"
+  - "`CoverImagePicker` tracks its own temporary preview URL and has no unconditional revoke in the upload success/finally path"
+  - "After successful upload, the picker re-syncs from parent props, revokes the temporary picker URL, and does not revoke the parent-owned URL"
+  - "A vitest test mounts the picker, simulates a successful video upload, and asserts the preview `src` hands off to the parent-owned URL"
+  - "`pnpm --filter=@feel-good/mirror test:e2e -- article-cover-video`, `pnpm --filter=@feel-good/mirror lint`, and `pnpm --filter=@feel-good/mirror build` exit 0"
 owner_agent: "React Hooks Engineer"
 ---
 
@@ -113,3 +113,24 @@ try {
 
 - Source: `apps/mirror/features/articles/components/editor/cover-image-picker.tsx:70-89`
 - Parent revoke paths: `apps/mirror/features/articles/hooks/use-edit-article-form.tsx:111-185` and `use-new-article-form.tsx:128-180`
+
+## Resolution
+
+Completed on 2026-05-09.
+
+- Correction to the original ticket analysis: the parent does not copy the
+  picker's exact `objectUrl`; it creates its own post-upload `objectUrl`. The
+  right boundary is therefore "picker owns and revokes the temporary preview
+  URL, parent owns and revokes the committed preview URL."
+- `CoverImagePicker` now treats its own `blob:` URL as a temporary upload
+  preview only. While upload is in flight, it preserves the preview; once
+  upload settles, it re-syncs from parent props and revokes the temporary URL
+  after the parent-owned URL takes over.
+- Added
+  `apps/mirror/features/articles/components/editor/__tests__/cover-image-picker.test.tsx`
+  to assert a successful video upload hands off from the temporary picker URL to
+  the parent-owned URL and does not revoke the parent URL.
+- Verified with `pnpm --filter=@feel-good/mirror test:unit -- cover-image-picker`,
+  `pnpm lint --filter=@feel-good/mirror`,
+  `pnpm --filter=@feel-good/mirror test:e2e -- article-cover-video`, and
+  `pnpm build --filter=@feel-good/mirror`.
