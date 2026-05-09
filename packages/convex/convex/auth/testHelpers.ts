@@ -344,15 +344,19 @@ export const ensureTestArticleFixtures = internalMutation({
       // Always reset the body so concurrent / sequential e2e tests start from
       // a deterministic empty draft. Inline-image specs paste images into
       // the draft and save, which would otherwise leak into the next run.
-      // Cover blobs are similarly cleared to keep the cascade-delete spec
-      // honest. FR-07 cascade is exercised at the `articles.mutations.remove`
-      // surface, not here, so we don't try to GC blobs in this fixture.
+      // Cover blobs (image + PLAN_010 video + poster) are similarly cleared
+      // to keep the cascade-delete and image↔video swap specs honest. FR-07
+      // cascade is exercised at the `articles.mutations.remove` surface,
+      // not here, so we don't try to GC blobs in this fixture.
       await ctx.db.patch(existingDraft._id, {
         status: "draft",
         title: "Test Draft Article",
         publishedAt: undefined,
         body: emptyBody,
         coverImageStorageId: undefined,
+        coverImageThumbhash: undefined,
+        coverVideoStorageId: undefined,
+        coverVideoPosterStorageId: undefined,
       });
     } else {
       await ctx.db.insert("articles", {

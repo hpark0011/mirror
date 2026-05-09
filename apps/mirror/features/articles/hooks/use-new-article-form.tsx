@@ -27,6 +27,7 @@ import { showToast } from "@feel-good/ui/components/toast";
 import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
+import { useArticleCoverVideoUpload } from "./use-article-cover-video-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
 import {
   articleMetadataSchema,
@@ -49,7 +50,11 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   const deleteOrphanCoverImage = useMutation(
     api.articles.mutations.deleteOrphanCoverImage,
   );
-  const { upload: uploadCover } = useArticleCoverImageUpload();
+  const deleteOrphanCoverVideo = useMutation(
+    api.articles.mutations.deleteOrphanCoverVideo,
+  );
+  const { upload: uploadCoverImage } = useArticleCoverImageUpload();
+  const { upload: uploadCoverVideo } = useArticleCoverVideoUpload();
   const { upload: uploadInlineImage } = useArticleInlineImageUpload();
 
   const form = useForm<ArticleMetadataFormData>({
@@ -67,14 +72,25 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     useState<Id<"_storage"> | null>(null);
   const [coverImageThumbhash, setCoverImageThumbhash] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
+  // PLAN_010: parallel video-cover state. Mutually exclusive with the
+  // image cover at write time — `persistValidated` enforces "at most
+  // one cover kind set" by sending whichever surface the local state
+  // points at.
+  const [coverVideoStorageId, setCoverVideoStorageId] =
+    useState<Id<"_storage"> | null>(null);
+  const [coverVideoPosterStorageId, setCoverVideoPosterStorageId] =
+    useState<Id<"_storage"> | null>(null);
+  const [coverVideoUrl, setCoverVideoUrl] = useState<string | null>(null);
+  const [coverVideoPosterUrl, setCoverVideoPosterUrl] =
+    useState<string | null>(null);
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // FG_132: track the active blob URL so we can revoke it before assigning a
-  // new one (replace/clear) and on unmount.
+  // FG_132: track the active image/video blob URL so we can revoke it before
+  // reassignment and on unmount. Posters do not get a local blob preview.
   const blobUrlRef = useRef<string | null>(null);
 
-  // FG_132: revoke the active blob URL on unmount to prevent memory leaks.
+  // FG_132: revoke the active blob URL on unmount to prevent leaks.
   useEffect(() => {
     return () => {
       if (blobUrlRef.current?.startsWith("blob:")) {
@@ -83,11 +99,66 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     };
   }, []);
 
-  const handleCoverImageUpload = useCallback(
-    async (file: File) => {
-      const { storageId, thumbhash } = await uploadCover(file);
+  const clearCoverState = useCallback(() => {
+    setCoverImageUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setCoverVideoUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setCoverVideoPosterUrl((prev) => {
+      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+      return null;
+    });
+    blobUrlRef.current = null;
+    setCoverImageStorageId(null);
+    setCoverImageThumbhash("");
+    setCoverVideoStorageId(null);
+    setCoverVideoPosterStorageId(null);
+  }, []);
+
+  const handleCoverUpload = useCallback(
+    async (file: File): Promise<{ kind: "image" | "video" }> => {
+      if (file.type.startsWith("video/")) {
+        const { videoStorageId, posterStorageId } =
+          await uploadCoverVideo(file);
+        const objectUrl = URL.createObjectURL(file);
+        // Selecting a video supersedes any existing image cover —
+        // mirror the server-side mutual-exclusion rule in local
+        // state so the UI reflects what the next save will commit.
+        setCoverImageUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setCoverImageStorageId(null);
+        setCoverImageThumbhash("");
+        setCoverVideoUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+        blobUrlRef.current = objectUrl;
+        // Poster URL stays null locally — the picker shows the video
+        // itself as the preview, and the server-resolved poster URL
+        // arrives on the next reactive query tick after save.
+        setCoverVideoPosterUrl(null);
+        setCoverVideoStorageId(videoStorageId);
+        setCoverVideoPosterStorageId(posterStorageId);
+        return { kind: "video" };
+      }
+      const { storageId, thumbhash } = await uploadCoverImage(file);
       const objectUrl = URL.createObjectURL(file);
-      // FG_132: revoke the previous blob URL before assigning a new one.
+      setCoverVideoUrl((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setCoverVideoPosterUrl((prev) => {
+        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setCoverVideoStorageId(null);
+      setCoverVideoPosterStorageId(null);
       setCoverImageUrl((prev) => {
         if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
         return objectUrl;
@@ -95,21 +166,10 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
       blobUrlRef.current = objectUrl;
       setCoverImageStorageId(storageId);
       setCoverImageThumbhash(thumbhash);
-      return { storageId: storageId as string, thumbhash, url: objectUrl };
+      return { kind: "image" };
     },
-    [uploadCover],
+    [uploadCoverImage, uploadCoverVideo],
   );
-
-  const handleCoverImageClear = useCallback(() => {
-    // FG_132: revoke blob URL on clear.
-    setCoverImageUrl((prev) => {
-      if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-      return null;
-    });
-    blobUrlRef.current = null;
-    setCoverImageStorageId(null);
-    setCoverImageThumbhash("");
-  }, []);
 
   const persistValidated = useCallback(
     async (data: ArticleMetadataFormData, targetStatus: ArticleStatus) => {
@@ -122,24 +182,58 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
           category: data.category.trim(),
           body,
           status: targetStatus,
+          // PLAN_010: send whichever cover surface the local state
+          // points at. The mutation rejects if both image and video
+          // ids are supplied; mutual-exclusion in local state (set in
+          // `handleCoverUpload`) guarantees we never send both.
           ...(coverImageStorageId ? { coverImageStorageId } : {}),
           ...(coverImageThumbhash && { coverImageThumbhash }),
+          ...(coverVideoStorageId ? { coverVideoStorageId } : {}),
+          ...(coverVideoPosterStorageId
+            ? { coverVideoPosterStorageId }
+            : {}),
         });
       } catch (err) {
-        // FG_129: If create fails after a cover was uploaded, the bytes are
-        // already in _storage with no owning row. Schedule a server-side
-        // orphan check that deletes the blob only if no articles row
-        // references it (TOCTOU-safe: both check and delete are in one
-        // mutation transaction).
+        // FG_129 / PLAN_010: if create fails after a cover was
+        // uploaded, the bytes are already in `_storage` with no
+        // owning row. Schedule a server-side orphan check that
+        // TOCTOU-safely deletes any unreferenced blob.
         //
-        // Clear the local cover reference too — once the orphan delete is
-        // enqueued, the storageId may already be gone by the time the user
-        // retries, and a retry that resends it would write a dangling
-        // reference. Forcing a re-upload on retry keeps the storage state
+        // Clear local cover state too — a retry that resends the
+        // same storageIds would write a dangling reference once the
+        // orphan delete completes. Forcing a re-upload keeps things
         // consistent.
         if (coverImageStorageId) {
-          void deleteOrphanCoverImage({ storageId: coverImageStorageId });
-          handleCoverImageClear();
+          deleteOrphanCoverImage({ storageId: coverImageStorageId }).catch(
+            (cleanupErr) => {
+              console.error(
+                "[new-article-form] cover-image orphan cleanup failed",
+                cleanupErr,
+              );
+            },
+          );
+        }
+        if (coverVideoStorageId || coverVideoPosterStorageId) {
+          deleteOrphanCoverVideo({
+            ...(coverVideoStorageId
+              ? { videoStorageId: coverVideoStorageId }
+              : {}),
+            ...(coverVideoPosterStorageId
+              ? { posterStorageId: coverVideoPosterStorageId }
+              : {}),
+          }).catch((cleanupErr) => {
+            console.error(
+              "[new-article-form] cover-video orphan cleanup failed",
+              cleanupErr,
+            );
+          });
+        }
+        if (
+          coverImageStorageId ||
+          coverVideoStorageId ||
+          coverVideoPosterStorageId
+        ) {
+          clearCoverState();
         }
         throw err;
       }
@@ -149,9 +243,12 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
       body,
       coverImageStorageId,
       coverImageThumbhash,
+      coverVideoStorageId,
+      coverVideoPosterStorageId,
       create,
       deleteOrphanCoverImage,
-      handleCoverImageClear,
+      deleteOrphanCoverVideo,
+      clearCoverState,
       router,
       username,
     ],
@@ -246,6 +343,8 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     errors,
     status,
     coverImageUrl,
+    coverVideoUrl,
+    coverVideoPosterUrl,
     createdAt: null as number | null,
     publishedAt: null as number | null,
     body,
@@ -258,8 +357,8 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     setCategory: (value: string) => form.setValue("category", value),
     setBody,
     setHasPendingUploads,
-    handleCoverImageUpload,
-    handleCoverImageClear,
+    handleCoverUpload,
+    handleCoverClear: clearCoverState,
     onInlineImageUpload: uploadInlineImage as (
       file: File,
     ) => Promise<InlineImageUploadResult>,

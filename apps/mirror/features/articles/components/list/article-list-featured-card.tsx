@@ -1,6 +1,6 @@
 "use client";
 
-import { type MouseEvent, useCallback } from "react";
+import { type MouseEvent, useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@feel-good/utils/cn";
@@ -17,6 +17,49 @@ export type FeaturedArticleCardProps = {
   username: string;
   variant: FeaturedVariant;
 };
+
+function useVisibilityGatedVideoPlayback() {
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
+    null,
+  );
+  const [visibleVideoElement, setVisibleVideoElement] =
+    useState<Element | null>(null);
+  const videoRef = useCallback((element: HTMLVideoElement | null) => {
+    setVideoElement(element);
+  }, []);
+
+  useEffect(() => {
+    if (!videoElement || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setVisibleVideoElement(entry?.isIntersecting ? entry.target : null);
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(videoElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [videoElement]);
+
+  useEffect(() => {
+    if (!videoElement) return;
+
+    if (visibleVideoElement !== videoElement) {
+      videoElement.pause();
+      return;
+    }
+
+    void videoElement.play().catch(() => {
+      // Browser autoplay policies can still reject muted playback.
+    });
+  }, [visibleVideoElement, videoElement]);
+
+  return videoRef;
+}
 
 export function FeaturedArticleCard({
   article,
@@ -48,13 +91,18 @@ export function FeaturedArticleCard({
 
   const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
   const imageFirst = variant === "image-first";
-  const showImage = !!article.coverImageUrl;
+  // PLAN_010 render precedence: video wins when set, otherwise the
+  // image cover (or none). Both flags drive the same layout slot.
+  const hasCoverVideo = !!article.coverVideoUrl;
+  const hasCoverImage = !!article.coverImageUrl;
+  const showCover = hasCoverVideo || hasCoverImage;
+  const coverVideoRef = useVisibilityGatedVideoPlayback();
 
   const titleBlock = (
     <div
       className={cn(
         "flex flex-col justify-between @max-[480px]:mb-4",
-        imageFirst && showImage && "@max-[480px]:order-1",
+        imageFirst && showCover && "@max-[480px]:order-1",
       )}
     >
       <div className="md:text-3xl @max-[880px]:text-2xl @max-[480px]:text-2xl text-2xl leading-[1.0] @max-[880px]:leading-[1.05]">
@@ -73,7 +121,28 @@ export function FeaturedArticleCard({
     </div>
   );
 
-  const imageBlock = article.coverImageUrl
+  const coverBlock = hasCoverVideo
+    ? (
+      <div
+        className={cn(
+          "relative w-full aspect-video h-full bg-gray-5 max-w-[520px] overflow-hidden",
+          imageFirst && "@max-[480px]:order-2",
+        )}
+      >
+        <video
+          ref={coverVideoRef}
+          src={article.coverVideoUrl!}
+          poster={article.coverVideoPosterUrl ?? undefined}
+          preload="metadata"
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover"
+          data-testid="article-list-cover-video"
+        />
+      </div>
+    )
+    : hasCoverImage
     ? (
       <div
         className={cn(
@@ -82,7 +151,7 @@ export function FeaturedArticleCard({
         )}
       >
         <Image
-          src={article.coverImageUrl}
+          src={article.coverImageUrl!}
           alt=""
           fill
           sizes="(max-width: 880px) 100vw, 560px"
@@ -106,14 +175,14 @@ export function FeaturedArticleCard({
         {imageFirst
           ? (
             <>
-              {imageBlock}
+              {coverBlock}
               {titleBlock}
             </>
           )
           : (
             <>
               {titleBlock}
-              {imageBlock}
+              {coverBlock}
             </>
           )}
       </div>

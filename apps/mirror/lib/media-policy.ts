@@ -5,11 +5,18 @@
 // markdown-upload-dialog-connector, the inline upload hook) MUST import
 // from this module so that the policy stays single-sourced from the
 // Convex-side `storagePolicy` constants.
+//
+// Cover-video constants follow the same single-source rule (PLAN_010).
 
-import { ALLOWED_INLINE_IMAGE_TYPES } from "@feel-good/convex/convex/content/storagePolicy";
+import {
+  ALLOWED_COVER_VIDEO_TYPES,
+  ALLOWED_INLINE_IMAGE_TYPES,
+} from "@feel-good/convex/convex/content/storagePolicy";
 
 export {
+  ALLOWED_COVER_VIDEO_TYPES,
   ALLOWED_INLINE_IMAGE_TYPES,
+  MAX_COVER_VIDEO_BYTES,
   MAX_INLINE_IMAGE_BYTES,
 } from "@feel-good/convex/convex/content/storagePolicy";
 
@@ -20,4 +27,12 @@ export {
  */
 export const ALLOWED_INLINE_IMAGE_TYPES_ATTR = [
   ...ALLOWED_INLINE_IMAGE_TYPES,
+].join(",");
+
+/**
+ * Comma-joined string for `<input accept>` covering video covers.
+ * Derived from `ALLOWED_COVER_VIDEO_TYPES` so it cannot drift.
+ */
+export const ALLOWED_COVER_VIDEO_TYPES_ATTR = [
+  ...ALLOWED_COVER_VIDEO_TYPES,
 ].join(",");

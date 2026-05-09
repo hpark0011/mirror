@@ -123,6 +123,54 @@ describe("crons.sweepOrphanedStorage — FR-10", () => {
     expect(await blobExists(t, young)).toBe(true);
   });
 
+  it("sweeps the previous video + poster after a video-cover replace (PLAN_010)", async () => {
+    const t = makeT();
+
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    const oldVideo = await storeBlob(t, "old-video");
+    const oldPoster = await storeBlob(t, "old-poster");
+    const newVideo = await storeBlob(t, "new-video");
+    const newPoster = await storeBlob(t, "new-poster");
+
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth-cover-video-sweep",
+        email: "covervideo@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    // Article currently references the NEW video + poster; the OLD
+    // pair is unreferenced and should be reclaimed once the grace
+    // window passes.
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId,
+        slug: "video-cover-sweep",
+        title: "Video Cover Sweep",
+        body: { type: "doc", content: [] },
+        coverVideoStorageId: newVideo,
+        coverVideoPosterStorageId: newPoster,
+        category: "general",
+        status: "published",
+        createdAt: 0,
+      }),
+    );
+
+    vi.setSystemTime(ORPHAN_GRACE_MS + 60 * 60 * 1000);
+
+    await t.mutation(internal.crons.sweepOrphanedStorage, {});
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+    vi.useRealTimers();
+
+    expect(await blobExists(t, oldVideo)).toBe(false);
+    expect(await blobExists(t, oldPoster)).toBe(false);
+    expect(await blobExists(t, newVideo)).toBe(true);
+    expect(await blobExists(t, newPoster)).toBe(true);
+  });
+
   it("skips referenced blobs (cover, inline, avatar)", async () => {
     const t = makeT();
 
@@ -506,6 +554,8 @@ describe("STORAGE_FIELD_REFERENCES — schema-introspection regression test (FR-
       .sort();
     expect(scalars).toEqual([
       "articles.coverImageStorageId",
+      "articles.coverVideoPosterStorageId",
+      "articles.coverVideoStorageId",
       "posts.coverImageStorageId",
       "users.avatarStorageId",
     ]);

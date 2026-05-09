@@ -26,6 +26,11 @@ type ArticleDetailProps = {
 
 export function ArticleDetail({ article }: ArticleDetailProps) {
   const blurDataUrl = thumbhashToDataUrl(article.coverImageThumbhash);
+  // PLAN_010 render precedence: video wins when set, otherwise the
+  // image cover (or none).
+  const hasCoverVideo = !!article.coverVideoUrl;
+  const hasCoverImage = !!article.coverImageUrl;
+  const hasCover = hasCoverVideo || hasCoverImage;
   return (
     <div className="py-18 px-4.5 bg-background min-h-[calc(100vh-40px)]">
       <article className="mx-auto flex flex-col">
@@ -48,20 +53,36 @@ export function ArticleDetail({ article }: ArticleDetailProps) {
           <h1
             className={cn(
               "text-3xl font-medium leading-[1.0] tracking-[-0.04em] text-start",
-              article.coverImageUrl ? "mb-20" : "mb-14",
+              hasCover ? "mb-20" : "mb-14",
             )}
           >
             {article.title}
           </h1>
         </div>
 
-        {article.coverImageUrl && (
+        {hasCoverVideo && (
+          <div className="relative left-1/2 -translate-x-1/2 aspect-video overflow-hidden bg-background-subtle [corner-shape:superellipse(1.3)] mb-4 max-w-4xl w-[calc(100%+36px)]">
+            <video
+              src={article.coverVideoUrl!}
+              poster={article.coverVideoPosterUrl ?? undefined}
+              preload="metadata"
+              autoPlay
+              loop
+              muted
+              playsInline
+              className="absolute inset-0 w-full h-full object-cover"
+              data-testid="article-detail-cover-video"
+            />
+          </div>
+        )}
+
+        {!hasCoverVideo && hasCoverImage && (
           <div
             className="relative left-1/2 -translate-x-1/2 aspect-video overflow-hidden bg-background-subtle [corner-shape:superellipse(1.3)] mb-4 max-w-4xl w-[calc(100%+36px)]"
             data-cover-thumbhash={article.coverImageThumbhash ?? ""}
           >
             <Image
-              src={article.coverImageUrl}
+              src={article.coverImageUrl!}
               alt={`Cover image for ${article.title}`}
               fill
               priority

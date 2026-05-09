@@ -44,26 +44,20 @@ const { ArticleMetadataHeader } = await import(
   "@/features/articles/components/editor/article-metadata-header"
 );
 
-const noopUpload = vi.fn(async (_file: File) => ({
-  storageId: "kg2_storage" as const,
-  thumbhash: "",
-  url: "https://example.convex.cloud/cover.png",
-}));
+const noopUpload = vi.fn(
+  async (_file: File): Promise<{ kind: "image" | "video" }> => ({ kind: "image" }),
+);
 
 type HarnessProps = {
   initialValues?: Partial<ArticleMetadataFormData>;
-  onCoverImageUpload?: (file: File) => Promise<{
-    storageId: string;
-    thumbhash: string;
-    url: string;
-  }>;
+  onCoverUpload?: (file: File) => Promise<{ kind: "image" | "video" }>;
   publishedAt?: number | null;
   onFormReady?: (form: UseFormReturn<ArticleMetadataFormData>) => void;
 };
 
 function TestHarness({
   initialValues,
-  onCoverImageUpload,
+  onCoverUpload,
   publishedAt = null,
   onFormReady,
 }: HarnessProps) {
@@ -88,10 +82,12 @@ function TestHarness({
       <ArticleMetadataHeader
         form={form}
         coverImageUrl={null}
+        coverVideoUrl={null}
+        coverVideoPosterUrl={null}
         createdAt={null}
         publishedAt={publishedAt}
-        onCoverImageUpload={onCoverImageUpload ?? noopUpload}
-        onCoverImageClear={vi.fn()}
+        onCoverUpload={onCoverUpload ?? noopUpload}
+        onCoverClear={vi.fn()}
       />
     </>
   );
@@ -212,12 +208,12 @@ describe("ArticleMetadataHeader", () => {
   });
 
   it("invokes upload callback when a cover image file is selected", async () => {
-    const onCoverImageUpload = vi.fn(async (_file: File) => ({
-      storageId: "k123" as const,
-      thumbhash: "",
-      url: "https://example.convex.cloud/cover.png",
-    }));
-    render(<TestHarness onCoverImageUpload={onCoverImageUpload} />);
+    const onCoverUpload = vi.fn(
+      async (_file: File): Promise<{ kind: "image" | "video" }> => ({
+        kind: "image",
+      }),
+    );
+    render(<TestHarness onCoverUpload={onCoverUpload} />);
 
     const file = new File([new Uint8Array([1, 2, 3])], "cover.png", {
       type: "image/png",
@@ -229,8 +225,8 @@ describe("ArticleMetadataHeader", () => {
 
     // wait a microtask
     await Promise.resolve();
-    expect(onCoverImageUpload).toHaveBeenCalledTimes(1);
-    const firstArg = onCoverImageUpload.mock.calls[0]?.[0];
+    expect(onCoverUpload).toHaveBeenCalledTimes(1);
+    const firstArg = onCoverUpload.mock.calls[0]?.[0];
     expect(firstArg).toBeInstanceOf(File);
   });
 

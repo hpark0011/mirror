@@ -1,21 +1,51 @@
 "use client";
 
-// Click-anywhere file picker with image preview. Drives the article cover
-// image upload pipeline — the parent passes a `onUpload(file)` callback
-// that resolves to the storage ID, thumbhash, and a preview URL; this
-// component only owns the file input + preview UX.
+// Click-anywhere file picker with image OR video preview. Drives the
+// article cover upload pipeline — the parent passes a `onUpload(file)`
+// callback that resolves once both the upload and the form-state commit
+// have settled, returning whether the saved cover is an image or a
+// video. PLAN_010 adds the video branch alongside the existing image
+// branch; the picker decides which preview element (`<img>` vs.
+// `<video>`) to render based on whichever cover URL the parent passed.
 import { Button } from "@feel-good/ui/primitives/button";
 import { useEffect, useRef, useState } from "react";
+import {
+  ALLOWED_COVER_VIDEO_TYPES_ATTR,
+  ALLOWED_INLINE_IMAGE_TYPES_ATTR,
+} from "@/lib/media-policy";
+
+const ACCEPT_ATTR = `${ALLOWED_INLINE_IMAGE_TYPES_ATTR},${ALLOWED_COVER_VIDEO_TYPES_ATTR}`;
+
+type CoverKind = "image" | "video";
 
 interface CoverImagePickerProps {
-  url: string | null;
-  onUpload: (file: File) => Promise<{ storageId: string; thumbhash: string; url: string }>;
+  imageUrl: string | null;
+  videoUrl: string | null;
+  videoPosterUrl: string | null;
+  onUpload: (file: File) => Promise<{ kind: CoverKind }>;
   onClear: () => void;
   disabled?: boolean;
 }
 
+type ActivePreview =
+  | { kind: "image"; url: string }
+  | { kind: "video"; url: string; posterUrl: string | null }
+  | null;
+
+function activeFromProps(
+  imageUrl: string | null,
+  videoUrl: string | null,
+  videoPosterUrl: string | null,
+): ActivePreview {
+  if (videoUrl) return { kind: "video", url: videoUrl, posterUrl: videoPosterUrl };
+  if (imageUrl) return { kind: "image", url: imageUrl };
+  return null;
+}
+
 export function CoverImagePicker({
-  url,
+  imageUrl,
+  videoUrl,
+  videoPosterUrl,
   onUpload,
   onClear,
   disabled,
@@ -23,37 +53,45 @@ export function CoverImagePicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [hasUploaded, setHasUploaded] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(url);
+  const [active, setActive] = useState<ActivePreview>(() =>
+    activeFromProps(imageUrl, videoUrl, videoPosterUrl),
+  );
 
-  // Re-sync the preview when the parent's `url` prop changes (e.g. a
-  // slow-arriving server URL or a parent-driven clear). An in-progress
-  // local blob preview wins to avoid clobbering the active upload.
+  // Re-sync when the parent's URL props change (slow-arriving server
+  // URL or parent-driven clear). An in-progress local blob preview
+  // wins to avoid clobbering the active upload.
   useEffect(() => {
-    setPreviewUrl((prev) => (prev?.startsWith("blob:") ? prev : url));
-  }, [url]);
+    setActive((prev) => {
+      if (prev && prev.url.startsWith("blob:")) return prev;
+      return activeFromProps(imageUrl, videoUrl, videoPosterUrl);
+    });
+  }, [imageUrl, videoUrl, videoPosterUrl]);
 
   const handleSelect = async (file: File) => {
     setIsUploading(true);
     setHasUploaded(false);
+    const isVideo = file.type.startsWith("video/");
+    const objectUrl = URL.createObjectURL(file);
+    setActive(
+      isVideo
+        ? { kind: "video", url: objectUrl, posterUrl: null }
+        : { kind: "image", url: objectUrl },
+    );
     try {
-      const objectUrl = URL.createObjectURL(file);
-      setPreviewUrl(objectUrl);
-      const result = await onUpload(file);
-      URL.revokeObjectURL(objectUrl);
-      setPreviewUrl(result.url);
+      await onUpload(file);
+      // Once the parent commits the new server state, the props-sync
+      // effect above swaps blob: → server URL. Until then, the blob
+      // preview is what the user sees — which is fine.
       setHasUploaded(true);
     } finally {
+      URL.revokeObjectURL(objectUrl);
       setIsUploading(false);
     }
   };
 
-  const display = previewUrl ?? url;
-
-  // Deterministic state surface for e2e tests. The hook's `onUpload` resolves
-  // once `Promise.all([uploadToStorage, computeThumbhashFromFile])` has settled
-  // and the parent form has committed both `storageId` and `thumbhash`. Only
-  // then does `hasUploaded` flip to true — replacing flaky `waitForTimeout`
-  // settle heuristics in the e2e.
+  // Deterministic state surface for e2e tests. Flips to "ready" only
+  // after the upload + form-state commit promise has settled. Replaces
+  // any flaky `waitForTimeout` heuristic.
   const uploadState: "idle" | "uploading" | "ready" = isUploading
     ? "uploading"
     : hasUploaded
@@ -69,7 +107,7 @@ export function CoverImagePicker({
       <input
         ref={inputRef}
         type="file"
-        accept="image/png,image/jpeg,image/webp"
+        accept={ACCEPT_ATTR}
         className="sr-only"
         disabled={disabled || isUploading}
         onChange={async (e) => {
@@ -79,15 +117,31 @@ export function CoverImagePicker({
           e.target.value = "";
         }}
       />
-      {display
+      {active
         ? (
           <div className="relative w-full overflow-hidden rounded-xl [corner-shape:superellipse(1.2)]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={display}
-              alt="Article cover"
-              className="block h-auto w-full object-contain"
-            />
+            {active.kind === "video"
+              ? (
+                <video
+                  data-testid="article-cover-video-preview"
+                  src={active.url}
+                  poster={active.posterUrl ?? undefined}
+                  preload="metadata"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="block h-auto w-full object-contain"
+                />
+              )
+              : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={active.url}
+                  alt="Article cover"
+                  className="block h-auto w-full object-contain"
+                />
+              )}
             <div className="absolute right-2 top-2 flex gap-1">
               <Button
                 type="button"
@@ -103,7 +157,7 @@ export function CoverImagePicker({
                 size="xs"
                 variant="secondary"
                 onClick={() => {
-                  setPreviewUrl(null);
+                  setActive(null);
                   setHasUploaded(false);
                   onClear();
                 }}

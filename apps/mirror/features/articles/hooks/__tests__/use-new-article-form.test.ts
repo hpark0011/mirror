@@ -12,15 +12,22 @@ import { act, renderHook } from "@testing-library/react";
 
 const mockCreate = vi.fn();
 const mockDeleteOrphanCoverImage = vi.fn();
+const mockDeleteOrphanCoverVideo = vi.fn();
 const mockReplace = vi.fn();
 const mockShowToast = vi.fn();
 // Mutable upload spy — tests can call mockUploadCover.mockResolvedValue(...).
 const mockUploadCover = vi.fn();
+const mockUploadCoverVideo = vi.fn();
 
 vi.mock("convex/react", () => ({
   useMutation: (ref: unknown) => {
     const s = String(ref);
-    if (s.includes("deleteOrphan")) return mockDeleteOrphanCoverImage;
+    if (s.includes("deleteOrphanCoverVideo")) {
+      return mockDeleteOrphanCoverVideo;
+    }
+    if (s.includes("deleteOrphanCoverImage")) {
+      return mockDeleteOrphanCoverImage;
+    }
     if (s.includes("create")) return mockCreate;
     return vi.fn();
   },
@@ -29,6 +36,10 @@ vi.mock("convex/react", () => ({
 
 vi.mock("../use-article-cover-image-upload", () => ({
   useArticleCoverImageUpload: () => ({ upload: mockUploadCover }),
+}));
+
+vi.mock("../use-article-cover-video-upload", () => ({
+  useArticleCoverVideoUpload: () => ({ upload: mockUploadCoverVideo }),
 }));
 
 vi.mock("../use-article-inline-image-upload", () => ({
@@ -41,6 +52,7 @@ vi.mock("@feel-good/convex/convex/_generated/api", () => ({
       mutations: {
         create: "articles.mutations.create",
         deleteOrphanCoverImage: "articles.mutations.deleteOrphanCoverImage",
+        deleteOrphanCoverVideo: "articles.mutations.deleteOrphanCoverVideo",
       },
     },
   },
@@ -69,9 +81,11 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
   beforeEach(() => {
     mockCreate.mockReset();
     mockDeleteOrphanCoverImage.mockReset();
+    mockDeleteOrphanCoverVideo.mockReset();
     mockReplace.mockReset();
     mockShowToast.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
   });
 
   afterEach(() => {
@@ -218,7 +232,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     });
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -246,7 +260,7 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
     });
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -266,9 +280,11 @@ describe("useNewArticleForm — RHF validation", () => {
   beforeEach(() => {
     mockCreate.mockReset();
     mockDeleteOrphanCoverImage.mockReset();
+    mockDeleteOrphanCoverVideo.mockReset();
     mockReplace.mockReset();
     mockShowToast.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
   });
 
   afterEach(() => {
@@ -324,7 +340,9 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
   beforeEach(() => {
     mockCreate.mockReset();
     mockDeleteOrphanCoverImage.mockReset();
+    mockDeleteOrphanCoverVideo.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
     mockReplace.mockReset();
     mockShowToast.mockReset();
     // Stub URL.createObjectURL / revokeObjectURL so the hook can run in jsdom
@@ -340,8 +358,13 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
   });
 
   it("calls deleteOrphanCoverImage with the storageId when create fails after cover upload", async () => {
-    mockUploadCover.mockResolvedValue({ storageId: "storage_id_abc", thumbhash: "" });
-    mockCreate.mockRejectedValue(new Error("An article with slug already exists"));
+    mockUploadCover.mockResolvedValue({
+      storageId: "storage_id_abc",
+      thumbhash: "",
+    });
+    mockCreate.mockRejectedValue(
+      new Error("An article with slug already exists"),
+    );
     mockDeleteOrphanCoverImage.mockResolvedValue(null);
 
     const { result } = renderHook(() =>
@@ -355,7 +378,7 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
 
     // Simulate cover upload — this populates coverImageStorageId in state
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -374,7 +397,9 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
   });
 
   it("does NOT call deleteOrphanCoverImage when create fails without a cover upload", async () => {
-    mockCreate.mockRejectedValue(new Error("An article with slug already exists"));
+    mockCreate.mockRejectedValue(
+      new Error("An article with slug already exists"),
+    );
     mockDeleteOrphanCoverImage.mockResolvedValue(null);
 
     const { result } = renderHook(() =>
@@ -400,8 +425,13 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
   // bytes the orphan-sweep mutation has already deleted, persisting a
   // dangling cover reference.
   it("clears local cover state when orphan cleanup is scheduled", async () => {
-    mockUploadCover.mockResolvedValue({ storageId: "storage_id_def", thumbhash: "" });
-    mockCreate.mockRejectedValue(new Error("An article with slug already exists"));
+    mockUploadCover.mockResolvedValue({
+      storageId: "storage_id_def",
+      thumbhash: "",
+    });
+    mockCreate.mockRejectedValue(
+      new Error("An article with slug already exists"),
+    );
     mockDeleteOrphanCoverImage.mockResolvedValue(null);
 
     const { result } = renderHook(() =>
@@ -414,7 +444,7 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
     });
 
     await act(async () => {
-      await result.current.handleCoverImageUpload(
+      await result.current.handleCoverUpload(
         new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
       );
     });
@@ -433,13 +463,224 @@ describe("useNewArticleForm — FG_129 cover-image orphan cleanup", () => {
   });
 });
 
+describe("useNewArticleForm — PLAN_010 cover-video orphan cleanup", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockDeleteOrphanCoverImage.mockReset();
+    mockDeleteOrphanCoverVideo.mockReset();
+    mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
+    mockReplace.mockReset();
+    mockShowToast.mockReset();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn().mockReturnValue("blob:video-url"),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("calls deleteOrphanCoverVideo with both ids when create fails after video upload", async () => {
+    mockUploadCoverVideo.mockResolvedValue({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+    mockCreate.mockRejectedValue(
+      new Error("An article with slug already exists"),
+    );
+    mockDeleteOrphanCoverVideo.mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("Video Cover");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.mp4", { type: "video/mp4" }),
+      );
+    });
+
+    expect(result.current.coverVideoUrl).toBe("blob:video-url");
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockDeleteOrphanCoverVideo).toHaveBeenCalledTimes(1);
+    expect(mockDeleteOrphanCoverVideo).toHaveBeenCalledWith({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+    expect(mockDeleteOrphanCoverImage).not.toHaveBeenCalled();
+    expect(result.current.coverVideoUrl).toBeNull();
+    expect(result.current.coverVideoPosterUrl).toBeNull();
+    expect(mockReplace).not.toHaveBeenCalled();
+  });
+
+  it("does NOT call deleteOrphanCoverVideo when create fails without a video upload", async () => {
+    mockCreate.mockRejectedValue(
+      new Error("An article with slug already exists"),
+    );
+    mockDeleteOrphanCoverVideo.mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("No Video Cover");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockDeleteOrphanCoverVideo).not.toHaveBeenCalled();
+  });
+});
+
+describe("useNewArticleForm — cover-kind mutual exclusion", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockDeleteOrphanCoverImage.mockReset();
+    mockDeleteOrphanCoverVideo.mockReset();
+    mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
+    mockReplace.mockReset();
+    mockShowToast.mockReset();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn((file: Blob) =>
+        file.type.startsWith("video/") ? "blob:video-url" : "blob:image-url",
+      ),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("uploading a video after an image clears the image cover state", async () => {
+    mockCreate.mockResolvedValue("article_id_6");
+    mockUploadCover.mockResolvedValue({
+      storageId: "image_storage_id",
+      thumbhash: "abc=",
+    });
+    mockUploadCoverVideo.mockResolvedValue({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("Video Wins");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+    expect(result.current.coverImageUrl).toBe("blob:image-url");
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.mp4", { type: "video/mp4" }),
+      );
+    });
+    expect(result.current.coverImageUrl).toBeNull();
+    expect(result.current.coverVideoUrl).toBe("blob:video-url");
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    const args = mockCreate.mock.calls[0]![0] as {
+      coverImageStorageId?: unknown;
+      coverVideoStorageId?: unknown;
+      coverVideoPosterStorageId?: unknown;
+    };
+    expect(args.coverImageStorageId).toBeUndefined();
+    expect(args.coverVideoStorageId).toBe("video_storage_id");
+    expect(args.coverVideoPosterStorageId).toBe("poster_storage_id");
+  });
+
+  it("uploading an image after a video clears the video cover state", async () => {
+    mockCreate.mockResolvedValue("article_id_7");
+    mockUploadCoverVideo.mockResolvedValue({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+    mockUploadCover.mockResolvedValue({
+      storageId: "image_storage_id",
+      thumbhash: "abc=",
+    });
+
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setTitle("Image Wins");
+      result.current.setCategory("Process");
+    });
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.mp4", { type: "video/mp4" }),
+      );
+    });
+    expect(result.current.coverVideoUrl).toBe("blob:video-url");
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.png", { type: "image/png" }),
+      );
+    });
+    expect(result.current.coverVideoUrl).toBeNull();
+    expect(result.current.coverVideoPosterUrl).toBeNull();
+    expect(result.current.coverImageUrl).toBe("blob:image-url");
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    const args = mockCreate.mock.calls[0]![0] as {
+      coverImageStorageId?: unknown;
+      coverVideoStorageId?: unknown;
+      coverVideoPosterStorageId?: unknown;
+    };
+    expect(args.coverImageStorageId).toBe("image_storage_id");
+    expect(args.coverVideoStorageId).toBeUndefined();
+    expect(args.coverVideoPosterStorageId).toBeUndefined();
+  });
+});
+
 describe("useNewArticleForm — togglePublish validation", () => {
   beforeEach(() => {
     mockCreate.mockReset();
     mockDeleteOrphanCoverImage.mockReset();
+    mockDeleteOrphanCoverVideo.mockReset();
     mockReplace.mockReset();
     mockShowToast.mockReset();
     mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
   });
 
   afterEach(() => {

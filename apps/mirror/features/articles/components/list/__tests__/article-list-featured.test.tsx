@@ -3,8 +3,8 @@
 //   - one article renders one card using the title-first variant
 //   - FeaturedArticleCard with no coverImageUrl omits the <img> and does not
 //     crash (the imageBlock conditional return path)
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { type ArticleSummary } from "@/features/articles/types";
 
@@ -58,6 +58,69 @@ vi.mock("@/app/[username]/_providers/clone-actions-context", () => ({
   }),
 }));
 
+let intersectionObservers: MockIntersectionObserver[] = [];
+let videoPlayMock: ReturnType<typeof vi.fn>;
+let videoPauseMock: ReturnType<typeof vi.fn>;
+
+class MockIntersectionObserver {
+  readonly callback: IntersectionObserverCallback;
+  readonly elements = new Set<Element>();
+  readonly rootMargin: string;
+
+  constructor(
+    callback: IntersectionObserverCallback,
+    options: IntersectionObserverInit = {},
+  ) {
+    this.callback = callback;
+    this.rootMargin = options.rootMargin ?? "";
+    intersectionObservers.push(this);
+  }
+
+  observe = vi.fn((element: Element) => {
+    this.elements.add(element);
+  });
+
+  unobserve = vi.fn((element: Element) => {
+    this.elements.delete(element);
+  });
+
+  disconnect = vi.fn(() => {
+    this.elements.clear();
+  });
+
+  takeRecords = vi.fn(() => []);
+
+  trigger(isIntersecting: boolean, target = [...this.elements][0]) {
+    if (!target) {
+      throw new Error("MockIntersectionObserver has no observed target");
+    }
+
+    this.callback(
+      [{ isIntersecting, target } as IntersectionObserverEntry],
+      this as unknown as IntersectionObserver,
+    );
+  }
+}
+
+beforeEach(() => {
+  intersectionObservers = [];
+  videoPlayMock = vi.fn(() => Promise.resolve());
+  videoPauseMock = vi.fn();
+  vi.spyOn(window.HTMLMediaElement.prototype, "play").mockImplementation(
+    videoPlayMock,
+  );
+  vi.spyOn(window.HTMLMediaElement.prototype, "pause").mockImplementation(
+    videoPauseMock,
+  );
+  vi.stubGlobal("IntersectionObserver", MockIntersectionObserver);
+});
+
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+});
+
 const { ArticleListFeatured } = await import(
   "@/features/articles/components/list/article-list-featured"
 );
@@ -74,6 +137,8 @@ function makeArticle(overrides: Partial<ArticleSummary> = {}): ArticleSummary {
     title: "Default Title",
     coverImageUrl: null,
     coverImageThumbhash: null,
+    coverVideoUrl: null,
+    coverVideoPosterUrl: null,
     createdAt: 0,
     publishedAt: 1000,
     status: "published",
@@ -83,10 +148,6 @@ function makeArticle(overrides: Partial<ArticleSummary> = {}): ArticleSummary {
 }
 
 describe("ArticleListFeatured", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("renders nothing when articles is empty", () => {
     const { container } = render(
       <ArticleListFeatured articles={[]} username="alice" />,
@@ -106,10 +167,6 @@ describe("ArticleListFeatured", () => {
 });
 
 describe("FeaturedArticleCard", () => {
-  afterEach(() => {
-    cleanup();
-  });
-
   it("renders no <img> when coverImageUrl is null", () => {
     const article = makeArticle({
       slug: "no-cover",
@@ -144,5 +201,53 @@ describe("FeaturedArticleCard", () => {
     const img = container.querySelector("img");
     expect(img).not.toBeNull();
     expect(img?.getAttribute("src")).toBe("https://example.com/cover.png");
+  });
+
+  it("renders a visibility-gated <video> when coverVideoUrl is set, even if coverImageUrl is also set", async () => {
+    const article = makeArticle({
+      slug: "with-video-cover",
+      title: "Has Video Cover",
+      coverImageUrl: "https://example.com/cover.png",
+      coverVideoUrl: "https://example.com/cover.mp4",
+      coverVideoPosterUrl: "https://example.com/poster.png",
+    });
+    const { container } = render(
+      <FeaturedArticleCard
+        article={article}
+        username="alice"
+        variant="image-first"
+      />,
+    );
+
+    const video = screen.getByTestId(
+      "article-list-cover-video",
+    ) as HTMLVideoElement;
+    expect(video.getAttribute("src")).toBe("https://example.com/cover.mp4");
+    expect(video.getAttribute("poster")).toBe("https://example.com/poster.png");
+    expect(video.loop).toBe(true);
+    expect(video.hasAttribute("loop")).toBe(true);
+    expect(video.muted).toBe(true);
+    expect(video.hasAttribute("muted")).toBe(true);
+    expect(video.hasAttribute("playsinline")).toBe(true);
+    expect(video.autoplay).toBe(false);
+    expect(video.hasAttribute("autoplay")).toBe(false);
+    expect(container.querySelector("img")).toBeNull();
+    expect(videoPlayMock).not.toHaveBeenCalled();
+
+    await waitFor(() => {
+      expect(intersectionObservers).toHaveLength(1);
+    });
+
+    await act(async () => {
+      intersectionObservers[0]?.trigger(true, video);
+    });
+
+    expect(videoPlayMock).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      intersectionObservers[0]?.trigger(false, video);
+    });
+
+    expect(videoPauseMock).toHaveBeenCalled();
   });
 });

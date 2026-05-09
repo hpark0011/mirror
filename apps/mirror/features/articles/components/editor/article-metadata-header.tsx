@@ -24,23 +24,23 @@ import { type ArticleMetadataFormData } from "../../lib/schemas/article-metadata
 export interface ArticleMetadataHeaderProps {
   form: UseFormReturn<ArticleMetadataFormData>;
   coverImageUrl: string | null;
+  coverVideoUrl: string | null;
+  coverVideoPosterUrl: string | null;
   createdAt: number | null;
   publishedAt: number | null;
-  onCoverImageUpload: (file: File) => Promise<{
-    storageId: string;
-    thumbhash: string;
-    url: string;
-  }>;
-  onCoverImageClear: () => void;
+  onCoverUpload: (file: File) => Promise<{ kind: "image" | "video" }>;
+  onCoverClear: () => void;
 }
 
 export function ArticleMetadataHeader({
   form,
   coverImageUrl,
+  coverVideoUrl,
+  coverVideoPosterUrl,
   createdAt,
   publishedAt,
-  onCoverImageUpload,
-  onCoverImageClear,
+  onCoverUpload,
+  onCoverClear,
 }: ArticleMetadataHeaderProps) {
   const { handleTitleChange, handleSlugChange } = useAutoSlug(form);
 
@@ -72,9 +72,11 @@ export function ArticleMetadataHeader({
         <div className="flex flex-col gap-2 pb-9 border-b border-border-subtle">
           <div className="flex flex-col gap-1">
             <ArticleMetadataCoverRow
-              url={coverImageUrl}
-              onUpload={onCoverImageUpload}
-              onClear={onCoverImageClear}
+              imageUrl={coverImageUrl}
+              videoUrl={coverVideoUrl}
+              videoPosterUrl={coverVideoPosterUrl}
+              onUpload={onCoverUpload}
+              onClear={onCoverClear}
             />
             <ArticleMetadataTextFields
               form={form}

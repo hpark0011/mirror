@@ -20,10 +20,12 @@ export function NewArticleEditor({ username }: NewArticleEditorProps) {
       form={articleForm.form}
       status={articleForm.status}
       coverImageUrl={articleForm.coverImageUrl}
+      coverVideoUrl={articleForm.coverVideoUrl}
+      coverVideoPosterUrl={articleForm.coverVideoPosterUrl}
       createdAt={articleForm.createdAt}
       publishedAt={articleForm.publishedAt}
-      onCoverImageUpload={articleForm.handleCoverImageUpload}
-      onCoverImageClear={articleForm.handleCoverImageClear}
+      onCoverUpload={articleForm.handleCoverUpload}
+      onCoverClear={articleForm.handleCoverClear}
       body={articleForm.body}
       onBodyChange={articleForm.setBody}
       onInlineImageUpload={articleForm.onInlineImageUpload}

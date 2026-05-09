@@ -1,6 +1,9 @@
 import { type NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
+// Convex hosts are wildcarded consistently across img-src, connect-src, and
+// media-src. Storage ids are opaque, Convex does not expose user-controlled
+// subdomains, and preview/dev deployments legitimately vary by subdomain.
 const cspDirectives = [
   "default-src 'self'",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://va.vercel-scripts.com https://vercel.live", // Next.js requires unsafe-inline/eval for HMR and inline scripts; va.vercel-scripts.com hosts Vercel Analytics + Speed Insights; vercel.live hosts the Vercel Toolbar/Live Feedback on preview deployments
@@ -9,7 +12,7 @@ const cspDirectives = [
   "font-src 'self' https://vercel.live https://assets.vercel.com", // next/font self-hosts all fonts; Vercel Toolbar pulls fonts from vercel.live + assets.vercel.com
   "connect-src 'self' https://*.convex.cloud wss://*.convex.cloud https://*.ingest.sentry.io https://*.ingest.us.sentry.io https://*.daily.co wss://*.daily.co https://tavusapi.com https://vercel.live wss://ws-us3.pusher.com", // Convex real-time backend + Sentry telemetry + Daily.co + Tavus API + Vercel Toolbar (vercel.live + Pusher websocket for live comments)
   "frame-src https://*.daily.co https://vercel.live", // Daily.co video iframe + Vercel Toolbar iframe
-  "media-src 'self' https://*.daily.co blob:", // Daily.co media + blob URLs
+  "media-src 'self' https://*.daily.co https://*.convex.cloud https://*.convex.site blob:", // Daily.co media + Convex-hosted user videos (PLAN_010 cover video) + blob URLs
   "frame-ancestors 'none'", // mirrors X-Frame-Options: DENY
 ].join("; ");
 
