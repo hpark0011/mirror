@@ -14,6 +14,7 @@ import {
 import { WorkspaceChromeProvider } from "../_providers/workspace-chrome-context";
 import { useContentPanelController } from "../_hooks/use-content-panel-controller";
 import { useInteractionPanelController } from "../_hooks/use-interaction-panel-controller";
+import { useRegisterContentPanelBridge } from "../_hooks/use-register-content-panel-bridge";
 import { useResizeHandleExpand } from "../_hooks/use-resize-handle-expand";
 import { CollapsedProfileAvatarButton } from "./collapsed-profile-avatar-button";
 import {
@@ -45,6 +46,10 @@ export function DesktopWorkspace({
     contentController,
     interactionController,
   );
+  // PLAN_010 — desktop is the only platform that registers with the bridge.
+  // Mobile leaves the slot empty so `ensureContentPanelOpen` is a no-op
+  // there (panel visibility is route-driven on mobile).
+  useRegisterContentPanelBridge(contentController);
 
   const workspaceChromeValue = useMemo(
     () => ({

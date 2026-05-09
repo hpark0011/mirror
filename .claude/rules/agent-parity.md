@@ -48,6 +48,17 @@ the server (Convex action / Node runtime) and **cannot** call
 slug, validate ownership, build href) and returns a structured result.
 The client-side dispatcher does the actual navigation.
 
+**Panel-open invariant.** Both routes funnel through the dispatcher,
+and the dispatcher's contract includes "the content panel is visible
+after navigation." `useCloneActions` calls `ensureContentPanelOpen()`
+from `WorkspacePanelBridgeProvider` before every `router.push`. New
+dispatcher verbs that target content URLs MUST do the same. The bridge
+context lives at
+[`apps/mirror/app/[username]/_providers/workspace-panel-bridge-context.tsx`](../../apps/mirror/app/[username]/_providers/workspace-panel-bridge-context.tsx);
+desktop registers `contentController.ensureExpanded` from
+`DesktopWorkspace`, mobile leaves the slot empty (panel visibility is
+route-driven on mobile).
+
 ## Cross-user isolation invariant — extends from RAG to actions
 
 The RAG rule from `.claude/rules/embeddings.md` requires every `userId`
