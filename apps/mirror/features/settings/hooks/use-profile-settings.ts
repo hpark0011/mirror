@@ -20,6 +20,7 @@ type UseProfileSettingsResult = {
   form: UseFormReturn<ProfileSettingsFormValues>;
   profile: CurrentProfile;
   isPending: boolean;
+  saveCount: number;
   handleSubmit: (data: ProfileSettingsFormValues) => Promise<void>;
 };
 
@@ -50,6 +51,7 @@ export function useProfileSettings(): UseProfileSettingsResult {
 
   const pendingRef = useRef(false);
   const [isPending, setIsPending] = useState(false);
+  const [saveCount, setSaveCount] = useState(0);
 
   const runWithPending = useCallback(async (action: () => Promise<void>) => {
     if (pendingRef.current) return;
@@ -73,6 +75,7 @@ export function useProfileSettings(): UseProfileSettingsResult {
             defaultProfileSection: data.defaultProfileSection,
           });
           form.reset(data);
+          setSaveCount((count) => count + 1);
           showToast({ type: "success", title: "Settings saved" });
         } catch (error) {
           showToast({
@@ -90,6 +93,7 @@ export function useProfileSettings(): UseProfileSettingsResult {
     form,
     profile,
     isPending,
+    saveCount,
     handleSubmit,
   };
 }

@@ -17,7 +17,8 @@ import { SettingsToolbar } from "./settings-toolbar";
 const PROFILE_SETTINGS_FORM_ID = "profile-settings-form";
 
 export function SettingsPanel() {
-  const { form, profile, isPending, handleSubmit } = useProfileSettings();
+  const { form, profile, isPending, saveCount, handleSubmit } =
+    useProfileSettings();
   const isSaveDisabled = isPending || !profile;
 
   return (
@@ -40,6 +41,7 @@ export function SettingsPanel() {
             onSubmit={form.handleSubmit(handleSubmit)}
             className="space-y-6"
             data-profile-settings-saving={isPending ? "true" : "false"}
+            data-profile-settings-save-count={String(saveCount)}
           >
             <FormField
               control={form.control}

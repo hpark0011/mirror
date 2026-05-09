@@ -5,6 +5,19 @@ import path from "node:path";
 
 const LOCAL_ALLOWED_HOSTS = ["localhost:*", "127.0.0.1:*"];
 
+function parsePort(value, label) {
+  if (!/^\d+$/.test(value)) {
+    throw new Error(`Invalid ${label} value: ${value}`);
+  }
+
+  const port = Number(value);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) {
+    throw new Error(`Invalid ${label} value: ${value}`);
+  }
+
+  return port;
+}
+
 function explicitPortArg() {
   const portFlagIndex = process.argv.indexOf("--port");
   const portValue =
@@ -18,12 +31,7 @@ function explicitPortArg() {
     return undefined;
   }
 
-  const port = Number.parseInt(explicitPort, 10);
-  if (!Number.isInteger(port)) {
-    throw new Error(`Invalid --port value: ${explicitPort}`);
-  }
-
-  return port;
+  return parsePort(explicitPort, "--port");
 }
 
 function gitRoot() {
@@ -56,13 +64,11 @@ function resolveMirrorPort() {
       stdio: ["ignore", "pipe", "inherit"],
     },
   ).trim();
-  const port = Number.parseInt(output, 10);
-
-  if (!Number.isInteger(port)) {
+  try {
+    return parsePort(output, "Mirror dev port");
+  } catch {
     throw new Error(`Could not resolve Mirror dev port from output: ${output}`);
   }
-
-  return port;
 }
 
 function runConvexEnv(args) {

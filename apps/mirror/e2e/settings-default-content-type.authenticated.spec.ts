@@ -1,5 +1,6 @@
 import { type Page } from "@playwright/test";
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
+import { waitForDataState } from "./helpers/wait-for-data-state";
 
 const username = "test-user";
 
@@ -19,11 +20,19 @@ async function chooseDefaultContentType(
   await page.getByRole("option", { name: label, exact: true }).click();
 
   const save = page.getByRole("button", { name: "Save", exact: true });
+  const form = page.locator("#profile-settings-form");
+  const previousSaveCount = Number.parseInt(
+    (await form.getAttribute("data-profile-settings-save-count")) ?? "0",
+    10,
+  );
+
   await expect(save).toBeEnabled();
   await save.click();
-  await expect(
-    page.locator('[data-profile-settings-saving="false"]'),
-  ).toBeVisible();
+  await expect(form).toHaveAttribute(
+    "data-profile-settings-save-count",
+    String(previousSaveCount + 1),
+  );
+  await waitForDataState(page, "profile-settings-saving", "false");
 }
 
 test.describe.serial("Settings default content type", () => {
