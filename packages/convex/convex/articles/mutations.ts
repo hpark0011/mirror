@@ -1,9 +1,16 @@
 import { ConvexError, v } from "convex/values";
 import { type Doc, type Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import { internalMutation } from "../_generated/server";
+import {
+  action,
+  internalMutation,
+  internalQuery,
+  type ActionCtx,
+  type MutationCtx,
+} from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
+import { authComponent } from "../auth/client";
 import { isOwnedByUser, validateContentStringLength } from "../content/helpers";
 import { assertValidSlug, generateSlug } from "../content/slug";
 import {
@@ -24,25 +31,30 @@ import {
 } from "../content/inlineImageOwnership";
 import { collectReferencedFromCandidates } from "../content/storageRegistry";
 import {
+  ALLOWED_INLINE_IMAGE_TYPES,
   ALLOWED_COVER_VIDEO_TYPES,
   MAX_COVER_VIDEO_BYTES,
   MAX_INLINE_DELETES_PER_INVOCATION,
   MAX_INLINE_IMAGE_BYTES,
 } from "../content/storagePolicy";
-import { type MutationCtx } from "../_generated/server";
+
+type CoverBlobKind = "image" | "video" | "poster";
 
 // FG_147 / PLAN_010: Verify that `storageId` belongs to `userId` via the
 // `coverImageOwnership` table. Throws `ConvexError` if the row is missing
-// or attributed to a different user.
+// or attributed to a different user/kind.
 //
 // Called from `create` and `update` before writing any cover-blob storage
 // id (image, video, or video poster). Args validators for mutations that
 // write a cover storage id MUST NOT include `userId` — it is always
 // derived server-side from `getAppUser`. See `.claude/rules/embeddings.md`.
+// Legacy rows from before FG_196 have no `kind`; those are accepted only as
+// image claims during the widen/backfill/narrow migration window.
 async function assertCoverBlobOwnership(
   ctx: MutationCtx,
   storageId: Id<"_storage">,
   userId: Id<"users">,
+  expectedKind: CoverBlobKind,
 ): Promise<void> {
   const row = await ctx.db
     .query("coverImageOwnership")
@@ -50,6 +62,16 @@ async function assertCoverBlobOwnership(
     .unique();
   if (!row || row.userId !== userId) {
     throw new ConvexError("cover blob storage id does not belong to caller");
+  }
+  if (row.kind !== expectedKind) {
+    const isLegacyImageClaim =
+      row.kind === undefined && expectedKind === "image";
+    if (!isLegacyImageClaim) {
+      const actualKind = row.kind ?? "legacy image";
+      throw new ConvexError(
+        `cover blob is ${actualKind}, cannot be used as ${expectedKind}`,
+      );
+    }
   }
 }
 
@@ -92,6 +114,125 @@ async function safeDeleteStorage(
       err,
     );
   }
+}
+
+async function safeDeleteActionStorage(
+  ctx: ActionCtx,
+  storageId: Id<"_storage">,
+): Promise<void> {
+  try {
+    await ctx.storage.delete(storageId);
+  } catch (err) {
+    console.error(
+      "[safeDeleteActionStorage] ctx.storage.delete failed",
+      storageId,
+      err,
+    );
+  }
+}
+
+async function deleteCoverBlobOwnership(
+  ctx: MutationCtx,
+  storageId: Id<"_storage"> | undefined,
+): Promise<void> {
+  if (!storageId) return;
+  const row = await ctx.db
+    .query("coverImageOwnership")
+    .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
+    .unique();
+  if (row) {
+    await ctx.db.delete(row._id);
+  }
+}
+
+const coverBlobKindValidator = v.union(
+  v.literal("image"),
+  v.literal("video"),
+  v.literal("poster"),
+);
+
+export const _coverBlobOwnershipExists = internalQuery({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.boolean(),
+  handler: async (ctx, args) => {
+    const row = await ctx.db
+      .query("coverImageOwnership")
+      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
+      .unique();
+    return row !== null;
+  },
+});
+
+export const _insertCoverBlobOwnership = internalMutation({
+  args: {
+    storageId: v.id("_storage"),
+    authId: v.string(),
+    kind: coverBlobKindValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("coverImageOwnership")
+      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
+      .unique();
+    if (existing) return null;
+
+    const appUser = await getAppUser(ctx, args.authId);
+    await ctx.db.insert("coverImageOwnership", {
+      storageId: args.storageId,
+      userId: appUser._id,
+      createdAt: Date.now(),
+      kind: args.kind,
+    });
+    return null;
+  },
+});
+
+async function claimCoverBlobOwnershipFromAction(
+  ctx: ActionCtx,
+  args: { storageId: Id<"_storage"> },
+  policy: {
+    kind: CoverBlobKind;
+    label: string;
+    allowedTypes: ReadonlySet<string>;
+    maxBytes: number;
+  },
+): Promise<null> {
+  const authUser = await authComponent.getAuthUser(ctx);
+
+  const existing = await ctx.runQuery(
+    internal.articles.mutations._coverBlobOwnershipExists,
+    { storageId: args.storageId },
+  );
+  if (existing) return null;
+
+  const blob = await ctx.storage.get(args.storageId);
+  if (!blob) {
+    throw new ConvexError(`${policy.label} blob not found in storage`);
+  }
+
+  const contentType = blob.type ?? "";
+  if (!policy.allowedTypes.has(contentType)) {
+    await safeDeleteActionStorage(ctx, args.storageId);
+    throw new ConvexError(
+      `${policy.label} must be one of ${[...policy.allowedTypes].join(", ")}; got "${contentType}"`,
+    );
+  }
+  if (blob.size > policy.maxBytes) {
+    await safeDeleteActionStorage(ctx, args.storageId);
+    throw new ConvexError(
+      `${policy.label} exceeds maximum size of ${policy.maxBytes} bytes (got ${blob.size})`,
+    );
+  }
+
+  await ctx.runMutation(internal.articles.mutations._insertCoverBlobOwnership, {
+    storageId: args.storageId,
+    authId: authUser._id as string,
+    kind: policy.kind,
+  });
+  return null;
 }
 
 export const create = authMutation({
@@ -187,6 +328,7 @@ export const create = authMutation({
         ctx,
         args.coverImageStorageId,
         appUser._id,
+        "image",
       );
     }
     if (args.coverVideoStorageId !== undefined) {
@@ -194,6 +336,7 @@ export const create = authMutation({
         ctx,
         args.coverVideoStorageId,
         appUser._id,
+        "video",
       );
     }
     if (args.coverVideoPosterStorageId !== undefined) {
@@ -201,6 +344,7 @@ export const create = authMutation({
         ctx,
         args.coverVideoPosterStorageId,
         appUser._id,
+        "poster",
       );
     }
 
@@ -259,16 +403,10 @@ export const update = authMutation({
     // a new `coverImageStorageId` clears the video + poster.
     coverVideoStorageId: v.optional(v.id("_storage")),
     coverVideoPosterStorageId: v.optional(v.id("_storage")),
-    // Explicit removal signal for the cover. The schema fields stay
-    // `v.optional(v.id("_storage"))`; setting `clearCoverImage: true`
-    // makes the handler patch every cover field to `undefined` which
-    // Convex interprets as "remove these optional fields". Without this
-    // sentinel there is no way to distinguish "user cleared the cover"
-    // from "user didn't touch the cover" — both arrive as `undefined`
-    // after the optional-arg validator runs. The arg name predates
-    // PLAN_010; it now clears image + video + poster (the entire cover
-    // surface) so a single Remove button maps to a single mutation arg.
-    clearCoverImage: v.optional(v.boolean()),
+    // Explicit removal signal for the whole cover surface. Optional
+    // storage args cannot distinguish "user cleared the cover" from
+    // "user did not touch the cover" once validation has run.
+    clearCover: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -362,6 +500,7 @@ export const update = authMutation({
         ctx,
         args.coverImageStorageId,
         appUser._id,
+        "image",
       );
     }
     if (args.coverVideoStorageId !== undefined) {
@@ -369,6 +508,7 @@ export const update = authMutation({
         ctx,
         args.coverVideoStorageId,
         appUser._id,
+        "video",
       );
     }
     if (args.coverVideoPosterStorageId !== undefined) {
@@ -376,6 +516,7 @@ export const update = authMutation({
         ctx,
         args.coverVideoPosterStorageId,
         appUser._id,
+        "poster",
       );
     }
 
@@ -432,7 +573,7 @@ export const update = authMutation({
     // supply one, we write `undefined` instead.
     //
     // Branches:
-    //   1. Explicit clear — `clearCoverImage: true` wipes every cover
+    //   1. Explicit clear — `clearCover: true` wipes every cover
     //      field. Takes precedence over any cover-* arg the caller also
     //      sent.
     //   2. New video cover or new poster — `coverVideoStorageId` or its
@@ -451,7 +592,7 @@ export const update = authMutation({
     let replacedPoster = false;
     let clearedAllCover = false;
 
-    if (args.clearCoverImage === true) {
+    if (args.clearCover === true) {
       patch.coverImageStorageId = undefined;
       patch.coverImageThumbhash = undefined;
       patch.coverVideoStorageId = undefined;
@@ -512,14 +653,24 @@ export const update = authMutation({
       // dropped, but they keep intent clear.
       if (article.coverImageStorageId) {
         await safeDeleteStorage(ctx, article.coverImageStorageId);
+        await deleteCoverBlobOwnership(ctx, article.coverImageStorageId);
       }
       if (article.coverVideoStorageId) {
         await safeDeleteStorage(ctx, article.coverVideoStorageId);
+        await deleteCoverBlobOwnership(ctx, article.coverVideoStorageId);
       }
     }
+    // Reusing the same poster id across a video swap means the old poster IS
+    // the new poster — deletion would delete the live blob. Omit
+    // `replacedVideo` here and delete only when the poster id changed, the
+    // cover is cleared, or an image replacement vacates the video surface.
     if (clearedAllCover || replacedImage || replacedPoster) {
       if (article.coverVideoPosterStorageId) {
         await safeDeleteStorage(ctx, article.coverVideoPosterStorageId);
+        await deleteCoverBlobOwnership(
+          ctx,
+          article.coverVideoPosterStorageId,
+        );
       }
     }
 
@@ -608,15 +759,18 @@ export const remove = authMutation({
 
       await ctx.db.delete(article._id);
 
-      // Delete covers after the row is gone so a failed delete can't leave a
-      // live article pointing at a missing asset. Best-effort: a missing or
-      // transient blob must not abort the whole removal — the cron sweep
-      // collects any survivors. PLAN_010: an article carries at most one
-      // cover kind at any time, but legacy rows or write races could in
-      // principle have both — clean up whichever fields are populated.
+      // Cascade-delete cover blobs AFTER the row is gone. This is
+      // intentional: a failed storage delete leaves an orphan, never a live
+      // article pointing at a missing asset. The trade-off is a brief signed
+      // URL access window after removal, accepted by design. If eager delete
+      // fails, the orphan-sweep cron reclaims survivors after
+      // ORPHAN_GRACE_MS (24h), with the daily cron as the safety net.
       await safeDeleteStorage(ctx, article.coverImageStorageId);
+      await deleteCoverBlobOwnership(ctx, article.coverImageStorageId);
       await safeDeleteStorage(ctx, article.coverVideoStorageId);
+      await deleteCoverBlobOwnership(ctx, article.coverVideoStorageId);
       await safeDeleteStorage(ctx, article.coverVideoPosterStorageId);
+      await deleteCoverBlobOwnership(ctx, article.coverVideoPosterStorageId);
 
       // FG_091: filter inline IDs to ones the caller owns per the
       // `inlineImageOwnership` table. Legacy IDs (no ownership row) are
@@ -662,110 +816,65 @@ export const generateArticleCoverImageUploadUrl = authMutation({
   },
 });
 
-// FG_147: After a cover image upload completes, the client calls this mutation
+// FG_147: After a cover image upload completes, the client calls this action
 // to record ownership. The client provides the storageId returned by Convex
 // after the HTTP upload (via the upload URL). This is the trust boundary:
 // userId is always derived server-side from `getAppUser` — never from args.
 //
 // Args validator MUST NOT include a `userId` field. See `.claude/rules/embeddings.md`.
-export const claimCoverImageOwnership = authMutation({
+export const claimCoverImageOwnership = action({
   args: {
     storageId: v.id("_storage"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const appUser = await getAppUser(ctx, ctx.user._id);
-
-    // First-claim-wins: if another user already claimed this storageId, leave
-    // the existing row intact (mirrors inlineImageOwnership behavior).
-    const existing = await ctx.db
-      .query("coverImageOwnership")
-      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
-      .unique();
-    if (existing) return null;
-
-    await ctx.db.insert("coverImageOwnership", {
-      storageId: args.storageId,
-      userId: appUser._id,
-      createdAt: Date.now(),
+    return await claimCoverBlobOwnershipFromAction(ctx, args, {
+      kind: "image",
+      label: "cover image",
+      allowedTypes: ALLOWED_INLINE_IMAGE_TYPES,
+      maxBytes: MAX_INLINE_IMAGE_BYTES,
     });
-    return null;
   },
 });
 
-// PLAN_010: presigned upload URL for an MP4 cover video. Thin wrapper
-// over `ctx.storage.generateUploadUrl()` — kept as a separate mutation
-// from the cover-image and poster URL generators so the client can
-// request both video and poster URLs in parallel and so each
-// orphan-cleanup path stays symmetric.
-export const generateArticleCoverVideoUploadUrl = authMutation({
+export const generateArticleCoverVideoUploadUrls = authMutation({
   args: {},
-  returns: v.string(),
+  returns: v.object({
+    videoUrl: v.string(),
+    posterUrl: v.string(),
+  }),
   handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
-  },
-});
-
-// PLAN_010: presigned upload URL for the auto-extracted JPEG poster
-// (the still frame the client grabs from the chosen MP4 at ~0.1s).
-export const generateArticleCoverVideoPosterUploadUrl = authMutation({
-  args: {},
-  returns: v.string(),
-  handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
+    const [videoUrl, posterUrl] = await Promise.all([
+      ctx.storage.generateUploadUrl(),
+      ctx.storage.generateUploadUrl(),
+    ]);
+    return { videoUrl, posterUrl };
   },
 });
 
 // PLAN_010: After the MP4 upload completes the client calls this
-// mutation to record ownership AND server-side validate the blob's
-// MIME + size against the cover-video policy. Convex provides no hook
-// to reject by Content-Length on the upload URL itself — this is the
-// defense-in-depth shape inline-image ownership already uses.
+// action to record ownership AND server-side validate the blob's MIME +
+// size against the cover-video policy. Convex provides no hook to reject
+// by Content-Length on the upload URL itself — this is the defense-in-depth
+// shape inline-image ownership already uses.
 //
-// On reject we delete the over-cap / wrong-MIME blob immediately so a
-// rejected upload doesn't sit in `_storage` waiting for the cron sweep.
+// On reject we delete the over-cap / wrong-MIME blob inside this action
+// before throwing. A mutation cannot safely do "delete then throw" because
+// Convex rolls the storage delete back with the failed transaction.
 //
 // Args validator MUST NOT include a `userId` field. See `.claude/rules/embeddings.md`.
-export const claimCoverVideoOwnership = authMutation({
+export const claimCoverVideoOwnership = action({
   args: {
     storageId: v.id("_storage"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const appUser = await getAppUser(ctx, ctx.user._id);
-
-    const meta = await ctx.db.system.get(args.storageId);
-    if (!meta) {
-      throw new ConvexError("cover video blob not found in storage");
-    }
-    const contentType = meta.contentType ?? "";
-    if (!ALLOWED_COVER_VIDEO_TYPES.has(contentType)) {
-      // Best-effort cleanup; the cron sweep is the safety net.
-      await safeDeleteStorage(ctx, args.storageId);
-      throw new ConvexError(
-        `cover video must be one of ${[...ALLOWED_COVER_VIDEO_TYPES].join(", ")}; got "${contentType}"`,
-      );
-    }
-    if (meta.size > MAX_COVER_VIDEO_BYTES) {
-      await safeDeleteStorage(ctx, args.storageId);
-      throw new ConvexError(
-        `cover video exceeds maximum size of ${MAX_COVER_VIDEO_BYTES} bytes (got ${meta.size})`,
-      );
-    }
-
-    // First-claim-wins.
-    const existing = await ctx.db
-      .query("coverImageOwnership")
-      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
-      .unique();
-    if (existing) return null;
-
-    await ctx.db.insert("coverImageOwnership", {
-      storageId: args.storageId,
-      userId: appUser._id,
-      createdAt: Date.now(),
+    return await claimCoverBlobOwnershipFromAction(ctx, args, {
+      kind: "video",
+      label: "cover video",
+      allowedTypes: ALLOWED_COVER_VIDEO_TYPES,
+      maxBytes: MAX_COVER_VIDEO_BYTES,
     });
-    return null;
   },
 });
 
@@ -774,44 +883,18 @@ export const claimCoverVideoOwnership = authMutation({
 // inline-image MIME+size policy (it's auto-encoded by the browser at
 // quality 0.85 from a single frame and is comfortably under the
 // 5 MiB cap in practice).
-export const claimCoverVideoPosterOwnership = authMutation({
+export const claimCoverVideoPosterOwnership = action({
   args: {
     storageId: v.id("_storage"),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const appUser = await getAppUser(ctx, ctx.user._id);
-
-    const meta = await ctx.db.system.get(args.storageId);
-    if (!meta) {
-      throw new ConvexError("cover video poster blob not found in storage");
-    }
-    const contentType = meta.contentType ?? "";
-    if (!contentType.startsWith("image/")) {
-      await safeDeleteStorage(ctx, args.storageId);
-      throw new ConvexError(
-        `cover video poster must be an image; got "${contentType}"`,
-      );
-    }
-    if (meta.size > MAX_INLINE_IMAGE_BYTES) {
-      await safeDeleteStorage(ctx, args.storageId);
-      throw new ConvexError(
-        `cover video poster exceeds maximum size of ${MAX_INLINE_IMAGE_BYTES} bytes (got ${meta.size})`,
-      );
-    }
-
-    const existing = await ctx.db
-      .query("coverImageOwnership")
-      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
-      .unique();
-    if (existing) return null;
-
-    await ctx.db.insert("coverImageOwnership", {
-      storageId: args.storageId,
-      userId: appUser._id,
-      createdAt: Date.now(),
+    return await claimCoverBlobOwnershipFromAction(ctx, args, {
+      kind: "poster",
+      label: "cover video poster",
+      allowedTypes: ALLOWED_INLINE_IMAGE_TYPES,
+      maxBytes: MAX_INLINE_IMAGE_BYTES,
     });
-    return null;
   },
 });
 
@@ -848,6 +931,7 @@ export const deleteOrphanCoverImage = authMutation({
     for (const storageId of callerOwnedIds) {
       if (!referenced.has(storageId)) {
         await safeDeleteStorage(ctx, storageId);
+        await deleteCoverBlobOwnership(ctx, storageId);
       }
     }
 
@@ -894,6 +978,7 @@ export const deleteOrphanCoverVideo = authMutation({
     for (const storageId of callerOwnedIds) {
       if (!referenced.has(storageId)) {
         await safeDeleteStorage(ctx, storageId);
+        await deleteCoverBlobOwnership(ctx, storageId);
       }
     }
 

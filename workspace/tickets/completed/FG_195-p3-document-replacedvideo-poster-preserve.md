@@ -3,7 +3,7 @@ id: FG_195
 title: "Document why poster blob is preserved when video is replaced with same poster id"
 date: 2026-05-08
 type: docs
-status: to-do
+status: completed
 priority: p3
 description: "When Branch 2 fires with replacedVideo=true but replacedPoster=false (caller reuses the same poster id), the third cascade-delete block correctly preserves the old poster — it's the new poster too. The logic is correct but the omission of replacedVideo from the third condition is non-obvious. Add a clarifying inline comment."
 dependencies: []

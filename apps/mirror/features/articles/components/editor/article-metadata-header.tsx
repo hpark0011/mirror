@@ -19,6 +19,7 @@ import { useAutoSlug } from "../../hooks/use-auto-slug";
 import { ArticleMetadataCoverRow } from "./article-metadata-cover-row";
 import { ArticleMetadataTextFields } from "./article-metadata-text-fields";
 import { ArticleMetadataTimestamps } from "./article-metadata-timestamps";
+import { type CoverUploadState } from "../../hooks/use-article-cover-video-upload";
 import { type ArticleMetadataFormData } from "../../lib/schemas/article-metadata.schema";
 
 export interface ArticleMetadataHeaderProps {
@@ -26,6 +27,7 @@ export interface ArticleMetadataHeaderProps {
   coverImageUrl: string | null;
   coverVideoUrl: string | null;
   coverVideoPosterUrl: string | null;
+  coverUploadState: CoverUploadState;
   createdAt: number | null;
   publishedAt: number | null;
   onCoverUpload: (file: File) => Promise<{ kind: "image" | "video" }>;
@@ -37,6 +39,7 @@ export function ArticleMetadataHeader({
   coverImageUrl,
   coverVideoUrl,
   coverVideoPosterUrl,
+  coverUploadState,
   createdAt,
   publishedAt,
   onCoverUpload,
@@ -75,6 +78,7 @@ export function ArticleMetadataHeader({
               imageUrl={coverImageUrl}
               videoUrl={coverVideoUrl}
               videoPosterUrl={coverVideoPosterUrl}
+              coverUploadState={coverUploadState}
               onUpload={onCoverUpload}
               onClear={onCoverClear}
             />

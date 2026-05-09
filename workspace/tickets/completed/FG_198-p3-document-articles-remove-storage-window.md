@@ -3,7 +3,7 @@ id: FG_198
 title: "Document articles.remove non-transactional storage-delete window with cron-sweep safety net"
 date: 2026-05-08
 type: docs
-status: to-do
+status: completed
 priority: p3
 description: "articles.remove deletes the row before storage blobs (intentional ordering — cron sweep is the safety net). Brief window where a cached signed URL still serves the video after the row is gone. Pre-existing pattern for images; PLAN_010 extends to video+poster. Add an inline comment block documenting the invariant."
 dependencies: []

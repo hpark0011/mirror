@@ -3,7 +3,7 @@ id: FG_181
 title: "assertCoverBlobOwnership must verify the blob kind matches the consumer field"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "All three claim mutations insert into coverImageOwnership with no kind discriminator. assertCoverBlobOwnership only checks ownership-table membership. A poster-claimed blob can be submitted as coverImageStorageId; an MP4 blob can be submitted as coverVideoPosterStorageId — bypassing per-kind MIME and size policies."
 dependencies: ["FG_182", "FG_196"]

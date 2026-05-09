@@ -3,7 +3,7 @@ id: FG_188
 title: "Run convex dev --once against the worktree to confirm schema push succeeds"
 date: 2026-05-08
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "The branch contains schema additions and 6 new mutations but no _generated/ diff. Build re-derives types from source so no static drift, but convex dev --once was never run to confirm the schema push actually succeeds against a real deployment."
 dependencies: []

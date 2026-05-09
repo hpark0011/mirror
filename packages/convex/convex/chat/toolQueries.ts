@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
+import { contentStatusValidator } from "../content/schema";
 import {
   buildBioHref,
   buildContentHref,
@@ -23,11 +24,14 @@ export { buildContentHref };
  * The LLM-visible tool `inputSchema` MUST NOT expose `userId`. These queries
  * are internal-only and are not reachable from any client code path.
  *
- * Articles and posts queries pin `status === "published"` so:
+ * Visitor-navigation article/post queries pin `status === "published"` so:
  *  - `queryLatestPublished` never returns drafts (consistent with what RAG
  *    chunks see; drafts are not retrieval-eligible).
  *  - `resolveBySlug` returns `null` for drafts even when slug + userId match,
  *    so a chat agent cannot navigate the visitor to an unpublished URL.
+ *
+ * Owner-write tools use `resolveOwnedContentBySlug` below instead, which is
+ * still `(profileOwnerId, slug)` scoped but intentionally permits drafts.
  */
 
 const latestPublishedReturnValidator = v.union(
@@ -45,6 +49,19 @@ const resolveBySlugReturnValidator = v.union(
     kind: v.union(v.literal("articles"), v.literal("posts")),
     slug: v.string(),
     title: v.string(),
+    publishedAt: v.optional(v.number()),
+    username: v.string(),
+    href: v.string(),
+  }),
+);
+
+const resolveOwnedContentBySlugReturnValidator = v.union(
+  v.null(),
+  v.object({
+    kind: v.union(v.literal("articles"), v.literal("posts")),
+    slug: v.string(),
+    title: v.string(),
+    status: contentStatusValidator,
     publishedAt: v.optional(v.number()),
     username: v.string(),
     href: v.string(),
@@ -132,6 +149,48 @@ export const resolveBySlug = internalQuery({
       kind,
       slug: row.slug,
       title: row.title,
+      publishedAt: row.publishedAt,
+      username: owner.username,
+      href: buildContentHref(owner.username, kind, row.slug),
+    };
+  },
+});
+
+/**
+ * Resolve an owner-authored article/post by `(userId, slug)` for write tools.
+ *
+ * Unlike `resolveBySlug`, this intentionally allows drafts. Visitor-facing
+ * navigation tools must stay published-only, but owner-write tools need to
+ * find drafts so `publishPost`/`publishArticle` can flip them to published.
+ * This remains internal-only and still pins lookup to the closure-bound
+ * `profileOwnerId` supplied by `buildCloneTools`.
+ */
+export const resolveOwnedContentBySlug = internalQuery({
+  args: {
+    userId: v.id("users"),
+    kind: contentKindValidator,
+    slug: v.string(),
+  },
+  returns: resolveOwnedContentBySlugReturnValidator,
+  handler: async (ctx, { userId, kind, slug }) => {
+    const tableName = kind;
+    const row = await ctx.db
+      .query(tableName)
+      .withIndex("by_userId_and_slug", (q) =>
+        q.eq("userId", userId as Id<"users">).eq("slug", slug),
+      )
+      .unique();
+    if (!row) return null;
+
+    const owner = await ctx.db.get(row.userId);
+    if (!owner) return null;
+    if (!owner.username) return null;
+
+    return {
+      kind,
+      slug: row.slug,
+      title: row.title,
+      status: row.status,
       publishedAt: row.publishedAt,
       username: owner.username,
       href: buildContentHref(owner.username, kind, row.slug),

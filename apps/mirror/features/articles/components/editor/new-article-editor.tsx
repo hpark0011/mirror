@@ -22,6 +22,7 @@ export function NewArticleEditor({ username }: NewArticleEditorProps) {
       coverImageUrl={articleForm.coverImageUrl}
       coverVideoUrl={articleForm.coverVideoUrl}
       coverVideoPosterUrl={articleForm.coverVideoPosterUrl}
+      coverUploadState={articleForm.coverUploadState}
       createdAt={articleForm.createdAt}
       publishedAt={articleForm.publishedAt}
       onCoverUpload={articleForm.handleCoverUpload}

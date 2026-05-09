@@ -3,7 +3,7 @@ id: FG_185
 title: "Cover-image-picker finally-block must not revoke the URL the parent now stores"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The picker creates objectUrl and the parent hook copies it into coverVideoUrl state and blobUrlRef. The picker's finally then revokes objectUrl. The parent's state still carries the now-revoked URL until the next reactive query tick replaces it; direct reads (analytics, SSR re-mount) get a dead URL."
 dependencies: []

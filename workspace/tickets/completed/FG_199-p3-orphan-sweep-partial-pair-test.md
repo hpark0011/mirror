@@ -3,7 +3,7 @@ id: FG_199
 title: "Orphan sweep needs a partial-pair test (only poster orphaned, video referenced)"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "The PLAN_010 sweep test always orphans the video+poster pair together. If a future change accidentally merges the per-blob reference checks, the sweep could incorrectly preserve or delete a blob when only one of the pair is orphaned."
 dependencies: []

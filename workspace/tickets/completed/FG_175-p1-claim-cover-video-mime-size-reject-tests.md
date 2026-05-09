@@ -3,7 +3,7 @@ id: FG_175
 title: "claimCoverVideoOwnership MIME and size reject paths need failing-regression tests"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The MIME-reject and size-cap-reject branches in claimCoverVideoOwnership have no failing test today. The unit suite documents convex-test cannot preserve contentType, and the e2e only covers the valid MP4 happy path. A regression that removes the MIME guard or size cap would pass CI green."
 dependencies: ["FG_178"]

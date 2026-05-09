@@ -40,6 +40,11 @@ import { isContentKind, type ContentKind } from "@/features/content";
 const NAVIGATE_TO_CONTENT_TYPE = "tool-navigateToContent";
 const OPEN_PROFILE_SECTION_TYPE = "tool-openProfileSection";
 const DELETE_POST_TYPE = "tool-deletePost";
+const PUBLISH_POST_TYPE = "tool-publishPost";
+const UNPUBLISH_POST_TYPE = "tool-unpublishPost";
+const DELETE_ARTICLE_TYPE = "tool-deleteArticle";
+const PUBLISH_ARTICLE_TYPE = "tool-publishArticle";
+const UNPUBLISH_ARTICLE_TYPE = "tool-unpublishArticle";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -156,6 +161,61 @@ function isDeletePostOutput(output: unknown): output is DeletePostOutput {
   );
 }
 
+type StatusToolOutput = {
+  kind: ContentKind;
+  status: "draft" | "published";
+  updated: boolean;
+  changed: boolean;
+  slug: string;
+  title?: string;
+  href: string;
+};
+
+function isStatusToolOutput(output: unknown): output is StatusToolOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  return (
+    isContentKind(typeof o.kind === "string" ? o.kind : undefined) &&
+    (o.status === "draft" || o.status === "published") &&
+    typeof o.updated === "boolean" &&
+    typeof o.changed === "boolean" &&
+    typeof o.slug === "string" &&
+    o.slug.length > 0 &&
+    typeof o.href === "string" &&
+    o.href.length > 0 &&
+    (o.title === undefined || typeof o.title === "string")
+  );
+}
+
+type DeleteArticleOutput = {
+  kind: "articles";
+  deleted: boolean;
+  slug: string;
+  title?: string;
+  href: string;
+};
+
+function isDeleteArticleOutput(output: unknown): output is DeleteArticleOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  return (
+    o.kind === "articles" &&
+    typeof o.deleted === "boolean" &&
+    typeof o.slug === "string" &&
+    typeof o.href === "string" &&
+    o.href.length > 0 &&
+    (o.title === undefined || typeof o.title === "string")
+  );
+}
+
+function isPublishToolType(type: string): boolean {
+  return type === PUBLISH_POST_TYPE || type === PUBLISH_ARTICLE_TYPE;
+}
+
+function isUnpublishToolType(type: string): boolean {
+  return type === UNPUBLISH_POST_TYPE || type === UNPUBLISH_ARTICLE_TYPE;
+}
+
 export function useAgentIntentWatcher(
   messages: UIMessage[],
   conversationId: string | null,
@@ -176,7 +236,12 @@ export function useAgentIntentWatcher(
         if (
           part.type !== NAVIGATE_TO_CONTENT_TYPE &&
           part.type !== OPEN_PROFILE_SECTION_TYPE &&
-          part.type !== DELETE_POST_TYPE
+          part.type !== DELETE_POST_TYPE &&
+          part.type !== PUBLISH_POST_TYPE &&
+          part.type !== UNPUBLISH_POST_TYPE &&
+          part.type !== DELETE_ARTICLE_TYPE &&
+          part.type !== PUBLISH_ARTICLE_TYPE &&
+          part.type !== UNPUBLISH_ARTICLE_TYPE
         ) {
           continue;
         }
@@ -207,6 +272,45 @@ export function useAgentIntentWatcher(
 
         if (toolPart.type === OPEN_PROFILE_SECTION_TYPE) {
           if (!isOpenProfileSectionOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+          navigateToProfileSection({
+            section: toolPart.output.kind,
+            href: toolPart.output.href,
+          });
+          continue;
+        }
+
+        if (isPublishToolType(toolPart.type)) {
+          if (!isStatusToolOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+
+          if (toolPart.output.updated) {
+            navigateToContent({
+              kind: toolPart.output.kind,
+              slug: toolPart.output.slug,
+              href: toolPart.output.href,
+            });
+          } else {
+            navigateToProfileSection({
+              section: toolPart.output.kind,
+              href: toolPart.output.href,
+            });
+          }
+          continue;
+        }
+
+        if (isUnpublishToolType(toolPart.type)) {
+          if (!isStatusToolOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+          navigateToProfileSection({
+            section: toolPart.output.kind,
+            href: toolPart.output.href,
+          });
+          continue;
+        }
+
+        if (toolPart.type === DELETE_ARTICLE_TYPE) {
+          if (!isDeleteArticleOutput(toolPart.output)) continue;
           handled.add(toolPart.toolCallId);
           navigateToProfileSection({
             section: toolPart.output.kind,

@@ -3,7 +3,7 @@ id: FG_169
 title: "Clone-agent has write-tool parity for status toggles and article delete"
 date: 2026-05-09
 type: feature
-status: to-do
+status: completed
 priority: p2
 description: "The clone agent currently has only navigation tools (`navigateToContent`, `openProfileSection`) plus `deletePost`. Several user-facing write verbs (publishPost, unpublishPost, editPost, deleteArticle, publishArticle, unpublishArticle, editArticle) have no matching agent tool, breaking the agent-parity invariant. Land the simple status-toggle write-tools as a coherent set, modeled on the existing `deletePost` server-execute shape."
 dependencies: []

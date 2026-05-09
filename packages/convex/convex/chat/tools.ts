@@ -5,6 +5,44 @@ import { createTool } from "@convex-dev/agent";
 import { internal } from "../_generated/api";
 import { type Id } from "../_generated/dataModel";
 
+type ContentKind = "articles" | "posts";
+type ContentStatus = "draft" | "published";
+
+type OwnedContentRow = {
+  kind: ContentKind;
+  slug: string;
+  title: string;
+  status: ContentStatus;
+  publishedAt?: number;
+  username: string;
+  href: string;
+};
+
+type StatusMutationResult =
+  | {
+      updated: true;
+      changed: boolean;
+      kind: ContentKind;
+      slug: string;
+      title: string;
+      status: ContentStatus;
+      previousStatus: ContentStatus;
+      publishedAt?: number;
+    }
+  | {
+      updated: false;
+      kind: ContentKind;
+      slug: string;
+      status: ContentStatus;
+    };
+
+type ProfileSectionList = {
+  kind: "articles" | "posts";
+  username: string;
+  href: string;
+  hasEntries: boolean;
+};
+
 /**
  * Per-request tool factory for the clone agent.
  *
@@ -142,6 +180,285 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
           deleted: result.deleted,
           slug: result.slug,
           title: result.title,
+          href: list.href,
+        };
+      },
+    }),
+
+    publishPost: createTool({
+      description:
+        "Publish one of the profile owner's draft posts by slug. Use this only when the visitor is the profile owner and explicitly asks to publish a post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes whether a post was updated and the canonical href; on success the client navigates to the published post detail page.",
+      inputSchema: z.object({
+        slug: z
+          .string()
+          .min(1)
+          .describe("The slug of the post to publish."),
+      }),
+      execute: async (ctx, { slug }) => {
+        const row: OwnedContentRow | null = await ctx.runQuery(
+          internal.chat.toolQueries.resolveOwnedContentBySlug,
+          { userId: profileOwnerId, kind: "posts", slug },
+        );
+        if (!row) {
+          const list: ProfileSectionList | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryProfileSectionList,
+            { userId: profileOwnerId, section: "posts" },
+          );
+          if (!list) {
+            throw new Error("Posts list is unavailable for this profile.");
+          }
+          return {
+            kind: "posts" as const,
+            status: "published" as const,
+            updated: false,
+            changed: false,
+            slug,
+            href: list.href,
+          };
+        }
+
+        const result: StatusMutationResult = await ctx.runMutation(
+          internal.chat.toolMutations.setPostStatusByUserAndSlug,
+          { userId: profileOwnerId, slug, status: "published" },
+        );
+        const list: ProfileSectionList | null = result.updated
+          ? null
+          : await ctx.runQuery(
+              internal.chat.toolQueries.queryProfileSectionList,
+              { userId: profileOwnerId, section: "posts" },
+            );
+        if (!result.updated && !list) {
+          throw new Error("Posts list is unavailable for this profile.");
+        }
+        return {
+          kind: "posts" as const,
+          status: "published" as const,
+          updated: result.updated,
+          changed: result.updated ? result.changed : false,
+          slug: result.slug,
+          title: result.updated ? result.title : row.title,
+          href: result.updated ? row.href : list!.href,
+        };
+      },
+    }),
+
+    unpublishPost: createTool({
+      description:
+        "Unpublish one of the profile owner's posts by slug, moving it back to draft. Use this only when the visitor is the profile owner and explicitly asks to unpublish a post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes whether a post was updated and the canonical posts-list href; the client uses the href to navigate away from the unpublished detail page.",
+      inputSchema: z.object({
+        slug: z
+          .string()
+          .min(1)
+          .describe("The slug of the post to unpublish."),
+      }),
+      execute: async (ctx, { slug }) => {
+        const row: OwnedContentRow | null = await ctx.runQuery(
+          internal.chat.toolQueries.resolveOwnedContentBySlug,
+          { userId: profileOwnerId, kind: "posts", slug },
+        );
+        if (!row) {
+          const list: ProfileSectionList | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryProfileSectionList,
+            { userId: profileOwnerId, section: "posts" },
+          );
+          if (!list) {
+            throw new Error("Posts list is unavailable for this profile.");
+          }
+          return {
+            kind: "posts" as const,
+            status: "draft" as const,
+            updated: false,
+            changed: false,
+            slug,
+            href: list.href,
+          };
+        }
+
+        const result: StatusMutationResult = await ctx.runMutation(
+          internal.chat.toolMutations.setPostStatusByUserAndSlug,
+          { userId: profileOwnerId, slug, status: "draft" },
+        );
+        const list: ProfileSectionList | null = await ctx.runQuery(
+          internal.chat.toolQueries.queryProfileSectionList,
+          { userId: profileOwnerId, section: "posts" },
+        );
+        if (!list) {
+          throw new Error("Posts list is unavailable for this profile.");
+        }
+        return {
+          kind: "posts" as const,
+          status: "draft" as const,
+          updated: result.updated,
+          changed: result.updated ? result.changed : false,
+          slug: result.slug,
+          title: result.updated ? result.title : row.title,
+          href: list.href,
+        };
+      },
+    }),
+
+    deleteArticle: createTool({
+      description:
+        "Permanently delete one of the profile owner's articles by slug. Use this only when the visitor (who must be the profile owner) explicitly asks to remove an article. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes a `deleted` boolean and the canonical articles-list href; the client uses the href to navigate the visitor away from the now-deleted detail page.",
+      inputSchema: z.object({
+        slug: z
+          .string()
+          .min(1)
+          .describe("The slug of the article to permanently delete."),
+      }),
+      execute: async (ctx, { slug }) => {
+        const row: OwnedContentRow | null = await ctx.runQuery(
+          internal.chat.toolQueries.resolveOwnedContentBySlug,
+          { userId: profileOwnerId, kind: "articles", slug },
+        );
+        if (!row) {
+          const list: ProfileSectionList | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryProfileSectionList,
+            { userId: profileOwnerId, section: "articles" },
+          );
+          if (!list) {
+            throw new Error("Articles list is unavailable for this profile.");
+          }
+          return {
+            kind: "articles" as const,
+            deleted: false,
+            slug,
+            href: list.href,
+          };
+        }
+
+        const result: {
+          deleted: boolean;
+          title?: string;
+          slug: string;
+        } = await ctx.runMutation(
+          internal.chat.toolMutations.deleteArticleByUserAndSlug,
+          { userId: profileOwnerId, slug },
+        );
+        const list: ProfileSectionList | null = await ctx.runQuery(
+          internal.chat.toolQueries.queryProfileSectionList,
+          { userId: profileOwnerId, section: "articles" },
+        );
+        if (!list) {
+          throw new Error("Articles list is unavailable for this profile.");
+        }
+        return {
+          kind: "articles" as const,
+          deleted: result.deleted,
+          slug: result.slug,
+          title: result.title ?? row.title,
+          href: list.href,
+        };
+      },
+    }),
+
+    publishArticle: createTool({
+      description:
+        "Publish one of the profile owner's draft articles by slug. Use this only when the visitor is the profile owner and explicitly asks to publish an article. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes whether an article was updated and the canonical href; on success the client navigates to the published article detail page.",
+      inputSchema: z.object({
+        slug: z
+          .string()
+          .min(1)
+          .describe("The slug of the article to publish."),
+      }),
+      execute: async (ctx, { slug }) => {
+        const row: OwnedContentRow | null = await ctx.runQuery(
+          internal.chat.toolQueries.resolveOwnedContentBySlug,
+          { userId: profileOwnerId, kind: "articles", slug },
+        );
+        if (!row) {
+          const list: ProfileSectionList | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryProfileSectionList,
+            { userId: profileOwnerId, section: "articles" },
+          );
+          if (!list) {
+            throw new Error("Articles list is unavailable for this profile.");
+          }
+          return {
+            kind: "articles" as const,
+            status: "published" as const,
+            updated: false,
+            changed: false,
+            slug,
+            href: list.href,
+          };
+        }
+
+        const result: StatusMutationResult = await ctx.runMutation(
+          internal.chat.toolMutations.setArticleStatusByUserAndSlug,
+          { userId: profileOwnerId, slug, status: "published" },
+        );
+        const list: ProfileSectionList | null = result.updated
+          ? null
+          : await ctx.runQuery(
+              internal.chat.toolQueries.queryProfileSectionList,
+              { userId: profileOwnerId, section: "articles" },
+            );
+        if (!result.updated && !list) {
+          throw new Error("Articles list is unavailable for this profile.");
+        }
+        return {
+          kind: "articles" as const,
+          status: "published" as const,
+          updated: result.updated,
+          changed: result.updated ? result.changed : false,
+          slug: result.slug,
+          title: result.updated ? result.title : row.title,
+          href: result.updated ? row.href : list!.href,
+        };
+      },
+    }),
+
+    unpublishArticle: createTool({
+      description:
+        "Unpublish one of the profile owner's articles by slug, moving it back to draft. Use this only when the visitor is the profile owner and explicitly asks to unpublish an article. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes whether an article was updated and the canonical articles-list href; the client uses the href to navigate away from the unpublished detail page.",
+      inputSchema: z.object({
+        slug: z
+          .string()
+          .min(1)
+          .describe("The slug of the article to unpublish."),
+      }),
+      execute: async (ctx, { slug }) => {
+        const row: OwnedContentRow | null = await ctx.runQuery(
+          internal.chat.toolQueries.resolveOwnedContentBySlug,
+          { userId: profileOwnerId, kind: "articles", slug },
+        );
+        if (!row) {
+          const list: ProfileSectionList | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryProfileSectionList,
+            { userId: profileOwnerId, section: "articles" },
+          );
+          if (!list) {
+            throw new Error("Articles list is unavailable for this profile.");
+          }
+          return {
+            kind: "articles" as const,
+            status: "draft" as const,
+            updated: false,
+            changed: false,
+            slug,
+            href: list.href,
+          };
+        }
+
+        const result: StatusMutationResult = await ctx.runMutation(
+          internal.chat.toolMutations.setArticleStatusByUserAndSlug,
+          { userId: profileOwnerId, slug, status: "draft" },
+        );
+        const list: ProfileSectionList | null = await ctx.runQuery(
+          internal.chat.toolQueries.queryProfileSectionList,
+          { userId: profileOwnerId, section: "articles" },
+        );
+        if (!list) {
+          throw new Error("Articles list is unavailable for this profile.");
+        }
+        return {
+          kind: "articles" as const,
+          status: "draft" as const,
+          updated: result.updated,
+          changed: result.updated ? result.changed : false,
+          slug: result.slug,
+          title: result.updated ? result.title : row.title,
           href: list.href,
         };
       },

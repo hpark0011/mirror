@@ -101,6 +101,26 @@ async function storeBlob(
   });
 }
 
+async function seedCoverOwnership(
+  t: ReturnType<typeof makeT>,
+  storageId: Id<"_storage">,
+  authId: string,
+): Promise<void> {
+  await t.run(async (ctx) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_authId", (q) => q.eq("authId", authId))
+      .unique();
+    if (!user) throw new Error(`No app user for authId=${authId}`);
+    await ctx.db.insert("coverImageOwnership", {
+      storageId,
+      userId: user._id,
+      createdAt: Date.now(),
+      kind: "image",
+    });
+  });
+}
+
 async function blobExists(
   t: ReturnType<typeof makeT>,
   id: Id<"_storage">,
@@ -650,10 +670,8 @@ describe("articles.mutations.remove — inline-image cascade (FR-07, NFR-06)", (
     const i2 = await storeBlob(t, "i2");
     const i3 = await storeBlob(t, "i3");
 
-    // FG_147: claim ownership before using the cover storageId in create.
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: cover,
-    });
+    // FG_147: seed ownership before using the cover storageId in create.
+    await seedCoverOwnership(t, cover, "auth_articles_inline");
 
     const articleId = await t.mutation(api.articles.mutations.create, {
       title: "Doomed",
@@ -1325,22 +1343,19 @@ describe("articles.inlineImages.importArticleMarkdownInlineImages (FR-08, FR-12)
 //
 // `create` and `update` must reject `coverImageStorageId` values that the
 // caller did not upload (i.e., no `coverImageOwnership` row attributes the
-// blob to the calling user). The `claimCoverImageOwnership` mutation must
-// be called after a successful upload before `create`/`update` will accept
-// the storageId.
+// blob to the calling user). The upload claim flow creates this ownership
+// row before `create`/`update` will accept the storageId.
 describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;
   });
 
-  it("create: accepts a coverImageStorageId after claimCoverImageOwnership is called", async () => {
+  it("create: accepts a coverImageStorageId after ownership is recorded", async () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
 
     const cover = await storeBlob(t, "cover-owned");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: cover,
-    });
+    await seedCoverOwnership(t, cover, "auth_articles_inline");
 
     const articleId = await t.mutation(api.articles.mutations.create, {
       title: "Owned Cover",
@@ -1359,7 +1374,7 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
     await insertAppUserAndSignIn(t);
 
     const cover = await storeBlob(t, "cover-unclaimed");
-    // Deliberately do NOT call claimCoverImageOwnership.
+    // Deliberately do NOT record ownership.
 
     await expect(
       t.mutation(api.articles.mutations.create, {
@@ -1378,9 +1393,7 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
     // User A uploads and claims a cover blob.
     await insertAppUserAndSignIn(t, "auth_cover_a", "cover-a@example.com");
     const coverA = await storeBlob(t, "cover-user-a");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: coverA,
-    });
+    await seedCoverOwnership(t, coverA, "auth_cover_a");
 
     // User B attempts to use user A's storageId as their cover.
     await t.run(async (ctx) =>
@@ -1416,9 +1429,7 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
     );
     authState.currentAuthUser = { _id: "auth_upd_b" };
     const coverB = await storeBlob(t, "cover-upd-user-b");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: coverB,
-    });
+    await seedCoverOwnership(t, coverB, "auth_upd_b");
 
     // User A creates an article without a cover.
     const userAAppId = await t.run(async (ctx) =>
@@ -1450,15 +1461,13 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
     expect(userAAppId).toBeDefined(); // silence unused-variable lint
   });
 
-  it("claimCoverImageOwnership: first-claim-wins — second caller cannot overwrite", async () => {
+  it("cover ownership is first-claim-wins — second caller cannot overwrite", async () => {
     const t = makeT();
 
     // User A claims the storageId first.
     await insertAppUserAndSignIn(t, "auth_claim_a", "claim-a@example.com");
     const cover = await storeBlob(t, "contested-cover");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: cover,
-    });
+    await seedCoverOwnership(t, cover, "auth_claim_a");
 
     // User B attempts to claim the same storageId.
     await t.run(async (ctx) =>
@@ -1469,13 +1478,6 @@ describe("articles.mutations — cover-image ownership guard (FG_147)", () => {
       }),
     );
     authState.currentAuthUser = { _id: "auth_claim_b" };
-    // Second claim is a no-op (first-commit-wins) — should NOT throw.
-    await expect(
-      t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-        storageId: cover,
-      }),
-    ).resolves.toBeNull();
-
     // Ownership row still attributes the blob to A.
     const row = await t.run(async (ctx) =>
       ctx.db

@@ -1,5 +1,28 @@
 # Lessons Learned
 
+## 2026-05-10
+
+### Convex schema checks need data drift cleanup, not permanent dead fields
+
+- `convex dev --once` can fail even when local typecheck/build pass if the
+  target deployment has rows with fields the current validator has already
+  narrowed away. The fix is widen-migrate-narrow: temporarily allow the legacy
+  field, run a one-shot cleanup mutation against the affected deployment, then
+  remove the temporary validator again and rerun `convex dev --once`.
+- Do not leave unused legacy fields in `schema.ts` just to satisfy one dirty
+  worktree deployment. The final successful schema push should happen after the
+  data cleanup with the intended narrow schema.
+
+### Convex mutations cannot delete storage and then throw
+
+- A `ctx.storage.delete(...)` inside a mutation is rolled back when that
+  mutation throws. If a reject path must both fail the caller and commit blob
+  cleanup, put the validation/delete/throw boundary in an action, then use an
+  internal mutation only for the successful database write.
+- Unit tests against `convex-test` can miss this because they often pin only
+  the thrown error/no-row contract. A live `convex dev --once` deployment plus
+  focused e2e is the right check for storage side effects.
+
 ## 2026-05-08
 
 ### Idempotent setup scripts must verify post-conditions, not trust subshell exit codes

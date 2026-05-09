@@ -5,7 +5,7 @@
 // to Convex storage, and resolves to both the `_storage` ID and the
 // base64-encoded thumbhash for the caller to persist together.
 import { useCallback } from "react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { uploadToStorage } from "@/lib/upload-to-storage";
@@ -19,7 +19,7 @@ export function useArticleCoverImageUpload(): UseArticleCoverImageUploadReturn {
   const generateUploadUrl = useMutation(
     api.articles.mutations.generateArticleCoverImageUploadUrl,
   );
-  const claimOwnership = useMutation(
+  const claimOwnership = useAction(
     api.articles.mutations.claimCoverImageOwnership,
   );
 

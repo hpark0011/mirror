@@ -37,7 +37,7 @@ export const ALLOWED_INLINE_IMAGE_TYPES: ReadonlySet<string> = new Set([
 // video-cover policy — separate cap from image. PLAN_010 (article cover
 // video). Articles can opt in to a short looping MP4 cover; the picker
 // validates against these constants client-side and the
-// `claimCoverVideoOwnership` mutation re-validates against `_storage`
+// `claimCoverVideoOwnership` action re-validates against `_storage`
 // metadata server-side. WebM, HEVC, MOV are intentionally out of scope.
 export const ALLOWED_COVER_VIDEO_TYPES: ReadonlySet<string> = new Set([
   "video/mp4",

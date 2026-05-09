@@ -669,6 +669,40 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     expect(Object.keys(schema.shape).sort()).toEqual(["slug"]);
   });
 
+  for (const toolName of [
+    "publishPost",
+    "unpublishPost",
+    "deleteArticle",
+    "publishArticle",
+    "unpublishArticle",
+  ] as const) {
+    it(`${toolName}.inputSchema does not expose userId (or any user identifier)`, () => {
+      const tools = buildCloneTools(fakeOwner);
+      const schema = tools[toolName].inputSchema as
+        | { shape?: Record<string, unknown> }
+        | undefined;
+
+      expect(schema).toBeDefined();
+      expect(schema!.shape).toBeDefined();
+      expect("userId" in schema!.shape!).toBe(false);
+      expect("user_id" in schema!.shape!).toBe(false);
+      expect("ownerId" in schema!.shape!).toBe(false);
+
+      const allKeys = collectAllKeys(schema!.shape!);
+      expect(
+        allKeys.every((k) => !/^(userId|user_id|ownerId)$/i.test(k)),
+      ).toBe(true);
+    });
+
+    it(`${toolName}.inputSchema exposes only slug`, () => {
+      const tools = buildCloneTools(fakeOwner);
+      const schema = tools[toolName].inputSchema as {
+        shape: Record<string, unknown>;
+      };
+      expect(Object.keys(schema.shape).sort()).toEqual(["slug"]);
+    });
+  }
+
   it("openProfileSection.inputSchema exposes only `section`, bounded to the visitor-visible subset", () => {
     // Pins both the shape (one key, `section`) and the enum range
     // (`bio | articles | posts` only — `clone-settings` is owner-only and
@@ -698,6 +732,201 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
         ? Object.values(rawEntries as Record<string, string>)
         : [];
     expect([...values].sort()).toEqual(["articles", "bio", "posts"]);
+  });
+});
+
+describe("chat/tools write parity — execute", () => {
+  function buildCtx(t: ReturnType<typeof makeT>) {
+    return {
+      runMutation: (ref: unknown, args: Record<string, unknown>) =>
+        t.mutation(ref as never, args as never),
+      runQuery: (ref: unknown, args: Record<string, unknown>) =>
+        t.query(ref as never, args as never),
+    } as unknown as Parameters<
+      ReturnType<typeof buildCloneTools>["publishPost"]["execute"]
+    >[0];
+  }
+
+  async function insertPost(
+    t: ReturnType<typeof makeT>,
+    owner: Id<"users">,
+    fields: {
+      slug: string;
+      title: string;
+      status: "draft" | "published";
+    },
+  ) {
+    return t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: fields.slug,
+        title: fields.title,
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: fields.status,
+        publishedAt: fields.status === "published" ? 1000 : undefined,
+        createdAt: 1000,
+      }),
+    );
+  }
+
+  async function insertArticle(
+    t: ReturnType<typeof makeT>,
+    owner: Id<"users">,
+    fields: {
+      slug: string;
+      title: string;
+      status: "draft" | "published";
+      coverImageStorageId?: Id<"_storage">;
+    },
+  ) {
+    return t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: fields.slug,
+        title: fields.title,
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: fields.status,
+        publishedAt: fields.status === "published" ? 1000 : undefined,
+        createdAt: 1000,
+        coverImageStorageId: fields.coverImageStorageId,
+      }),
+    );
+  }
+
+  it("publishPost publishes a draft post and returns its canonical detail href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_publish_post");
+    const postId = await insertPost(t, owner, {
+      slug: "draft-post",
+      title: "Draft Post",
+      status: "draft",
+    });
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.publishPost.execute(buildCtx(t), {
+      slug: "draft-post",
+    });
+
+    expect(result).toMatchObject({
+      kind: "posts",
+      status: "published",
+      updated: true,
+      changed: true,
+      slug: "draft-post",
+      title: "Draft Post",
+      href: buildContentHref("owner_publish_post", "posts", "draft-post"),
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(postId));
+    expect(row!.status).toBe("published");
+    expect(row!.publishedAt).toBeTypeOf("number");
+  });
+
+  it("unpublishArticle moves a published article to draft and returns the articles-list href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_unpublish_article");
+    const articleId = await insertArticle(t, owner, {
+      slug: "published-article",
+      title: "Published Article",
+      status: "published",
+    });
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.unpublishArticle.execute(buildCtx(t), {
+      slug: "published-article",
+    });
+
+    expect(result).toMatchObject({
+      kind: "articles",
+      status: "draft",
+      updated: true,
+      changed: true,
+      slug: "published-article",
+      title: "Published Article",
+      href: buildContentHref("owner_unpublish_article", "articles"),
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(articleId));
+    expect(row!.status).toBe("draft");
+  });
+
+  it("deleteArticle deletes the article and returns the articles-list href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_delete_article");
+    const coverImageStorageId = await t.run(async (ctx) =>
+      ctx.storage.store(new Blob(["cover"])),
+    );
+    await t.run(async (ctx) =>
+      ctx.db.insert("coverImageOwnership", {
+        storageId: coverImageStorageId,
+        userId: owner,
+        createdAt: 1000,
+        kind: "image",
+      }),
+    );
+    const articleId = await insertArticle(t, owner, {
+      slug: "remove-me",
+      title: "Remove Me",
+      status: "published",
+      coverImageStorageId,
+    });
+
+    const tools = buildCloneTools(owner);
+    const result = await tools.deleteArticle.execute(buildCtx(t), {
+      slug: "remove-me",
+    });
+
+    expect(result).toMatchObject({
+      kind: "articles",
+      deleted: true,
+      slug: "remove-me",
+      title: "Remove Me",
+      href: buildContentHref("owner_delete_article", "articles"),
+    });
+    expect(await t.run(async (ctx) => ctx.db.get(articleId))).toBeNull();
+    expect(
+      await t.run(async (ctx) => ctx.db.system.get(coverImageStorageId)),
+    ).toBeNull();
+    expect(
+      await t.run(async (ctx) =>
+        ctx.db
+          .query("coverImageOwnership")
+          .withIndex("by_storageId", (q) =>
+            q.eq("storageId", coverImageStorageId),
+          )
+          .unique(),
+      ),
+    ).toBeNull();
+  });
+
+  it("SECURITY: publishPost does not update a post owned by a different user", async () => {
+    const t = makeT();
+    const userA = await insertOwner(t, "user_a_publish_iso");
+    const userB = await insertOwner(t, "user_b_publish_iso");
+    const bPostId = await insertPost(t, userB, {
+      slug: "shared-slug",
+      title: "B Draft",
+      status: "draft",
+    });
+
+    const toolsForA = buildCloneTools(userA);
+    const result = await toolsForA.publishPost.execute(buildCtx(t), {
+      slug: "shared-slug",
+    });
+
+    expect(result).toMatchObject({
+      kind: "posts",
+      status: "published",
+      updated: false,
+      changed: false,
+      slug: "shared-slug",
+      href: buildContentHref("user_a_publish_iso", "posts"),
+    });
+
+    const bPost = await t.run(async (ctx) => ctx.db.get(bPostId));
+    expect(bPost!.status).toBe("draft");
   });
 });
 
