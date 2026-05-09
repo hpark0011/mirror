@@ -77,7 +77,8 @@ describe("useDeletePost", () => {
     mockWithOptimisticUpdate.mockReset();
     mockRouter.replace.mockReset();
     mockShowToast.mockReset();
-    mockBuildChatAwareHref.mockReset((href: string) => href);
+    mockBuildChatAwareHref.mockReset();
+    mockBuildChatAwareHref.mockImplementation((href: string) => href);
 
     // Set up the default behavior: withOptimisticUpdate returns the mutation itself
     mockWithOptimisticUpdate.mockImplementation((_callback: unknown) => {

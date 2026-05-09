@@ -17,6 +17,8 @@ async function ensureTestPostFixtures(): Promise<{
   draftSlug: string;
   publishedSlug: string;
 }> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 10_000);
   const res = await fetch(`${convexSiteUrl}/test/ensure-post-fixtures`, {
     method: "POST",
     headers: {
@@ -24,7 +26,8 @@ async function ensureTestPostFixtures(): Promise<{
       "x-test-secret": testSecret,
     },
     body: JSON.stringify({ email: testEmail }),
-  });
+    signal: controller.signal,
+  }).finally(() => clearTimeout(timeoutId));
   if (!res.ok) {
     const body = await res.text();
     throw new Error(
