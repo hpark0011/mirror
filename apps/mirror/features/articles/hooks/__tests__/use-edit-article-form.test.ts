@@ -99,10 +99,19 @@ describe("useEditArticleForm — cover clear", () => {
     mockReplace.mockReset();
     mockRefresh.mockReset();
     mockShowToast.mockReset();
+    // Required by the upload-then-clear test below; harmless to the
+    // tests that don't call handleCoverUpload.
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn((file: Blob) =>
+        file.type.startsWith("video/") ? "blob:video-url" : "blob:image-url",
+      ),
+      revokeObjectURL: vi.fn(),
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("save sends clearCoverImage:true (not coverImageStorageId:undefined) after a clear", async () => {
@@ -161,6 +170,51 @@ describe("useEditArticleForm — cover clear", () => {
     };
     expect(args.clearCoverImage).toBe(true);
     expect(args.coverImageStorageId).toBeUndefined();
+    expect(args.coverVideoStorageId).toBeUndefined();
+    expect(args.coverVideoPosterStorageId).toBeUndefined();
+  });
+
+  // FG_201: pins the storage-id reset path inside handleCoverClear that the
+  // server-cover-then-clear test above cannot reach. The hook initializes
+  // coverVideoStorageId / coverVideoPosterStorageId to null unconditionally
+  // (use-edit-article-form.tsx:71-76), so the only way to get non-null
+  // storage-id state into the hook is the upload path. Without first
+  // uploading, handleCoverClear's setCoverVideoStorageId(null) /
+  // setCoverVideoPosterStorageId(null) calls are observable no-ops.
+  it("save sends clearCoverImage:true with no video ids after upload-then-clear", async () => {
+    mockUpdate.mockResolvedValue(null);
+    mockUploadCoverVideo.mockResolvedValue({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+
+    await act(async () => {
+      await result.current.handleCoverUpload(
+        new File([new Uint8Array([1])], "cover.mp4", { type: "video/mp4" }),
+      );
+    });
+
+    act(() => {
+      result.current.handleCoverClear();
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    const args = mockUpdate.mock.calls[0]![0] as {
+      clearCoverImage?: boolean;
+      coverVideoStorageId?: unknown;
+      coverVideoPosterStorageId?: unknown;
+    };
+    expect(args.clearCoverImage).toBe(true);
     expect(args.coverVideoStorageId).toBeUndefined();
     expect(args.coverVideoPosterStorageId).toBeUndefined();
   });
