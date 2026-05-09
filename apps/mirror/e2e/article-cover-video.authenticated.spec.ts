@@ -25,7 +25,12 @@ const convexUrl = requireEnv("NEXT_PUBLIC_CONVEX_URL");
 const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
 const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
 
-const COVER_VIDEO_FIXTURE = path.resolve(__dirname, "fixtures/cover-video.mp4");
+// CI uses the committed tiny MP4. Local/manual runs can point at a
+// larger real-world clip, e.g. `COVER_VIDEO_FIXTURE=workspace/artifacts/...`.
+const COVER_VIDEO_FIXTURE = path.resolve(
+  __dirname,
+  process.env.COVER_VIDEO_FIXTURE ?? "fixtures/cover-video.mp4",
+);
 const AUTH_STATE_FILE = path.resolve(__dirname, ".auth/user.json");
 const SMALL_PNG_BYTES = Buffer.from([
   0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49,

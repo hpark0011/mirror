@@ -1,18 +1,20 @@
 import {
-  act,
   cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
 } from "@testing-library/react";
-import { type ComponentProps } from "react";
+import { type ComponentProps, useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CoverImagePicker } from "../cover-image-picker";
 import { CoverVideoPreview } from "../cover-video-preview";
 
 const originalCreateObjectURL = URL.createObjectURL;
 const originalRevokeObjectURL = URL.revokeObjectURL;
+
+let createObjectURL: ReturnType<typeof vi.fn>;
+let revokeObjectURL: ReturnType<typeof vi.fn>;
 
 function setUrlMethod(
   name: "createObjectURL" | "revokeObjectURL",
@@ -23,6 +25,18 @@ function setUrlMethod(
     writable: true,
     value,
   });
+}
+
+function installUrlMocks() {
+  let nextId = 0;
+  createObjectURL = vi.fn(() => {
+    nextId += 1;
+    return `blob:picker-preview-${nextId}`;
+  });
+  revokeObjectURL = vi.fn();
+
+  setUrlMethod("createObjectURL", createObjectURL);
+  setUrlMethod("revokeObjectURL", revokeObjectURL);
 }
 
 function restoreUrlMethod(
@@ -58,13 +72,26 @@ function pickerInput() {
     .querySelector('input[type="file"]') as HTMLInputElement;
 }
 
+function ControlledVideoPicker() {
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+
+  return (
+    <CoverImagePicker
+      imageUrl={null}
+      videoUrl={videoUrl}
+      videoPosterUrl={null}
+      onUpload={async () => {
+        setVideoUrl("blob:parent-owned-video");
+        return { kind: "video" };
+      }}
+      onClear={() => setVideoUrl(null)}
+    />
+  );
+}
+
 describe("CoverImagePicker", () => {
   beforeEach(() => {
-    setUrlMethod(
-      "createObjectURL",
-      vi.fn(() => "blob:cover-video"),
-    );
-    setUrlMethod("revokeObjectURL", vi.fn());
+    installUrlMocks();
   });
 
   afterEach(() => {
@@ -74,32 +101,26 @@ describe("CoverImagePicker", () => {
     restoreUrlMethod("revokeObjectURL", originalRevokeObjectURL);
   });
 
-  it("does not revoke the picker blob URL after a successful upload", async () => {
-    const onUpload = vi.fn(
-      async (): Promise<{ kind: "video" }> => ({
-        kind: "video",
-      }),
-    );
-    const file = new File([new Uint8Array([1])], "cover.mp4", {
-      type: "video/mp4",
+  it("hands a successful video upload from the temporary preview URL to the parent-owned URL", async () => {
+    render(<ControlledVideoPicker />);
+
+    fireEvent.change(pickerInput(), {
+      target: {
+        files: [
+          new File([new Uint8Array([1])], "cover.mp4", {
+            type: "video/mp4",
+          }),
+        ],
+      },
     });
 
-    renderPicker(onUpload);
-    await act(async () => {
-      fireEvent.change(pickerInput(), { target: { files: [file] } });
-      await Promise.resolve();
+    const preview = await screen.findByTestId("article-cover-video-preview");
+    await waitFor(() => {
+      expect(preview.getAttribute("src")).toBe("blob:parent-owned-video");
     });
 
-    await waitFor(() =>
-      expect(
-        screen
-          .getByTestId("article-cover-image-picker")
-          .getAttribute("data-cover-upload-state"),
-      ).toBe("ready"),
-    );
-    expect(onUpload).toHaveBeenCalledWith(file);
-    expect(screen.getByTestId("article-cover-video-preview")).toBeTruthy();
-    expect(URL.revokeObjectURL).not.toHaveBeenCalled();
+    expect(revokeObjectURL).toHaveBeenCalledWith("blob:picker-preview-1");
+    expect(revokeObjectURL).not.toHaveBeenCalledWith("blob:parent-owned-video");
   });
 
   it("revokes the picker blob URL when upload rejects", async () => {
@@ -114,7 +135,7 @@ describe("CoverImagePicker", () => {
     fireEvent.change(pickerInput(), { target: { files: [file] } });
 
     await waitFor(() =>
-      expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:cover-video"),
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:picker-preview-1"),
     );
   });
 

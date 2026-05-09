@@ -62,6 +62,7 @@ export function CoverImagePicker({
   disabled,
 }: CoverImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const localPreviewUrlRef = useRef<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [hasUploaded, setHasUploaded] = useState(false);
   const [active, setActive] = useState<ActiveCoverPreview>(() =>
@@ -69,22 +70,52 @@ export function CoverImagePicker({
   );
 
   useEffect(() => {
-    setActive((prev) => {
-      if (prev && prev.url.startsWith("blob:")) return prev;
-      return activeCoverPreviewFromProps(imageUrl, videoUrl, videoPosterUrl);
-    });
-  }, [imageUrl, videoUrl, videoPosterUrl]);
+    return () => {
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+        localPreviewUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Re-sync when the parent's URL props change. A temporary local blob
+  // preview wins only while the upload is in flight; after upload settles,
+  // parent state becomes the source of truth again.
+  useEffect(() => {
+    if (isUploading) return;
+
+    const nextActive = activeCoverPreviewFromProps(
+      imageUrl,
+      videoUrl,
+      videoPosterUrl,
+    );
+    setActive(nextActive);
+
+    const localPreviewUrl = localPreviewUrlRef.current;
+    if (localPreviewUrl && nextActive?.url !== localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+      localPreviewUrlRef.current = null;
+    }
+  }, [imageUrl, isUploading, videoPosterUrl, videoUrl]);
 
   const handleSelect = async (file: File) => {
     setIsUploading(true);
     setHasUploaded(false);
     const objectUrl = URL.createObjectURL(file);
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+    }
+    localPreviewUrlRef.current = objectUrl;
     setActive(activeCoverPreviewFromFile(file, objectUrl));
     try {
       await onUpload(file);
       setHasUploaded(true);
     } catch {
-      URL.revokeObjectURL(objectUrl);
+      if (localPreviewUrlRef.current === objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        localPreviewUrlRef.current = null;
+      }
+      setActive(activeCoverPreviewFromProps(imageUrl, videoUrl, videoPosterUrl));
     } finally {
       setIsUploading(false);
     }
@@ -150,6 +181,10 @@ export function CoverImagePicker({
               size="xs"
               variant="secondary"
               onClick={() => {
+                if (localPreviewUrlRef.current) {
+                  URL.revokeObjectURL(localPreviewUrlRef.current);
+                  localPreviewUrlRef.current = null;
+                }
                 setActive(null);
                 setHasUploaded(false);
                 onClear();
