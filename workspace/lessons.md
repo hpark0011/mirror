@@ -1,5 +1,20 @@
 # Lessons Learned
 
+## 2026-05-10
+
+### OAuth proxy callbacks use Convex `SITE_URL`, not just the Next dev URL
+
+- In worktrees, Google OAuth can bounce back to a dead localhost port even when
+  the Mirror dev server started on the correct allocated port. The decisive
+  value is Convex deployment env `SITE_URL`; Better Auth's OAuth proxy uses it
+  as `currentURL`, so a stale `SITE_URL=http://localhost:3001` sends the final
+  callback to 3001 regardless of the app process port.
+- `pnpm dev:safe` now runs `scripts/ensure-local-auth-url.mjs` before Turbo so
+  Convex `SITE_URL` and `AUTH_ALLOWED_HOSTS` are aligned with
+  `scripts/with-worktree-port.mjs`. For manual package-level dev runs, verify
+  `pnpm --filter=@feel-good/convex exec convex env list | rg '^SITE_URL='`
+  before debugging OAuth internals.
+
 ## 2026-05-08
 
 ### Temporary blob previews need an explicit ownership handoff

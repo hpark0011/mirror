@@ -123,13 +123,13 @@ and the structured `output`.
 
 ## Owner-only views are excluded from agent section enums
 
-Some profile tabs (today: `clone-settings`) are owner-only and not
-visitor-reachable. They MUST be excluded from any agent-visible enum
+Some profile tabs (today: `clone-settings` and `settings`) are owner-only and
+not visitor-reachable. They MUST be excluded from any agent-visible enum
 that selects a section to open. Concretely, `openProfileSection`'s
 `section` enum in
 [`packages/convex/convex/chat/tools.ts`](../../packages/convex/convex/chat/tools.ts)
 is `'bio' | 'articles' | 'posts'` — `clone-settings` is omitted by
-design.
+design, and `settings` follows the same rule.
 
 When you add a new tab to `PROFILE_TAB_KINDS`, classify it before
 extending the agent enum: if it is owner-only, leave the agent enum
@@ -168,7 +168,7 @@ while users keep working.
   [`apps/mirror/features/profile-tabs/__tests__/types.test.ts`](../../apps/mirror/features/profile-tabs/__tests__/types.test.ts);
   prefer it for bio-specific call sites so the URL template lives in
   exactly one place.
-- Format: `/@<username>/<bio|articles|posts>`. Must stay aligned with
+- Format: `/@<username>/<section>`. Must stay aligned with
   the Next.js routes under `apps/mirror/app/[username]/<section>/`.
 
 The agent path uses the server-built `href` from the tool's result and

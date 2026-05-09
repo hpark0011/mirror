@@ -56,27 +56,24 @@ vi.mock("@/features/chat/lib/parse-conversation-id", () => ({
         : { status: "valid", id: raw },
 }));
 
-vi.mock(
-  "@/app/[username]/_providers/profile-route-data-context",
-  () => ({
-    useProfileRouteData: () => ({
-      profile: {
-        _id: "user_alice",
-        authId: "auth_alice",
-        username: "alice",
-        name: "Alice",
-        bio: "",
-        avatarUrl: undefined,
-      },
-    }),
+vi.mock("@/app/[username]/_providers/profile-route-data-context", () => ({
+  useProfileRouteData: () => ({
+    profile: {
+      _id: "user_alice",
+      authId: "auth_alice",
+      username: "alice",
+      name: "Alice",
+      bio: "",
+      avatarUrl: undefined,
+      defaultProfileSection: "posts",
+    },
   }),
-);
+}));
 
 // ── Import after mocks ────────────────────────────────────────────────────────
 
-const { ChatRouteController, useChatRouteController } = await import(
-  "@/app/[username]/_providers/chat-route-controller"
-);
+const { ChatRouteController, useChatRouteController } =
+  await import("@/app/[username]/_providers/chat-route-controller");
 
 // ── Test consumer that exposes the context to the test ────────────────────────
 
@@ -248,9 +245,7 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     );
 
     act(() => {
-      latest!.handleConversationIdChange(
-        "conv_bridge" as Id<"conversations">,
-      );
+      latest!.handleConversationIdChange("conv_bridge" as Id<"conversations">);
     });
 
     // URL navigates to a different conversation than the bridged id.
@@ -279,9 +274,7 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     );
 
     act(() => {
-      latest!.handleConversationIdChange(
-        "conv_bridge" as Id<"conversations">,
-      );
+      latest!.handleConversationIdChange("conv_bridge" as Id<"conversations">);
     });
 
     // Chat closes — URL still has no conversation.

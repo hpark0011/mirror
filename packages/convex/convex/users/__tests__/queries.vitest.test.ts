@@ -109,6 +109,7 @@ describe("users.queries.getByUsername (post-narrow: returns tagline only)", () =
     });
     expect(result).not.toBeNull();
     expect(result!.tagline).toBe("only tagline set");
+    expect(result!.defaultProfileSection).toBe("posts");
     // The `bio` field has been removed from the schema and the public
     // profile validator; the returned shape must not expose it.
     expect((result as Record<string, unknown>).bio).toBeUndefined();
@@ -130,6 +131,25 @@ describe("users.queries.getByUsername (post-narrow: returns tagline only)", () =
     });
     expect(result).not.toBeNull();
     expect(result!.tagline).toBeUndefined();
+  });
+
+  it("returns a stored default profile section", async () => {
+    const t = makeT();
+    await t.run(async (ctx) => {
+      await ctx.db.insert("users", {
+        authId: "auth_erin",
+        email: "erin@example.com",
+        username: "erin",
+        onboardingComplete: true,
+        defaultProfileSection: "bio",
+      });
+    });
+
+    const result = await t.query(api.users.queries.getByUsername, {
+      username: "erin",
+    });
+    expect(result).not.toBeNull();
+    expect(result!.defaultProfileSection).toBe("bio");
   });
 });
 

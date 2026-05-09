@@ -177,3 +177,43 @@ describe("users.mutations.updateProfile (post-narrow: tagline-only)", () => {
     expect(row!.tagline).toBe("preexisting");
   });
 });
+
+describe("users.mutations.updateProfileSettings", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("rejects when not authenticated", async () => {
+    const t = makeT();
+    await expect(
+      t.mutation(api.users.mutations.updateProfileSettings, {
+        defaultProfileSection: "bio",
+      }),
+    ).rejects.toThrow();
+  });
+
+  it("writes the default profile section", async () => {
+    const t = makeT();
+    const userId = await signInAs(t, "auth_settings", "u_settings");
+
+    await t.mutation(api.users.mutations.updateProfileSettings, {
+      defaultProfileSection: "articles",
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(userId));
+    expect(row).not.toBeNull();
+    expect(row!.defaultProfileSection).toBe("articles");
+  });
+
+  it("rejects owner-only sections via the args validator", async () => {
+    const t = makeT();
+    await signInAs(t, "auth_settings_invalid", "u_settings_invalid");
+
+    await expect(
+      t.mutation(api.users.mutations.updateProfileSettings, {
+        // @ts-expect-error — settings is not a supported default profile section.
+        defaultProfileSection: "settings",
+      }),
+    ).rejects.toThrow();
+  });
+});

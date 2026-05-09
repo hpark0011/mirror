@@ -9,12 +9,14 @@ import {
 } from "next/navigation";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import {
-  DEFAULT_PROFILE_CONTENT_KIND,
-  getContentHref,
   getContentRouteState,
   type ContentRouteState,
 } from "@/features/content";
-import { isProfileTabKind } from "@/features/profile-tabs/types";
+import {
+  getProfileTabHref,
+  isProfileTabKind,
+} from "@/features/profile-tabs/types";
+import { useProfileRouteData } from "../_providers/profile-route-data-context";
 
 export type ProfileWorkspaceRouteData = {
   isChatOpen: boolean;
@@ -37,6 +39,7 @@ export function useProfileWorkspaceRouteData(): ProfileWorkspaceRouteData {
   const searchParams = useSearchParams();
   const segments = useSelectedLayoutSegments();
   const { isChatOpen, buildChatAwareHref } = useChatSearchParams();
+  const { profile } = useProfileRouteData();
 
   const username = params.username;
   const hasContentRoute = isProfileTabKind(segments[0]);
@@ -45,15 +48,17 @@ export function useProfileWorkspaceRouteData(): ProfileWorkspaceRouteData {
   const defaultContentHref = useMemo(() => {
     if (!username) return null;
 
-    const href = getContentHref(username, DEFAULT_PROFILE_CONTENT_KIND);
+    const href = getProfileTabHref(username, profile.defaultProfileSection);
     const queryString = searchParams.toString();
     return queryString ? `${href}?${queryString}` : href;
-  }, [searchParams, username]);
+  }, [profile.defaultProfileSection, searchParams, username]);
 
   const profileBackHref = useMemo(() => {
     if (!username) return null;
-    return buildChatAwareHref(`/@${username}/posts`);
-  }, [buildChatAwareHref, username]);
+    return buildChatAwareHref(
+      getProfileTabHref(username, profile.defaultProfileSection),
+    );
+  }, [buildChatAwareHref, profile.defaultProfileSection, username]);
 
   const openDefaultContent = useCallback(() => {
     if (!defaultContentHref) return;
