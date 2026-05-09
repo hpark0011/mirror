@@ -51,27 +51,47 @@ export function CoverImagePicker({
   disabled,
 }: CoverImagePickerProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const localPreviewUrlRef = useRef<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [hasUploaded, setHasUploaded] = useState(false);
   const [active, setActive] = useState<ActivePreview>(() =>
     activeFromProps(imageUrl, videoUrl, videoPosterUrl),
   );
 
-  // Re-sync when the parent's URL props change (slow-arriving server
-  // URL or parent-driven clear). An in-progress local blob preview
-  // wins to avoid clobbering the active upload.
   useEffect(() => {
-    setActive((prev) => {
-      if (prev && prev.url.startsWith("blob:")) return prev;
-      return activeFromProps(imageUrl, videoUrl, videoPosterUrl);
-    });
-  }, [imageUrl, videoUrl, videoPosterUrl]);
+    return () => {
+      if (localPreviewUrlRef.current) {
+        URL.revokeObjectURL(localPreviewUrlRef.current);
+        localPreviewUrlRef.current = null;
+      }
+    };
+  }, []);
+
+  // Re-sync when the parent's URL props change. A temporary local blob
+  // preview wins only while the upload is in flight; after upload
+  // settles, parent state becomes the source of truth again.
+  useEffect(() => {
+    if (isUploading) return;
+
+    const nextActive = activeFromProps(imageUrl, videoUrl, videoPosterUrl);
+    setActive(nextActive);
+
+    const localPreviewUrl = localPreviewUrlRef.current;
+    if (localPreviewUrl && nextActive?.url !== localPreviewUrl) {
+      URL.revokeObjectURL(localPreviewUrl);
+      localPreviewUrlRef.current = null;
+    }
+  }, [imageUrl, isUploading, videoPosterUrl, videoUrl]);
 
   const handleSelect = async (file: File) => {
     setIsUploading(true);
     setHasUploaded(false);
     const isVideo = file.type.startsWith("video/");
     const objectUrl = URL.createObjectURL(file);
+    if (localPreviewUrlRef.current) {
+      URL.revokeObjectURL(localPreviewUrlRef.current);
+    }
+    localPreviewUrlRef.current = objectUrl;
     setActive(
       isVideo
         ? { kind: "video", url: objectUrl, posterUrl: null }
@@ -79,12 +99,17 @@ export function CoverImagePicker({
     );
     try {
       await onUpload(file);
-      // Once the parent commits the new server state, the props-sync
-      // effect above swaps blob: → server URL. Until then, the blob
-      // preview is what the user sees — which is fine.
+      // Once the parent commits its cover state, the props-sync effect
+      // above swaps from this temporary preview to the parent-owned URL.
       setHasUploaded(true);
+    } catch (err) {
+      if (localPreviewUrlRef.current === objectUrl) {
+        URL.revokeObjectURL(objectUrl);
+        localPreviewUrlRef.current = null;
+      }
+      setActive(activeFromProps(imageUrl, videoUrl, videoPosterUrl));
+      throw err;
     } finally {
-      URL.revokeObjectURL(objectUrl);
       setIsUploading(false);
     }
   };

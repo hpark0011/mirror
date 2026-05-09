@@ -16,9 +16,11 @@ import path from "path";
 
 const username = "test-user";
 
+// CI uses the committed tiny MP4. Local/manual runs can point at a
+// larger real-world clip, e.g. `COVER_VIDEO_FIXTURE=workspace/artifacts/...`.
 const COVER_VIDEO_FIXTURE = path.resolve(
   __dirname,
-  "fixtures/cover-video.mp4",
+  process.env.COVER_VIDEO_FIXTURE ?? "fixtures/cover-video.mp4",
 );
 
 test.describe("Article cover video picker (PLAN_010)", () => {
