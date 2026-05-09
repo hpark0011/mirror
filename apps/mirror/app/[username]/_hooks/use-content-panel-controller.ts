@@ -94,16 +94,31 @@ export function useContentPanelController({
     panelRef.current?.collapse();
   }, [expand, isCollapsed, pendingNav]);
 
+  // `ensureExpanded` must be a stable identity so the panel-bridge
+  // registration in `useRegisterContentPanelBridge` runs once at mount.
+  // If we closed over `isCollapsed` directly, the closure would change
+  // on every collapse/expand and the bridge re-registration would race
+  // descendant passive effects (e.g. `useAgentIntentWatcher` in
+  // `ChatActiveThread`): when `isCollapsed` flips and a tool-result
+  // lands in the same commit, the descendant's `useEffect` runs first
+  // and reads the still-stale closure from `handlerRef.current`. Reading
+  // `isCollapsed` from a ref synced via `useLayoutEffect` lets all
+  // passive effects observe the latest value regardless of tree depth.
+  const isCollapsedRef = useRef(isCollapsed);
+  useLayoutEffect(() => {
+    isCollapsedRef.current = isCollapsed;
+  }, [isCollapsed]);
+
   // Called by the dispatcher (`useCloneActions`) via the panel-bridge
   // before every `router.push`. Distinct from `expand()`: must NOT call
   // `openDefaultContentRoute()` when `!hasContentRoute`, because the
   // dispatcher is itself about to push a more specific content URL —
   // a fallback default-content push would race it.
   const ensureExpanded = useCallback(() => {
-    if (!isCollapsed) return;
+    if (!isCollapsedRef.current) return;
     if (pendingNav.isArmed()) return;
     groupRef.current?.setLayout([...OPEN_LAYOUT]);
-  }, [groupRef, isCollapsed, pendingNav]);
+  }, [groupRef, pendingNav]);
 
   useLayoutEffect(() => {
     const previousHasContentRoute = previousHasContentRouteRef.current;
