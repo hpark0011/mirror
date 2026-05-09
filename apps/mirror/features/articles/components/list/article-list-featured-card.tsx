@@ -125,7 +125,7 @@ export function FeaturedArticleCard({
     ? (
       <div
         className={cn(
-          "relative w-full aspect-video h-full bg-gray-5 max-w-[520px] overflow-hidden",
+          "relative w-full aspect-video h-full bg-gray-5 max-w-[480px] overflow-hidden",
           imageFirst && "@max-[480px]:order-2",
         )}
       >
@@ -146,7 +146,7 @@ export function FeaturedArticleCard({
     ? (
       <div
         className={cn(
-          "relative w-full aspect-video h-full bg-gray-5 max-w-[520px] overflow-hidden",
+          "relative w-full aspect-video h-full bg-gray-5 max-w-[480px] overflow-hidden",
           imageFirst && "@max-[480px]:order-2",
         )}
       >
@@ -154,7 +154,7 @@ export function FeaturedArticleCard({
           src={article.coverImageUrl!}
           alt=""
           fill
-          sizes="(max-width: 880px) 100vw, 560px"
+          sizes="(max-width: 880px) 100vw, 480px"
           placeholder={blurDataUrl ? "blur" : "empty"}
           blurDataURL={blurDataUrl ?? undefined}
           className="object-cover"
