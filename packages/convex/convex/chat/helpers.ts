@@ -76,8 +76,27 @@ const DEFAULT_PERSONA =
 // short so it pulls little weight in the truncatable budget. Placed alongside
 // the inventory sentence so the agent learns nouns ("articles", "posts") and
 // verbs ("getLatestPublished", "navigateToContent") in the same region.
-const TOOLS_VOCABULARY =
-  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug. Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background, and with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use getLatestPublished and navigateToContent instead). Call deletePost with the slug only when the visitor (who must be the profile owner) explicitly asks to remove a post — never delete on your own initiative, and always confirm the slug before calling. Call publishPost with the slug only when the profile owner explicitly asks to publish one of their posts. Call unpublishPost with the slug only when the profile owner explicitly asks to unpublish one of their posts. Call deleteArticle with the slug only when the profile owner explicitly asks to remove an article. Call publishArticle with the slug only when the profile owner explicitly asks to publish one of their articles. Call unpublishArticle with the slug only when the profile owner explicitly asks to unpublish one of their articles.";
+const CONTENT_NAVIGATION_VOCABULARY =
+  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug.";
+
+const PROFILE_SECTION_VOCABULARY =
+  "Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background, and with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use getLatestPublished and navigateToContent instead).";
+
+const POST_OWNER_WRITE_VOCABULARY =
+  "Call deletePost with the slug only when the visitor (who must be the profile owner) explicitly asks to remove a post — never delete on your own initiative, and always confirm the slug before calling. Call publishPost with the slug only when the profile owner explicitly asks to publish one of their posts. Call unpublishPost with the slug only when the profile owner explicitly asks to unpublish one of their posts.";
+
+const ARTICLE_OWNER_WRITE_VOCABULARY =
+  "Call deleteArticle with the slug only when the profile owner explicitly asks to remove an article. Call publishArticle with the slug only when the profile owner explicitly asks to publish one of their articles. Call unpublishArticle with the slug only when the profile owner explicitly asks to unpublish one of their articles.";
+
+function buildToolsVocabulary(canUseOwnerWriteTools: boolean): string {
+  return [
+    CONTENT_NAVIGATION_VOCABULARY,
+    PROFILE_SECTION_VOCABULARY,
+    ...(canUseOwnerWriteTools
+      ? [POST_OWNER_WRITE_VOCABULARY, ARTICLE_OWNER_WRITE_VOCABULARY]
+      : []),
+  ].join(" ");
+}
 
 export const SYSTEM_PROMPT_MAX_CHARS = 6000;
 
@@ -106,15 +125,14 @@ const SEPARATOR = "\n\n";
  * Section ORDER is preserved:
  *   safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
  * The first four are fixed (load-bearing) — safety prefix, style rules, the
- * optional tone clause, and TOOLS_VOCABULARY (the only place the system
- * prompt names `getLatestPublished` / `navigateToContent`). The rest are
- * truncatable.
+ * optional tone clause, and the tools vocabulary. The rest are truncatable.
  */
 function truncateToBudget(
   fixedParts: Array<string>,
   truncatableParts: Array<string>,
 ): Array<string> {
-  const joinCharsCount = (n: number) => (n > 1 ? (n - 1) * SEPARATOR.length : 0);
+  const joinCharsCount = (n: number) =>
+    n > 1 ? (n - 1) * SEPARATOR.length : 0;
   const total = (fixed: Array<string>, trunc: Array<string>): number => {
     const all = [...fixed, ...trunc];
     return all.reduce((s, p) => s + p.length, 0) + joinCharsCount(all.length);
@@ -129,8 +147,7 @@ function truncateToBudget(
   const separatorOverhead = joinCharsCount(totalParts);
 
   // Budget left for truncatable sections combined.
-  let budget =
-    SYSTEM_PROMPT_MAX_CHARS - fixedChars - separatorOverhead;
+  let budget = SYSTEM_PROMPT_MAX_CHARS - fixedChars - separatorOverhead;
   if (budget < 0) budget = 0;
 
   const truncatableTotal = truncatableParts.reduce((s, p) => s + p.length, 0);
@@ -159,28 +176,29 @@ export function composeSystemPrompt(opts: {
   tonePreset?: TonePreset | null;
   topicsToAvoid?: string | null;
   contentInventory?: ContentInventory | null;
+  canUseOwnerWriteTools?: boolean | null;
 }): string {
   // Bound name up front so a pathologically long value cannot force the
   // final backstop slice to cut into SAFETY_PREFIX or the tone clause.
   const rawName = opts.name || "this person";
   const name =
-    rawName.length > MAX_NAME_CHARS ? rawName.slice(0, MAX_NAME_CHARS) : rawName;
+    rawName.length > MAX_NAME_CHARS
+      ? rawName.slice(0, MAX_NAME_CHARS)
+      : rawName;
 
   // Fixed (non-truncatable) sections — always preserved verbatim.
   // Order: safety → style → tone(optional) → tools-vocab. Style rules are
   // product-wide (the chat UI renders plain text, not markdown), so they
-  // apply regardless of tone preset or persona prompt. TOOLS_VOCABULARY is
+  // apply regardless of tone preset or persona prompt. The tools vocabulary is
   // load-bearing too — it is the only place the system prompt names
-  // `getLatestPublished` / `navigateToContent`, so under budget pressure
-  // (verbose persona + tagline + topics) it must not be proportionally shrunk
-  // away. The verb names are identical across users — the per-request
-  // factory only binds `profileOwnerId`, never tool args — so the line is
-  // a constant, not user-derived content.
+  // `getLatestPublished` / `navigateToContent`, so under budget pressure it
+  // must not be proportionally shrunk away. Owner-write verbs are appended
+  // only for conversations whose viewer is the profile owner.
   const fixed: Array<string> = [SAFETY_PREFIX(name), STYLE_RULES];
   if (opts.tonePreset && opts.tonePreset in TONE_PRESETS) {
     fixed.push(TONE_PRESETS[opts.tonePreset].clause);
   }
-  fixed.push(TOOLS_VOCABULARY);
+  fixed.push(buildToolsVocabulary(opts.canUseOwnerWriteTools === true));
 
   // Truncatable sections — tagline, persona, topics, inventory. Order:
   // safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
@@ -227,6 +245,7 @@ export const loadStreamingContext = internalQuery({
   returns: v.object({
     threadId: v.string(),
     systemPrompt: v.string(),
+    viewerId: v.optional(v.id("users")),
   }),
   handler: async (ctx, { conversationId, profileOwnerId }) => {
     const conversation = await ctx.db.get(conversationId);
@@ -278,6 +297,8 @@ export const loadStreamingContext = internalQuery({
       bioEntries: bioEntryRow.length > 0,
     };
 
+    const canUseOwnerWriteTools = conversation.viewerId === profileOwnerId;
+
     return {
       threadId: conversation.threadId,
       systemPrompt: composeSystemPrompt({
@@ -287,7 +308,11 @@ export const loadStreamingContext = internalQuery({
         tonePreset: profileOwner.tonePreset as TonePreset | null | undefined,
         topicsToAvoid: profileOwner.topicsToAvoid,
         contentInventory,
+        canUseOwnerWriteTools,
       }),
+      ...(conversation.viewerId !== undefined
+        ? { viewerId: conversation.viewerId }
+        : {}),
     };
   },
 });
@@ -322,9 +347,7 @@ export const getLastUserMessage = internalQuery({
         if (!Array.isArray(content)) continue;
 
         const text = content
-          .filter(
-            (p): p is { type: "text"; text: string } => p.type === "text",
-          )
+          .filter((p): p is { type: "text"; text: string } => p.type === "text")
           .map((p) => p.text)
           .join("");
         if (text) lastUserText = text;

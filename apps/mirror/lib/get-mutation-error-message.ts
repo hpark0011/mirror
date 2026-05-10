@@ -1,4 +1,4 @@
-const GENERIC_FALLBACK = "Something went wrong. Please try again.";
+export const GENERIC_FALLBACK = "Something went wrong. Please try again.";
 
 const INTERNAL_ONLY_MESSAGES = new Set([
   "Not authenticated",

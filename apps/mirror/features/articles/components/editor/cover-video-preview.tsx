@@ -1,5 +1,3 @@
-"use client";
-
 export type ActiveCoverPreview =
   | { kind: "image"; url: string }
   | { kind: "video"; url: string; posterUrl: string | null }
@@ -10,7 +8,8 @@ export function activeCoverPreviewFromProps(
   videoUrl: string | null,
   videoPosterUrl: string | null,
 ): ActiveCoverPreview {
-  if (videoUrl) return { kind: "video", url: videoUrl, posterUrl: videoPosterUrl };
+  if (videoUrl)
+    return { kind: "video", url: videoUrl, posterUrl: videoPosterUrl };
   if (imageUrl) return { kind: "image", url: imageUrl };
   return null;
 }

@@ -1,9 +1,6 @@
 import { v } from "convex/values";
 import { internal } from "../_generated/api";
-import {
-  internalMutation,
-  type MutationCtx,
-} from "../_generated/server";
+import { internalMutation, type MutationCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { isOwnedByUser } from "../content/helpers";
 import { contentStatusValidator } from "../content/schema";
@@ -186,12 +183,14 @@ async function setStatusForArticle(
 async function safeDeleteStorage(
   ctx: MutationCtx,
   storageId: Id<"_storage"> | undefined,
-): Promise<void> {
-  if (!storageId) return;
+): Promise<boolean> {
+  if (!storageId) return false;
   try {
     await ctx.storage.delete(storageId);
+    return true;
   } catch (err) {
     console.error("[chat.toolMutations] ctx.storage.delete failed", err);
+    return false;
   }
 }
 
@@ -206,6 +205,15 @@ async function deleteCoverBlobOwnership(
     .unique();
   if (row) {
     await ctx.db.delete(row._id);
+  }
+}
+
+async function deleteCoverBlobAndOwnership(
+  ctx: MutationCtx,
+  storageId: Id<"_storage"> | undefined,
+): Promise<void> {
+  if (await safeDeleteStorage(ctx, storageId)) {
+    await deleteCoverBlobOwnership(ctx, storageId);
   }
 }
 
@@ -257,12 +265,9 @@ export const deleteArticleByUserAndSlug = internalMutation({
 
     await ctx.db.delete(article._id);
 
-    await safeDeleteStorage(ctx, article.coverImageStorageId);
-    await deleteCoverBlobOwnership(ctx, article.coverImageStorageId);
-    await safeDeleteStorage(ctx, article.coverVideoStorageId);
-    await deleteCoverBlobOwnership(ctx, article.coverVideoStorageId);
-    await safeDeleteStorage(ctx, article.coverVideoPosterStorageId);
-    await deleteCoverBlobOwnership(ctx, article.coverVideoPosterStorageId);
+    await deleteCoverBlobAndOwnership(ctx, article.coverImageStorageId);
+    await deleteCoverBlobAndOwnership(ctx, article.coverVideoStorageId);
+    await deleteCoverBlobAndOwnership(ctx, article.coverVideoPosterStorageId);
 
     const callerOwned = await filterCallerOwnedInlineIds(
       ctx,

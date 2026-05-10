@@ -110,12 +110,15 @@ export function CoverImagePicker({
     try {
       await onUpload(file);
       setHasUploaded(true);
-    } catch {
+    } catch (err) {
+      console.error("[cover-image-picker] cover upload failed", err);
       if (localPreviewUrlRef.current === objectUrl) {
         URL.revokeObjectURL(objectUrl);
         localPreviewUrlRef.current = null;
       }
-      setActive(activeCoverPreviewFromProps(imageUrl, videoUrl, videoPosterUrl));
+      setActive(
+        activeCoverPreviewFromProps(imageUrl, videoUrl, videoPosterUrl),
+      );
     } finally {
       setIsUploading(false);
     }

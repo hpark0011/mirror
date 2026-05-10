@@ -35,10 +35,9 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // Segment 2: tone clause (friendly)
     expect(segments[2]).toBe(TONE_PRESETS.friendly.clause);
 
-    // Segment 3: tools-vocabulary (always present — tool surface is identical
-    // across users, only `profileOwnerId` is bound per-request). Now in the
-    // fixed region so it cannot be proportionally shrunk away under budget
-    // pressure (FG_126).
+    // Segment 3: tools-vocabulary. Navigation tools are always present and
+    // sit in the fixed region so they cannot be proportionally shrunk away
+    // under budget pressure (FG_126).
     expect(segments[3]).toContain("getLatestPublished");
     expect(segments[3]).toContain("navigateToContent");
 
@@ -96,9 +95,8 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // a field being present, this test catches the regression.
     const result = composeSystemPrompt({ name: "Frank" });
     expect(result).toContain(STYLE_RULES);
-    // FG_126: TOOLS_VOCABULARY must survive even when the only input is
-    // `name` — the tool surface is constant per-user, so the line is in
-    // the fixed (non-truncatable) region.
+    // FG_126: navigation vocabulary must survive even when the only input is
+    // `name`; the line is in the fixed (non-truncatable) region.
     expect(result).toContain("navigateToContent");
     expect(result).toContain("getLatestPublished");
     // Profile-tabs parity (this PR): the LLM cannot call a verb it has not
@@ -112,6 +110,24 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // "background" word (which visitors may use for personal/cultural
     // background the panel does not hold) must fail this test.
     expect(result).toContain("professional background");
+  });
+
+  it("includes owner-write tool vocabulary only when the viewer is the profile owner", () => {
+    const visitorPrompt = composeSystemPrompt({ name: "Frank" });
+    expect(visitorPrompt).toContain("navigateToContent");
+    expect(visitorPrompt).toContain("openProfileSection");
+    expect(visitorPrompt).not.toContain("publishPost");
+    expect(visitorPrompt).not.toContain("deleteArticle");
+
+    const ownerPrompt = composeSystemPrompt({
+      name: "Frank",
+      canUseOwnerWriteTools: true,
+    });
+    expect(ownerPrompt).toContain("publishPost");
+    expect(ownerPrompt).toContain("unpublishPost");
+    expect(ownerPrompt).toContain("deleteArticle");
+    expect(ownerPrompt).toContain("publishArticle");
+    expect(ownerPrompt).toContain("unpublishArticle");
   });
 
   // UT-04: omits topics line when topicsToAvoid is null

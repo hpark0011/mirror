@@ -43,14 +43,19 @@ type ProfileSectionList = {
   hasEntries: boolean;
 };
 
+type BuildCloneToolsOptions = {
+  viewerId?: Id<"users">;
+};
+
 /**
  * Per-request tool factory for the clone agent.
  *
  * The factory closes over `profileOwnerId` so the LLM can never pass a
- * different user's id through tool arguments. The `inputSchema` of every
- * tool here MUST NOT include a `userId` field — the cross-user isolation
- * boundary is the same one the RAG side uses (`vectorSearch.filter` keyed
- * on `profileOwnerId`).
+ * different user's id through tool arguments. Owner-write tools also check
+ * the server-derived `viewerId` before doing any lookup or mutation. The
+ * `inputSchema` of every tool here MUST NOT include a `userId` field — the
+ * cross-user isolation boundary is the same one the RAG side uses
+ * (`vectorSearch.filter` keyed on `profileOwnerId`).
  *
  * Tools attach per-call inside `streamResponse`'s `thread.streamText(...)`
  * call. The `cloneAgent` singleton in `chat/agent.ts` stays tools-less
@@ -64,7 +69,18 @@ type ProfileSectionList = {
  * attempt to navigate, since tools cannot reach the renderer from the
  * server.
  */
-export function buildCloneTools(profileOwnerId: Id<"users">) {
+export function buildCloneTools(
+  profileOwnerId: Id<"users">,
+  options: BuildCloneToolsOptions = {},
+) {
+  const assertOwnerWriteAllowed = () => {
+    if (options.viewerId !== profileOwnerId) {
+      throw new Error(
+        "Only the profile owner can publish, unpublish, or delete content from chat.",
+      );
+    }
+  };
+
   return {
     getLatestPublished: createTool({
       description:
@@ -72,7 +88,9 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
       inputSchema: z.object({
         kind: z
           .enum(["articles", "posts"])
-          .describe("Which content kind to look up the latest published item for."),
+          .describe(
+            "Which content kind to look up the latest published item for.",
+          ),
       }),
       execute: async (ctx, { kind }) => {
         const row: {
@@ -111,10 +129,11 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
           publishedAt?: number;
           username: string;
           href: string;
-        } | null = await ctx.runQuery(
-          internal.chat.toolQueries.resolveBySlug,
-          { userId: profileOwnerId, kind, slug },
-        );
+        } | null = await ctx.runQuery(internal.chat.toolQueries.resolveBySlug, {
+          userId: profileOwnerId,
+          kind,
+          slug,
+        });
         if (!row) {
           throw new Error(
             `No published ${kind === "articles" ? "article" : "post"} found for slug "${slug}".`,
@@ -144,6 +163,8 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
           .describe("The slug of the post to permanently delete."),
       }),
       execute: async (ctx, { slug }) => {
+        assertOwnerWriteAllowed();
+
         const result: {
           deleted: boolean;
           title?: string;
@@ -189,12 +210,11 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
       description:
         "Publish one of the profile owner's draft posts by slug. Use this only when the visitor is the profile owner and explicitly asks to publish a post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes whether a post was updated and the canonical href; on success the client navigates to the published post detail page.",
       inputSchema: z.object({
-        slug: z
-          .string()
-          .min(1)
-          .describe("The slug of the post to publish."),
+        slug: z.string().min(1).describe("The slug of the post to publish."),
       }),
       execute: async (ctx, { slug }) => {
+        assertOwnerWriteAllowed();
+
         const row: OwnedContentRow | null = await ctx.runQuery(
           internal.chat.toolQueries.resolveOwnedContentBySlug,
           { userId: profileOwnerId, kind: "posts", slug },
@@ -246,12 +266,11 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
       description:
         "Unpublish one of the profile owner's posts by slug, moving it back to draft. Use this only when the visitor is the profile owner and explicitly asks to unpublish a post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes whether a post was updated and the canonical posts-list href; the client uses the href to navigate away from the unpublished detail page.",
       inputSchema: z.object({
-        slug: z
-          .string()
-          .min(1)
-          .describe("The slug of the post to unpublish."),
+        slug: z.string().min(1).describe("The slug of the post to unpublish."),
       }),
       execute: async (ctx, { slug }) => {
+        assertOwnerWriteAllowed();
+
         const row: OwnedContentRow | null = await ctx.runQuery(
           internal.chat.toolQueries.resolveOwnedContentBySlug,
           { userId: profileOwnerId, kind: "posts", slug },
@@ -307,6 +326,8 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
           .describe("The slug of the article to permanently delete."),
       }),
       execute: async (ctx, { slug }) => {
+        assertOwnerWriteAllowed();
+
         const row: OwnedContentRow | null = await ctx.runQuery(
           internal.chat.toolQueries.resolveOwnedContentBySlug,
           { userId: profileOwnerId, kind: "articles", slug },
@@ -356,12 +377,11 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
       description:
         "Publish one of the profile owner's draft articles by slug. Use this only when the visitor is the profile owner and explicitly asks to publish an article. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The result includes whether an article was updated and the canonical href; on success the client navigates to the published article detail page.",
       inputSchema: z.object({
-        slug: z
-          .string()
-          .min(1)
-          .describe("The slug of the article to publish."),
+        slug: z.string().min(1).describe("The slug of the article to publish."),
       }),
       execute: async (ctx, { slug }) => {
+        assertOwnerWriteAllowed();
+
         const row: OwnedContentRow | null = await ctx.runQuery(
           internal.chat.toolQueries.resolveOwnedContentBySlug,
           { userId: profileOwnerId, kind: "articles", slug },
@@ -419,6 +439,8 @@ export function buildCloneTools(profileOwnerId: Id<"users">) {
           .describe("The slug of the article to unpublish."),
       }),
       execute: async (ctx, { slug }) => {
+        assertOwnerWriteAllowed();
+
         const row: OwnedContentRow | null = await ctx.runQuery(
           internal.chat.toolQueries.resolveOwnedContentBySlug,
           { userId: profileOwnerId, kind: "articles", slug },

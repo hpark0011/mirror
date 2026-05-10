@@ -100,10 +100,11 @@ async function filterCallerOwnedCoverBlobIds(
 async function safeDeleteStorage(
   ctx: MutationCtx,
   storageId: Id<"_storage"> | undefined,
-): Promise<void> {
-  if (!storageId) return;
+): Promise<boolean> {
+  if (!storageId) return false;
   try {
     await ctx.storage.delete(storageId);
+    return true;
   } catch (err) {
     // Surface the failure in Convex function logs so a systematic backend
     // regression (auth change, API shape drift) is visible — the cron
@@ -113,6 +114,7 @@ async function safeDeleteStorage(
       storageId,
       err,
     );
+    return false;
   }
 }
 
@@ -142,6 +144,15 @@ async function deleteCoverBlobOwnership(
     .unique();
   if (row) {
     await ctx.db.delete(row._id);
+  }
+}
+
+async function deleteCoverBlobAndOwnership(
+  ctx: MutationCtx,
+  storageId: Id<"_storage"> | undefined,
+): Promise<void> {
+  if (await safeDeleteStorage(ctx, storageId)) {
+    await deleteCoverBlobOwnership(ctx, storageId);
   }
 }
 
@@ -652,12 +663,10 @@ export const update = authMutation({
       // safeDeleteStorage guards undefined so the inner checks could be
       // dropped, but they keep intent clear.
       if (article.coverImageStorageId) {
-        await safeDeleteStorage(ctx, article.coverImageStorageId);
-        await deleteCoverBlobOwnership(ctx, article.coverImageStorageId);
+        await deleteCoverBlobAndOwnership(ctx, article.coverImageStorageId);
       }
       if (article.coverVideoStorageId) {
-        await safeDeleteStorage(ctx, article.coverVideoStorageId);
-        await deleteCoverBlobOwnership(ctx, article.coverVideoStorageId);
+        await deleteCoverBlobAndOwnership(ctx, article.coverVideoStorageId);
       }
     }
     // Reusing the same poster id across a video swap means the old poster IS
@@ -666,8 +675,7 @@ export const update = authMutation({
     // cover is cleared, or an image replacement vacates the video surface.
     if (clearedAllCover || replacedImage || replacedPoster) {
       if (article.coverVideoPosterStorageId) {
-        await safeDeleteStorage(ctx, article.coverVideoPosterStorageId);
-        await deleteCoverBlobOwnership(
+        await deleteCoverBlobAndOwnership(
           ctx,
           article.coverVideoPosterStorageId,
         );
@@ -765,12 +773,9 @@ export const remove = authMutation({
       // URL access window after removal, accepted by design. If eager delete
       // fails, the orphan-sweep cron reclaims survivors after
       // ORPHAN_GRACE_MS (24h), with the daily cron as the safety net.
-      await safeDeleteStorage(ctx, article.coverImageStorageId);
-      await deleteCoverBlobOwnership(ctx, article.coverImageStorageId);
-      await safeDeleteStorage(ctx, article.coverVideoStorageId);
-      await deleteCoverBlobOwnership(ctx, article.coverVideoStorageId);
-      await safeDeleteStorage(ctx, article.coverVideoPosterStorageId);
-      await deleteCoverBlobOwnership(ctx, article.coverVideoPosterStorageId);
+      await deleteCoverBlobAndOwnership(ctx, article.coverImageStorageId);
+      await deleteCoverBlobAndOwnership(ctx, article.coverVideoStorageId);
+      await deleteCoverBlobAndOwnership(ctx, article.coverVideoPosterStorageId);
 
       // FG_091: filter inline IDs to ones the caller owns per the
       // `inlineImageOwnership` table. Legacy IDs (no ownership row) are
@@ -930,8 +935,7 @@ export const deleteOrphanCoverImage = authMutation({
 
     for (const storageId of callerOwnedIds) {
       if (!referenced.has(storageId)) {
-        await safeDeleteStorage(ctx, storageId);
-        await deleteCoverBlobOwnership(ctx, storageId);
+        await deleteCoverBlobAndOwnership(ctx, storageId);
       }
     }
 
@@ -977,8 +981,7 @@ export const deleteOrphanCoverVideo = authMutation({
 
     for (const storageId of callerOwnedIds) {
       if (!referenced.has(storageId)) {
-        await safeDeleteStorage(ctx, storageId);
-        await deleteCoverBlobOwnership(ctx, storageId);
+        await deleteCoverBlobAndOwnership(ctx, storageId);
       }
     }
 

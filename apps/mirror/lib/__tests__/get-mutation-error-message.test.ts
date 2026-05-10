@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { getMutationErrorMessage } from "../get-mutation-error-message";
-
-const GENERIC_FALLBACK = "Something went wrong. Please try again.";
+import {
+  GENERIC_FALLBACK,
+  getMutationErrorMessage,
+} from "../get-mutation-error-message";
 
 describe("getMutationErrorMessage", () => {
   it("passes through user-facing ConvexError messages", () => {

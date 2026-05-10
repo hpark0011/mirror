@@ -271,22 +271,30 @@ export function useArticleCoverVideoUpload({
       // Claim ownership on both blobs. If either claim fails, fire the
       // orphan-cleanup mutation server-side so the leaked blob doesn't
       // sit in `_storage` until the cron sweep.
-      try {
-        await Promise.all([
-          claimVideoOwnership({ storageId: videoStorageId }),
-          claimPosterOwnership({ storageId: posterStorageId }),
-        ]);
-      } catch (err) {
-        deleteOrphanCoverVideo({
-          videoStorageId,
-          posterStorageId,
-        }).catch((cleanupErr) => {
+      const [videoClaim, posterClaim] = await Promise.allSettled([
+        claimVideoOwnership({ storageId: videoStorageId }),
+        claimPosterOwnership({ storageId: posterStorageId }),
+      ]);
+      const claimError =
+        videoClaim.status === "rejected"
+          ? videoClaim.reason
+          : posterClaim.status === "rejected"
+            ? posterClaim.reason
+            : null;
+
+      if (claimError) {
+        try {
+          await deleteOrphanCoverVideo({
+            videoStorageId,
+            posterStorageId,
+          });
+        } catch (cleanupErr) {
           console.error(
             "[cover-video-upload] orphan cleanup failed after claim error",
             cleanupErr,
           );
-        });
-        throw err;
+        }
+        throw claimError;
       }
 
       return { videoStorageId, posterStorageId };

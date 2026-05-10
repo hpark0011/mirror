@@ -459,10 +459,11 @@ describe("chat/toolQueries.resolveBySlug", () => {
       internal.chat.toolQueries.resolveBySlug,
       { userId: owner, kind: "articles", slug: "shared-slug" },
     );
-    const postResult = await t.query(
-      internal.chat.toolQueries.resolveBySlug,
-      { userId: owner, kind: "posts", slug: "shared-slug" },
-    );
+    const postResult = await t.query(internal.chat.toolQueries.resolveBySlug, {
+      userId: owner,
+      kind: "posts",
+      slug: "shared-slug",
+    });
 
     expect(articleResult!.title).toBe("An Article");
     expect(postResult!.title).toBe("A Post");
@@ -689,9 +690,9 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       expect("ownerId" in schema!.shape!).toBe(false);
 
       const allKeys = collectAllKeys(schema!.shape!);
-      expect(
-        allKeys.every((k) => !/^(userId|user_id|ownerId)$/i.test(k)),
-      ).toBe(true);
+      expect(allKeys.every((k) => !/^(userId|user_id|ownerId)$/i.test(k))).toBe(
+        true,
+      );
     });
 
     it(`${toolName}.inputSchema exposes only slug`, () => {
@@ -732,6 +733,47 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
         ? Object.values(rawEntries as Record<string, string>)
         : [];
     expect([...values].sort()).toEqual(["articles", "bio", "posts"]);
+  });
+
+  it("owner-write tools reject anonymous and non-owner viewers before reads or writes", async () => {
+    const owner = "users_owner" as unknown as Id<"users">;
+    const visitor = "users_visitor" as unknown as Id<"users">;
+    const runMutation = vi.fn();
+    const runQuery = vi.fn();
+    const blockedCtx = {
+      runMutation,
+      runQuery,
+    } as unknown as Parameters<
+      ReturnType<typeof buildCloneTools>["publishPost"]["execute"]
+    >[0];
+
+    const nonOwnerTools = buildCloneTools(owner, { viewerId: visitor });
+    await expect(
+      nonOwnerTools.deletePost.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.publishPost.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.unpublishPost.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.deleteArticle.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.publishArticle.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.unpublishArticle.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+
+    const anonymousTools = buildCloneTools(owner);
+    await expect(
+      anonymousTools.publishPost.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(runMutation).not.toHaveBeenCalled();
   });
 });
 
@@ -804,7 +846,7 @@ describe("chat/tools write parity — execute", () => {
       status: "draft",
     });
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.publishPost.execute(buildCtx(t), {
       slug: "draft-post",
     });
@@ -833,7 +875,7 @@ describe("chat/tools write parity — execute", () => {
       status: "published",
     });
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.unpublishArticle.execute(buildCtx(t), {
       slug: "published-article",
     });
@@ -873,7 +915,7 @@ describe("chat/tools write parity — execute", () => {
       coverImageStorageId,
     });
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.deleteArticle.execute(buildCtx(t), {
       slug: "remove-me",
     });
@@ -911,7 +953,7 @@ describe("chat/tools write parity — execute", () => {
       status: "draft",
     });
 
-    const toolsForA = buildCloneTools(userA);
+    const toolsForA = buildCloneTools(userA, { viewerId: userA });
     const result = await toolsForA.publishPost.execute(buildCtx(t), {
       slug: "shared-slug",
     });
@@ -968,7 +1010,7 @@ describe("chat/tools.openProfileSection — execute", () => {
       }),
     );
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.openProfileSection.execute(buildCtx(t), {
       section: "bio",
     });
@@ -982,7 +1024,7 @@ describe("chat/tools.openProfileSection — execute", () => {
     const t = makeT();
     const owner = await insertOwner(t, "owner_section_bio_empty");
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.openProfileSection.execute(buildCtx(t), {
       section: "bio",
     });
@@ -1008,14 +1050,16 @@ describe("chat/tools.openProfileSection — execute", () => {
       }),
     );
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.openProfileSection.execute(buildCtx(t), {
       section: "articles",
     });
 
     expect(result.kind).toBe("articles");
     expect(result.hasEntries).toBe(true);
-    expect(result.href).toBe(buildContentHref("owner_section_articles", "articles"));
+    expect(result.href).toBe(
+      buildContentHref("owner_section_articles", "articles"),
+    );
   });
 
   it("section=articles with only drafts → hasEntries false (drafts are not retrieval-eligible)", async () => {
@@ -1033,7 +1077,7 @@ describe("chat/tools.openProfileSection — execute", () => {
       }),
     );
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.openProfileSection.execute(buildCtx(t), {
       section: "articles",
     });
@@ -1061,7 +1105,7 @@ describe("chat/tools.openProfileSection — execute", () => {
       }),
     );
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.openProfileSection.execute(buildCtx(t), {
       section: "posts",
     });
@@ -1092,7 +1136,7 @@ describe("chat/tools.openProfileSection — execute", () => {
       }),
     );
 
-    const toolsForA = buildCloneTools(userA);
+    const toolsForA = buildCloneTools(userA, { viewerId: userA });
     const aResult = await toolsForA.openProfileSection.execute(buildCtx(t), {
       section: "posts",
     });
@@ -1166,7 +1210,7 @@ describe("chat/tools.deletePost — execute", () => {
       "Going Away",
     );
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.deletePost.execute(buildCtx(t), {
       slug: "to-delete",
     } satisfies DeletePostArgs);
@@ -1175,9 +1219,7 @@ describe("chat/tools.deletePost — execute", () => {
     expect(result.deleted).toBe(true);
     expect(result.slug).toBe("to-delete");
     expect(result.title).toBe("Going Away");
-    expect(result.href).toBe(
-      buildContentHref("owner_delete_post", "posts"),
-    );
+    expect(result.href).toBe(buildContentHref("owner_delete_post", "posts"));
 
     // The row is actually gone — not a soft delete or status flip.
     const remaining = await t.run(async (ctx) => ctx.db.get(postId));
@@ -1192,7 +1234,7 @@ describe("chat/tools.deletePost — execute", () => {
     const t = makeT();
     const owner = await insertOwner(t, "owner_missing_slug");
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.deletePost.execute(buildCtx(t), {
       slug: "never-existed",
     });
@@ -1201,9 +1243,7 @@ describe("chat/tools.deletePost — execute", () => {
     expect(result.deleted).toBe(false);
     expect(result.slug).toBe("never-existed");
     expect(result.title).toBeUndefined();
-    expect(result.href).toBe(
-      buildContentHref("owner_missing_slug", "posts"),
-    );
+    expect(result.href).toBe(buildContentHref("owner_missing_slug", "posts"));
   });
 
   it("SECURITY: a slug owned by a DIFFERENT user is NOT deleted (cross-user isolation)", async () => {
@@ -1223,7 +1263,7 @@ describe("chat/tools.deletePost — execute", () => {
       "B's post",
     );
 
-    const toolsForA = buildCloneTools(userA);
+    const toolsForA = buildCloneTools(userA, { viewerId: userA });
     const result = await toolsForA.deletePost.execute(buildCtx(t), {
       slug: "shared-slug",
     });
@@ -1256,14 +1296,9 @@ describe("chat/tools.deletePost — execute", () => {
         createdAt: 1000,
       }),
     );
-    const postId = await insertPublishedPost(
-      t,
-      owner,
-      "shared-slug",
-      "A Post",
-    );
+    const postId = await insertPublishedPost(t, owner, "shared-slug", "A Post");
 
-    const tools = buildCloneTools(owner);
+    const tools = buildCloneTools(owner, { viewerId: owner });
     const result = await tools.deletePost.execute(buildCtx(t), {
       slug: "shared-slug",
     });
@@ -1273,9 +1308,7 @@ describe("chat/tools.deletePost — execute", () => {
     // The post is gone, but the article (different table, different verb)
     // is still alive.
     expect(await t.run(async (ctx) => ctx.db.get(postId))).toBeNull();
-    expect(
-      await t.run(async (ctx) => ctx.db.get(articleId)),
-    ).not.toBeNull();
+    expect(await t.run(async (ctx) => ctx.db.get(articleId))).not.toBeNull();
   });
 });
 

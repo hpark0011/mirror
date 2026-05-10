@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type UploadOptions = {
@@ -279,6 +279,38 @@ describe("useArticleCoverVideoUpload", () => {
 
     expect(mocks.deleteOrphanCoverVideo).toHaveBeenCalledWith({
       videoStorageId: "video_storage_id",
+    });
+  });
+
+  it("waits for both ownership claims to settle before orphan cleanup", async () => {
+    stubPosterElements();
+    let resolvePosterClaim!: () => void;
+    mocks.claimVideoOwnership.mockRejectedValue(
+      new Error("video claim failed"),
+    );
+    mocks.claimPosterOwnership.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolvePosterClaim = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useArticleCoverVideoUpload());
+    const uploadPromise = result.current.upload(makeVideoFile());
+
+    await waitFor(() => {
+      expect(mocks.claimPosterOwnership).toHaveBeenCalled();
+    });
+    expect(mocks.deleteOrphanCoverVideo).not.toHaveBeenCalled();
+
+    resolvePosterClaim();
+    await act(async () => {
+      await expect(uploadPromise).rejects.toThrow("video claim failed");
+    });
+
+    expect(mocks.deleteOrphanCoverVideo).toHaveBeenCalledWith({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
     });
   });
 

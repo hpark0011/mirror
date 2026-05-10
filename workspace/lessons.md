@@ -65,6 +65,21 @@
   `pnpm --filter=@feel-good/convex exec convex env list | rg '^SITE_URL='`
   before debugging OAuth internals.
 
+### Agent owner-write tools need viewer authorization
+
+- Agent write tools need two separate guards: the closure-bound
+  `profileOwnerId` scopes which rows a tool can touch, and the server-derived
+  conversation `viewerId` proves the current visitor is allowed to mutate
+  them. For publish/unpublish/delete tools, require
+  `viewerId === profileOwnerId` before any read or write, and only advertise
+  those verbs in the system prompt for owner conversations.
+
+### Best-effort storage cleanup should keep reclaim handles
+
+- When eager storage cleanup is best-effort, do not delete the ownership row
+  after a failed blob delete. Keep the row as the reclaim handle so later
+  orphan cleanup or sweeps can still find the leaked storage object.
+
 ## 2026-05-08
 
 ### Temporary blob previews need an explicit ownership handoff
