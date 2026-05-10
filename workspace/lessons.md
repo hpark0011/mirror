@@ -12,6 +12,10 @@
 - Do not leave unused legacy fields in `schema.ts` just to satisfy one dirty
   worktree deployment. The final successful schema push should happen after the
   data cleanup with the intended narrow schema.
+- If the local Convex CLI account cannot access the selected deployment, use
+  the deployment's existing test-secret-gated HTTP surface as the cleanup
+  bridge: push a temporary widened schema plus guarded cleanup route, call it
+  once, then remove the route and narrow the schema again.
 
 ### Convex mutations cannot delete storage and then throw
 

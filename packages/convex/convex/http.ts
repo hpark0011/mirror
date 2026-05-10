@@ -272,40 +272,6 @@ if (isPlaywrightTestMode()) {
     }),
   });
 
-  http.route({
-    path: "/test/migrate-users-default-profile-section",
-    method: "POST",
-    handler: httpAction(async (ctx, req) => {
-      const deny = authorizeTestRequest(req);
-      if (deny) return deny;
-
-      let cursor: string | null = null;
-      let patched = 0;
-      do {
-        const result: {
-          isDone: boolean;
-          continueCursor: string | null;
-          patched: number;
-        } = await ctx.runMutation(
-          internal.migrations.users.deleteDefaultProfileSection,
-          {
-            paginationOpts: {
-              cursor,
-              numItems: 100,
-            },
-          },
-        );
-        cursor = result.continueCursor;
-        patched += result.patched;
-        if (result.isDone) break;
-      } while (cursor !== null);
-
-      return new Response(JSON.stringify({ ok: true, patched }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    }),
-  });
 }
 
 export default http;

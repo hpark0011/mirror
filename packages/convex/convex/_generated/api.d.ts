@@ -62,7 +62,6 @@ import type * as env from "../env.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as migrations_articles from "../migrations/articles.js";
-import type * as migrations_users from "../migrations/users.js";
 import type * as posts_actions from "../posts/actions.js";
 import type * as posts_categories from "../posts/categories.js";
 import type * as posts_helpers from "../posts/helpers.js";
@@ -142,7 +141,6 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "migrations/articles": typeof migrations_articles;
-  "migrations/users": typeof migrations_users;
   "posts/actions": typeof posts_actions;
   "posts/categories": typeof posts_categories;
   "posts/helpers": typeof posts_helpers;
