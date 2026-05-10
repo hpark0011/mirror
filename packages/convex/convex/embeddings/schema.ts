@@ -1,8 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import {
+  INDEXABLE_CONTENT_SOURCE_TABLES,
+  type IndexableContentSourceTable,
+} from "../content/sourceRegistry";
+import { indexableContentSourceTableValidator } from "../content/sourceValidators";
 import { EMBEDDING_DIMENSIONS } from "./config";
 
-export type EmbeddingSourceTable = "articles" | "posts" | "bioEntries";
+export type EmbeddingSourceTable = IndexableContentSourceTable;
 
 export function buildEmbeddingUserSourceKey(
   userId: string,
@@ -16,10 +21,11 @@ export function buildEmbeddingUserSourceKey(
  * `contentEmbeddings`, `generateEmbedding` args, `getContentForEmbedding`,
  * `listPublishedContent`, `deleteBySource`, and `insertChunks`.
  *
- * Adding a new RAG ingestion source means appending one literal here and
- * branching the (a) `getContentForEmbedding` discriminated-union return and
- * (b) `generateEmbedding` body — six call sites that used to need editing
- * are now reduced to three.
+ * Adding a new RAG ingestion source means adding one registry entry in
+ * `content/sourceRegistry.ts` and its source-specific serializer in
+ * `embeddings/queries.ts`. This validator is derived from the registry's
+ * indexable sources so schema, action args, query args, and mutation args
+ * share the same source list.
  *
  * INVARIANT (cross-user isolation): every consumer that writes to
  * `contentEmbeddings` MUST set `userId` from a server-derived value via
@@ -29,11 +35,10 @@ export function buildEmbeddingUserSourceKey(
  * is a composite owner+source key because Convex vector filters support `or`
  * and `eq`, but not an `and(userId, sourceTable)` expression.
  */
-export const embeddingSourceTableValidator = v.union(
-  v.literal("articles"),
-  v.literal("posts"),
-  v.literal("bioEntries"),
-);
+export const embeddingSourceTableValidator =
+  indexableContentSourceTableValidator;
+
+export const EMBEDDING_SOURCE_TABLES = INDEXABLE_CONTENT_SOURCE_TABLES;
 
 export const contentEmbeddingsTable = defineTable({
   sourceTable: embeddingSourceTableValidator,

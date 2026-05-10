@@ -3,7 +3,7 @@ id: FG_202
 title: "Content sources use a shared registry"
 date: 2026-05-10
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "Chat retrieval, embedding ingestion, content routing, and agent navigation each hardcode supported content kinds, making future sources like projects or social posts require coordinated edits across too many files."
 dependencies: []

@@ -2,6 +2,14 @@
 
 ## 2026-05-10
 
+### Registry helpers need explicit type predicates for narrowed lookups
+
+- When a registry stores both enabled and disabled capability variants, checking
+  `entry.capability.enabled ? entry : null` may not narrow enough once the entry
+  came from indexed object lookup. Reuse the registry's type-predicate helper
+  (`isNavigableSource(source) ? source : null`) so TypeScript carries the
+  narrowed variant through exported lookup helpers.
+
 ### Convex schema checks need data drift cleanup, not permanent dead fields
 
 - `convex dev --once` can fail even when local typecheck/build pass if the
