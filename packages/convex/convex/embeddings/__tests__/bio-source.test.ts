@@ -270,6 +270,102 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
     expect(row.title).toBe("Computer Science at MIT");
   });
 
+  it("fetchChunksByIds returns source metadata for article chunks", async () => {
+    const t = makeT();
+    const ownerId = await insertOwner(t, "fetch_article_meta");
+
+    const articleId = await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: ownerId,
+        slug: "software-less-input",
+        title: "Software with Less Input",
+        category: "blog",
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Greyboard AI article body." }],
+            },
+          ],
+        },
+        status: "published",
+        createdAt: Date.now(),
+      }),
+    );
+
+    await t.action(internal.embeddings.actions.generateEmbedding, {
+      sourceTable: "articles",
+      sourceId: articleId,
+    });
+
+    const [row] = await t.run(async (ctx) =>
+      ctx.db
+        .query("contentEmbeddings")
+        .withIndex("by_sourceTable_and_sourceId", (q) =>
+          q.eq("sourceTable", "articles").eq("sourceId", articleId),
+        )
+        .take(1),
+    );
+    expect(row).toBeDefined();
+
+    const chunks = await t.query(internal.embeddings.queries.fetchChunksByIds, {
+      ids: [row!._id],
+    });
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]).toMatchObject({
+      id: row!._id,
+      sourceTable: "articles",
+      sourceId: articleId,
+      title: "Software with Less Input",
+      slug: "software-less-input",
+    });
+  });
+
+  it("fetchChunksByIds returns source metadata for bio chunks without a slug", async () => {
+    const t = makeT();
+    const ownerId = await insertOwner(t, "fetch_bio_meta");
+
+    const entryId = await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: ownerId,
+        kind: "work",
+        title: "Design Engineer at Delphi",
+        startDate: utcMonth(2023, 1),
+        endDate: null,
+      }),
+    );
+
+    await t.action(internal.embeddings.actions.generateEmbedding, {
+      sourceTable: "bioEntries",
+      sourceId: entryId,
+    });
+
+    const [row] = await t.run(async (ctx) =>
+      ctx.db
+        .query("contentEmbeddings")
+        .withIndex("by_sourceTable_and_sourceId", (q) =>
+          q.eq("sourceTable", "bioEntries").eq("sourceId", entryId),
+        )
+        .take(1),
+    );
+    expect(row).toBeDefined();
+
+    const chunks = await t.query(internal.embeddings.queries.fetchChunksByIds, {
+      ids: [row!._id],
+    });
+
+    expect(chunks).toHaveLength(1);
+    expect(chunks[0]).toMatchObject({
+      id: row!._id,
+      sourceTable: "bioEntries",
+      sourceId: entryId,
+      title: "Design Engineer at Delphi",
+    });
+    expect(chunks[0]!.slug).toBeUndefined();
+  });
+
   it("Issue C1: generateEmbedding still gates draft articles (regression guard)", async () => {
     const t = makeT();
     const ownerId = await insertOwner(t, "draft_user");

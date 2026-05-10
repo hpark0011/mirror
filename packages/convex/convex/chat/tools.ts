@@ -4,6 +4,11 @@ import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
 import { internal } from "../_generated/api";
 import { type Id } from "../_generated/dataModel";
+import {
+  findRelevantPublishedContent,
+  RELEVANT_CONTENT_MAX_LIMIT,
+  type RelevantContentSearchCtx,
+} from "./relevantContent";
 
 type ContentKind = "articles" | "posts";
 type ContentStatus = "draft" | "published";
@@ -105,9 +110,48 @@ export function buildCloneTools(
       },
     }),
 
+    findRelevantPublishedContent: createTool({
+      description:
+        "Search this profile owner's published articles and posts by semantic relevance to the visitor's question. Use this for topical, project, article, or 'what is X?' questions before saying there is no matching article or post. Returns canonical kind, slug, title, href, excerpt, and score; call navigateToContent with the returned kind and slug when the visitor asks to see, show, open, or read the relevant source.",
+      inputSchema: z.object({
+        query: z
+          .string()
+          .min(1)
+          .describe(
+            "The visitor's topical question or phrase to search for in published content.",
+          ),
+        kind: z
+          .enum(["articles", "posts"])
+          .optional()
+          .describe(
+            "Optionally restrict the semantic search to articles or posts.",
+          ),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(RELEVANT_CONTENT_MAX_LIMIT)
+          .optional()
+          .describe(
+            `Maximum number of relevant results to return, capped at ${RELEVANT_CONTENT_MAX_LIMIT}.`,
+          ),
+      }),
+      execute: async (ctx, { query, kind, limit }) => {
+        return await findRelevantPublishedContent(
+          ctx as RelevantContentSearchCtx,
+          {
+            profileOwnerId,
+            query,
+            kind,
+            limit,
+          },
+        );
+      },
+    }),
+
     navigateToContent: createTool({
       description:
-        "Open an article or post in the visitor's right panel. Pass the kind and slug; do not pass any user identifier. The slug must come from getLatestPublished or from content the profile owner has authored. The result includes the canonical href; the client uses it to navigate.",
+        "Open an article or post in the visitor's right panel. Pass the kind and slug; do not pass any user identifier. The slug must come from getLatestPublished, findRelevantPublishedContent, or from content the profile owner has authored. The result includes the canonical href; the client uses it to navigate.",
       inputSchema: z.object({
         kind: z
           .enum(["articles", "posts"])
@@ -488,7 +532,7 @@ export function buildCloneTools(
 
     openProfileSection: createTool({
       description:
-        "Open one of the profile owner's tab panels for the visitor. Pass section: 'bio' to open the bio panel — the structured work history, education, and professional background. Pass section: 'articles' or 'posts' to open the visitor's list view of all published articles or posts (use this for list-level requests like 'show me your articles', not for opening a specific item — for that, call getLatestPublished + navigateToContent instead). The owner is resolved server-side from the chat context — do not pass any user identifier. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge that the section is currently empty before opening it.",
+        "Open one of the profile owner's tab panels for the visitor. Pass section: 'bio' to open the bio panel — the structured work history, education, and professional background. Pass section: 'articles' or 'posts' to open the visitor's list view of all published articles or posts (use this for list-level requests like 'show me your articles', not for opening a specific item — for that, call findRelevantPublishedContent or getLatestPublished, then navigateToContent). The owner is resolved server-side from the chat context — do not pass any user identifier. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge that the section is currently empty before opening it.",
       // The LLM-visible surface is `section` only. The owner is the
       // closure-bound `profileOwnerId`, never a tool arg. The
       // `inputSchema invariants` tests in `chat/__tests__/tools.test.ts`
