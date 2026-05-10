@@ -7,7 +7,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@feel-good/ui/primitives/select";
-import { type DefaultProfileSection } from "@feel-good/convex/convex/content/href";
+import {
+  DEFAULT_PROFILE_SECTION_VALUES,
+  type DefaultProfileSection,
+} from "@feel-good/convex/convex/content/href";
+import { useTranslation } from "react-i18next";
+import { PROFILE_TAB_LABELS } from "@/features/profile-tabs/types";
 
 type DefaultContentTypeSelectProps = {
   value: DefaultProfileSection;
@@ -15,17 +20,19 @@ type DefaultContentTypeSelectProps = {
   disabled?: boolean;
 };
 
-const OPTIONS: Array<{ value: DefaultProfileSection; label: string }> = [
-  { value: "bio", label: "Bio" },
-  { value: "posts", label: "Posts" },
-  { value: "articles", label: "Articles" },
-];
+const OPTIONS: Array<{ value: DefaultProfileSection; label: string }> =
+  DEFAULT_PROFILE_SECTION_VALUES.map((value) => ({
+    value,
+    label: PROFILE_TAB_LABELS[value],
+  }));
 
 export function DefaultContentTypeSelect({
   value,
   onChange,
   disabled = false,
 }: DefaultContentTypeSelectProps) {
+  const { t } = useTranslation();
+
   return (
     <Select
       value={value}
@@ -38,12 +45,16 @@ export function DefaultContentTypeSelect({
         className="w-full"
         data-testid="default-content-type-select"
       >
-        <SelectValue placeholder="Select default content type" />
+        <SelectValue
+          placeholder={t("settings.defaultContentType.placeholder", {
+            defaultValue: "Select default content type",
+          })}
+        />
       </SelectTrigger>
       <SelectContent>
         {OPTIONS.map((option) => (
           <SelectItem key={option.value} value={option.value}>
-            {option.label}
+            {t(`profileTabs.${option.value}`, { defaultValue: option.label })}
           </SelectItem>
         ))}
       </SelectContent>

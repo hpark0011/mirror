@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@feel-good/ui/primitives/button";
+import { useTranslation } from "react-i18next";
 import { ContentToolbarShell } from "@/features/content";
 
 type SettingsToolbarProps = {
@@ -14,6 +15,8 @@ export function SettingsToolbar({
   isPending,
   isSaveDisabled,
 }: SettingsToolbarProps) {
+  const { t } = useTranslation();
+
   return (
     <ContentToolbarShell variant="detail">
       <div />
@@ -25,7 +28,9 @@ export function SettingsToolbar({
         disabled={isSaveDisabled}
         data-test="profile-settings-submit-button"
       >
-        {isPending ? "Saving..." : "Save"}
+        {isPending
+          ? t("settings.toolbar.saving", { defaultValue: "Saving..." })
+          : t("settings.toolbar.save", { defaultValue: "Save" })}
       </Button>
     </ContentToolbarShell>
   );

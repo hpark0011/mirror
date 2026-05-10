@@ -63,7 +63,7 @@ vi.mock("@/app/[username]/_providers/profile-route-data-context", () => ({
       authId: "auth_alice",
       username: "alice",
       name: "Alice",
-      bio: "",
+      tagline: "",
       avatarUrl: undefined,
       defaultProfileSection: "posts",
     },

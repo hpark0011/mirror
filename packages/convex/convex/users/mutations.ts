@@ -143,7 +143,7 @@ export const ensureProfile = authMutation({
 
     if (!existing) {
       console.info(
-        `[auth] Backfilling app profile for pre-existing auth user. authId=${ctx.user._id} email=${ctx.user.email}`,
+        `[auth] Backfilling app profile for pre-existing auth user. authId=${ctx.user._id}`,
       );
       await ctx.db.insert("users", {
         authId: ctx.user._id,

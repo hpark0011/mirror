@@ -23,7 +23,7 @@ export const getCurrentProfile = query({
       .unique();
     if (!appUser) {
       console.warn(
-        `[auth] Authenticated user has no app profile record. authId=${authUser._id} email=${authUser.email}`,
+        `[auth] Authenticated user has no app profile record. authId=${authUser._id}`,
       );
       return null;
     }

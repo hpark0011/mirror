@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useForm, type UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery } from "convex/react";
 import { showToast } from "@feel-good/ui/components/toast";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { DEFAULT_PROFILE_SECTION } from "@feel-good/convex/convex/content/href";
+import { useTranslation } from "react-i18next";
 import {
   profileSettingsSchema,
   type ProfileSettingsFormValues,
@@ -24,14 +25,32 @@ type UseProfileSettingsResult = {
   handleSubmit: (data: ProfileSettingsFormValues) => Promise<void>;
 };
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : "Unable to save settings";
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export function useProfileSettings(): UseProfileSettingsResult {
+  const { t } = useTranslation();
   const profile = useQuery(api.users.queries.getCurrentProfile);
-  const updateProfileSettings = useMutation(
+  const updateProfileSettingsMutation = useMutation(
     api.users.mutations.updateProfileSettings,
+  );
+  const updateProfileSettings = useMemo(
+    () =>
+      updateProfileSettingsMutation.withOptimisticUpdate((store, args) => {
+        const current = store.getQuery(api.users.queries.getCurrentProfile, {});
+        if (current == null) return;
+
+        store.setQuery(
+          api.users.queries.getCurrentProfile,
+          {},
+          {
+            ...current,
+            defaultProfileSection: args.defaultProfileSection,
+          },
+        );
+      }),
+    [updateProfileSettingsMutation],
   );
 
   const form = useForm<ProfileSettingsFormValues>({
@@ -76,17 +95,29 @@ export function useProfileSettings(): UseProfileSettingsResult {
           });
           form.reset(data);
           setSaveCount((count) => count + 1);
-          showToast({ type: "success", title: "Settings saved" });
+          showToast({
+            type: "success",
+            title: t("settings.toast.saved", {
+              defaultValue: "Settings saved",
+            }),
+          });
         } catch (error) {
           showToast({
             type: "error",
-            title: "Failed to save settings",
-            description: getErrorMessage(error),
+            title: t("settings.toast.saveFailed", {
+              defaultValue: "Failed to save settings",
+            }),
+            description: getErrorMessage(
+              error,
+              t("settings.toast.unableToSave", {
+                defaultValue: "Unable to save settings",
+              }),
+            ),
           });
         }
       });
     },
-    [form, runWithPending, updateProfileSettings],
+    [form, runWithPending, t, updateProfileSettings],
   );
 
   return {
