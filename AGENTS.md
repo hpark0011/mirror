@@ -59,7 +59,8 @@ This project has a graphify knowledge graph at graphify-out/.
 
 Rules:
 
-- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure
+- Before answering architecture or codebase questions, read graphify-out/GRAPH_REPORT.md for god nodes and community structure. Compare its "Built from commit" value with `git rev-parse HEAD`; if stale, run `graphify update .` before relying on the graph.
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
-- For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
+- For cross-module "how does X relate to Y" questions, run at least one graph-native command before broad grep/file reads: `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"`. Use the graph output to pick files, then verify in source.
+- Measure whether Graphify is helping with `pnpm measure:graphify` or `node scripts/measure-graphify-effectiveness.mjs --days 14 --format html --out workspace/reports/graphify-effectiveness/latest.html`
 - After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)

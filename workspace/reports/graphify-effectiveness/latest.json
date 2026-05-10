@@ -1,0 +1,48 @@
+{
+  "generatedAt": "2026-05-10T01:46:10.081Z",
+  "window": {
+    "days": 14,
+    "start": "2026-04-26T01:46:10.081Z",
+    "end": "2026-05-10T01:46:10.081Z"
+  },
+  "targets": {
+    "graphNativeAdoptionRate": 0.7,
+    "medianReadsBeforeFirstEdit": 18,
+    "medianTimeToFirstEditSeconds": 120,
+    "graphUpdateComplianceRate": 0.9,
+    "verifiedEditRate": 0.8
+  },
+  "metrics": {
+    "totalRepoSessions": 61,
+    "eligibleSessions": 61,
+    "editSessions": 35,
+    "eligibleEditSessions": 35,
+    "graphNativeSessions": 1,
+    "graphNativeBeforeBroadReadSessions": 0,
+    "graphNativeAdoptionRate": 0.01639344262295082,
+    "graphNativeBeforeBroadReadRate": 0,
+    "medianReadsBeforeFirstEdit": 35,
+    "medianTimeToFirstEditSeconds": 263.001,
+    "graphUpdateComplianceRate": 0.5428571428571428,
+    "verifiedEditRate": 0.7714285714285715,
+    "testsNotRunRate": 0.11428571428571428
+  },
+  "graphHygiene": {
+    "graphPath": "graphify-out/graph.json",
+    "reportPath": "graphify-out/GRAPH_REPORT.md",
+    "builtFromCommit": "c7f622c4",
+    "head": "c7f622c4bd94ffe358be86351d236e8764b32e05",
+    "headShort": "c7f622c4",
+    "fresh": true,
+    "absoluteSourcePathCount": 0,
+    "hookStatusOk": true,
+    "hookStatus": "post-commit: installed\npost-checkout: installed",
+    "healthy": true
+  },
+  "recommendation": {
+    "metric": "graph_native_adoption",
+    "severity": "fail",
+    "target": ">=70% eligible sessions use graphify query/path/explain",
+    "patch": "Tighten AGENTS.md or the primary work skill: before the sixth broad read in eligible cross-module tasks, run graphify query/path/explain and use it to shortlist files."
+  }
+}

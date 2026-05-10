@@ -1,5 +1,34 @@
 # Lessons Learned
 
+## 2026-05-10
+
+### Graphify clean rebuilds must start from a clean graph.json
+
+- `graphify update . --force` refreshes the commit marker and rebuilds AST
+  nodes, but it preserves existing nodes whose IDs are not produced by the new
+  AST pass. If `graphify-out/graph.json` contains nodes from another absolute
+  worktree, those stale nodes can survive normal updates because their IDs do
+  not collide with current relative-path nodes.
+- To remove cross-worktree contamination, move or delete
+  `graphify-out/graph.json` first, then run `graphify update . --force` from
+  the intended worktree root. Verify with `rg '/Users/' graphify-out/graph.json`
+  and confirm `GRAPH_REPORT.md`'s "Built from commit" matches
+  `git rev-parse HEAD`.
+- In linked git worktrees, Graphify's hook command can treat the `.git` pointer
+  file as a directory. Set `core.hooksPath` to `git rev-parse --git-path hooks`
+  before running `graphify hook install/status` so the command uses the common
+  hooks directory.
+
+### Static Playwright report specs should avoid ESM-only helpers
+
+- In `apps/mirror/e2e`, a spec that imported Node built-ins and used
+  `import.meta.url` hit `ReferenceError: require is not defined` during
+  Playwright's TypeScript transform, even though regular app specs loaded
+  normally. For simple static artifact checks, derive repo paths from
+  `process.cwd()` and keep the spec shaped like the existing Playwright files.
+- Table row labels rendered with `<th>` are row headers, not role `cell`; assert
+  visible text or row/header roles instead of `getByRole("cell", { name })`.
+
 ## 2026-05-08
 
 ### Temporary blob previews need an explicit ownership handoff
