@@ -1,11 +1,9 @@
 import { v } from "convex/values";
 import { authMutation } from "../lib/auth";
-import {
-  RESERVED_USERNAMES,
-  buildPersonaPatch,
-  getAppUser,
-} from "./helpers";
+import { RESERVED_USERNAMES, buildPersonaPatch, getAppUser } from "./helpers";
 import { tonePresetValidator } from "../chat/tonePresets";
+import { DEFAULT_PROFILE_SECTION } from "../content/href";
+import { defaultProfileSectionValidator } from "./defaultProfileSection";
 
 export const updatePersonaSettings = authMutation({
   args: {
@@ -75,6 +73,21 @@ export const updateProfile = authMutation({
   },
 });
 
+export const updateProfileSettings = authMutation({
+  args: {
+    defaultProfileSection: defaultProfileSectionValidator,
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const appUser = await getAppUser(ctx, ctx.user._id);
+
+    await ctx.db.patch("users", appUser._id, {
+      defaultProfileSection: args.defaultProfileSection,
+    });
+    return null;
+  },
+});
+
 export const setAvatar = authMutation({
   args: { storageId: v.id("_storage") },
   returns: v.null(),
@@ -85,7 +98,9 @@ export const setAvatar = authMutation({
       await ctx.storage.delete(appUser.avatarStorageId);
     }
 
-    await ctx.db.patch("users", appUser._id, { avatarStorageId: args.storageId });
+    await ctx.db.patch("users", appUser._id, {
+      avatarStorageId: args.storageId,
+    });
     return null;
   },
 });
@@ -128,12 +143,13 @@ export const ensureProfile = authMutation({
 
     if (!existing) {
       console.info(
-        `[auth] Backfilling app profile for pre-existing auth user. authId=${ctx.user._id} email=${ctx.user.email}`
+        `[auth] Backfilling app profile for pre-existing auth user. authId=${ctx.user._id}`,
       );
       await ctx.db.insert("users", {
         authId: ctx.user._id,
         email: ctx.user.email,
         onboardingComplete: false,
+        defaultProfileSection: DEFAULT_PROFILE_SECTION,
       });
     }
 

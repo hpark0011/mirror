@@ -1,6 +1,7 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { type Id } from "./_generated/dataModel";
 import {
   getPlaywrightTestSecret,
   isPlaywrightTestMode,
@@ -207,10 +208,9 @@ if (isPlaywrightTestMode()) {
         }>;
       };
       if (!email || !Array.isArray(entries)) {
-        return new Response(
-          "Bad Request: email and entries array required",
-          { status: 400 },
-        );
+        return new Response("Bad Request: email and entries array required", {
+          status: 400,
+        });
       }
       if (!email.endsWith(TEST_EMAIL_SUFFIX)) {
         return new Response(
@@ -248,6 +248,30 @@ if (isPlaywrightTestMode()) {
       });
     }),
   });
+
+  http.route({
+    path: "/test/cover-blob-storage-state",
+    method: "POST",
+    handler: httpAction(async (ctx, req) => {
+      const deny = authorizeTestRequest(req);
+      if (deny) return deny;
+      const { storageId } = (await req.json()) as { storageId?: unknown };
+      if (typeof storageId !== "string" || storageId.length === 0) {
+        return new Response("Bad Request: storageId required", {
+          status: 400,
+        });
+      }
+      const result = await ctx.runQuery(
+        internal.articles.testHelpers.readTestCoverBlobStorageState,
+        { storageId: storageId as Id<"_storage"> },
+      );
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }),
+  });
+
 }
 
 export default http;

@@ -1,11 +1,13 @@
 "use client";
 
 import { CoverImagePicker } from "./cover-image-picker";
+import { type CoverUploadState } from "../../hooks/use-article-cover-video-upload";
 
 export interface ArticleMetadataCoverRowProps {
   imageUrl: string | null;
   videoUrl: string | null;
   videoPosterUrl: string | null;
+  coverUploadState: CoverUploadState;
   onUpload: (file: File) => Promise<{ kind: "image" | "video" }>;
   onClear: () => void;
 }
@@ -14,6 +16,7 @@ export function ArticleMetadataCoverRow({
   imageUrl,
   videoUrl,
   videoPosterUrl,
+  coverUploadState,
   onUpload,
   onClear,
 }: ArticleMetadataCoverRowProps) {
@@ -26,6 +29,7 @@ export function ArticleMetadataCoverRow({
         imageUrl={imageUrl}
         videoUrl={videoUrl}
         videoPosterUrl={videoPosterUrl}
+        coverUploadState={coverUploadState}
         onUpload={onUpload}
         onClear={onClear}
       />

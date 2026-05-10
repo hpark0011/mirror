@@ -24,10 +24,13 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { showToast } from "@feel-good/ui/components/toast";
-import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
+import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
-import { useArticleCoverVideoUpload } from "./use-article-cover-video-upload";
+import {
+  useArticleCoverVideoUpload,
+  type CoverUploadState,
+} from "./use-article-cover-video-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
 import {
   articleMetadataSchema,
@@ -54,8 +57,19 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     api.articles.mutations.deleteOrphanCoverVideo,
   );
   const { upload: uploadCoverImage } = useArticleCoverImageUpload();
-  const { upload: uploadCoverVideo } = useArticleCoverVideoUpload();
   const { upload: uploadInlineImage } = useArticleInlineImageUpload();
+  const [coverUploadState, setCoverUploadState] =
+    useState<CoverUploadState>("idle");
+  const coverUploadInFlightRef = useRef(false);
+  const handleCoverVideoUploadStateChange = useCallback(
+    (nextState: Extract<CoverUploadState, "preparing" | "uploading">) => {
+      setCoverUploadState(nextState);
+    },
+    [],
+  );
+  const { upload: uploadCoverVideo } = useArticleCoverVideoUpload({
+    onStateChange: handleCoverVideoUploadStateChange,
+  });
 
   const form = useForm<ArticleMetadataFormData>({
     resolver: zodResolver(articleMetadataSchema),
@@ -81,8 +95,9 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   const [coverVideoPosterStorageId, setCoverVideoPosterStorageId] =
     useState<Id<"_storage"> | null>(null);
   const [coverVideoUrl, setCoverVideoUrl] = useState<string | null>(null);
-  const [coverVideoPosterUrl, setCoverVideoPosterUrl] =
-    useState<string | null>(null);
+  const [coverVideoPosterUrl, setCoverVideoPosterUrl] = useState<string | null>(
+    null,
+  );
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -117,58 +132,79 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     setCoverImageThumbhash("");
     setCoverVideoStorageId(null);
     setCoverVideoPosterStorageId(null);
+    setCoverUploadState("idle");
   }, []);
 
   const handleCoverUpload = useCallback(
     async (file: File): Promise<{ kind: "image" | "video" }> => {
-      if (file.type.startsWith("video/")) {
-        const { videoStorageId, posterStorageId } =
-          await uploadCoverVideo(file);
+      if (coverUploadInFlightRef.current) {
+        throw new Error("A cover upload is already in progress");
+      }
+
+      coverUploadInFlightRef.current = true;
+      const previousCoverUploadState =
+        coverUploadState === "preparing" || coverUploadState === "uploading"
+          ? "idle"
+          : coverUploadState;
+      try {
+        if (file.type.startsWith("video/")) {
+          setCoverUploadState("preparing");
+          const { videoStorageId, posterStorageId } =
+            await uploadCoverVideo(file);
+          const objectUrl = URL.createObjectURL(file);
+          // Selecting a video supersedes any existing image cover —
+          // mirror the server-side mutual-exclusion rule in local
+          // state so the UI reflects what the next save will commit.
+          setCoverImageUrl((prev) => {
+            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+            return null;
+          });
+          setCoverImageStorageId(null);
+          setCoverImageThumbhash("");
+          setCoverVideoUrl((prev) => {
+            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+            return objectUrl;
+          });
+          blobUrlRef.current = objectUrl;
+          // Poster URL stays null locally — the picker shows the video
+          // itself as the preview, and the server-resolved poster URL
+          // arrives on the next reactive query tick after save.
+          setCoverVideoPosterUrl(null);
+          setCoverVideoStorageId(videoStorageId);
+          setCoverVideoPosterStorageId(posterStorageId);
+          setCoverUploadState("ready");
+          return { kind: "video" };
+        }
+        setCoverUploadState("uploading");
+        const { storageId, thumbhash } = await uploadCoverImage(file);
         const objectUrl = URL.createObjectURL(file);
-        // Selecting a video supersedes any existing image cover —
-        // mirror the server-side mutual-exclusion rule in local
-        // state so the UI reflects what the next save will commit.
-        setCoverImageUrl((prev) => {
+        setCoverVideoUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
-        setCoverImageStorageId(null);
-        setCoverImageThumbhash("");
-        setCoverVideoUrl((prev) => {
+        setCoverVideoPosterUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setCoverVideoStorageId(null);
+        setCoverVideoPosterStorageId(null);
+        setCoverImageUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return objectUrl;
         });
         blobUrlRef.current = objectUrl;
-        // Poster URL stays null locally — the picker shows the video
-        // itself as the preview, and the server-resolved poster URL
-        // arrives on the next reactive query tick after save.
-        setCoverVideoPosterUrl(null);
-        setCoverVideoStorageId(videoStorageId);
-        setCoverVideoPosterStorageId(posterStorageId);
-        return { kind: "video" };
+        setCoverImageStorageId(storageId);
+        setCoverImageThumbhash(thumbhash);
+        setCoverUploadState("ready");
+        return { kind: "image" };
+      } catch (err) {
+        setCoverUploadState(previousCoverUploadState);
+        throw err;
+      } finally {
+        coverUploadInFlightRef.current = false;
       }
-      const { storageId, thumbhash } = await uploadCoverImage(file);
-      const objectUrl = URL.createObjectURL(file);
-      setCoverVideoUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setCoverVideoPosterUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setCoverVideoStorageId(null);
-      setCoverVideoPosterStorageId(null);
-      setCoverImageUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return objectUrl;
-      });
-      blobUrlRef.current = objectUrl;
-      setCoverImageStorageId(storageId);
-      setCoverImageThumbhash(thumbhash);
-      return { kind: "image" };
     },
-    [uploadCoverImage, uploadCoverVideo],
+    [coverUploadState, uploadCoverImage, uploadCoverVideo],
   );
 
   const persistValidated = useCallback(
@@ -189,9 +225,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
           ...(coverImageStorageId ? { coverImageStorageId } : {}),
           ...(coverImageThumbhash && { coverImageThumbhash }),
           ...(coverVideoStorageId ? { coverVideoStorageId } : {}),
-          ...(coverVideoPosterStorageId
-            ? { coverVideoPosterStorageId }
-            : {}),
+          ...(coverVideoPosterStorageId ? { coverVideoPosterStorageId } : {}),
         });
       } catch (err) {
         // FG_129 / PLAN_010: if create fails after a cover was
@@ -314,12 +348,9 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     }
   }, [form, hasPendingUploads, isSaving, persistValidated]);
 
-  const onInlineImageError = useCallback(
-    (err: unknown) => {
-      showToast({ type: "error", title: getMutationErrorMessage(err) });
-    },
-    [],
-  );
+  const onInlineImageError = useCallback((err: unknown) => {
+    showToast({ type: "error", title: getMutationErrorMessage(err) });
+  }, []);
 
   // Derive watched values for consumers that need reactive reads. Status is
   // surfaced separately because the toolbar's publish-toggle button reads it
@@ -345,6 +376,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     coverImageUrl,
     coverVideoUrl,
     coverVideoPosterUrl,
+    coverUploadState,
     createdAt: null as number | null,
     publishedAt: null as number | null,
     body,

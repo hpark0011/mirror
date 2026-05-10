@@ -29,6 +29,84 @@
 - Table row labels rendered with `<th>` are row headers, not role `cell`; assert
   visible text or row/header roles instead of `getByRole("cell", { name })`.
 
+### Convex schema checks need data drift cleanup, not permanent dead fields
+
+- `convex dev --once` can fail even when local typecheck/build pass if the
+  target deployment has rows with fields the current validator has already
+  narrowed away. The fix is widen-migrate-narrow: temporarily allow the legacy
+  field, run a one-shot cleanup mutation against the affected deployment, then
+  remove the temporary validator again and rerun `convex dev --once`.
+- Do not leave unused legacy fields in `schema.ts` just to satisfy one dirty
+  worktree deployment. The final successful schema push should happen after the
+  data cleanup with the intended narrow schema.
+- If the local Convex CLI account cannot access the selected deployment, use
+  the deployment's existing test-secret-gated HTTP surface as the cleanup
+  bridge: push a temporary widened schema plus guarded cleanup route, call it
+  once, then remove the route and narrow the schema again.
+
+### Convex mutations cannot delete storage and then throw
+
+- A `ctx.storage.delete(...)` inside a mutation is rolled back when that
+  mutation throws. If a reject path must both fail the caller and commit blob
+  cleanup, put the validation/delete/throw boundary in an action, then use an
+  internal mutation only for the successful database write.
+- Unit tests against `convex-test` can miss this because they often pin only
+  the thrown error/no-row contract. A live `convex dev --once` deployment plus
+  focused e2e is the right check for storage side effects.
+
+### Convex tests should isolate scheduled embedding side effects
+
+- CRUD/tool tests that schedule embedding cleanup or generation through
+  `ctx.scheduler.runAfter(0, ...)` should use a shared `convex-test` module map
+  that replaces embedding functions with no-op shims. That keeps tests focused
+  on the behavior under assertion instead of accidentally exercising the RAG
+  pipeline.
+- For scheduled cleanup specifically, the test-only `deleteBySource` shim must
+  resolve as an internal action, not an internal mutation. `convex-test` can
+  print a rollback stderr line for immediately scheduled mutations after the
+  parent mutation commits, even when the scheduled mutation is intentionally
+  empty. RAG/embedding tests should opt into the real modules explicitly.
+
+### Review fixes should patch the class, not only the flagged line
+
+- When a PR review flags raw PII in an operational log, search the adjacent
+  auth/profile path for the same pattern before calling it done. Removing
+  `email=...` from one backfill log while leaving the matching missing-profile
+  warning log would preserve the privacy footgun under a different branch.
+- If a UI review asks for i18n but the app has no resource files yet, use
+  `react-i18next` translation keys with `defaultValue` fallbacks rather than
+  inventing a one-off resource architecture in the review-fix commit. That
+  keeps visible copy stable while making the new surface ready for real
+  resources.
+
+### OAuth proxy callbacks use Convex `SITE_URL`, not just the Next dev URL
+
+- In worktrees, Google OAuth can bounce back to a dead localhost port even when
+  the Mirror dev server started on the correct allocated port. The decisive
+  value is Convex deployment env `SITE_URL`; Better Auth's OAuth proxy uses it
+  as `currentURL`, so a stale `SITE_URL=http://localhost:3001` sends the final
+  callback to 3001 regardless of the app process port.
+- `pnpm dev:safe` now runs `scripts/ensure-local-auth-url.mjs` before Turbo so
+  Convex `SITE_URL` and `AUTH_ALLOWED_HOSTS` are aligned with
+  `scripts/with-worktree-port.mjs`. For manual package-level dev runs, verify
+  `pnpm --filter=@feel-good/convex exec convex env list | rg '^SITE_URL='`
+  before debugging OAuth internals.
+
+### Agent owner-write tools need viewer authorization
+
+- Agent write tools need two separate guards: the closure-bound
+  `profileOwnerId` scopes which rows a tool can touch, and the server-derived
+  conversation `viewerId` proves the current visitor is allowed to mutate
+  them. For publish/unpublish/delete tools, require
+  `viewerId === profileOwnerId` before any read or write, and only advertise
+  those verbs in the system prompt for owner conversations.
+
+### Best-effort storage cleanup should keep reclaim handles
+
+- When eager storage cleanup is best-effort, do not delete the ownership row
+  after a failed blob delete. Keep the row as the reclaim handle so later
+  orphan cleanup or sweeps can still find the leaked storage object.
+
 ## 2026-05-08
 
 ### Temporary blob previews need an explicit ownership handoff

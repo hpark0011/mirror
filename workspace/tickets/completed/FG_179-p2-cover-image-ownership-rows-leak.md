@@ -3,7 +3,7 @@ id: FG_179
 title: "coverImageOwnership rows are never deleted — table grows monotonically"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "No code path anywhere deletes rows from coverImageOwnership. The orphan-sweep cron explicitly excludes the table. Replace, remove, and orphan-cleanup all leave ownership rows behind. Over time the by_storageId index grows unbounded with rows pointing at non-existent blobs."
 dependencies: ["FG_168"]

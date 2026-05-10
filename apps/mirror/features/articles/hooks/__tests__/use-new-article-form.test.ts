@@ -77,6 +77,82 @@ const SAMPLE_BODY: any = {
   content: [{ type: "paragraph", content: [{ type: "text", text: "hi" }] }],
 };
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+describe("useNewArticleForm — cover upload lock", () => {
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockDeleteOrphanCoverImage.mockReset();
+    mockDeleteOrphanCoverVideo.mockReset();
+    mockReplace.mockReset();
+    mockShowToast.mockReset();
+    mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn().mockReturnValue("blob:image-url"),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects concurrent handleCoverUpload calls and releases the lock after settle", async () => {
+    const firstUpload = createDeferred<{
+      storageId: string;
+      thumbhash: string;
+    }>();
+    mockUploadCover.mockReturnValueOnce(firstUpload.promise);
+    const { result } = renderHook(() =>
+      useNewArticleForm({ username: "test-user" }),
+    );
+    const firstFile = new File([new Uint8Array([1])], "cover.png", {
+      type: "image/png",
+    });
+    const secondFile = new File([new Uint8Array([2])], "cover-2.png", {
+      type: "image/png",
+    });
+    let pendingUpload: Promise<{ kind: "image" | "video" }> | undefined;
+
+    act(() => {
+      pendingUpload = result.current.handleCoverUpload(firstFile);
+    });
+
+    expect(result.current.coverUploadState).toBe("uploading");
+    await act(async () => {
+      await expect(
+        result.current.handleCoverUpload(secondFile),
+      ).rejects.toThrow("A cover upload is already in progress");
+    });
+    expect(mockUploadCover).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      firstUpload.resolve({ storageId: "storage_id_1", thumbhash: "" });
+      await pendingUpload;
+    });
+    expect(result.current.coverUploadState).toBe("ready");
+
+    mockUploadCover.mockResolvedValueOnce({
+      storageId: "storage_id_2",
+      thumbhash: "",
+    });
+    await act(async () => {
+      await result.current.handleCoverUpload(secondFile);
+    });
+    expect(mockUploadCover).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("useNewArticleForm — defer-create-on-first-save", () => {
   beforeEach(() => {
     mockCreate.mockReset();
@@ -221,7 +297,10 @@ describe("useNewArticleForm — defer-create-on-first-save", () => {
   // directions at the hook-level args boundary.
   it("upload with thumbhash forwards coverImageThumbhash to create", async () => {
     mockCreate.mockResolvedValue("article_id_4");
-    mockUploadCover.mockResolvedValue({ storageId: "sid_y", thumbhash: "xyz=" });
+    mockUploadCover.mockResolvedValue({
+      storageId: "sid_y",
+      thumbhash: "xyz=",
+    });
     const { result } = renderHook(() =>
       useNewArticleForm({ username: "test-user" }),
     );

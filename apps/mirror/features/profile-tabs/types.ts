@@ -3,6 +3,7 @@ export const PROFILE_TAB_KINDS = [
   "articles",
   "bio",
   "clone-settings",
+  "settings",
 ] as const;
 export type ProfileTabKind = (typeof PROFILE_TAB_KINDS)[number];
 
@@ -20,6 +21,7 @@ export const PROFILE_TAB_DISPLAY_ORDER: readonly ProfileTabKind[] = [
   "posts",
   "articles",
   "clone-settings",
+  "settings",
 ];
 
 export const PROFILE_TAB_LABELS: Record<ProfileTabKind, string> = {
@@ -27,10 +29,19 @@ export const PROFILE_TAB_LABELS: Record<ProfileTabKind, string> = {
   articles: "Articles",
   bio: "Bio",
   "clone-settings": "Clone",
+  settings: "Settings",
 };
-export function isProfileTabKind(value: string | null | undefined): value is ProfileTabKind {
-  return typeof value === "string" && PROFILE_TAB_KINDS.includes(value as ProfileTabKind);
+export function isProfileTabKind(
+  value: string | null | undefined,
+): value is ProfileTabKind {
+  return (
+    typeof value === "string" &&
+    PROFILE_TAB_KINDS.includes(value as ProfileTabKind)
+  );
 }
-export function getProfileTabHref(username: string, kind: ProfileTabKind): string {
+export function getProfileTabHref(
+  username: string,
+  kind: ProfileTabKind,
+): string {
   return `/@${username}/${kind}`;
 }

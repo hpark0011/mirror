@@ -4,6 +4,7 @@ import { useCallback, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { showToast } from "@feel-good/ui/components/toast";
+import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { type PostSummary } from "../types";
 
 export type UsePublishToggleArgs = {
@@ -47,8 +48,7 @@ export function usePublishToggle({
     } catch (err) {
       showToast({
         type: "error",
-        title:
-          err instanceof Error ? err.message : "Something went wrong. Try again.",
+        title: getMutationErrorMessage(err),
       });
       // Dialog stays open so the user can retry — do NOT close here.
     } finally {

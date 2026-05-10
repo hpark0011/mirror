@@ -17,9 +17,12 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { showToast } from "@feel-good/ui/components/toast";
-import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
+import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
-import { useArticleCoverVideoUpload } from "./use-article-cover-video-upload";
+import {
+  useArticleCoverVideoUpload,
+  type CoverUploadState,
+} from "./use-article-cover-video-upload";
 import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
 import {
   articleMetadataSchema,
@@ -40,8 +43,19 @@ export function useEditArticleForm({
   const router = useRouter();
   const update = useMutation(api.articles.mutations.update);
   const { upload: uploadCoverImage } = useArticleCoverImageUpload();
-  const { upload: uploadCoverVideo } = useArticleCoverVideoUpload();
   const { upload: uploadInlineImage } = useArticleInlineImageUpload();
+  const [coverUploadState, setCoverUploadState] =
+    useState<CoverUploadState>("idle");
+  const coverUploadInFlightRef = useRef(false);
+  const handleCoverVideoUploadStateChange = useCallback(
+    (nextState: Extract<CoverUploadState, "preparing" | "uploading">) => {
+      setCoverUploadState(nextState);
+    },
+    [],
+  );
+  const { upload: uploadCoverVideo } = useArticleCoverVideoUpload({
+    onStateChange: handleCoverVideoUploadStateChange,
+  });
 
   const form = useForm<ArticleMetadataFormData>({
     resolver: zodResolver(articleMetadataSchema),
@@ -58,9 +72,8 @@ export function useEditArticleForm({
   // not exposed. Until the user uploads a new cover, we keep the storage-id
   // state at `null` and OMIT those fields from the patch so the server's
   // existing references stay untouched.
-  const [coverImageStorageId, setCoverImageStorageId] = useState<
-    Id<"_storage"> | null
-  >(null);
+  const [coverImageStorageId, setCoverImageStorageId] =
+    useState<Id<"_storage"> | null>(null);
   const [coverImageThumbhash, setCoverImageThumbhash] = useState(
     initial.coverImageThumbhash ?? "",
   );
@@ -68,18 +81,16 @@ export function useEditArticleForm({
     initial.coverImageUrl ?? null,
   );
   // PLAN_010: parallel video-cover state seeded from the initial preload.
-  const [coverVideoStorageId, setCoverVideoStorageId] = useState<
-    Id<"_storage"> | null
-  >(null);
-  const [coverVideoPosterStorageId, setCoverVideoPosterStorageId] = useState<
-    Id<"_storage"> | null
-  >(null);
+  const [coverVideoStorageId, setCoverVideoStorageId] =
+    useState<Id<"_storage"> | null>(null);
+  const [coverVideoPosterStorageId, setCoverVideoPosterStorageId] =
+    useState<Id<"_storage"> | null>(null);
   const [coverVideoUrl, setCoverVideoUrl] = useState<string | null>(
     initial.coverVideoUrl ?? null,
   );
-  const [coverVideoPosterUrl, setCoverVideoPosterUrl] = useState<
-    string | null
-  >(initial.coverVideoPosterUrl ?? null);
+  const [coverVideoPosterUrl, setCoverVideoPosterUrl] = useState<string | null>(
+    initial.coverVideoPosterUrl ?? null,
+  );
   // True when the user clicked Remove on the existing cover. Distinct
   // from "no change" (no local storageId set on mount) — without this
   // flag the patch payload omits the cover fields and the server cover
@@ -106,55 +117,75 @@ export function useEditArticleForm({
 
   const handleCoverUpload = useCallback(
     async (file: File): Promise<{ kind: "image" | "video" }> => {
-      if (file.type.startsWith("video/")) {
-        const { videoStorageId, posterStorageId } =
-          await uploadCoverVideo(file);
+      if (coverUploadInFlightRef.current) {
+        throw new Error("A cover upload is already in progress");
+      }
+
+      coverUploadInFlightRef.current = true;
+      const previousCoverUploadState =
+        coverUploadState === "preparing" || coverUploadState === "uploading"
+          ? "idle"
+          : coverUploadState;
+      try {
+        if (file.type.startsWith("video/")) {
+          setCoverUploadState("preparing");
+          const { videoStorageId, posterStorageId } =
+            await uploadCoverVideo(file);
+          const objectUrl = URL.createObjectURL(file);
+          setCoverImageUrl((prev) => {
+            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+            return null;
+          });
+          setCoverImageStorageId(null);
+          setCoverImageThumbhash("");
+          setCoverVideoUrl((prev) => {
+            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+            return objectUrl;
+          });
+          blobUrlRef.current = objectUrl;
+          setCoverVideoPosterUrl((prev) => {
+            if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+            return null;
+          });
+          setCoverVideoStorageId(videoStorageId);
+          setCoverVideoPosterStorageId(posterStorageId);
+          // A fresh upload supersedes any prior clear in the same session.
+          setIsCoverCleared(false);
+          setCoverUploadState("ready");
+          return { kind: "video" };
+        }
+
+        setCoverUploadState("uploading");
+        const { storageId, thumbhash } = await uploadCoverImage(file);
         const objectUrl = URL.createObjectURL(file);
-        setCoverImageUrl((prev) => {
+        setCoverVideoUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
-        setCoverImageStorageId(null);
-        setCoverImageThumbhash("");
-        setCoverVideoUrl((prev) => {
-          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-          return objectUrl;
-        });
-        blobUrlRef.current = objectUrl;
         setCoverVideoPosterUrl((prev) => {
           if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
           return null;
         });
-        setCoverVideoStorageId(videoStorageId);
-        setCoverVideoPosterStorageId(posterStorageId);
-        // A fresh upload supersedes any prior clear in the same session.
+        setCoverVideoStorageId(null);
+        setCoverVideoPosterStorageId(null);
+        setCoverImageUrl((prev) => {
+          if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+        blobUrlRef.current = objectUrl;
+        setCoverImageStorageId(storageId);
+        setCoverImageThumbhash(thumbhash);
         setIsCoverCleared(false);
-        return { kind: "video" };
+        setCoverUploadState("ready");
+        return { kind: "image" };
+      } catch (err) {
+        setCoverUploadState(previousCoverUploadState);
+        throw err;
+      } finally {
+        coverUploadInFlightRef.current = false;
       }
-
-      const { storageId, thumbhash } = await uploadCoverImage(file);
-      const objectUrl = URL.createObjectURL(file);
-      setCoverVideoUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setCoverVideoPosterUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setCoverVideoStorageId(null);
-      setCoverVideoPosterStorageId(null);
-      setCoverImageUrl((prev) => {
-        if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
-        return objectUrl;
-      });
-      blobUrlRef.current = objectUrl;
-      setCoverImageStorageId(storageId);
-      setCoverImageThumbhash(thumbhash);
-      setIsCoverCleared(false);
-      return { kind: "image" };
     },
-    [uploadCoverImage, uploadCoverVideo],
+    [coverUploadState, uploadCoverImage, uploadCoverVideo],
   );
 
   const handleCoverClear = useCallback(() => {
@@ -176,6 +207,7 @@ export function useEditArticleForm({
     setCoverVideoStorageId(null);
     setCoverVideoPosterStorageId(null);
     setIsCoverCleared(true);
+    setCoverUploadState("idle");
   }, []);
 
   const persistValidated = useCallback(
@@ -191,7 +223,7 @@ export function useEditArticleForm({
           status: targetStatus,
           // Send each cover storage id only when the user uploaded a new
           // cover in THIS session. Omit (undefined) means "no change".
-          // An explicit Remove travels through `clearCoverImage: true`
+          // An explicit Remove travels through `clearCover: true`
           // instead and clears every cover surface server-side
           // (PLAN_010). Mutual-exclusion in local state guarantees
           // image and video ids are never both non-null at the same
@@ -204,7 +236,7 @@ export function useEditArticleForm({
             coverVideoPosterStorageId !== null
               ? coverVideoPosterStorageId
               : undefined,
-          clearCoverImage: wasCoverCleared ? true : undefined,
+          clearCover: wasCoverCleared ? true : undefined,
           ...(coverImageThumbhash && { coverImageThumbhash }),
         });
       } catch (err) {
@@ -323,12 +355,9 @@ export function useEditArticleForm({
     router.push(`/@${username}/articles/${initial.slug}`);
   }, [initial.slug, router, username]);
 
-  const onInlineImageError = useCallback(
-    (err: unknown) => {
-      showToast({ type: "error", title: getMutationErrorMessage(err) });
-    },
-    [],
-  );
+  const onInlineImageError = useCallback((err: unknown) => {
+    showToast({ type: "error", title: getMutationErrorMessage(err) });
+  }, []);
 
   // Status is surfaced separately because the toolbar's publish-toggle button
   // reads it outside the metadata-header's RHF tree.
@@ -353,6 +382,7 @@ export function useEditArticleForm({
     coverImageUrl,
     coverVideoUrl,
     coverVideoPosterUrl,
+    coverUploadState,
     createdAt: initial.createdAt,
     publishedAt,
     body,

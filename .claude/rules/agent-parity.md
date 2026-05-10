@@ -74,6 +74,13 @@ tool MUST NOT include `userId`, `user_id`, `ownerId`, or any other user
 identifier — if it did, the model could pass an arbitrary user id and
 the cross-user boundary would collapse.
 
+Owner-write tools have a second boundary: they must verify the
+server-derived viewer is the profile owner before any query or mutation runs.
+Passing `profileOwnerId` alone proves which rows are in scope, but it does
+not prove the visitor is allowed to mutate those rows. Use the
+conversation's `viewerId` (not a tool arg) and require
+`viewerId === profileOwnerId` for publish, unpublish, and delete tools.
+
 The unit test in
 [`packages/convex/convex/chat/__tests__/tools.test.ts`](../../packages/convex/convex/chat/__tests__/tools.test.ts)
 (see the `inputSchema invariants` describe block) pins this. Adding a
@@ -95,7 +102,7 @@ parity loop.
    include any user identifier. Keep handlers as data primitives — look
    up X, validate Y, return a structured result. Do NOT encode workflow
    logic or call `router.push`.
-3. **Update `TOOLS_VOCABULARY`** in
+3. **Update the tools vocabulary** in
    [`packages/convex/convex/chat/helpers.ts`](../../packages/convex/convex/chat/helpers.ts)
    so the agent knows the verb exists. The system prompt is composed at
    request time and is the only place the LLM learns the tool surface.
@@ -123,13 +130,13 @@ and the structured `output`.
 
 ## Owner-only views are excluded from agent section enums
 
-Some profile tabs (today: `clone-settings`) are owner-only and not
-visitor-reachable. They MUST be excluded from any agent-visible enum
+Some profile tabs (today: `clone-settings` and `settings`) are owner-only and
+not visitor-reachable. They MUST be excluded from any agent-visible enum
 that selects a section to open. Concretely, `openProfileSection`'s
 `section` enum in
 [`packages/convex/convex/chat/tools.ts`](../../packages/convex/convex/chat/tools.ts)
 is `'bio' | 'articles' | 'posts'` — `clone-settings` is omitted by
-design.
+design, and `settings` follows the same rule.
 
 When you add a new tab to `PROFILE_TAB_KINDS`, classify it before
 extending the agent enum: if it is owner-only, leave the agent enum
@@ -168,7 +175,7 @@ while users keep working.
   [`apps/mirror/features/profile-tabs/__tests__/types.test.ts`](../../apps/mirror/features/profile-tabs/__tests__/types.test.ts);
   prefer it for bio-specific call sites so the URL template lives in
   exactly one place.
-- Format: `/@<username>/<bio|articles|posts>`. Must stay aligned with
+- Format: `/@<username>/<section>`. Must stay aligned with
   the Next.js routes under `apps/mirror/app/[username]/<section>/`.
 
 The agent path uses the server-built `href` from the tool's result and
@@ -191,6 +198,6 @@ omitted by the caller.
   The `tools.test.ts` invariants block exists specifically to catch
   regressions here.
 - **System-prompt vocabulary.** A new tool registered in
-  `buildCloneTools` without a matching mention in `TOOLS_VOCABULARY` is
+  `buildCloneTools` without a matching mention in the tools vocabulary is
   a discoverability gap — the LLM will not call a verb it does not
   know exists.

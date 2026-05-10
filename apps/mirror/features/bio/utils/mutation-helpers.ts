@@ -29,14 +29,3 @@ export function toMutationArgs(values: BioEntryFormValues): {
     link: values.link,
   };
 }
-
-/**
- * Extracts a user-facing message from an unknown thrown value. Convex
- * `ConvexError`s are `Error` instances, so their `message` is preserved
- * (e.g. "Bio entry limit reached (50). ...").
- */
-export function getMutationErrorMessage(err: unknown): string {
-  return err instanceof Error
-    ? err.message
-    : "Something went wrong. Please try again.";
-}

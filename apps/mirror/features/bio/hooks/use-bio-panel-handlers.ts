@@ -3,13 +3,11 @@
 import { useCallback, useRef, useState } from "react";
 import { showToast } from "@feel-good/ui/components/toast";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { useBioEntries } from "./use-bio-entries";
 import { type BioEntry } from "../types";
 import { type BioEntryFormValues } from "../lib/schemas/bio-entry.schema";
-import {
-  getMutationErrorMessage,
-  toMutationArgs,
-} from "../utils/mutation-helpers";
+import { toMutationArgs } from "../utils/mutation-helpers";
 
 export type BioDialogState =
   | { open: false }

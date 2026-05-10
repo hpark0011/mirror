@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "turbo run dev",
-    "dev:safe": "turbo run dev --filter=@feel-good/mirror --filter=@feel-good/convex",
+    "dev:safe": "node scripts/ensure-local-auth-url.mjs && turbo run dev --filter=@feel-good/mirror --filter=@feel-good/convex",
     "build": "turbo run build",
     "lint": "turbo run lint",
     "clean": "turbo run clean",

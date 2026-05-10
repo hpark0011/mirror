@@ -5,6 +5,7 @@ import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 
 type RateLimitErrorData = {
   code: "RATE_LIMIT_MINUTE" | "RATE_LIMIT_DAILY";
@@ -36,7 +37,7 @@ function getRateLimitCode(err: unknown): RateLimitErrorData["code"] | null {
 }
 
 function classifySendError(err: unknown): string {
-  const msg = err instanceof Error ? err.message : "Failed to send message";
+  const msg = getMutationErrorMessage(err);
   const rateLimitCode = getRateLimitCode(err);
   if (rateLimitCode === "RATE_LIMIT_DAILY") {
     return "You've hit today's chat limit. Try again tomorrow.";
@@ -61,7 +62,7 @@ function classifyRetryError(err: unknown): string {
   if (rateLimitCode === "RATE_LIMIT_MINUTE") {
     return "You're sending messages too quickly. Please wait a moment.";
   }
-  return err instanceof Error ? err.message : "Failed to retry";
+  return getMutationErrorMessage(err);
 }
 
 type UseChatSendOptions = {

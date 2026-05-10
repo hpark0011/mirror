@@ -21,6 +21,10 @@ describe("getContentRouteState", () => {
     expect(getContentRouteState(["bio"])).toBeNull();
   });
 
+  it("returns null for the 'settings' tab", () => {
+    expect(getContentRouteState(["settings"])).toBeNull();
+  });
+
   it("returns the kind/view/slug shape for a posts list", () => {
     const state = getContentRouteState(["posts"]);
     expect(state).toEqual({ kind: "posts", view: "list", slug: undefined });
@@ -77,6 +81,10 @@ describe("isContentKind", () => {
 
   it("returns false for 'clone-settings'", () => {
     expect(isContentKind("clone-settings")).toBe(false);
+  });
+
+  it("returns false for 'settings'", () => {
+    expect(isContentKind("settings")).toBe(false);
   });
 
   it("returns false for null and undefined", () => {

@@ -3,7 +3,7 @@ id: FG_192
 title: "Cover-video upload needs a 'Preparing…' state so users see progress during poster extraction"
 date: 2026-05-08
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "extractPosterBlob runs before upload URLs are requested. For a 25 MiB MP4 on mobile the GOP decode + canvas encode can take 1-4 seconds while the picker shows 'Uploading…' — misleading because no upload has actually started."
 dependencies: ["FG_173"]

@@ -1,6 +1,6 @@
 # chat-backend-developer — Knowledge
 
-*Last updated: 2026-05-08*
+*Last updated: 2026-05-10*
 
 ## Architecture
 
@@ -183,6 +183,12 @@ Files: `chat/tools.ts` (`"use node"`, `buildCloneTools(profileOwnerId)` factory)
 - Belt-and-suspenders: re-assert ownership via `isOwnedByUser(row, userId)` inside the handler even though the compound index already pins `userId`. Defence-in-depth against future index loosening.
 - "Stale slug / cross-user collision / already-deleted" returns a structured `{ deleted: false }` (or `{ resolved: null }`) result rather than throwing, so the LLM has a recoverable result instead of breaking the stream. Throwing is reserved for genuine "tool surface is unavailable" cases (e.g., owner row missing — same null-row pattern `openProfileSection` uses).
 - Canonical example: `internal.posts.mutations.deleteByUserAndSlug` (callsite: `chat/tools.ts:deletePost.execute`).
+
+**Status-toggle/article-delete tools (learned 2026-05-10 — FG_169)**:
+- `resolveBySlug` is published-only by design for visitor navigation. Publish tools need to resolve drafts, so use `internal.chat.toolQueries.resolveOwnedContentBySlug`: same `(profileOwnerId, kind, slug)` isolation and server-built href, but no published-status gate.
+- If the owning content module does not expose a chat-callable `internalMutation`, keep the tool mutation in `chat/toolMutations.ts` rather than calling public `authMutation`s from the chat action. Status mutations are slug-only, patch only `status`/`publishedAt`, preserve existing unpublish semantics (`publishedAt` is not cleared), and schedule embedding generate/delete only when status actually changes.
+- `deleteArticleByUserAndSlug` mirrors the single-row cleanup path from `articles.mutations.remove`: delete the row, best-effort delete cover blobs, filter inline blobs through ownership + unreferenced checks, then delete embeddings.
+- Watcher result routing: successful publish (`updated: true`) dispatches `navigateToContent`; missed publish, unpublish, and delete dispatch `navigateToProfileSection` with the server-built list href. Add the `toolCallId` to the handled set immediately before dispatch to preserve idempotency.
 
 **Section-level vs slug-level result shape** (learned 2026-05-08):
 - **Destructive verbs** (delete, archive, hide) must return **section-level** navigation results — `{ kind: "<section>", href }` shaped like `openProfileSection`'s output — NOT slug-level. The mutated row's detail href is dead post-mutation; dispatching `navigateToContent` would 404 the visitor.

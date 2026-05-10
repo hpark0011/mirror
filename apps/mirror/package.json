@@ -37,6 +37,7 @@
     "convex-helpers": "^0.1.115",
     "framer-motion": "^12.23.12",
     "gray-matter": "^4.0.3",
+    "i18next": "catalog:",
     "lucide-react": "catalog:",
     "next": "catalog:",
     "next-themes": "catalog:",

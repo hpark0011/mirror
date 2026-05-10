@@ -3,7 +3,7 @@ id: FG_170
 title: "Mutation error toast helper scrubs internal strings and is feature-agnostic"
 date: 2026-05-09
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "Mirror has a single helper getMutationErrorMessage at apps/mirror/features/bio/utils/mutation-helpers.ts:38 that maps thrown errors to toast titles, but it forwards err.message verbatim — including internal status strings like 'Not authenticated' (lib/auth.ts:17) and 'App user not found' (users/helpers.ts) — so a session expiry or auth-race surfaces those raw labels to the user. It also lives under features/bio/ but is consumed by posts and articles, which cross feature boundaries via ../../bio/utils/mutation-helpers. And several hooks (use-publish-toggle.ts, content-editor.tsx) still hand-roll the err instanceof Error ? err.message : '…' shape and don't go through the helper at all. Harden the helper with a deny-list of known internal-only strings (or a positive whitelist of user-friendly shapes), relocate it to a feature-agnostic path, and adopt it on the remaining hold-out callers."
 dependencies: []

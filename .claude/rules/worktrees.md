@@ -178,6 +178,11 @@ sync script and verify:
 pnpm --filter=@feel-good/convex exec convex env list | grep -E '(OAUTH_PROXY|SITE_URL|AUTH_ALLOWED_HOSTS)'
 ```
 
+`pnpm dev:safe` also runs `scripts/ensure-local-auth-url.mjs` before starting
+the servers. That preflight keeps Convex `SITE_URL` aligned with the current
+Mirror worktree port so the OAuth proxy callback does not bounce back to a
+stale localhost port.
+
 ## Worktree path discipline (general)
 
 Every Edit/Write inside a worktree must use the worktree's absolute path. Sub-agent reports that name a main-repo path (`/Users/disquiet/Desktop/mirror/...` instead of `/Users/disquiet/Desktop/mirror/.worktrees/<branch>/...`) target the wrong file when the same path exists in both places.

@@ -3,7 +3,7 @@ id: FG_183
 title: "Rename clearCoverImage update arg to clearCover so the name matches its scope"
 date: 2026-05-08
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "The articles.update mutation arg clearCoverImage now clears image, video, and poster — but the name says 'image'. Public validator name lies about scope; future caller adding clearCoverVideo would create a redundant API."
 dependencies: []

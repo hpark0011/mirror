@@ -59,6 +59,11 @@ export const coverImageOwnershipFields = {
   storageId: v.id("_storage"),
   userId: v.id("users"),
   createdAt: v.number(),
+  // FG_196 widen step: optional until the backfill runs and a follow-up
+  // deploy can narrow this to required.
+  kind: v.optional(
+    v.union(v.literal("image"), v.literal("video"), v.literal("poster")),
+  ),
 };
 
 export const coverImageOwnershipTable = defineTable(coverImageOwnershipFields)
