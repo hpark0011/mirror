@@ -645,6 +645,8 @@ describe("STORAGE_FIELD_REFERENCES — schema-introspection regression test (FR-
       "articles.coverVideoPosterStorageId",
       "articles.coverVideoStorageId",
       "posts.coverImageStorageId",
+      "posts.coverVideoPosterStorageId",
+      "posts.coverVideoStorageId",
       "users.avatarStorageId",
     ]);
 

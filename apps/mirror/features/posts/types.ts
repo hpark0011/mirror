@@ -9,6 +9,9 @@ export type PostSummary = {
   title: string;
   body: JSONContent;
   coverImageUrl: string | null;
+  coverImageThumbhash?: string;
+  coverVideoUrl: string | null;
+  coverVideoPosterUrl: string | null;
   createdAt: number;
   publishedAt?: number;
   status: "draft" | "published";

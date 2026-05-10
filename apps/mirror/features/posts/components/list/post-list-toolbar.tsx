@@ -21,7 +21,7 @@ type PostListToolbarProps = {
   search: UseContentSearchReturn<PostSummary>;
   categories: { name: string; count: number }[];
   filter: UsePostFilterReturn;
-  onUploadClick: () => void;
+  onNew: () => void;
 };
 
 export function PostListToolbar({
@@ -31,7 +31,7 @@ export function PostListToolbar({
   search,
   categories,
   filter,
-  onUploadClick,
+  onNew,
 }: PostListToolbarProps) {
   return (
     <ContentToolbarShell>
@@ -71,7 +71,7 @@ export function PostListToolbar({
             variant="primary"
             size="xs"
             className="ml-2 has-[>svg]:gap-0.5 has-[>svg]:pl-1 has-[>svg]:pr-2"
-            onClick={onUploadClick}
+            onClick={onNew}
             data-testid="new-post-btn"
           >
             <Icon name="PlusIcon" className="size-4 text-icon-light" />

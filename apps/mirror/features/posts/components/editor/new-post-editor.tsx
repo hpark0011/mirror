@@ -1,19 +1,20 @@
 "use client";
 
-// Edit-existing-post host. Wraps the shared `PostEditorShell` with a
-// server-bound form hook so Save dispatches `posts.mutations.update` for
-// the loaded row. Mirrors `articles/components/editor/article-editor.tsx`.
-import { type PostSummary } from "../../types";
-import { useEditPostForm } from "../../hooks/use-edit-post-form";
+// Host for `/posts/new`. Owns no server state; defers row creation until
+// the user clicks Save. On success the form hook navigates to
+// `/posts/<slug>/edit` so subsequent edits use the patch flow. Mirrors
+// `articles/components/editor/new-article-editor.tsx`.
+import { useRouter } from "next/navigation";
+import { useNewPostForm } from "../../hooks/use-new-post-form";
 import { PostEditorShell } from "./post-editor-shell";
 
-type PostEditorProps = {
-  post: PostSummary;
+interface NewPostEditorProps {
   username: string;
-};
+}
 
-export function PostEditor({ post, username }: PostEditorProps) {
-  const postForm = useEditPostForm({ username, initial: post });
+export function NewPostEditor({ username }: NewPostEditorProps) {
+  const router = useRouter();
+  const postForm = useNewPostForm({ username });
   return (
     <PostEditorShell
       form={postForm.form}
@@ -33,7 +34,7 @@ export function PostEditor({ post, username }: PostEditorProps) {
       onPendingUploadsChange={postForm.setHasPendingUploads}
       onSave={postForm.save}
       onPublishToggle={postForm.togglePublish}
-      onCancel={postForm.cancel}
+      onCancel={() => router.replace(`/@${username}/posts`)}
       isSaving={postForm.isSaving}
       hasPendingUploads={postForm.hasPendingUploads}
     />

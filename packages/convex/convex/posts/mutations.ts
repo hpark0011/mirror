@@ -1,7 +1,7 @@
-import { v } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { type Doc, type Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import { internalMutation } from "../_generated/server";
+import { action, internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
 import {
@@ -10,8 +10,10 @@ import {
 } from "../content/helpers";
 import { assertValidSlug, generateSlug } from "../content/slug";
 import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
+import { validateThumbhashFormat } from "../articles/helpers";
 import {
   extractInlineImageStorageIds,
+  hasExternalImageSrcs,
   multisetDifference,
 } from "../content/bodyWalk";
 import {
@@ -19,7 +21,20 @@ import {
   filterCallerOwnedInlineIds,
   filterUnreferencedStorageIds,
 } from "../content/inlineImageOwnership";
-import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
+import { collectReferencedFromCandidates } from "../content/storageRegistry";
+import {
+  assertCoverBlobOwnership,
+  claimCoverBlobOwnershipFromAction,
+  deleteCoverBlobAndOwnership,
+  filterCallerOwnedCoverBlobIds,
+} from "../content/coverBlobOwnership";
+import {
+  ALLOWED_INLINE_IMAGE_TYPES,
+  ALLOWED_COVER_VIDEO_TYPES,
+  MAX_COVER_VIDEO_BYTES,
+  MAX_INLINE_DELETES_PER_INVOCATION,
+  MAX_INLINE_IMAGE_BYTES,
+} from "../content/storagePolicy";
 import {
   getPostCategoryForSlug,
   MAX_POST_CATEGORY_LENGTH,
@@ -37,6 +52,13 @@ export const create = authMutation({
     body: v.any(),
     status: v.union(v.literal("draft"), v.literal("published")),
     coverImageStorageId: v.optional(v.id("_storage")),
+    coverImageThumbhash: v.optional(v.string()),
+    // Optional MP4 cover. The poster is mandatory whenever the video is set
+    // so `<video poster>` has a frame to show before metadata loads. Image
+    // and video are mutually exclusive — supplying both is rejected at the
+    // mutation boundary.
+    coverVideoStorageId: v.optional(v.id("_storage")),
+    coverVideoPosterStorageId: v.optional(v.id("_storage")),
   },
   returns: v.id("posts"),
   handler: async (ctx, args) => {
@@ -48,6 +70,35 @@ export const create = authMutation({
       "Category",
       MAX_POST_CATEGORY_LENGTH,
     );
+    if (args.coverImageThumbhash !== undefined) {
+      validateThumbhashFormat(args.coverImageThumbhash);
+    }
+
+    // Image and video covers are mutually exclusive. Reject upstream so
+    // the schema invariant "at most one cover kind set per row" can be
+    // relied on by the render-precedence rule.
+    if (
+      args.coverImageStorageId !== undefined &&
+      args.coverVideoStorageId !== undefined
+    ) {
+      throw new ConvexError(
+        "cover image and cover video are mutually exclusive — supply at most one",
+      );
+    }
+    if (
+      args.coverVideoStorageId !== undefined &&
+      args.coverVideoPosterStorageId === undefined
+    ) {
+      throw new ConvexError("cover video requires a sibling poster storage id");
+    }
+    if (
+      args.coverVideoPosterStorageId !== undefined &&
+      args.coverVideoStorageId === undefined
+    ) {
+      throw new ConvexError(
+        "cover video poster requires a sibling cover video storage id",
+      );
+    }
 
     // Always normalize: `generateSlug` is idempotent, so already-clean slugs
     // pass through unchanged while malformed input gets sanitized. Never trust
@@ -69,6 +120,41 @@ export const create = authMutation({
       throw new Error(`A post with slug "${slug}" already exists`);
     }
 
+    // FG_148: Reject bodies with external image src URLs (no storageId set).
+    // Editor-authored bodies always set storageId for inserted images; this
+    // guard catches direct mutation calls with attacker-controlled URLs.
+    if (hasExternalImageSrcs(args.body)) {
+      throw new ConvexError(
+        "body contains image nodes with external src URLs; use the storage upload flow",
+      );
+    }
+
+    // Verify every cover blob belongs to the calling user before writing.
+    if (args.coverImageStorageId !== undefined) {
+      await assertCoverBlobOwnership(
+        ctx,
+        args.coverImageStorageId,
+        appUser._id,
+        "image",
+      );
+    }
+    if (args.coverVideoStorageId !== undefined) {
+      await assertCoverBlobOwnership(
+        ctx,
+        args.coverVideoStorageId,
+        appUser._id,
+        "video",
+      );
+    }
+    if (args.coverVideoPosterStorageId !== undefined) {
+      await assertCoverBlobOwnership(
+        ctx,
+        args.coverVideoPosterStorageId,
+        appUser._id,
+        "poster",
+      );
+    }
+
     const now = Date.now();
     const postId = await ctx.db.insert("posts", {
       userId: appUser._id,
@@ -78,6 +164,9 @@ export const create = authMutation({
       body: args.body,
       status: args.status,
       coverImageStorageId: args.coverImageStorageId,
+      coverImageThumbhash: args.coverImageThumbhash,
+      coverVideoStorageId: args.coverVideoStorageId,
+      coverVideoPosterStorageId: args.coverVideoPosterStorageId,
       createdAt: now,
       publishedAt: args.status === "published" ? now : undefined,
     });
@@ -108,6 +197,13 @@ export const update = authMutation({
     body: v.optional(v.any()),
     status: v.optional(v.union(v.literal("draft"), v.literal("published"))),
     coverImageStorageId: v.optional(v.id("_storage")),
+    coverImageThumbhash: v.optional(v.string()),
+    coverVideoStorageId: v.optional(v.id("_storage")),
+    coverVideoPosterStorageId: v.optional(v.id("_storage")),
+    // Explicit removal signal for the whole cover surface. Optional storage
+    // args cannot distinguish "user cleared the cover" from "user did not
+    // touch the cover" once validation has run.
+    clearCover: v.optional(v.boolean()),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
@@ -129,6 +225,9 @@ export const update = authMutation({
         "Category",
         MAX_POST_CATEGORY_LENGTH,
       );
+    }
+    if (args.coverImageThumbhash !== undefined) {
+      validateThumbhashFormat(args.coverImageThumbhash);
     }
 
     // Normalize incoming slug at the boundary. See `.claude/rules/identifiers.md`.
@@ -154,24 +253,69 @@ export const update = authMutation({
       }
     }
 
+    // FG_148: Reject bodies with external image src URLs.
+    if (args.body !== undefined && hasExternalImageSrcs(args.body)) {
+      throw new ConvexError(
+        "body contains image nodes with external src URLs; use the storage upload flow",
+      );
+    }
+
+    // Image and video covers are mutually exclusive on update too.
+    if (
+      args.coverImageStorageId !== undefined &&
+      args.coverVideoStorageId !== undefined
+    ) {
+      throw new ConvexError(
+        "cover image and cover video are mutually exclusive — supply at most one",
+      );
+    }
+    if (
+      args.coverVideoStorageId !== undefined &&
+      args.coverVideoPosterStorageId === undefined
+    ) {
+      throw new ConvexError("cover video requires a sibling poster storage id");
+    }
+    if (
+      args.coverVideoPosterStorageId !== undefined &&
+      args.coverVideoStorageId === undefined
+    ) {
+      throw new ConvexError(
+        "cover video poster requires a sibling cover video storage id",
+      );
+    }
+
+    // Verify every cover blob the caller is committing belongs to them.
+    if (args.coverImageStorageId !== undefined) {
+      await assertCoverBlobOwnership(
+        ctx,
+        args.coverImageStorageId,
+        appUser._id,
+        "image",
+      );
+    }
+    if (args.coverVideoStorageId !== undefined) {
+      await assertCoverBlobOwnership(
+        ctx,
+        args.coverVideoStorageId,
+        appUser._id,
+        "video",
+      );
+    }
+    if (args.coverVideoPosterStorageId !== undefined) {
+      await assertCoverBlobOwnership(
+        ctx,
+        args.coverVideoPosterStorageId,
+        appUser._id,
+        "poster",
+      );
+    }
+
     // Compute inline-image diff BEFORE the patch (we need both old and new
-    // bodies). Actual `ctx.storage.delete` calls happen AFTER
-    // `ctx.db.patch` so a failed write can't leave the post pointing at
-    // deleted storage.
+    // bodies). Actual `ctx.storage.delete` calls happen AFTER `ctx.db.patch`
+    // so a failed write can't leave the post pointing at deleted storage.
     //
-    // The `.filter(id => !newSet.has(id))` line below is LOAD-BEARING — do
-    // NOT remove it.
-    //
-    // `multisetDifference` returns IDs whose count dropped, including IDs
-    // STILL PRESENT IN THE NEW BODY when `oldCount > newCount > 0`. Concrete
-    // example: `[a, a, a] - [a]` returns `[a, a]`. If we deleted those, we
-    // would delete a blob that the new body still references. The filter
-    // discards every ID that newIds still contains, leaving only blobs whose
-    // reference count fell to zero.
-    //
-    // The trailing `Array.from(new Set(diff))` deduplicates so the SAME
-    // truly-orphaned blob isn't passed to `ctx.storage.delete` more than
-    // once when it appeared multiple times in the old body.
+    // The `.filter(id => !newSet.has(id))` line below is LOAD-BEARING — see
+    // articles/mutations.ts for the multiset-difference rationale.
     const removedInlineIds: Id<"_storage">[] = (() => {
       if (args.body === undefined) return [];
       const oldIds = extractInlineImageStorageIds(post.body);
@@ -193,8 +337,47 @@ export const update = authMutation({
     }
     if (args.category !== undefined) patch.category = args.category;
     if (args.body !== undefined) patch.body = args.body;
-    if (args.coverImageStorageId !== undefined)
+
+    // Cover patch coupling. Mirrors articles/mutations.ts: the row carries
+    // two parallel cover surfaces (image + thumbhash, video + poster). They
+    // are mutually exclusive at the row level — the patch always clears the
+    // not-chosen surface so a future read can rely on "video wins iff
+    // coverVideoStorageId is set, else image".
+    let replacedImage = false;
+    let replacedVideo = false;
+    let replacedPoster = false;
+    let clearedAllCover = false;
+
+    if (args.clearCover === true) {
+      patch.coverImageStorageId = undefined;
+      patch.coverImageThumbhash = undefined;
+      patch.coverVideoStorageId = undefined;
+      patch.coverVideoPosterStorageId = undefined;
+      clearedAllCover = true;
+    } else if (
+      args.coverVideoStorageId !== undefined &&
+      (args.coverVideoStorageId !== post.coverVideoStorageId ||
+        args.coverVideoPosterStorageId !== post.coverVideoPosterStorageId)
+    ) {
+      patch.coverVideoStorageId = args.coverVideoStorageId;
+      patch.coverVideoPosterStorageId = args.coverVideoPosterStorageId;
+      patch.coverImageStorageId = undefined;
+      patch.coverImageThumbhash = undefined;
+      replacedVideo = args.coverVideoStorageId !== post.coverVideoStorageId;
+      replacedPoster =
+        args.coverVideoPosterStorageId !== post.coverVideoPosterStorageId;
+    } else if (
+      args.coverImageStorageId !== undefined &&
+      args.coverImageStorageId !== post.coverImageStorageId
+    ) {
       patch.coverImageStorageId = args.coverImageStorageId;
+      patch.coverImageThumbhash = args.coverImageThumbhash;
+      patch.coverVideoStorageId = undefined;
+      patch.coverVideoPosterStorageId = undefined;
+      replacedImage = true;
+    } else if (args.coverImageThumbhash !== undefined) {
+      patch.coverImageThumbhash = args.coverImageThumbhash;
+    }
 
     if (args.status !== undefined) {
       patch.status = args.status;
@@ -205,19 +388,25 @@ export const update = authMutation({
 
     await ctx.db.patch(args.id, patch);
 
-    // Clean up the previous cover image only after the DB patch succeeds, so a
-    // failed write can't leave the post pointing at deleted storage. Best-effort:
-    // a missing or transient blob must not roll back a successful patch — the
-    // cron sweep collects any survivors.
-    if (
-      args.coverImageStorageId !== undefined &&
-      args.coverImageStorageId !== post.coverImageStorageId &&
-      post.coverImageStorageId
-    ) {
-      try {
-        await ctx.storage.delete(post.coverImageStorageId);
-      } catch {
-        // Cron sweep is the safety net.
+    // After the patch succeeds, cascade-delete blobs the patch made
+    // unreferenced. ctx.storage.delete is not transactional — a failure
+    // here must not roll back the patch we already committed, so each
+    // delete is guarded and the cron sweep is the safety net.
+    if (clearedAllCover || replacedVideo || replacedImage) {
+      if (post.coverImageStorageId) {
+        await deleteCoverBlobAndOwnership(ctx, post.coverImageStorageId);
+      }
+      if (post.coverVideoStorageId) {
+        await deleteCoverBlobAndOwnership(ctx, post.coverVideoStorageId);
+      }
+    }
+    // Reusing the same poster id across a video swap means the old poster IS
+    // the new poster — deletion would delete the live blob. Omit
+    // `replacedVideo` here and delete only when the poster id changed, the
+    // cover is cleared, or an image replacement vacates the video surface.
+    if (clearedAllCover || replacedImage || replacedPoster) {
+      if (post.coverVideoPosterStorageId) {
+        await deleteCoverBlobAndOwnership(ctx, post.coverVideoPosterStorageId);
       }
     }
 
@@ -305,24 +494,16 @@ export const remove = authMutation({
 
       await ctx.db.delete(post._id);
 
-      // Delete storage after the DB row is gone so a failed delete can't
-      // leave a live post pointing at a missing asset. Best-effort: a missing
-      // or transient blob must not abort the whole removal — the cron sweep
-      // collects any survivors.
-      if (post.coverImageStorageId) {
-        try {
-          await ctx.storage.delete(post.coverImageStorageId);
-        } catch {
-          // Cron sweep is the safety net.
-        }
-      }
+      // Cascade-delete cover blobs after the row is gone. Best-effort: a
+      // failed storage delete leaves an orphan, never a live post pointing
+      // at a missing asset. The orphan-sweep cron reclaims survivors.
+      await deleteCoverBlobAndOwnership(ctx, post.coverImageStorageId);
+      await deleteCoverBlobAndOwnership(ctx, post.coverVideoStorageId);
+      await deleteCoverBlobAndOwnership(ctx, post.coverVideoPosterStorageId);
 
       // FG_091: filter inline IDs to ones the caller owns per the
       // `inlineImageOwnership` table. Legacy IDs (no ownership row) are
       // silently skipped — the cron sweep is the safety net.
-      //
-      // Capped at MAX_INLINE_DELETES_PER_INVOCATION (NFR-06); excess is
-      // collected by the cron sweep.
       const callerOwned = await filterCallerOwnedInlineIds(
         ctx,
         inlineIds,
@@ -369,10 +550,6 @@ export const remove = authMutation({
  *     `{ deleted: false }` rather than throwing — so a stale slug from the
  *     LLM (typo, hallucination, or already-deleted) surfaces as a normal
  *     tool result the agent can recover from in text, not as an error.
- *
- * Returns `{ deleted, title?, slug }` so the tool can echo a confirmation
- * back through the streamed response and the client-side intent watcher can
- * navigate the visitor to the posts list.
  */
 export const deleteByUserAndSlug = internalMutation({
   args: {
@@ -398,9 +575,6 @@ export const deleteByUserAndSlug = internalMutation({
       )
       .unique();
 
-    // Belt-and-suspenders: the index already pins `userId`, but assert again
-    // so a future edit that loosens the index clause cannot quietly produce
-    // a cross-user delete.
     if (!post || !isOwnedByUser(post, args.userId)) {
       return { deleted: false as const, slug: args.slug };
     }
@@ -411,13 +585,9 @@ export const deleteByUserAndSlug = internalMutation({
 
     await ctx.db.delete(post._id);
 
-    if (post.coverImageStorageId) {
-      try {
-        await ctx.storage.delete(post.coverImageStorageId);
-      } catch {
-        // Cron sweep is the safety net.
-      }
-    }
+    await deleteCoverBlobAndOwnership(ctx, post.coverImageStorageId);
+    await deleteCoverBlobAndOwnership(ctx, post.coverVideoStorageId);
+    await deleteCoverBlobAndOwnership(ctx, post.coverVideoPosterStorageId);
 
     const callerOwned = await filterCallerOwnedInlineIds(
       ctx,
@@ -451,6 +621,147 @@ export const generatePostCoverImageUploadUrl = authMutation({
   returns: v.string(),
   handler: async (ctx) => {
     return await ctx.storage.generateUploadUrl();
+  },
+});
+
+// FG_147: After a cover image upload completes, the client calls this action
+// to record ownership. Trust boundary: userId is derived server-side from
+// `getAppUser` — never from args. Args validator MUST NOT include `userId`.
+export const claimPostCoverImageOwnership = action({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    return await claimCoverBlobOwnershipFromAction(ctx, args, {
+      kind: "image",
+      label: "cover image",
+      allowedTypes: ALLOWED_INLINE_IMAGE_TYPES,
+      maxBytes: MAX_INLINE_IMAGE_BYTES,
+    });
+  },
+});
+
+export const generatePostCoverVideoUploadUrls = authMutation({
+  args: {},
+  returns: v.object({
+    videoUrl: v.string(),
+    posterUrl: v.string(),
+  }),
+  handler: async (ctx) => {
+    const [videoUrl, posterUrl] = await Promise.all([
+      ctx.storage.generateUploadUrl(),
+      ctx.storage.generateUploadUrl(),
+    ]);
+    return { videoUrl, posterUrl };
+  },
+});
+
+// PLAN_010: After the MP4 upload completes the client calls this action to
+// record ownership AND server-side validate the blob's MIME + size. Args
+// validator MUST NOT include a `userId` field.
+export const claimPostCoverVideoOwnership = action({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    return await claimCoverBlobOwnershipFromAction(ctx, args, {
+      kind: "video",
+      label: "cover video",
+      allowedTypes: ALLOWED_COVER_VIDEO_TYPES,
+      maxBytes: MAX_COVER_VIDEO_BYTES,
+    });
+  },
+});
+
+// PLAN_010: claim ownership for the JPEG poster the client extracts from
+// the MP4. The poster is an image, so we validate against the inline-image
+// MIME+size policy.
+export const claimPostCoverVideoPosterOwnership = action({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    return await claimCoverBlobOwnershipFromAction(ctx, args, {
+      kind: "poster",
+      label: "cover video poster",
+      allowedTypes: ALLOWED_INLINE_IMAGE_TYPES,
+      maxBytes: MAX_INLINE_IMAGE_BYTES,
+    });
+  },
+});
+
+// FG_129: Eagerly clean up a cover-image storage blob that was uploaded
+// before a `create` call that subsequently failed (e.g. slug collision).
+// Verifies caller owns the blob, then checks the canonical storage registry
+// for live references before deleting.
+export const deleteOrphanCoverImage = authMutation({
+  args: {
+    storageId: v.id("_storage"),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    const appUser = await getAppUser(ctx, ctx.user._id);
+    const callerOwnedIds = await filterCallerOwnedCoverBlobIds(
+      ctx,
+      [args.storageId],
+      appUser._id,
+    );
+    const referenced = await collectReferencedFromCandidates(
+      ctx,
+      callerOwnedIds,
+    );
+
+    for (const storageId of callerOwnedIds) {
+      if (!referenced.has(storageId)) {
+        await deleteCoverBlobAndOwnership(ctx, storageId);
+      }
+    }
+
+    return null;
+  },
+});
+
+// PLAN_010: Eagerly clean up the video + poster blobs uploaded before a
+// `create` that subsequently failed.
+export const deleteOrphanCoverVideo = authMutation({
+  args: {
+    videoStorageId: v.optional(v.id("_storage")),
+    posterStorageId: v.optional(v.id("_storage")),
+  },
+  returns: v.null(),
+  handler: async (ctx, args) => {
+    if (
+      args.videoStorageId === undefined &&
+      args.posterStorageId === undefined
+    ) {
+      return null;
+    }
+
+    const appUser = await getAppUser(ctx, ctx.user._id);
+    const candidates = [
+      ...(args.videoStorageId !== undefined ? [args.videoStorageId] : []),
+      ...(args.posterStorageId !== undefined ? [args.posterStorageId] : []),
+    ];
+    const callerOwnedIds = await filterCallerOwnedCoverBlobIds(
+      ctx,
+      candidates,
+      appUser._id,
+    );
+    const referenced = await collectReferencedFromCandidates(
+      ctx,
+      callerOwnedIds,
+    );
+
+    for (const storageId of callerOwnedIds) {
+      if (!referenced.has(storageId)) {
+        await deleteCoverBlobAndOwnership(ctx, storageId);
+      }
+    }
+
+    return null;
   },
 });
 

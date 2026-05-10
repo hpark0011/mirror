@@ -14,6 +14,7 @@ paths:
 | `/@username/articles/:slug` | `[username]/articles/[slug]/page.tsx` | Public | Article detail |
 | `/@username/articles/:slug/edit` | `[username]/@content/articles/[slug]/edit/page.tsx` | Owner (server-component check; redirect on miss) | Article inline editor |
 | `/@username/posts` | `[username]/posts/page.tsx` | Public | Post list |
+| `/@username/posts/new` | `[username]/@content/posts/new/page.tsx` | Owner (server-component check; redirect on miss) | New-post editor |
 | `/@username/posts/:slug` | `[username]/posts/[slug]/page.tsx` | Public | Post detail |
 | `/@username/posts/:slug/edit` | `[username]/@content/posts/[slug]/edit/page.tsx` | Owner (server-component check; redirect on miss) | Post inline editor |
 | `/@username/chat` | `[username]/chat/page.tsx` | Public | Chat with clone |

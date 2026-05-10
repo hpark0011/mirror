@@ -1,10 +1,9 @@
 // Client-safe re-exports of the inline image upload policy.
 //
 // Inline image and cover image policies are deliberately the same (5 MiB,
-// PNG/JPEG/WEBP). Both client validation sites (cover-image-picker,
-// markdown-upload-dialog-connector, the inline upload hook) MUST import
-// from this module so that the policy stays single-sourced from the
-// Convex-side `storagePolicy` constants.
+// PNG/JPEG/WEBP). All client validation sites (cover pickers and the
+// inline upload hooks) MUST import from this module so that the policy
+// stays single-sourced from the Convex-side `storagePolicy` constants.
 //
 // Cover-video constants follow the same single-source rule (PLAN_010).
 

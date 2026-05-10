@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { usePreloadedQuery } from "convex/react";
 import { type Preloaded } from "convex/react";
+import { useRouter } from "next/navigation";
 import { type api } from "@feel-good/convex/convex/_generated/api";
 import { useIsProfileOwner } from "@/features/profile";
 import {
@@ -33,6 +34,7 @@ export function PostWorkspaceProvider({
   username,
   children,
 }: PostWorkspaceProviderProps) {
+  const router = useRouter();
   const reactivePosts = usePreloadedQuery(preloadedPosts);
   const isOwner = useIsProfileOwner();
   const posts = useMemo(
@@ -65,12 +67,9 @@ export function PostWorkspaceProvider({
         ? "No posts match the current filters"
         : "No posts found";
 
-  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false);
-  const onOpenUploadDialog = useCallback(() => setIsUploadDialogOpen(true), []);
-  const onCloseUploadDialog = useCallback(
-    () => setIsUploadDialogOpen(false),
-    [],
-  );
+  const handleNew = useCallback(() => {
+    router.push(`/@${username}/posts/new`);
+  }, [router, username]);
 
   const toolbarValue = useMemo(
     () => ({
@@ -80,9 +79,7 @@ export function PostWorkspaceProvider({
       search,
       filter,
       categories,
-      isUploadDialogOpen,
-      onOpenUploadDialog,
-      onCloseUploadDialog,
+      onNew: handleNew,
     }),
     [
       isOwner,
@@ -91,9 +88,7 @@ export function PostWorkspaceProvider({
       search,
       filter,
       categories,
-      isUploadDialogOpen,
-      onOpenUploadDialog,
-      onCloseUploadDialog,
+      handleNew,
     ],
   );
 

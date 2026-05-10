@@ -75,6 +75,20 @@ export const STORAGE_FIELD_REFERENCES: ReadonlyArray<StorageFieldReference> = [
   },
   {
     kind: "scalar",
+    table: "posts",
+    field: "coverVideoStorageId",
+    accessor: (doc) => (doc as Doc<"posts">).coverVideoStorageId,
+    description: "posts.coverVideoStorageId",
+  },
+  {
+    kind: "scalar",
+    table: "posts",
+    field: "coverVideoPosterStorageId",
+    accessor: (doc) => (doc as Doc<"posts">).coverVideoPosterStorageId,
+    description: "posts.coverVideoPosterStorageId",
+  },
+  {
+    kind: "scalar",
     table: "users",
     field: "avatarStorageId",
     accessor: (doc) => (doc as Doc<"users">).avatarStorageId,

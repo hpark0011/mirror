@@ -34,7 +34,5 @@ export default async function PostEditContentPage({
     redirect(`/@${username}/posts/${slug}`);
   }
 
-  return (
-    <PostEditor post={post as PostSummary} username={username} slug={slug} />
-  );
+  return <PostEditor post={post as PostSummary} username={username} />;
 }

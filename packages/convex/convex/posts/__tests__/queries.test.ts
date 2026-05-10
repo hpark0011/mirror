@@ -118,27 +118,42 @@ describe("posts.queries.getBySlug — inline image src rewrite (FR-05)", () => {
 
   it("leaves src untouched when storageId is absent (legacy external URL passthrough)", async () => {
     const t = makeT();
-    await setupOwnerAndSignIn(t);
+    const { authId } = await setupOwnerAndSignIn(t);
 
-    await t.mutation(api.posts.mutations.create, {
-      title: "Legacy",
-      slug: "legacy",
-      category: "Creativity",
-      body: {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-            content: [
-              {
-                type: "image",
-                attrs: { src: "https://legacy.example/old.png" },
-              },
-            ],
-          },
-        ],
-      },
-      status: "published",
+    // Bypass the public mutation's FG_148 external-src rejection by writing
+    // the legacy row directly. Editor-authored bodies always set storageId
+    // for inserted images, but rows persisted before that guard existed
+    // can still appear in production data — query-side rewrite should pass
+    // them through unchanged.
+    await t.run(async (ctx) => {
+      const owner = await ctx.db
+        .query("users")
+        .withIndex("by_authId", (q) => q.eq("authId", authId))
+        .unique();
+      if (!owner) throw new Error("test setup: missing owner");
+      await ctx.db.insert("posts", {
+        userId: owner._id,
+        slug: "legacy",
+        title: "Legacy",
+        category: "Creativity",
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "image",
+                  attrs: { src: "https://legacy.example/old.png" },
+                },
+              ],
+            },
+          ],
+        },
+        status: "published",
+        createdAt: Date.now(),
+        publishedAt: Date.now(),
+      });
     });
 
     const result = await t.query(api.posts.queries.getBySlug, {
