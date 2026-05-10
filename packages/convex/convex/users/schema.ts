@@ -15,6 +15,12 @@ export const userFields = {
   tagline: v.optional(v.string()),
   avatarStorageId: v.optional(v.id("_storage")),
   onboardingComplete: v.boolean(),
+  // Deprecated deployment drift from the removed default-profile-section
+  // settings experiment. Kept temporarily so Vercel can deploy the cleanup
+  // mutation, then narrowed away after rows are patched.
+  defaultProfileSection: v.optional(
+    v.union(v.literal("bio"), v.literal("articles"), v.literal("posts")),
+  ),
   personaPrompt: v.optional(v.union(v.string(), v.null())),
   tonePreset: v.optional(
     v.union(

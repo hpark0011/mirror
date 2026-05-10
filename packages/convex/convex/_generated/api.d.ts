@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as __tests___testUtils from "../__tests__/testUtils.js";
 import type * as articles_actions from "../articles/actions.js";
 import type * as articles_helpers from "../articles/helpers.js";
 import type * as articles_inlineImages from "../articles/inlineImages.js";
@@ -61,6 +62,7 @@ import type * as env from "../env.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as migrations_articles from "../migrations/articles.js";
+import type * as migrations_users from "../migrations/users.js";
 import type * as posts_actions from "../posts/actions.js";
 import type * as posts_categories from "../posts/categories.js";
 import type * as posts_helpers from "../posts/helpers.js";
@@ -86,6 +88,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "__tests__/testUtils": typeof __tests___testUtils;
   "articles/actions": typeof articles_actions;
   "articles/helpers": typeof articles_helpers;
   "articles/inlineImages": typeof articles_inlineImages;
@@ -139,6 +142,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   "lib/auth": typeof lib_auth;
   "migrations/articles": typeof migrations_articles;
+  "migrations/users": typeof migrations_users;
   "posts/actions": typeof posts_actions;
   "posts/categories": typeof posts_categories;
   "posts/helpers": typeof posts_helpers;
