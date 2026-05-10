@@ -1,6 +1,6 @@
 # chat-backend-developer — Session Logs
 
-*Last updated: 2026-04-30*
+*Last updated: 2026-05-10*
 
 Append-only. One entry per task, newest at bottom. Format and rules live in the agent spec → **How to Operate** (step 5: Log & Patch) and **Evidence Rule**. Do not duplicate them here.
 
@@ -231,3 +231,34 @@ Secondary nit: the result shape for `deletePost` looks like it should be slug-le
 **Scope deviation**: None. Followed the prompt's four-step checklist verbatim and the agent-parity rule's reference shapes. Did NOT modify `use-delete-post.ts` or `delete-post-button.tsx` per the explicit constraint. Added 4 behavioural tests beyond the two `inputSchema invariants` assertions: success path, stale-slug returns deleted=false, cross-user isolation (B's post survives A's tool call), post-only scoping (article with same slug untouched).
 
 **Open follow-ups**: None for the agent-parity slice. The `deleteByUserAndSlug` internal mutation duplicates the per-row body of `posts.mutations.remove`; if a future change adds more cleanup steps (analytics events, audit log), there's a refactoring opportunity to extract the per-post delete body into a shared helper. Not done now because (a) it would touch `use-delete-post.ts`'s call path which was explicitly out of scope, and (b) the duplication is ~30 lines and easier to keep verbatim until the cleanup surface stabilizes.
+
+---
+
+## 2026-05-10 — FG_169: clone-agent write-tool parity for status toggles + article delete
+
+**Task**: Resolve `workspace/tickets/to-do/FG_169-p2-clone-agent-write-tool-parity.md` as Worker B / chat-agent parity owner. Add `publishPost`, `unpublishPost`, `deleteArticle`, `publishArticle`, `unpublishArticle`; keep tool schemas slug-only; route watcher results through existing clone-action dispatcher shapes.
+
+**Reuse audit**: knowledge.md §"Agent tools" lines 160-196 supplied the `inputSchema`/`execute` API contract, no-user-id invariant, mutation-tool shape, section-vs-slug result routing, and vocabulary rule. The 2026-05-08 `deletePost` log was the comparable baseline: one extra read pass to discover authMutation could not run from chat actions, then zero iteration once the internalMutation pattern was recognized.
+
+**Evidence**:
+- `pnpm --filter=@feel-good/convex exec convex codegen --typecheck disable` exit 0 — generated `chat/toolMutations` API entries.
+- `pnpm --filter=@feel-good/convex test -- convex/chat/__tests__/tools.test.ts` exit 0 — 52/52 tests passed.
+- `pnpm --filter=@feel-good/convex check-types` exit 0.
+- `pnpm --filter=@feel-good/mirror test:unit -- features/chat/hooks/__tests__/use-agent-intent-watcher.test.ts` exit 0 — Vitest ran 34 files / 284 tests passed.
+- `pnpm --filter=@feel-good/convex test -- convex/chat` exit 0 — 6 files / 97 tests passed.
+- `pnpm --filter=@feel-good/convex test` exit 1 — unrelated failures in `convex/articles/__tests__/*`, 49 failures all rooted in `_storage` test fixture writes (`System tables (prefixed with "_") are read-only`). Chat tests passed inside this run.
+- `pnpm --filter=@feel-good/mirror lint` exit 0 — 0 errors, 2 pre-existing warnings (`eslint.config.mjs` anonymous default export; `username-step.tsx` React Hook Form `watch()` compiler warning).
+- `pnpm build --filter=@feel-good/mirror` exit 0.
+- `pnpm build --filter=@feel-good/convex` exit 0 but executed 0 tasks because `@feel-good/convex` has no `build` script; `check-types` above is the real typecheck.
+- Grep invariant `grep -nE 'userId\s*:' packages/convex/convex/chat/tools.ts | grep -v profileOwnerId` exit 1 (zero hits).
+- Grep invariant `rg -n '\.filter\(' packages/convex/convex/chat/toolQueries.ts packages/convex/convex/chat/toolMutations.ts` exit 1 (zero hits).
+- Regression anchors: `chat/actions.ts:144` still logs RAG failure and falls through; `chat/actions.ts:170-173` still clears the streaming lock in `finally` with `expectedStartedAt`.
+- `graphify update .` exit 0 — rebuilt 2608 nodes / 2996 edges / 688 communities.
+
+**Bottleneck**: The ticket wording assumed "appropriate existing internal mutations" were available for post/article status toggles and article delete, but the current source only had `internal.posts.mutations.deleteByUserAndSlug`; article delete and both status-toggle paths were public `authMutation`s, which cannot be called from the internal chat action. Staying inside Worker B's ownership boundary meant adding chat-owned `toolMutations.ts` rather than touching `articles/` or `posts/`.
+
+**Counterfactual**: *"If knowledge.md had already said 'publish tools need a draft-permitting owner resolver distinct from published-only `resolveBySlug`, and when owning modules lack chat-callable internals the parity slice should place narrow internal mutations in `chat/toolMutations.ts`', this would have cost 2 iterations instead of 4, because I would not have first tried to line up the ticket's existing-internal-mutation assumption against source that did not have those functions."*
+
+**Patch** (knowledge.md): Added §"Status-toggle/article-delete tools (learned 2026-05-10 — FG_169)" under Agent tools. It records the `resolveOwnedContentBySlug` vs. `resolveBySlug` split, the chat-owned `toolMutations.ts` fallback when auth mutations are not callable, status/embedding semantics, article-delete cleanup expectations, and watcher routing/idempotency rules.
+
+**Scope deviation**: Stayed within `packages/convex/convex/chat/**` plus `apps/mirror/features/chat/hooks/use-agent-intent-watcher.ts`, with generated `_generated/api.d.ts` updated by codegen. Codegen also picked up a pre-existing `convex/migrations/articles` module from other workers; I did not edit the migrations source.

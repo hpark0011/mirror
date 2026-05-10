@@ -10,6 +10,7 @@ import {
   type InlineImageUploadResult,
 } from "@feel-good/features/editor";
 import { InlineImageValidationError } from "@/lib/inline-image-validation";
+import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import {
   Toast,
   ToastIcon,
@@ -108,7 +109,7 @@ export function ContentEditor({
       await onSave(body);
       router.push(cancelHref);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to save";
+      const message = getMutationErrorMessage(err);
       showErrorToast(message);
     } finally {
       setIsSaving(false);

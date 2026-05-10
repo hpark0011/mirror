@@ -3,7 +3,7 @@ id: FG_196
 title: "Add kind discriminator to coverImageOwnership table"
 date: 2026-05-08
 type: refactor
-status: to-do
+status: completed
 priority: p3
 description: "Three blob kinds (image, video, poster) share one ownership table with no kind field. Future queries that need to enumerate by kind cannot. Combined with FG_181 (kind-blind assertion) this is the structural debt that makes the security gap possible."
 dependencies: []

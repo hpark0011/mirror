@@ -3,7 +3,7 @@ id: FG_168
 title: "Partial claim failure leaves dangling coverImageOwnership row pointing at deleted blob"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "When claimCoverVideoOwnership rejects but claimCoverVideoPosterOwnership succeeds (or vice versa) under Promise.all, the surviving claim mutation's ownership row stays in the table after the orphan-cleanup mutation deletes the blob, breaking the invariant that every coverImageOwnership row points at a live blob."
 dependencies: ["FG_179"]

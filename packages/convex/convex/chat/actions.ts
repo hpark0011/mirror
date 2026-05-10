@@ -61,7 +61,8 @@ export function buildRagContext(
 
     if (total + added > RAG_CONTEXT_MAX_CHARS) {
       // Fit as much of this part as we can, then stop.
-      const remaining = RAG_CONTEXT_MAX_CHARS - total - (parts.length === 0 ? 0 : 2);
+      const remaining =
+        RAG_CONTEXT_MAX_CHARS - total - (parts.length === 0 ? 0 : 2);
       if (remaining > 0) {
         parts.push(part.slice(0, remaining));
       }
@@ -84,19 +85,29 @@ export const streamResponse = internalAction({
     userMessage: v.optional(v.string()),
   },
   returns: v.null(),
-  handler: async (ctx, { conversationId, profileOwnerId, promptMessageId, lockStartedAt, userMessage }) => {
+  handler: async (
+    ctx,
+    {
+      conversationId,
+      profileOwnerId,
+      promptMessageId,
+      lockStartedAt,
+      userMessage,
+    },
+  ) => {
     try {
-      const { threadId, systemPrompt } = await ctx.runQuery(
+      const { threadId, systemPrompt, viewerId } = await ctx.runQuery(
         internal.chat.helpers.loadStreamingContext,
         { conversationId, profileOwnerId },
       );
 
       // RAG: embed user message and retrieve relevant content
       // For retries, fetch the last user message from the thread
-      const ragQuery = userMessage ?? await ctx.runQuery(
-        internal.chat.helpers.getLastUserMessage,
-        { threadId },
-      );
+      const ragQuery =
+        userMessage ??
+        (await ctx.runQuery(internal.chat.helpers.getLastUserMessage, {
+          threadId,
+        }));
 
       let ragContext = "";
       if (ragQuery) {
@@ -141,7 +152,10 @@ export const streamResponse = internalAction({
             }
           }
         } catch (error) {
-          console.error("RAG retrieval failed, continuing without context:", error);
+          console.error(
+            "RAG retrieval failed, continuing without context:",
+            error,
+          );
         }
       }
 
@@ -159,19 +173,18 @@ export const streamResponse = internalAction({
         system: fullSystemPrompt,
         maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
         stopWhen: stepCountIs(CHAT_MAX_TOOL_STEPS),
-        tools: buildCloneTools(profileOwnerId),
+        tools: buildCloneTools(profileOwnerId, { viewerId }),
         ...(promptMessageId ? { promptMessageId } : {}),
       };
 
-      await thread.streamText(
-        streamArgs,
-        { saveStreamDeltas: { throttleMs: 100 } },
-      );
+      await thread.streamText(streamArgs, {
+        saveStreamDeltas: { throttleMs: 100 },
+      });
     } finally {
-      await ctx.runMutation(
-        internal.chat.mutations.clearStreamingLock,
-        { conversationId, expectedStartedAt: lockStartedAt },
-      );
+      await ctx.runMutation(internal.chat.mutations.clearStreamingLock, {
+        conversationId,
+        expectedStartedAt: lockStartedAt,
+      });
     }
 
     return null;

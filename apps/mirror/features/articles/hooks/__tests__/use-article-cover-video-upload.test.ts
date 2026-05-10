@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 type UploadOptions = {
@@ -7,17 +7,14 @@ type UploadOptions = {
 
 const mocks = vi.hoisted(() => ({
   mutationRefs: {
-    generateArticleCoverVideoUploadUrl:
-      "articles.mutations.generateArticleCoverVideoUploadUrl",
-    generateArticleCoverVideoPosterUploadUrl:
-      "articles.mutations.generateArticleCoverVideoPosterUploadUrl",
+    generateArticleCoverVideoUploadUrls:
+      "articles.mutations.generateArticleCoverVideoUploadUrls",
     claimCoverVideoOwnership: "articles.mutations.claimCoverVideoOwnership",
     claimCoverVideoPosterOwnership:
       "articles.mutations.claimCoverVideoPosterOwnership",
     deleteOrphanCoverVideo: "articles.mutations.deleteOrphanCoverVideo",
   },
-  generateVideoUploadUrl: vi.fn(),
-  generatePosterUploadUrl: vi.fn(),
+  generateUploadUrls: vi.fn(),
   claimVideoOwnership: vi.fn(),
   claimPosterOwnership: vi.fn(),
   deleteOrphanCoverVideo: vi.fn(),
@@ -35,18 +32,22 @@ vi.mock("@feel-good/convex/convex/_generated/api", () => ({
 vi.mock("convex/react", () => ({
   useMutation: (mutation: string) => {
     switch (mutation) {
-      case mocks.mutationRefs.generateArticleCoverVideoUploadUrl:
-        return mocks.generateVideoUploadUrl;
-      case mocks.mutationRefs.generateArticleCoverVideoPosterUploadUrl:
-        return mocks.generatePosterUploadUrl;
-      case mocks.mutationRefs.claimCoverVideoOwnership:
-        return mocks.claimVideoOwnership;
-      case mocks.mutationRefs.claimCoverVideoPosterOwnership:
-        return mocks.claimPosterOwnership;
+      case mocks.mutationRefs.generateArticleCoverVideoUploadUrls:
+        return mocks.generateUploadUrls;
       case mocks.mutationRefs.deleteOrphanCoverVideo:
         return mocks.deleteOrphanCoverVideo;
       default:
         throw new Error(`Unexpected mutation: ${mutation}`);
+    }
+  },
+  useAction: (action: string) => {
+    switch (action) {
+      case mocks.mutationRefs.claimCoverVideoOwnership:
+        return mocks.claimVideoOwnership;
+      case mocks.mutationRefs.claimCoverVideoPosterOwnership:
+        return mocks.claimPosterOwnership;
+      default:
+        throw new Error(`Unexpected action: ${action}`);
     }
   },
 }));
@@ -56,9 +57,8 @@ vi.mock("@/lib/upload-to-storage", () => ({
     mocks.uploadToStorage(url, file, options),
 }));
 
-const { useArticleCoverVideoUpload } = await import(
-  "../use-article-cover-video-upload"
-);
+const { useArticleCoverVideoUpload } =
+  await import("../use-article-cover-video-upload");
 
 type PosterElementOptions = {
   videoWidth?: number;
@@ -93,32 +93,35 @@ function stubPosterElements({
   const canvases: CanvasRecord[] = [];
   const originalCreateElement = document.createElement.bind(document);
 
-  vi.spyOn(document, "createElement").mockImplementation(
-    ((tagName: string, options?: ElementCreationOptions) => {
-      if (tagName === "video") {
-        return makeMockVideo({ videoWidth, videoHeight, fireSeeked });
-      }
+  vi.spyOn(document, "createElement").mockImplementation(((
+    tagName: string,
+    options?: ElementCreationOptions,
+  ) => {
+    if (tagName === "video") {
+      return makeMockVideo({ videoWidth, videoHeight, fireSeeked });
+    }
 
-      if (tagName === "canvas") {
-        const canvas = originalCreateElement("canvas") as HTMLCanvasElement;
-        const drawImage = vi.fn();
-        Object.defineProperty(canvas, "getContext", {
-          configurable: true,
-          value: vi.fn(() => ({ drawImage }) as unknown as CanvasRenderingContext2D),
-        });
-        Object.defineProperty(canvas, "toBlob", {
-          configurable: true,
-          value: vi.fn((callback: BlobCallback) => {
-            callback(new Blob([new Uint8Array([1])], { type: "image/jpeg" }));
-          }),
-        });
-        canvases.push({ canvas, drawImage });
-        return canvas;
-      }
+    if (tagName === "canvas") {
+      const canvas = originalCreateElement("canvas") as HTMLCanvasElement;
+      const drawImage = vi.fn();
+      Object.defineProperty(canvas, "getContext", {
+        configurable: true,
+        value: vi.fn(
+          () => ({ drawImage }) as unknown as CanvasRenderingContext2D,
+        ),
+      });
+      Object.defineProperty(canvas, "toBlob", {
+        configurable: true,
+        value: vi.fn((callback: BlobCallback) => {
+          callback(new Blob([new Uint8Array([1])], { type: "image/jpeg" }));
+        }),
+      });
+      canvases.push({ canvas, drawImage });
+      return canvas;
+    }
 
-      return originalCreateElement(tagName, options);
-    }) as typeof document.createElement,
-  );
+    return originalCreateElement(tagName, options);
+  }) as typeof document.createElement);
 
   return { canvases };
 }
@@ -151,32 +154,35 @@ function makeMockVideo({
   });
 
   const addEventListener = video.addEventListener.bind(video);
-  vi.spyOn(video, "addEventListener").mockImplementation(
-    ((type: string, listener: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions) => {
-      addEventListener(type, listener, options);
-      if (type === "loadedmetadata" && !metadataQueued) {
-        metadataQueued = true;
-        queueMicrotask(() => {
-          video.dispatchEvent(new Event("loadedmetadata"));
-        });
-      }
-    }) as typeof video.addEventListener,
-  );
+  vi.spyOn(video, "addEventListener").mockImplementation(((
+    type: string,
+    listener: EventListenerOrEventListenerObject,
+    options?: boolean | AddEventListenerOptions,
+  ) => {
+    addEventListener(type, listener, options);
+    if (type === "loadedmetadata" && !metadataQueued) {
+      metadataQueued = true;
+      queueMicrotask(() => {
+        video.dispatchEvent(new Event("loadedmetadata"));
+      });
+    }
+  }) as typeof video.addEventListener);
 
   return video;
 }
 
 describe("useArticleCoverVideoUpload", () => {
   beforeEach(() => {
-    mocks.generateVideoUploadUrl.mockReset();
-    mocks.generatePosterUploadUrl.mockReset();
+    mocks.generateUploadUrls.mockReset();
     mocks.claimVideoOwnership.mockReset();
     mocks.claimPosterOwnership.mockReset();
     mocks.deleteOrphanCoverVideo.mockReset();
     mocks.uploadToStorage.mockReset();
 
-    mocks.generateVideoUploadUrl.mockResolvedValue("video-upload-url");
-    mocks.generatePosterUploadUrl.mockResolvedValue("poster-upload-url");
+    mocks.generateUploadUrls.mockResolvedValue({
+      videoUrl: "video-upload-url",
+      posterUrl: "poster-upload-url",
+    });
     mocks.claimVideoOwnership.mockResolvedValue(null);
     mocks.claimPosterOwnership.mockResolvedValue(null);
     mocks.deleteOrphanCoverVideo.mockResolvedValue(null);
@@ -196,6 +202,26 @@ describe("useArticleCoverVideoUpload", () => {
     vi.useRealTimers();
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
+  });
+
+  it("reports preparing during poster extraction and uploading during transfer", async () => {
+    const states: string[] = [];
+    stubPosterElements();
+    const { result } = renderHook(() =>
+      useArticleCoverVideoUpload({
+        onStateChange: (state) => {
+          states.push(state);
+        },
+      }),
+    );
+
+    await act(async () => {
+      await result.current.upload(makeVideoFile());
+    });
+
+    expect(states).toEqual(["preparing", "uploading"]);
+    expect(mocks.generateUploadUrls).toHaveBeenCalledTimes(1);
+    expect(mocks.uploadToStorage).toHaveBeenCalledTimes(2);
   });
 
   it("aborts the sibling video upload when the poster upload fails", async () => {
@@ -256,6 +282,38 @@ describe("useArticleCoverVideoUpload", () => {
     });
   });
 
+  it("waits for both ownership claims to settle before orphan cleanup", async () => {
+    stubPosterElements();
+    let resolvePosterClaim!: () => void;
+    mocks.claimVideoOwnership.mockRejectedValue(
+      new Error("video claim failed"),
+    );
+    mocks.claimPosterOwnership.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          resolvePosterClaim = resolve;
+        }),
+    );
+
+    const { result } = renderHook(() => useArticleCoverVideoUpload());
+    const uploadPromise = result.current.upload(makeVideoFile());
+
+    await waitFor(() => {
+      expect(mocks.claimPosterOwnership).toHaveBeenCalled();
+    });
+    expect(mocks.deleteOrphanCoverVideo).not.toHaveBeenCalled();
+
+    resolvePosterClaim();
+    await act(async () => {
+      await expect(uploadPromise).rejects.toThrow("video claim failed");
+    });
+
+    expect(mocks.deleteOrphanCoverVideo).toHaveBeenCalledWith({
+      videoStorageId: "video_storage_id",
+      posterStorageId: "poster_storage_id",
+    });
+  });
+
   it("times out a stalled poster seek and revokes the object URL", async () => {
     vi.useFakeTimers();
     stubPosterElements({ fireSeeked: false });
@@ -271,7 +329,7 @@ describe("useArticleCoverVideoUpload", () => {
     await rejection;
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith("blob:cover-video");
-    expect(mocks.generateVideoUploadUrl).not.toHaveBeenCalled();
+    expect(mocks.generateUploadUrls).not.toHaveBeenCalled();
     expect(mocks.uploadToStorage).not.toHaveBeenCalled();
   });
 

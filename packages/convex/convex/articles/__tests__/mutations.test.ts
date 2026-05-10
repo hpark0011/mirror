@@ -38,31 +38,12 @@ vi.mock("../../auth/client", () => {
 import { api, internal } from "../../_generated/api";
 import type { Id } from "../../_generated/dataModel";
 import schema from "../../schema";
-
-// Vite's `import.meta.glob` normalizes keys to the shortest possible
-// relative path from the importing file, which gives mixed prefixes when
-// the test lives in a nested __tests__/ dir. `convex-test` needs a single
-// uniform prefix rooted at the `_generated/` entry, so we rewrite every
-// key to start with `../../<dir>/...` (relative to the convex/ root when
-// viewed from here).
-function normalizeConvexGlob(
-  raw: Record<string, () => Promise<unknown>>,
-): Record<string, () => Promise<unknown>> {
-  const out: Record<string, () => Promise<unknown>> = {};
-  for (const [key, loader] of Object.entries(raw)) {
-    let k = key;
-    if (k.startsWith("./")) {
-      k = "../../articles/__tests__/" + k.slice(2);
-    } else if (k.startsWith("../") && !k.startsWith("../../")) {
-      k = "../../articles/" + k.slice(3);
-    }
-    out[k] = loader;
-  }
-  return out;
-}
+import { normalizeConvexTestModules } from "../../__tests__/testUtils";
 
 const rawModules = import.meta.glob("../../**/*.{ts,js}");
-const modules = normalizeConvexGlob(rawModules);
+const modules = normalizeConvexTestModules(rawModules, {
+  sourceDir: "articles",
+});
 
 function makeT() {
   return convexTest(schema, modules);
@@ -247,13 +228,25 @@ describe("articles.mutations.update — slug normalization", () => {
   });
 });
 
-// Store a real blob in convex-test storage and return a valid _storage Id.
-// convex-test validates schema constraints, so fake string ids are rejected.
+type CoverBlobKind = "image" | "video" | "poster";
+
 async function storeBlob(
   t: ReturnType<typeof makeT>,
   contents = "test-cover",
 ): Promise<Id<"_storage">> {
   return t.run(async (ctx) => ctx.storage.store(new Blob([contents])));
+}
+
+async function findCoverOwnership(
+  t: ReturnType<typeof makeT>,
+  storageId: Id<"_storage">,
+) {
+  return t.run(async (ctx) =>
+    ctx.db
+      .query("coverImageOwnership")
+      .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
+      .unique(),
+  );
 }
 
 describe("articles.mutations — coverImageThumbhash contract", () => {
@@ -265,9 +258,7 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t);
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId,
-    });
+    await seedCoverOwnership(t, storageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Cover Test",
@@ -287,12 +278,8 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     await insertAppUserAndSignIn(t);
     const oldStorageId = await storeBlob(t, "old-cover");
     const newStorageId = await storeBlob(t, "new-cover");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: oldStorageId,
-    });
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: newStorageId,
-    });
+    await seedCoverOwnership(t, oldStorageId, "auth_articles_owner");
+    await seedCoverOwnership(t, newStorageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Cover Update Both",
@@ -319,12 +306,8 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     await insertAppUserAndSignIn(t);
     const oldStorageId = await storeBlob(t, "old-cover");
     const newStorageId = await storeBlob(t, "new-cover");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: oldStorageId,
-    });
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: newStorageId,
-    });
+    await seedCoverOwnership(t, oldStorageId, "auth_articles_owner");
+    await seedCoverOwnership(t, newStorageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Coupling Rule Test",
@@ -348,13 +331,11 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     expect(row?.coverImageThumbhash).toBeUndefined();
   });
 
-  it("update with clearCoverImage: true clears both coverImageStorageId and coverImageThumbhash", async () => {
+  it("update with clearCover: true clears both coverImageStorageId and coverImageThumbhash", async () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-to-clear");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId,
-    });
+    await seedCoverOwnership(t, storageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Clear Cover Test",
@@ -370,12 +351,14 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
 
     await t.mutation(api.articles.mutations.update, {
       id,
-      clearCoverImage: true,
+      clearCover: true,
     });
 
     const after = await t.run(async (ctx) => ctx.db.get(id));
     expect(after?.coverImageStorageId).toBeUndefined();
     expect(after?.coverImageThumbhash).toBeUndefined();
+    expect(await t.run(async (ctx) => ctx.db.system.get(storageId))).toBeNull();
+    expect(await findCoverOwnership(t, storageId)).toBeNull();
   });
 
   it("setCoverImageThumbhash patches the thumbhash; throws if article has no coverImageStorageId", async () => {
@@ -419,9 +402,7 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-branch3");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId,
-    });
+    await seedCoverOwnership(t, storageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Branch 3 Test",
@@ -447,9 +428,7 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-branch4");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId,
-    });
+    await seedCoverOwnership(t, storageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Branch 4 Test",
@@ -476,9 +455,7 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-len-cap");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId,
-    });
+    await seedCoverOwnership(t, storageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Length Cap Test",
@@ -504,9 +481,7 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const storageId = await storeBlob(t, "cover-fmt");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId,
-    });
+    await seedCoverOwnership(t, storageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Format Test",
@@ -529,9 +504,7 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
     await insertAppUserAndSignIn(t);
     const originalStorageId = await storeBlob(t, "cover-original");
     const replacementStorageId = await storeBlob(t, "cover-replacement");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: originalStorageId,
-    });
+    await seedCoverOwnership(t, originalStorageId, "auth_articles_owner");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Race Guard Test",
@@ -567,20 +540,9 @@ describe("articles.mutations — coverImageThumbhash contract", () => {
 // replace), remove-with-video, and mutual-exclusion guards.
 //
 // IMPORTANT: convex-test 0.0.51's `ctx.storage.store(blob)` does NOT
-// preserve the Blob's `type` — `_storage` metadata reads back with
-// `contentType: undefined` regardless of what we set on the Blob.
-// That makes the MIME check inside `claimCoverVideoOwnership`
-// untestable here (it always fires with `got ""`). The size cap is
-// preserved (`size: blob.size`), but the MIME check runs first, so
-// even oversize claims fail on MIME. We exercise the create/update
-// flows by inserting the ownership row directly via `t.run`, which
-// is also how `inline-images.test.ts` ends up exercising similar
-// trust-boundary code without going through the claim mutation.
-//
-// The MIME + size guards in `claimCoverVideoOwnership` are still
-// exercised end-to-end in `apps/mirror/e2e/article-cover-video.…`
-// (Playwright drives a real Convex deployment where `contentType`
-// IS set).
+// preserve Blob.type in `_storage.contentType`. Claim validation tests can
+// exercise the missing-MIME rejection path; flow tests seed ownership
+// directly so they can focus on create/update/delete behavior.
 async function storeBlobBytes(
   t: ReturnType<typeof makeT>,
   bytes = 64,
@@ -591,6 +553,27 @@ async function storeBlobBytes(
 }
 
 async function seedCoverOwnership(
+  t: ReturnType<typeof makeT>,
+  storageId: Id<"_storage">,
+  authId: string,
+  kind: CoverBlobKind = "image",
+): Promise<void> {
+  await t.run(async (ctx) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_authId", (q) => q.eq("authId", authId))
+      .unique();
+    if (!user) throw new Error(`No app user for authId=${authId}`);
+    await ctx.db.insert("coverImageOwnership", {
+      storageId,
+      userId: user._id,
+      createdAt: Date.now(),
+      kind,
+    });
+  });
+}
+
+async function seedLegacyCoverOwnership(
   t: ReturnType<typeof makeT>,
   storageId: Id<"_storage">,
   authId: string,
@@ -609,6 +592,126 @@ async function seedCoverOwnership(
   });
 }
 
+describe("articles.mutations — cover blob ownership policy", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  const ownerAuthId = "auth_articles_owner";
+
+  it("generateArticleCoverVideoUploadUrls returns video and poster URLs", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const urls = await t.mutation(
+      api.articles.mutations.generateArticleCoverVideoUploadUrls,
+      {},
+    );
+
+    expect(urls.videoUrl).toMatch(/\/api\/storage\/upload/);
+    expect(urls.posterUrl).toMatch(/\/api\/storage\/upload/);
+    expect(urls.videoUrl).not.toBe(urls.posterUrl);
+  });
+
+  it("claimCoverImageOwnership rejects missing MIME and deletes the blob", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const storageId = await storeBlob(t, "mime-less-image");
+
+    await expect(
+      t.action(api.articles.mutations.claimCoverImageOwnership, {
+        storageId,
+      }),
+    ).rejects.toThrow(/cover image must be one of/i);
+
+    expect(await t.run(async (ctx) => ctx.db.system.get(storageId))).toBeNull();
+    expect(await findCoverOwnership(t, storageId)).toBeNull();
+  });
+
+  it("claimCoverVideoPosterOwnership rejects missing MIME", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const storageId = await storeBlob(t, "mime-less-poster");
+
+    await expect(
+      t.action(api.articles.mutations.claimCoverVideoPosterOwnership, {
+        storageId,
+      }),
+    ).rejects.toThrow(/cover video poster must be one of/i);
+
+    expect(await t.run(async (ctx) => ctx.db.system.get(storageId))).toBeNull();
+    expect(await findCoverOwnership(t, storageId)).toBeNull();
+  });
+
+  it("create rejects a video-claimed blob in the cover image slot", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const videoId = await storeBlobBytes(t);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+
+    await expect(
+      t.mutation(api.articles.mutations.create, {
+        title: "Wrong Kind",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        coverImageStorageId: videoId,
+      }),
+    ).rejects.toThrow(/cannot be used as image/i);
+  });
+
+  it("legacy kindless ownership rows are accepted only as image claims", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const legacyImageId = await storeBlob(t, "legacy-image");
+    await seedLegacyCoverOwnership(t, legacyImageId, ownerAuthId);
+    const articleId = await t.mutation(api.articles.mutations.create, {
+      title: "Legacy Image",
+      category: "general",
+      body: { type: "doc", content: [] },
+      status: "draft",
+      coverImageStorageId: legacyImageId,
+    });
+    expect((await t.run(async (ctx) => ctx.db.get(articleId)))?._id).toBe(
+      articleId,
+    );
+
+    const legacyVideoId = await storeBlobBytes(t);
+    const posterId = await storeBlob(t, "legacy-poster");
+    await seedLegacyCoverOwnership(t, legacyVideoId, ownerAuthId);
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
+
+    await expect(
+      t.mutation(api.articles.mutations.create, {
+        title: "Legacy Video",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        coverVideoStorageId: legacyVideoId,
+        coverVideoPosterStorageId: posterId,
+      }),
+    ).rejects.toThrow(/cannot be used as video/i);
+  });
+
+  it("backfillCoverImageOwnershipKind sets legacy rows to image", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+    const storageId = await storeBlob(t, "legacy-backfill");
+    await seedLegacyCoverOwnership(t, storageId, ownerAuthId);
+
+    const result = await t.mutation(
+      internal.migrations.articles.backfillCoverImageOwnershipKind,
+      {
+        paginationOpts: { numItems: 10, cursor: null },
+      },
+    );
+
+    expect(result.patched).toBe(1);
+    expect((await findCoverOwnership(t, storageId))?.kind).toBe("image");
+  });
+});
+
 describe("articles.mutations — cover video flow (PLAN_010)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;
@@ -621,8 +724,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     await insertAppUserAndSignIn(t);
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
 
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Has Video",
@@ -643,7 +746,7 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
     const videoId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
 
     await expect(
       t.mutation(api.articles.mutations.create, {
@@ -662,11 +765,9 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     const imageId = await storeBlob(t, "image-cover");
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: imageId,
-    });
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, imageId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
 
     await expect(
       t.mutation(api.articles.mutations.create, {
@@ -686,9 +787,7 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     await insertAppUserAndSignIn(t);
 
     const imageId = await storeBlob(t, "old-image");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: imageId,
-    });
+    await seedCoverOwnership(t, imageId, ownerAuthId);
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Swap",
       category: "general",
@@ -700,8 +799,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
 
     await t.mutation(api.articles.mutations.update, {
       id,
@@ -717,6 +816,7 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const oldMeta = await t.run(async (ctx) => ctx.db.system.get(imageId));
     expect(oldMeta).toBeNull();
+    expect(await findCoverOwnership(t, imageId)).toBeNull();
   });
 
   it("update video → image clears video + poster and deletes both old blobs", async () => {
@@ -725,8 +825,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Swap-back",
       category: "general",
@@ -737,9 +837,7 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     });
 
     const imageId = await storeBlob(t, "new-image");
-    await t.mutation(api.articles.mutations.claimCoverImageOwnership, {
-      storageId: imageId,
-    });
+    await seedCoverOwnership(t, imageId, ownerAuthId);
 
     await t.mutation(api.articles.mutations.update, {
       id,
@@ -758,6 +856,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     );
     expect(oldVideoMeta).toBeNull();
     expect(oldPosterMeta).toBeNull();
+    expect(await findCoverOwnership(t, videoId)).toBeNull();
+    expect(await findCoverOwnership(t, posterId)).toBeNull();
   });
 
   it("update video → new video replaces the previous video + poster blobs", async () => {
@@ -766,8 +866,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const oldVideoId = await storeBlobBytes(t);
     const oldPosterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, oldVideoId, ownerAuthId);
-    await seedCoverOwnership(t, oldPosterId, ownerAuthId);
+    await seedCoverOwnership(t, oldVideoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, oldPosterId, ownerAuthId, "poster");
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Video Replace",
       category: "general",
@@ -779,8 +879,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const newVideoId = await storeBlobBytes(t, 128);
     const newPosterId = await storeBlobBytes(t, 64);
-    await seedCoverOwnership(t, newVideoId, ownerAuthId);
-    await seedCoverOwnership(t, newPosterId, ownerAuthId);
+    await seedCoverOwnership(t, newVideoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, newPosterId, ownerAuthId, "poster");
 
     await t.mutation(api.articles.mutations.update, {
       id,
@@ -800,6 +900,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     );
     expect(oldVideoMeta).toBeNull();
     expect(oldPosterMeta).toBeNull();
+    expect(await findCoverOwnership(t, oldVideoId)).toBeNull();
+    expect(await findCoverOwnership(t, oldPosterId)).toBeNull();
   });
 
   it("update with the same video and a new poster replaces only the poster blob", async () => {
@@ -808,8 +910,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const videoId = await storeBlobBytes(t);
     const oldPosterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, oldPosterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, oldPosterId, ownerAuthId, "poster");
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Poster Replace",
       category: "general",
@@ -820,7 +922,7 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     });
 
     const newPosterId = await storeBlobBytes(t, 96);
-    await seedCoverOwnership(t, newPosterId, ownerAuthId);
+    await seedCoverOwnership(t, newPosterId, ownerAuthId, "poster");
 
     await t.mutation(api.articles.mutations.update, {
       id,
@@ -835,12 +937,15 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     expect(
       await t.run(async (ctx) => ctx.db.system.get(videoId)),
     ).not.toBeNull();
+    expect(await findCoverOwnership(t, videoId)).not.toBeNull();
     expect(
       await t.run(async (ctx) => ctx.db.system.get(oldPosterId)),
     ).toBeNull();
+    expect(await findCoverOwnership(t, oldPosterId)).toBeNull();
     expect(
       await t.run(async (ctx) => ctx.db.system.get(newPosterId)),
     ).not.toBeNull();
+    expect(await findCoverOwnership(t, newPosterId)).not.toBeNull();
   });
 
   it("update with the same video and poster ids is a round-trip no-op", async () => {
@@ -849,8 +954,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Video Round Trip",
       category: "general",
@@ -877,14 +982,14 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     ).not.toBeNull();
   });
 
-  it("clearCoverImage wipes every cover field and deletes every cover blob", async () => {
+  it("clearCover wipes every cover field and deletes every cover blob", async () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
 
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Clear Cover",
       category: "general",
@@ -896,7 +1001,7 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     await t.mutation(api.articles.mutations.update, {
       id,
-      clearCoverImage: true,
+      clearCover: true,
     });
 
     const row = await t.run(async (ctx) => ctx.db.get(id));
@@ -907,6 +1012,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     expect(await t.run(async (ctx) => ctx.db.system.get(videoId))).toBeNull();
     expect(await t.run(async (ctx) => ctx.db.system.get(posterId))).toBeNull();
+    expect(await findCoverOwnership(t, videoId)).toBeNull();
+    expect(await findCoverOwnership(t, posterId)).toBeNull();
   });
 
   it("remove cascades deletes for both video + poster blobs", async () => {
@@ -915,8 +1022,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
     const id = await t.mutation(api.articles.mutations.create, {
       title: "Remove Video",
       category: "general",
@@ -930,6 +1037,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     expect(await t.run(async (ctx) => ctx.db.system.get(videoId))).toBeNull();
     expect(await t.run(async (ctx) => ctx.db.system.get(posterId))).toBeNull();
+    expect(await findCoverOwnership(t, videoId)).toBeNull();
+    expect(await findCoverOwnership(t, posterId)).toBeNull();
   });
 
   it("deleteOrphanCoverVideo deletes unreferenced blobs and preserves referenced ones", async () => {
@@ -938,15 +1047,15 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const orphanVideoId = await storeBlobBytes(t);
     const orphanPosterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, orphanVideoId, ownerAuthId);
-    await seedCoverOwnership(t, orphanPosterId, ownerAuthId);
+    await seedCoverOwnership(t, orphanVideoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, orphanPosterId, ownerAuthId, "poster");
 
     // Article references a DIFFERENT video — the orphan-delete must
     // skip the referenced one and only clean up the orphans.
     const refVideoId = await storeBlobBytes(t);
     const refPosterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, refVideoId, ownerAuthId);
-    await seedCoverOwnership(t, refPosterId, ownerAuthId);
+    await seedCoverOwnership(t, refVideoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, refPosterId, ownerAuthId, "poster");
     await t.mutation(api.articles.mutations.create, {
       title: "Owner",
       category: "general",
@@ -967,6 +1076,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     expect(
       await t.run(async (ctx) => ctx.db.system.get(orphanPosterId)),
     ).toBeNull();
+    expect(await findCoverOwnership(t, orphanVideoId)).toBeNull();
+    expect(await findCoverOwnership(t, orphanPosterId)).toBeNull();
 
     // And referenced blobs survive a parallel call.
     await t.mutation(api.articles.mutations.deleteOrphanCoverVideo, {
@@ -979,6 +1090,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     expect(
       await t.run(async (ctx) => ctx.db.system.get(refPosterId)),
     ).not.toBeNull();
+    expect(await findCoverOwnership(t, refVideoId)).not.toBeNull();
+    expect(await findCoverOwnership(t, refPosterId)).not.toBeNull();
   });
 
   it("deleteOrphanCoverVideo refuses to delete another user's pending blobs", async () => {
@@ -989,8 +1102,8 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
 
     const videoId = await storeBlobBytes(t);
     const posterId = await storeBlobBytes(t);
-    await seedCoverOwnership(t, videoId, ownerAuthId);
-    await seedCoverOwnership(t, posterId, ownerAuthId);
+    await seedCoverOwnership(t, videoId, ownerAuthId, "video");
+    await seedCoverOwnership(t, posterId, ownerAuthId, "poster");
 
     await insertAppUserAndSignIn(
       t,
@@ -1009,6 +1122,23 @@ describe("articles.mutations — cover video flow (PLAN_010)", () => {
     expect(
       await t.run(async (ctx) => ctx.db.system.get(posterId)),
     ).not.toBeNull();
+  });
+
+  it("deleteOrphanCoverImage deletes an unreferenced blob and its ownership row", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const storageId = await storeBlob(t, "orphan-image");
+    await seedCoverOwnership(t, storageId, ownerAuthId);
+
+    await t.mutation(api.articles.mutations.deleteOrphanCoverImage, {
+      storageId,
+    });
+
+    expect(
+      await t.run(async (ctx) => ctx.db.system.get(storageId)),
+    ).toBeNull();
+    expect(await findCoverOwnership(t, storageId)).toBeNull();
   });
 
   it("deleteOrphanCoverImage refuses to delete another user's pending blob", async () => {

@@ -3,7 +3,7 @@ id: FG_200
 title: "deleteOrphanCoverVideo test must assert ownership-row lifecycle"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "The existing test asserts blob deletion via system.get returns null but says nothing about whether the corresponding coverImageOwnership row survives or is deleted. After FG_168 lands, this test must add the ownership-row assertion so the contract is documented."
 dependencies: ["FG_168"]

@@ -40,12 +40,13 @@ vi.mock("next/link", () => ({
   ),
 }));
 
-const { ArticleMetadataHeader } = await import(
-  "@/features/articles/components/editor/article-metadata-header"
-);
+const { ArticleMetadataHeader } =
+  await import("@/features/articles/components/editor/article-metadata-header");
 
 const noopUpload = vi.fn(
-  async (_file: File): Promise<{ kind: "image" | "video" }> => ({ kind: "image" }),
+  async (_file: File): Promise<{ kind: "image" | "video" }> => ({
+    kind: "image",
+  }),
 );
 
 type HarnessProps = {
@@ -84,6 +85,7 @@ function TestHarness({
         coverImageUrl={null}
         coverVideoUrl={null}
         coverVideoPosterUrl={null}
+        coverUploadState="idle"
         createdAt={null}
         publishedAt={publishedAt}
         onCoverUpload={onCoverUpload ?? noopUpload}
@@ -96,7 +98,11 @@ function TestHarness({
 // Subscribed read of the slug field via `useWatch` (instead of `form.watch`)
 // so the React Compiler / `react-hooks/incompatible-library` lint doesn't
 // flag the test as it does in production code.
-function SlugReader({ control }: { control: Control<ArticleMetadataFormData> }) {
+function SlugReader({
+  control,
+}: {
+  control: Control<ArticleMetadataFormData>;
+}) {
   const slug = useWatch({ control, name: "slug" }) ?? "";
   return <div data-testid="watched-slug">{slug}</div>;
 }
@@ -202,9 +208,7 @@ describe("ArticleMetadataHeader", () => {
   it("renders a relative timestamp once publishedAt is set", () => {
     render(<TestHarness publishedAt={Date.now() - 60_000} />);
     const published = screen.getByTestId("article-published-at");
-    expect(published.textContent || "").not.toMatch(
-      /^—$|Not yet|Unpublished/i,
-    );
+    expect(published.textContent || "").not.toMatch(/^—$|Not yet|Unpublished/i);
   });
 
   it("invokes upload callback when a cover image file is selected", async () => {
@@ -253,11 +257,11 @@ describe("ArticleMetadataHeader", () => {
       )();
     });
 
-    expect(
-      screen.getByTestId("article-title-error").textContent,
-    ).toMatch(/Title is required/i);
-    expect(
-      screen.getByTestId("article-category-error").textContent,
-    ).toMatch(/Category is required/i);
+    expect(screen.getByTestId("article-title-error").textContent).toMatch(
+      /Title is required/i,
+    );
+    expect(screen.getByTestId("article-category-error").textContent).toMatch(
+      /Category is required/i,
+    );
   });
 });

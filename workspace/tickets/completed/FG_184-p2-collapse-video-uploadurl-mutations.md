@@ -3,7 +3,7 @@ id: FG_184
 title: "Collapse two identical generateArticleCoverVideo URL mutations into one"
 date: 2026-05-08
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "generateArticleCoverVideoUploadUrl and generateArticleCoverVideoPosterUploadUrl are byte-for-byte identical 4-line wrappers. Any future auth/rate-limit/logging change must be applied twice and will drift."
 dependencies: []

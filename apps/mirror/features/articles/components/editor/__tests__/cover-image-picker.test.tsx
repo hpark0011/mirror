@@ -1,7 +1,3 @@
-// Pins the cover picker's temporary blob-preview lifecycle. The parent
-// form hook owns the post-upload cover URL; the picker owns only the
-// short-lived preview URL created while upload work is in flight.
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
   fireEvent,
@@ -9,14 +5,27 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { useState } from "react";
-import { CoverImagePicker } from "@/features/articles/components/editor/cover-image-picker";
+import { type ComponentProps, useState } from "react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { CoverImagePicker } from "../cover-image-picker";
+import { CoverVideoPreview } from "../cover-video-preview";
 
 const originalCreateObjectURL = URL.createObjectURL;
 const originalRevokeObjectURL = URL.revokeObjectURL;
 
 let createObjectURL: ReturnType<typeof vi.fn>;
 let revokeObjectURL: ReturnType<typeof vi.fn>;
+
+function setUrlMethod(
+  name: "createObjectURL" | "revokeObjectURL",
+  value: unknown,
+) {
+  Object.defineProperty(URL, name, {
+    configurable: true,
+    writable: true,
+    value,
+  });
+}
 
 function installUrlMocks() {
   let nextId = 0;
@@ -26,34 +35,41 @@ function installUrlMocks() {
   });
   revokeObjectURL = vi.fn();
 
-  Object.defineProperty(URL, "createObjectURL", {
-    configurable: true,
-    value: createObjectURL,
-  });
-  Object.defineProperty(URL, "revokeObjectURL", {
-    configurable: true,
-    value: revokeObjectURL,
-  });
+  setUrlMethod("createObjectURL", createObjectURL);
+  setUrlMethod("revokeObjectURL", revokeObjectURL);
 }
 
-function restoreUrlMocks() {
-  if (originalCreateObjectURL) {
-    Object.defineProperty(URL, "createObjectURL", {
-      configurable: true,
-      value: originalCreateObjectURL,
-    });
-  } else {
-    Reflect.deleteProperty(URL, "createObjectURL");
+function restoreUrlMethod(
+  name: "createObjectURL" | "revokeObjectURL",
+  value: unknown,
+) {
+  if (value) {
+    setUrlMethod(name, value);
+    return;
   }
+  Reflect.deleteProperty(URL, name);
+}
 
-  if (originalRevokeObjectURL) {
-    Object.defineProperty(URL, "revokeObjectURL", {
-      configurable: true,
-      value: originalRevokeObjectURL,
-    });
-  } else {
-    Reflect.deleteProperty(URL, "revokeObjectURL");
-  }
+function renderPicker(
+  onUpload: (file: File) => Promise<{ kind: "image" | "video" }>,
+  props: Partial<ComponentProps<typeof CoverImagePicker>> = {},
+) {
+  render(
+    <CoverImagePicker
+      imageUrl={null}
+      videoUrl={null}
+      videoPosterUrl={null}
+      onUpload={onUpload}
+      onClear={vi.fn()}
+      {...props}
+    />,
+  );
+}
+
+function pickerInput() {
+  return screen
+    .getByTestId("article-cover-image-picker")
+    .querySelector('input[type="file"]') as HTMLInputElement;
 }
 
 function ControlledVideoPicker() {
@@ -81,17 +97,14 @@ describe("CoverImagePicker", () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
-    restoreUrlMocks();
+    restoreUrlMethod("createObjectURL", originalCreateObjectURL);
+    restoreUrlMethod("revokeObjectURL", originalRevokeObjectURL);
   });
 
   it("hands a successful video upload from the temporary preview URL to the parent-owned URL", async () => {
     render(<ControlledVideoPicker />);
 
-    const input = screen
-      .getByTestId("article-cover-image-picker")
-      .querySelector('input[type="file"]') as HTMLInputElement;
-
-    fireEvent.change(input, {
+    fireEvent.change(pickerInput(), {
       target: {
         files: [
           new File([new Uint8Array([1])], "cover.mp4", {
@@ -108,5 +121,78 @@ describe("CoverImagePicker", () => {
 
     expect(revokeObjectURL).toHaveBeenCalledWith("blob:picker-preview-1");
     expect(revokeObjectURL).not.toHaveBeenCalledWith("blob:parent-owned-video");
+  });
+
+  it("revokes the picker blob URL when upload rejects", async () => {
+    const onUpload = vi.fn(async () => {
+      throw new Error("upload failed");
+    });
+    const file = new File([new Uint8Array([1])], "cover.mp4", {
+      type: "video/mp4",
+    });
+
+    renderPicker(onUpload);
+    fireEvent.change(pickerInput(), { target: { files: [file] } });
+
+    await waitFor(() =>
+      expect(revokeObjectURL).toHaveBeenCalledWith("blob:picker-preview-1"),
+    );
+  });
+
+  it("uses the parent preparing state for data state, disabled controls, and label", () => {
+    const onUpload = vi.fn(
+      async (): Promise<{ kind: "image" }> => ({
+        kind: "image",
+      }),
+    );
+
+    renderPicker(onUpload, { coverUploadState: "preparing" });
+
+    const picker = screen.getByTestId("article-cover-image-picker");
+    const button = screen.getByRole("button", {
+      name: "Preparing…",
+    }) as HTMLButtonElement;
+    expect(picker.getAttribute("data-cover-upload-state")).toBe("preparing");
+    expect(button.disabled).toBe(true);
+    expect(pickerInput().disabled).toBe(true);
+  });
+
+  it("uses the parent uploading state for active-cover replace label", () => {
+    const onUpload = vi.fn(
+      async (): Promise<{ kind: "image" }> => ({
+        kind: "image",
+      }),
+    );
+
+    renderPicker(onUpload, {
+      coverUploadState: "uploading",
+      imageUrl: "/cover.jpg",
+    });
+
+    const picker = screen.getByTestId("article-cover-image-picker");
+    const replace = screen.getByRole("button", {
+      name: "Uploading…",
+    }) as HTMLButtonElement;
+    expect(picker.getAttribute("data-cover-upload-state")).toBe("uploading");
+    expect(replace.disabled).toBe(true);
+  });
+});
+
+describe("CoverVideoPreview", () => {
+  it("preserves the article cover video preview contract", () => {
+    render(
+      <CoverVideoPreview url="blob:cover-video" posterUrl="/poster.jpg" />,
+    );
+
+    const preview = screen.getByTestId(
+      "article-cover-video-preview",
+    ) as HTMLVideoElement;
+    expect(preview.getAttribute("src")).toBe("blob:cover-video");
+    expect(preview.getAttribute("poster")).toBe("/poster.jpg");
+    expect(preview.getAttribute("preload")).toBe("metadata");
+    expect(preview.autoplay).toBe(true);
+    expect(preview.loop).toBe(true);
+    expect(preview.muted).toBe(true);
+    expect(preview.hasAttribute("playsinline")).toBe(true);
   });
 });

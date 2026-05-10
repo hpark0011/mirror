@@ -74,6 +74,13 @@ tool MUST NOT include `userId`, `user_id`, `ownerId`, or any other user
 identifier — if it did, the model could pass an arbitrary user id and
 the cross-user boundary would collapse.
 
+Owner-write tools have a second boundary: they must verify the
+server-derived viewer is the profile owner before any query or mutation runs.
+Passing `profileOwnerId` alone proves which rows are in scope, but it does
+not prove the visitor is allowed to mutate those rows. Use the
+conversation's `viewerId` (not a tool arg) and require
+`viewerId === profileOwnerId` for publish, unpublish, and delete tools.
+
 The unit test in
 [`packages/convex/convex/chat/__tests__/tools.test.ts`](../../packages/convex/convex/chat/__tests__/tools.test.ts)
 (see the `inputSchema invariants` describe block) pins this. Adding a
@@ -95,7 +102,7 @@ parity loop.
    include any user identifier. Keep handlers as data primitives — look
    up X, validate Y, return a structured result. Do NOT encode workflow
    logic or call `router.push`.
-3. **Update `TOOLS_VOCABULARY`** in
+3. **Update the tools vocabulary** in
    [`packages/convex/convex/chat/helpers.ts`](../../packages/convex/convex/chat/helpers.ts)
    so the agent knows the verb exists. The system prompt is composed at
    request time and is the only place the LLM learns the tool surface.
@@ -191,6 +198,6 @@ omitted by the caller.
   The `tools.test.ts` invariants block exists specifically to catch
   regressions here.
 - **System-prompt vocabulary.** A new tool registered in
-  `buildCloneTools` without a matching mention in `TOOLS_VOCABULARY` is
+  `buildCloneTools` without a matching mention in the tools vocabulary is
   a discoverability gap — the LLM will not call a verb it does not
   know exists.

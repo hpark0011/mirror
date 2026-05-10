@@ -9,7 +9,7 @@
 //      `packages/convex/convex/content/storagePolicy.ts`).
 //   2. Extract a still poster from the chosen MP4 in a hidden
 //      `<video>` + `<canvas>` (frame at ~0.1s, JPEG quality 0.85).
-//   3. Get TWO presigned upload URLs in parallel.
+//   3. Get the video + poster presigned upload URLs in one round-trip.
 //   4. Upload both blobs in parallel.
 //   5. Claim ownership for both. If ownership fails for either, fire
 //      `deleteOrphanCoverVideo` to clean up the leak.
@@ -18,7 +18,7 @@
 // `<video poster={posterUrl}>` has a frame to show before metadata
 // loads (D2 in the plan).
 import { useCallback } from "react";
-import { useMutation } from "convex/react";
+import { useAction, useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { uploadToStorage } from "@/lib/upload-to-storage";
@@ -26,6 +26,17 @@ import {
   ALLOWED_COVER_VIDEO_TYPES,
   MAX_COVER_VIDEO_BYTES,
 } from "@/lib/media-policy";
+
+export type CoverUploadState = "idle" | "preparing" | "uploading" | "ready";
+
+type CoverVideoUploadProgressState = Extract<
+  CoverUploadState,
+  "preparing" | "uploading"
+>;
+
+type UseArticleCoverVideoUploadOptions = {
+  onStateChange?: (state: CoverVideoUploadProgressState) => void;
+};
 
 export type UseArticleCoverVideoUploadReturn = {
   upload: (file: File) => Promise<{
@@ -150,7 +161,9 @@ async function extractPosterBlob(file: File): Promise<Blob> {
     // default frame seek time.
     const seekTo = Math.min(
       POSTER_FRAME_SECONDS,
-      Number.isFinite(video.duration) ? Math.max(video.duration - 0.05, 0) : POSTER_FRAME_SECONDS,
+      Number.isFinite(video.duration)
+        ? Math.max(video.duration - 0.05, 0)
+        : POSTER_FRAME_SECONDS,
     );
 
     const seeked = waitForPosterVideoEvent(
@@ -172,11 +185,7 @@ async function extractPosterBlob(file: File): Promise<Blob> {
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const blob = await new Promise<Blob | null>((resolve) => {
-      canvas.toBlob(
-        (b) => resolve(b),
-        "image/jpeg",
-        POSTER_JPEG_QUALITY,
-      );
+      canvas.toBlob((b) => resolve(b), "image/jpeg", POSTER_JPEG_QUALITY);
     });
     if (!blob) {
       throw new Error("Failed to encode poster JPEG");
@@ -187,17 +196,16 @@ async function extractPosterBlob(file: File): Promise<Blob> {
   }
 }
 
-export function useArticleCoverVideoUpload(): UseArticleCoverVideoUploadReturn {
-  const generateVideoUploadUrl = useMutation(
-    api.articles.mutations.generateArticleCoverVideoUploadUrl,
+export function useArticleCoverVideoUpload({
+  onStateChange,
+}: UseArticleCoverVideoUploadOptions = {}): UseArticleCoverVideoUploadReturn {
+  const generateUploadUrls = useMutation(
+    api.articles.mutations.generateArticleCoverVideoUploadUrls,
   );
-  const generatePosterUploadUrl = useMutation(
-    api.articles.mutations.generateArticleCoverVideoPosterUploadUrl,
-  );
-  const claimVideoOwnership = useMutation(
+  const claimVideoOwnership = useAction(
     api.articles.mutations.claimCoverVideoOwnership,
   );
-  const claimPosterOwnership = useMutation(
+  const claimPosterOwnership = useAction(
     api.articles.mutations.claimCoverVideoPosterOwnership,
   );
   const deleteOrphanCoverVideo = useMutation(
@@ -211,6 +219,7 @@ export function useArticleCoverVideoUpload(): UseArticleCoverVideoUploadReturn {
       // Extract poster client-side BEFORE issuing the upload URLs so
       // a poster-extraction failure doesn't leave us with a leaked
       // upload URL.
+      onStateChange?.("preparing");
       const posterBlob = await extractPosterBlob(file);
       const posterFile = new File(
         [posterBlob],
@@ -218,11 +227,9 @@ export function useArticleCoverVideoUpload(): UseArticleCoverVideoUploadReturn {
         { type: "image/jpeg" },
       );
 
-      const [videoUrl, posterUrl] = await Promise.all([
-        generateVideoUploadUrl(),
-        generatePosterUploadUrl(),
-      ]);
+      const { videoUrl, posterUrl } = await generateUploadUrls();
 
+      onStateChange?.("uploading");
       const uploadController = new AbortController();
       let videoStorageId: Id<"_storage"> | undefined;
       let posterStorageId: Id<"_storage"> | undefined;
@@ -264,32 +271,40 @@ export function useArticleCoverVideoUpload(): UseArticleCoverVideoUploadReturn {
       // Claim ownership on both blobs. If either claim fails, fire the
       // orphan-cleanup mutation server-side so the leaked blob doesn't
       // sit in `_storage` until the cron sweep.
-      try {
-        await Promise.all([
-          claimVideoOwnership({ storageId: videoStorageId }),
-          claimPosterOwnership({ storageId: posterStorageId }),
-        ]);
-      } catch (err) {
-        deleteOrphanCoverVideo({
-          videoStorageId,
-          posterStorageId,
-        }).catch((cleanupErr) => {
+      const [videoClaim, posterClaim] = await Promise.allSettled([
+        claimVideoOwnership({ storageId: videoStorageId }),
+        claimPosterOwnership({ storageId: posterStorageId }),
+      ]);
+      const claimError =
+        videoClaim.status === "rejected"
+          ? videoClaim.reason
+          : posterClaim.status === "rejected"
+            ? posterClaim.reason
+            : null;
+
+      if (claimError) {
+        try {
+          await deleteOrphanCoverVideo({
+            videoStorageId,
+            posterStorageId,
+          });
+        } catch (cleanupErr) {
           console.error(
             "[cover-video-upload] orphan cleanup failed after claim error",
             cleanupErr,
           );
-        });
-        throw err;
+        }
+        throw claimError;
       }
 
       return { videoStorageId, posterStorageId };
     },
     [
-      generateVideoUploadUrl,
-      generatePosterUploadUrl,
+      generateUploadUrls,
       claimVideoOwnership,
       claimPosterOwnership,
       deleteOrphanCoverVideo,
+      onStateChange,
     ],
   );
 

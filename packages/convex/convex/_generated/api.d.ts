@@ -8,12 +8,14 @@
  * @module
  */
 
+import type * as __tests___testUtils from "../__tests__/testUtils.js";
 import type * as articles_actions from "../articles/actions.js";
 import type * as articles_helpers from "../articles/helpers.js";
 import type * as articles_inlineImages from "../articles/inlineImages.js";
 import type * as articles_internalImages from "../articles/internalImages.js";
 import type * as articles_mutations from "../articles/mutations.js";
 import type * as articles_queries from "../articles/queries.js";
+import type * as articles_testHelpers from "../articles/testHelpers.js";
 import type * as auth_client from "../auth/client.js";
 import type * as auth_options from "../auth/options.js";
 import type * as auth_queries from "../auth/queries.js";
@@ -34,6 +36,7 @@ import type * as chat_queries from "../chat/queries.js";
 import type * as chat_rateLimits from "../chat/rateLimits.js";
 import type * as chat_testHelpers from "../chat/testHelpers.js";
 import type * as chat_tonePresets from "../chat/tonePresets.js";
+import type * as chat_toolMutations from "../chat/toolMutations.js";
 import type * as chat_toolQueries from "../chat/toolQueries.js";
 import type * as chat_tools from "../chat/tools.js";
 import type * as content_backfill from "../content/backfill.js";
@@ -58,6 +61,7 @@ import type * as embeddings_textExtractor from "../embeddings/textExtractor.js";
 import type * as env from "../env.js";
 import type * as http from "../http.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as migrations_articles from "../migrations/articles.js";
 import type * as posts_actions from "../posts/actions.js";
 import type * as posts_categories from "../posts/categories.js";
 import type * as posts_helpers from "../posts/helpers.js";
@@ -84,12 +88,14 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  "__tests__/testUtils": typeof __tests___testUtils;
   "articles/actions": typeof articles_actions;
   "articles/helpers": typeof articles_helpers;
   "articles/inlineImages": typeof articles_inlineImages;
   "articles/internalImages": typeof articles_internalImages;
   "articles/mutations": typeof articles_mutations;
   "articles/queries": typeof articles_queries;
+  "articles/testHelpers": typeof articles_testHelpers;
   "auth/client": typeof auth_client;
   "auth/options": typeof auth_options;
   "auth/queries": typeof auth_queries;
@@ -110,6 +116,7 @@ declare const fullApi: ApiFromModules<{
   "chat/rateLimits": typeof chat_rateLimits;
   "chat/testHelpers": typeof chat_testHelpers;
   "chat/tonePresets": typeof chat_tonePresets;
+  "chat/toolMutations": typeof chat_toolMutations;
   "chat/toolQueries": typeof chat_toolQueries;
   "chat/tools": typeof chat_tools;
   "content/backfill": typeof content_backfill;
@@ -134,6 +141,7 @@ declare const fullApi: ApiFromModules<{
   env: typeof env;
   http: typeof http;
   "lib/auth": typeof lib_auth;
+  "migrations/articles": typeof migrations_articles;
   "posts/actions": typeof posts_actions;
   "posts/categories": typeof posts_categories;
   "posts/helpers": typeof posts_helpers;

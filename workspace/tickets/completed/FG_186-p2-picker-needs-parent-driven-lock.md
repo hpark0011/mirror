@@ -3,7 +3,7 @@ id: FG_186
 title: "Picker must reflect parent hook's in-flight status to block concurrent uploads"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The picker's disabled={isUploading} is local state; the parent hook's handleCoverUpload has no mutex. Concurrent invocation (test harness, second tab, React StrictMode) revokes A's blob URL while A's video src= still renders it — Firefox surfaces broken-blob errors."
 dependencies: ["FG_185"]

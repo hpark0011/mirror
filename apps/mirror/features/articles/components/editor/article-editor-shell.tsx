@@ -15,6 +15,7 @@ import {
 import { type UseFormReturn } from "react-hook-form";
 import { ArticleEditorToolbar } from "./article-editor-toolbar";
 import { ArticleMetadataHeader } from "./article-metadata-header";
+import { type CoverUploadState } from "../../hooks/use-article-cover-video-upload";
 import {
   type ArticleMetadataFormData,
   type ArticleStatus,
@@ -28,6 +29,7 @@ export interface ArticleEditorShellProps {
   coverImageUrl: string | null;
   coverVideoUrl: string | null;
   coverVideoPosterUrl: string | null;
+  coverUploadState: CoverUploadState;
   createdAt: number | null;
   publishedAt: number | null;
   onCoverUpload: (file: File) => Promise<{ kind: "image" | "video" }>;
@@ -59,6 +61,7 @@ export function ArticleEditorShell({
   coverImageUrl,
   coverVideoUrl,
   coverVideoPosterUrl,
+  coverUploadState,
   createdAt,
   publishedAt,
   onCoverUpload,
@@ -91,6 +94,7 @@ export function ArticleEditorShell({
             coverImageUrl={coverImageUrl}
             coverVideoUrl={coverVideoUrl}
             coverVideoPosterUrl={coverVideoPosterUrl}
+            coverUploadState={coverUploadState}
             createdAt={createdAt}
             publishedAt={publishedAt}
             onCoverUpload={onCoverUpload}

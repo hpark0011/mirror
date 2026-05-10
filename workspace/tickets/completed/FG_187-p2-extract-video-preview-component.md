@@ -3,7 +3,7 @@ id: FG_187
 title: "Extract video-preview branch out of cover-image-picker.tsx (185 lines, over threshold)"
 date: 2026-05-08
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "cover-image-picker.tsx grew from 131 (already over the ~100-line threshold) to 185 lines. Video preview block, ActivePreview union, and activeFromProps helper are extractable into a sibling cover-video-preview.tsx so the picker becomes the orchestration shell only."
 dependencies: []

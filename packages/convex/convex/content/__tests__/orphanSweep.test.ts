@@ -171,6 +171,94 @@ describe("crons.sweepOrphanedStorage — FR-10", () => {
     expect(await blobExists(t, newPoster)).toBe(true);
   });
 
+  it("preserves the video blob when only the poster is orphaned (PLAN_010)", async () => {
+    const t = makeT();
+
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    const referencedVideo = await storeBlob(t, "referenced-video");
+    const orphanPoster = await storeBlob(t, "orphan-poster");
+
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth-partial-orphan-poster",
+        email: "partialposter@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId,
+        slug: "partial-orphan-poster",
+        title: "Partial Orphan Poster",
+        body: { type: "doc", content: [] },
+        coverVideoStorageId: referencedVideo,
+        category: "general",
+        status: "published",
+        createdAt: 0,
+      }),
+    );
+
+    vi.setSystemTime(ORPHAN_GRACE_MS + 60 * 60 * 1000);
+
+    const result = await t.mutation(
+      internal.crons.sweepOrphanedStorage,
+      {},
+    );
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+    vi.useRealTimers();
+
+    expect(result.deleted).toBe(1);
+    expect(await blobExists(t, referencedVideo)).toBe(true);
+    expect(await blobExists(t, orphanPoster)).toBe(false);
+  });
+
+  it("preserves the poster blob when only the video is orphaned (PLAN_010)", async () => {
+    const t = makeT();
+
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    const orphanVideo = await storeBlob(t, "orphan-video");
+    const referencedPoster = await storeBlob(t, "referenced-poster");
+
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth-partial-orphan-video",
+        email: "partialvideo@example.com",
+        onboardingComplete: true,
+      }),
+    );
+    await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId,
+        slug: "partial-orphan-video",
+        title: "Partial Orphan Video",
+        body: { type: "doc", content: [] },
+        coverVideoPosterStorageId: referencedPoster,
+        category: "general",
+        status: "published",
+        createdAt: 0,
+      }),
+    );
+
+    vi.setSystemTime(ORPHAN_GRACE_MS + 60 * 60 * 1000);
+
+    const result = await t.mutation(
+      internal.crons.sweepOrphanedStorage,
+      {},
+    );
+    await t.finishAllScheduledFunctions(() => vi.runAllTimers());
+
+    vi.useRealTimers();
+
+    expect(result.deleted).toBe(1);
+    expect(await blobExists(t, orphanVideo)).toBe(false);
+    expect(await blobExists(t, referencedPoster)).toBe(true);
+  });
+
   it("skips referenced blobs (cover, inline, avatar)", async () => {
     const t = makeT();
 

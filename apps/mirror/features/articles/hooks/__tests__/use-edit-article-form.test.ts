@@ -1,6 +1,6 @@
 // Pins the cover-clear-on-save flow:
 //   - handleCoverClear flips an internal `isCoverCleared` flag
-//   - on save, `update` is called with `clearCoverImage: true` (an explicit
+//   - on save, `update` is called with `clearCover: true` (an explicit
 //     removal signal) — NOT `coverImageStorageId: undefined` masquerading as
 //     "no change"
 //   - a fresh upload after clear suppresses the clear flag (upload wins)
@@ -91,6 +91,84 @@ const INITIAL_ARTICLE_WITH_VIDEO: any = {
   coverVideoPosterUrl: "https://example.com/poster.jpg",
 };
 
+function createDeferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+describe("useEditArticleForm — cover upload lock", () => {
+  beforeEach(() => {
+    mockUpdate.mockReset();
+    mockUploadCover.mockReset();
+    mockUploadCoverVideo.mockReset();
+    mockReplace.mockReset();
+    mockRefresh.mockReset();
+    mockShowToast.mockReset();
+    vi.stubGlobal("URL", {
+      createObjectURL: vi.fn().mockReturnValue("blob:image-url"),
+      revokeObjectURL: vi.fn(),
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it("rejects concurrent handleCoverUpload calls and releases the lock after settle", async () => {
+    const firstUpload = createDeferred<{
+      storageId: string;
+      thumbhash: string;
+    }>();
+    mockUploadCover.mockReturnValueOnce(firstUpload.promise);
+    const { result } = renderHook(() =>
+      useEditArticleForm({
+        username: "test-user",
+        initial: INITIAL_ARTICLE,
+      }),
+    );
+    const firstFile = new File([new Uint8Array([1])], "cover.png", {
+      type: "image/png",
+    });
+    const secondFile = new File([new Uint8Array([2])], "cover-2.png", {
+      type: "image/png",
+    });
+    let pendingUpload: Promise<{ kind: "image" | "video" }> | undefined;
+
+    act(() => {
+      pendingUpload = result.current.handleCoverUpload(firstFile);
+    });
+
+    expect(result.current.coverUploadState).toBe("uploading");
+    await act(async () => {
+      await expect(
+        result.current.handleCoverUpload(secondFile),
+      ).rejects.toThrow("A cover upload is already in progress");
+    });
+    expect(mockUploadCover).toHaveBeenCalledTimes(1);
+
+    await act(async () => {
+      firstUpload.resolve({ storageId: "storage_id_1", thumbhash: "" });
+      await pendingUpload;
+    });
+    expect(result.current.coverUploadState).toBe("ready");
+
+    mockUploadCover.mockResolvedValueOnce({
+      storageId: "storage_id_2",
+      thumbhash: "",
+    });
+    await act(async () => {
+      await result.current.handleCoverUpload(secondFile);
+    });
+    expect(mockUploadCover).toHaveBeenCalledTimes(2);
+  });
+});
+
 describe("useEditArticleForm — cover clear", () => {
   beforeEach(() => {
     mockUpdate.mockReset();
@@ -114,7 +192,7 @@ describe("useEditArticleForm — cover clear", () => {
     vi.unstubAllGlobals();
   });
 
-  it("save sends clearCoverImage:true (not coverImageStorageId:undefined) after a clear", async () => {
+  it("save sends clearCover:true (not coverImageStorageId:undefined) after a clear", async () => {
     mockUpdate.mockResolvedValue(null);
     const { result } = renderHook(() =>
       useEditArticleForm({
@@ -134,17 +212,17 @@ describe("useEditArticleForm — cover clear", () => {
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     const args = mockUpdate.mock.calls[0]![0] as {
       id: string;
-      clearCoverImage?: boolean;
+      clearCover?: boolean;
       coverImageStorageId?: unknown;
     };
-    expect(args.clearCoverImage).toBe(true);
+    expect(args.clearCover).toBe(true);
     // Important: when clearing, the storageId field should be omitted —
     // it's not the removal signal. The server distinguishes "cleared" from
-    // "no change" via `clearCoverImage`, not via undefined-vs-present.
+    // "no change" via `clearCover`, not via undefined-vs-present.
     expect(args.coverImageStorageId).toBeUndefined();
   });
 
-  it("save sends clearCoverImage:true with no video ids when video cover is cleared", async () => {
+  it("save sends clearCover:true with no video ids when video cover is cleared", async () => {
     mockUpdate.mockResolvedValue(null);
     const { result } = renderHook(() =>
       useEditArticleForm({
@@ -163,12 +241,12 @@ describe("useEditArticleForm — cover clear", () => {
 
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     const args = mockUpdate.mock.calls[0]![0] as {
-      clearCoverImage?: boolean;
+      clearCover?: boolean;
       coverImageStorageId?: unknown;
       coverVideoStorageId?: unknown;
       coverVideoPosterStorageId?: unknown;
     };
-    expect(args.clearCoverImage).toBe(true);
+    expect(args.clearCover).toBe(true);
     expect(args.coverImageStorageId).toBeUndefined();
     expect(args.coverVideoStorageId).toBeUndefined();
     expect(args.coverVideoPosterStorageId).toBeUndefined();
@@ -181,7 +259,7 @@ describe("useEditArticleForm — cover clear", () => {
   // storage-id state into the hook is the upload path. Without first
   // uploading, handleCoverClear's setCoverVideoStorageId(null) /
   // setCoverVideoPosterStorageId(null) calls are observable no-ops.
-  it("save sends clearCoverImage:true with no video ids after upload-then-clear", async () => {
+  it("save sends clearCover:true with no video ids after upload-then-clear", async () => {
     mockUpdate.mockResolvedValue(null);
     mockUploadCoverVideo.mockResolvedValue({
       videoStorageId: "video_storage_id",
@@ -210,16 +288,16 @@ describe("useEditArticleForm — cover clear", () => {
 
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     const args = mockUpdate.mock.calls[0]![0] as {
-      clearCoverImage?: boolean;
+      clearCover?: boolean;
       coverVideoStorageId?: unknown;
       coverVideoPosterStorageId?: unknown;
     };
-    expect(args.clearCoverImage).toBe(true);
+    expect(args.clearCover).toBe(true);
     expect(args.coverVideoStorageId).toBeUndefined();
     expect(args.coverVideoPosterStorageId).toBeUndefined();
   });
 
-  it("does not resend clearCoverImage after a failed clear-cover save", async () => {
+  it("does not resend clearCover after a failed clear-cover save", async () => {
     mockUpdate.mockRejectedValueOnce(new Error("Network dropped"));
     mockUpdate.mockResolvedValueOnce(null);
     const { result } = renderHook(() =>
@@ -239,7 +317,7 @@ describe("useEditArticleForm — cover clear", () => {
 
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     expect(mockUpdate.mock.calls[0]![0]).toMatchObject({
-      clearCoverImage: true,
+      clearCover: true,
     });
     expect(mockShowToast).toHaveBeenCalledTimes(1);
 
@@ -253,12 +331,12 @@ describe("useEditArticleForm — cover clear", () => {
 
     expect(mockUpdate).toHaveBeenCalledTimes(2);
     const retryArgs = mockUpdate.mock.calls[1]![0] as {
-      clearCoverImage?: boolean;
+      clearCover?: boolean;
     };
-    expect(retryArgs.clearCoverImage).toBeUndefined();
+    expect(retryArgs.clearCover).toBeUndefined();
   });
 
-  it("save without a clear omits clearCoverImage entirely", async () => {
+  it("save without a clear omits clearCover entirely", async () => {
     mockUpdate.mockResolvedValue(null);
     const { result } = renderHook(() =>
       useEditArticleForm({
@@ -273,17 +351,20 @@ describe("useEditArticleForm — cover clear", () => {
 
     expect(mockUpdate).toHaveBeenCalledTimes(1);
     const args = mockUpdate.mock.calls[0]![0] as {
-      clearCoverImage?: boolean;
+      clearCover?: boolean;
       coverImageStorageId?: unknown;
     };
     // No-op for cover: neither field should be present.
-    expect(args.clearCoverImage).toBeUndefined();
+    expect(args.clearCover).toBeUndefined();
     expect(args.coverImageStorageId).toBeUndefined();
   });
 
   it("upload after clear wins — save sends the new storageId, no clear flag", async () => {
     mockUpdate.mockResolvedValue(null);
-    mockUploadCover.mockResolvedValue({ storageId: "new_storage_id", thumbhash: "" });
+    mockUploadCover.mockResolvedValue({
+      storageId: "new_storage_id",
+      thumbhash: "",
+    });
     const { result } = renderHook(() =>
       useEditArticleForm({
         username: "test-user",
@@ -306,10 +387,10 @@ describe("useEditArticleForm — cover clear", () => {
     });
 
     const args = mockUpdate.mock.calls[0]![0] as {
-      clearCoverImage?: boolean;
+      clearCover?: boolean;
       coverImageStorageId?: unknown;
     };
-    expect(args.clearCoverImage).toBeUndefined();
+    expect(args.clearCover).toBeUndefined();
     expect(args.coverImageStorageId).toBe("new_storage_id");
   });
 

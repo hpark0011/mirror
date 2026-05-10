@@ -7,7 +7,7 @@ import { api } from "@feel-good/convex/convex/_generated/api";
 import { showToast } from "@feel-good/ui/components/toast";
 import { getContentHref } from "@/features/content";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import { getMutationErrorMessage } from "../../bio/utils/mutation-helpers";
+import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { type PostSummary } from "../types";
 
 export type UseDeletePostArgs = {

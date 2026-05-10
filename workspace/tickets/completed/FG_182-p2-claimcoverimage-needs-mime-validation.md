@@ -3,7 +3,7 @@ id: FG_182
 title: "claimCoverImageOwnership must validate MIME and size like its video sibling"
 date: 2026-05-08
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "claimCoverImageOwnership performs no contentType or size validation. A user can upload SVG, GIF, TIFF, or arbitrarily large files and claim them as cover images. The image cover path goes through next/image which sandboxes some risks, but any direct fetch of the storage URL serves whatever Convex stored."
 dependencies: []

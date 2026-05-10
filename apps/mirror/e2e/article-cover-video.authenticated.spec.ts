@@ -12,9 +12,18 @@
 // `apps/mirror/e2e/fixtures/` so the upload tests run in CI.
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
 import { ensureTestArticleFixtures } from "./fixtures/article-fixtures";
+import { requireEnv } from "./lib/env";
+import { api } from "@feel-good/convex/convex/_generated/api";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { MAX_COVER_VIDEO_BYTES } from "@feel-good/convex/convex/content/storagePolicy";
+import { ConvexHttpClient } from "convex/browser";
 import path from "path";
+import fs from "fs";
 
 const username = "test-user";
+const convexUrl = requireEnv("NEXT_PUBLIC_CONVEX_URL");
+const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
+const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
 
 // CI uses the committed tiny MP4. Local/manual runs can point at a
 // larger real-world clip, e.g. `COVER_VIDEO_FIXTURE=workspace/artifacts/...`.
@@ -22,6 +31,98 @@ const COVER_VIDEO_FIXTURE = path.resolve(
   __dirname,
   process.env.COVER_VIDEO_FIXTURE ?? "fixtures/cover-video.mp4",
 );
+const AUTH_STATE_FILE = path.resolve(__dirname, ".auth/user.json");
+const SMALL_PNG_BYTES = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00, 0x00, 0x00, 0x0d, 0x49,
+  0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x08, 0x06,
+  0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4, 0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44,
+  0x41, 0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00, 0x05, 0x00, 0x01, 0x0d,
+  0x0a, 0x2d, 0xb4, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae, 0x42,
+  0x60, 0x82,
+]);
+const OVERSIZE_MP4_BYTES = MAX_COVER_VIDEO_BYTES + 1024 * 1024;
+
+type StorageState = {
+  cookies: Array<{
+    name: string;
+    value: string;
+  }>;
+};
+
+type CoverBlobStorageState = {
+  storageExists: boolean;
+  ownershipExists: boolean;
+};
+
+function readConvexJwtFromStorageState(): string {
+  const storageState = JSON.parse(
+    fs.readFileSync(AUTH_STATE_FILE, "utf8"),
+  ) as StorageState;
+  const cookie = storageState.cookies.find((c) =>
+    c.name.includes("convex_jwt"),
+  );
+  if (!cookie) {
+    throw new Error(`Convex JWT cookie not found in ${AUTH_STATE_FILE}`);
+  }
+  return cookie.value;
+}
+
+function createAuthedConvexClient(): ConvexHttpClient {
+  const client = new ConvexHttpClient(convexUrl);
+  client.setAuth(readConvexJwtFromStorageState());
+  return client;
+}
+
+async function uploadBytesToStorage(
+  uploadUrl: string,
+  bytes: Buffer,
+  contentType: string,
+): Promise<Id<"_storage">> {
+  const response = await fetch(uploadUrl, {
+    method: "POST",
+    headers: { "Content-Type": contentType },
+    body: new Uint8Array(bytes),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `Storage upload failed (${response.status} ${response.statusText}): ${await response.text()}`,
+    );
+  }
+  const { storageId } = (await response.json()) as {
+    storageId: Id<"_storage">;
+  };
+  return storageId;
+}
+
+async function readCoverBlobStorageState(
+  storageId: Id<"_storage">,
+): Promise<CoverBlobStorageState> {
+  const response = await fetch(
+    `${convexSiteUrl}/test/cover-blob-storage-state`,
+    {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-test-secret": testSecret,
+      },
+      body: JSON.stringify({ storageId }),
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `cover-blob-storage-state failed (${response.status}): ${await response.text()}`,
+    );
+  }
+  return response.json() as Promise<CoverBlobStorageState>;
+}
+
+async function expectRejectedBlobCleaned(
+  storageId: Id<"_storage">,
+): Promise<void> {
+  await expect
+    .poll(() => readCoverBlobStorageState(storageId), { timeout: 10_000 })
+    .toEqual({ storageExists: false, ownershipExists: false });
+}
 
 test.describe("Article cover video picker (PLAN_010)", () => {
   test("picker exposes a file input that accepts video/mp4 alongside images", async ({
@@ -130,6 +231,55 @@ test.describe("Article cover video picker (PLAN_010)", () => {
     expect(src).toMatch(/convex\.(cloud|site)/);
   });
 
+  test("claimCoverVideoOwnership rejects a non-MP4 upload and deletes the blob", async () => {
+    const client = createAuthedConvexClient();
+    const { videoUrl } = await client.mutation(
+      api.articles.mutations.generateArticleCoverVideoUploadUrls,
+      {},
+    );
+    const storageId = await uploadBytesToStorage(
+      videoUrl,
+      SMALL_PNG_BYTES,
+      "image/png",
+    );
+
+    await expect(
+      client.action(api.articles.mutations.claimCoverVideoOwnership, {
+        storageId,
+      }),
+    ).rejects.toThrow(/cover video must be one of/);
+
+    await expectRejectedBlobCleaned(storageId);
+  });
+
+  test("claimCoverVideoOwnership rejects an over-25 MiB MP4 and deletes the blob", async () => {
+    test.setTimeout(120_000);
+
+    const client = createAuthedConvexClient();
+    const { videoUrl } = await client.mutation(
+      api.articles.mutations.generateArticleCoverVideoUploadUrls,
+      {},
+    );
+    const mp4Bytes = Buffer.alloc(OVERSIZE_MP4_BYTES);
+    Buffer.from([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x69, 0x73, 0x6f, 0x6d,
+      0x00, 0x00, 0x02, 0x00, 0x69, 0x73, 0x6f, 0x6d, 0x69, 0x73, 0x6f, 0x32,
+    ]).copy(mp4Bytes, 0);
+    const storageId = await uploadBytesToStorage(
+      videoUrl,
+      mp4Bytes,
+      "video/mp4",
+    );
+
+    await expect(
+      client.action(api.articles.mutations.claimCoverVideoOwnership, {
+        storageId,
+      }),
+    ).rejects.toThrow(/cover video exceeds maximum size/);
+
+    await expectRejectedBlobCleaned(storageId);
+  });
+
   // Reproduces the bug report: "uploaded an MP4 on /articles/new, see
   // it in preview, save, but the saved article doesn't show it." The
   // /new flow uses `articles.mutations.create` and `router.replace`s
@@ -166,9 +316,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
     // Preview is the local blob: <video>. Wait for it before saving so
     // the save-click happens after form state has committed both
     // storage ids.
-    await expect(
-      page.getByTestId("article-cover-video-preview"),
-    ).toBeVisible();
+    await expect(page.getByTestId("article-cover-video-preview")).toBeVisible();
 
     await page.getByTestId("save-article-btn").click();
     // /new redirects to /<slug>/edit on success.
@@ -180,9 +328,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
     // The /edit page rehydrates the editor from `getBySlug`. The
     // picker MUST show the saved video — otherwise the user sees
     // "Add Cover" and rightly reports the upload as lost.
-    const previewAfterSave = page.getByTestId(
-      "article-cover-video-preview",
-    );
+    const previewAfterSave = page.getByTestId("article-cover-video-preview");
     await expect(previewAfterSave).toBeVisible({ timeout: 10_000 });
     const previewSrc = await previewAfterSave.getAttribute("src");
     expect(previewSrc).toMatch(/convex\.(cloud|site)/);
