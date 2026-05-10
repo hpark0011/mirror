@@ -5,12 +5,12 @@
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 2164 nodes · 2195 edges · 573 communities (524 shown, 49 thin omitted)
+- 2164 nodes · 2195 edges · 573 communities (525 shown, 48 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 161 edges (avg confidence: 0.8)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cbf2d467`
+- Built from commit: `d332946f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -54,8 +54,8 @@
 - [[_COMMUNITY_Email Send Actions (templates)|Email Send Actions (templates)]]
 - [[_COMMUNITY_Inline Image URL Helpers|Inline Image URL Helpers]]
 - [[_COMMUNITY_Env Validation|Env Validation]]
-- [[_COMMUNITY_Community 41|Community 41]]
-- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Email Send Actions (transport)|Email Send Actions (transport)]]
+- [[_COMMUNITY_Community 40|Community 40]]
 - [[_COMMUNITY_Community 43|Community 43]]
 - [[_COMMUNITY_Community 45|Community 45]]
 - [[_COMMUNITY_Community 46|Community 46]]
@@ -72,8 +72,8 @@
 - [[_COMMUNITY_Community 57|Community 57]]
 - [[_COMMUNITY_Community 58|Community 58]]
 - [[_COMMUNITY_Community 59|Community 59]]
-- [[_COMMUNITY_Community 62|Community 62]]
-- [[_COMMUNITY_Community 64|Community 64]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 63|Community 63]]
 - [[_COMMUNITY_Community 65|Community 65]]
 - [[_COMMUNITY_Community 66|Community 66]]
 - [[_COMMUNITY_Community 67|Community 67]]
@@ -82,7 +82,6 @@
 - [[_COMMUNITY_Community 70|Community 70]]
 - [[_COMMUNITY_Community 71|Community 71]]
 - [[_COMMUNITY_Community 72|Community 72]]
-- [[_COMMUNITY_Community 74|Community 74]]
 - [[_COMMUNITY_Community 75|Community 75]]
 - [[_COMMUNITY_Community 77|Community 77]]
 - [[_COMMUNITY_Community 78|Community 78]]
@@ -99,18 +98,20 @@
 - [[_COMMUNITY_Community 89|Community 89]]
 - [[_COMMUNITY_Community 90|Community 90]]
 - [[_COMMUNITY_Community 91|Community 91]]
-- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 96|Community 96]]
 - [[_COMMUNITY_Community 99|Community 99]]
 - [[_COMMUNITY_Community 101|Community 101]]
 - [[_COMMUNITY_Community 104|Community 104]]
-- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 118|Community 118]]
 - [[_COMMUNITY_Community 119|Community 119]]
 - [[_COMMUNITY_Community 120|Community 120]]
 - [[_COMMUNITY_Community 121|Community 121]]
-- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
 - [[_COMMUNITY_Community 124|Community 124]]
-- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 125|Community 125]]
 - [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
 - [[_COMMUNITY_Community 141|Community 141]]
 - [[_COMMUNITY_Community 142|Community 142]]
 - [[_COMMUNITY_Community 143|Community 143]]
@@ -145,7 +146,7 @@
 - `markdownToJsonContent()` --calls--> `createMarkdownExtensions()`  [INFERRED]
   apps/mirror/features/posts/lib/parsers/markdown-to-json-content.ts → packages/features/editor/lib/extensions.ts
 
-## Communities (573 total, 49 thin omitted)
+## Communities (573 total, 48 thin omitted)
 
 ### Community 0 - "Chat Streaming + Better Auth (fused)"
 Cohesion: 0.05
@@ -173,7 +174,7 @@ Nodes (18): ProfileMedia(), ArticleWorkspaceProvider(), PostWorkspaceProvider(),
 
 ### Community 6 - "Better Auth Triggers & Plugins"
 Cohesion: 0.05
-Nodes (3): collectExternalImageSrcs(), importMarkdownInlineImagesCore(), buildReferencedStorageSet()
+Nodes (3): buildReferencedStorageSet(), chunkText(), extractPlainText()
 
 ### Community 7 - "Clone Tool Definitions & Tests"
 Cohesion: 0.07
@@ -199,31 +200,27 @@ Nodes (10): RootLayout(), AppSidebar(), NavHeader(), SidebarLayout(), UiFactoryL
 Cohesion: 0.13
 Nodes (10): usePostToolbar(), useCoverImageState(), useCreatePostFromFile(), useMarkdownFileParser(), usePostCoverImageUpload(), MarkdownUploadDialogConnector(), PostListToolbarConnector(), markdownToJsonContent() (+2 more)
 
-### Community 14 - "Playwright Test-Mode Gates"
+### Community 13 - "Article Markdown Import"
+Cohesion: 0.17
+Nodes (15): claimCoverBlobOwnershipFromAction(), deleteCoverBlobAndOwnership(), deleteCoverBlobOwnership(), safeDeleteActionStorage(), safeDeleteStorage(), deleteCoverBlobAndOwnership(), deleteCoverBlobOwnership(), safeDeleteStorage() (+7 more)
+
+### Community 15 - "Query Test Suites"
 Cohesion: 0.16
 Nodes (16): allocatePort(), canListen(), explicitPort(), git(), hashOffset(), isPortFree(), lockPath(), mainRoot() (+8 more)
 
-### Community 15 - "Query Test Suites"
-Cohesion: 0.17
-Nodes (13): collectExternalImageSrcsRec(), collectInlineImageStorageIds(), extractInlineImageStorageIds(), hasExternalImageSrcs(), isAbsoluteHttpsUrl(), mapInlineImages(), mapNode(), multisetDifference() (+5 more)
-
 ### Community 16 - "RAG Embedding Pipeline"
-Cohesion: 0.17
-Nodes (14): claimCoverBlobOwnershipFromAction(), deleteCoverBlobAndOwnership(), deleteCoverBlobOwnership(), safeDeleteActionStorage(), safeDeleteStorage(), deleteCoverBlobAndOwnership(), deleteCoverBlobOwnership(), safeDeleteStorage() (+6 more)
-
-### Community 17 - "Rick Rubin Seed Mutations"
 Cohesion: 0.18
 Nodes (12): assertHostnameNotBlocked(), assertHttps(), isBlockedAddress(), isBlockedIPv4(), isBlockedIPv6(), isRedirect(), isValidImageMagicBytes(), readWithLimit() (+4 more)
 
-### Community 18 - "System Prompt Composition"
+### Community 17 - "Rick Rubin Seed Mutations"
 Cohesion: 0.15
 Nodes (7): AnimatedArticleRow(), ArticleListFeatured(), FeaturedArticleCard(), useVisibilityGatedVideoPlayback(), ArticleListLoader(), useCloneActions(), thumbhashToDataUrl()
 
-### Community 19 - "Mutation Test Suites"
+### Community 18 - "System Prompt Composition"
 Cohesion: 0.18
-Nodes (6): MirrorLogoMenu(), MirrorLogo(), ProfileLogo(), ProfilePanel(), CloneActionsProvider(), useProfileRouteData()
+Nodes (8): ChatPanel(), CollapsedProfileAvatarButton(), useConversations(), parseConversationId(), ChatRouteController(), useChatRouteController(), useProfileRouteData(), CaptureContext()
 
-### Community 20 - "Rick Rubin Seed Helpers"
+### Community 19 - "Mutation Test Suites"
 Cohesion: 0.21
 Nodes (7): blobExists(), bodyWithImages(), imageNode(), insertAppUserAndSignIn(), makeT(), SafeFetchError, storeBlob()
 
@@ -232,76 +229,80 @@ Cohesion: 0.17
 Nodes (8): POST(), POST(), createConversation(), endConversation(), TavusApiError, applyMarks(), serializeArticlesToContext(), serializeNode()
 
 ### Community 22 - "Bio Embedding Source Tests"
-Cohesion: 0.23
-Nodes (5): InteractionPanel(), MobileWorkspace(), WorkspaceShell(), useChatSearchParams(), useProfileWorkspaceRouteData()
+Cohesion: 0.27
+Nodes (7): extractInlineImageStorageIds(), mapInlineImages(), mapNode(), filterVisibleContent(), getUserAndContentAccess(), claimInlineImageOwnership(), rewriteInlineImageSrc()
 
 ### Community 23 - "System Prompt Helper Tests"
+Cohesion: 0.21
+Nodes (4): InteractionPanel(), ProfilePanel(), useChatSearchParams(), CloneActionsProvider()
+
+### Community 24 - "Bio Embedding Serializer"
 Cohesion: 0.22
 Nodes (6): useProfileData(), useUsernameAvailability(), isReservedUsername(), ProfileRouteDataProvider(), generateMetadata(), ProfileLayout()
 
-### Community 24 - "Bio Embedding Serializer"
+### Community 25 - "Slug Backfill Tests"
+Cohesion: 0.23
+Nodes (5): MobileWorkspace(), WorkspaceShell(), useProfileWorkspaceRouteData(), getProfileTabHref(), isProfileTabKind()
+
+### Community 26 - "Convex App Registry"
 Cohesion: 0.21
 Nodes (5): onSelectionUpdate(), shouldShowTextMenu(), getActiveTextStyle(), TextStylePicker(), ToolbarSeparator()
 
-### Community 25 - "Slug Backfill Tests"
-Cohesion: 0.18
-Nodes (6): ChatPanel(), useConversations(), parseConversationId(), ChatRouteController(), useChatRouteController(), CaptureContext()
-
-### Community 26 - "Convex App Registry"
+### Community 27 - "Waitlist Tests"
 Cohesion: 0.2
 Nodes (5): VideoCallContent(), Conversation(), CVIProvider(), useCallState(), useVideoCall()
 
-### Community 27 - "Waitlist Tests"
+### Community 28 - "OTP Send Tests"
 Cohesion: 0.2
 Nodes (4): SlashCommandSuggestions(), buildSlashCommandItems(), filterSlashCommandItems(), createSuggestionRenderer()
 
-### Community 28 - "OTP Send Tests"
-Cohesion: 0.27
-Nodes (8): resolveArticleCoverImageUrl(), validateThumbhashFormat(), resolveStorageUrl(), validateContentStringLength(), getPostCategoryForSlug(), resolvePostCategory(), resolvePostCoverImageUrl(), serializePost()
+### Community 29 - "Allowlist Tests"
+Cohesion: 0.25
+Nodes (7): collectExternalImageSrcs(), collectExternalImageSrcsRec(), collectInlineImageStorageIds(), hasExternalImageSrcs(), isAbsoluteHttpsUrl(), nodeHasExternalImageSrc(), importMarkdownInlineImagesCore()
 
-### Community 30 - "Auth Trigger Tests"
+### Community 31 - "Email Templates"
 Cohesion: 0.24
 Nodes (4): AppDockContent(), useDockConfig(), useDockVisibility(), useDock()
 
-### Community 31 - "Email Templates"
+### Community 32 - "Waitlist Mutations"
 Cohesion: 0.29
 Nodes (4): makeT(), normalizeConvexGlob(), setupOwnerAndSignIn(), storeBlob()
 
-### Community 32 - "Waitlist Mutations"
-Cohesion: 0.31
-Nodes (6): buildBioHref(), buildContentHref(), buildProfileSectionHref(), appendSearchParams(), ContentPage(), OnboardingPage()
-
 ### Community 33 - "Referenced Storage Set"
+Cohesion: 0.29
+Nodes (7): resolveArticleCoverImageUrl(), validateThumbhashFormat(), resolveStorageUrl(), getPostCategoryForSlug(), resolvePostCategory(), resolvePostCoverImageUrl(), serializePost()
+
+### Community 34 - "Markdown Import Core"
 Cohesion: 0.22
 Nodes (3): buildPersonaPatch(), getAppUser(), resolveAvatarUrl()
 
-### Community 34 - "Markdown Import Core"
-Cohesion: 0.27
-Nodes (4): insertConversation(), insertOwner(), makeT(), seedStreamResponseContext()
-
 ### Community 35 - "Tool Query Href Resolver"
-Cohesion: 0.2
-Nodes (4): ButtonGroupWrapper(), ButtonVariants(), ButtonsView(), ShinyButton()
+Cohesion: 0.42
+Nodes (6): backfillSlugs(), findFreeSlug(), validateContentStringLength(), assertValidSlug(), generateSlug(), isValidSlug()
 
 ### Community 36 - "Email Send Actions (templates)"
-Cohesion: 0.24
-Nodes (4): formatDateRange(), formatMonthYear(), isSameMonthYear(), safeHttpUrl()
+Cohesion: 0.31
+Nodes (6): buildBioHref(), buildContentHref(), buildProfileSectionHref(), appendSearchParams(), ContentPage(), OnboardingPage()
 
 ### Community 37 - "Inline Image URL Helpers"
 Cohesion: 0.27
-Nodes (6): CollapsedProfileAvatarButton(), ContentPanelToggle(), useOptionalWorkspaceChrome(), useWorkspaceChrome(), WorkspaceChromeProvider(), ContentToggleHarness()
+Nodes (4): insertConversation(), insertOwner(), makeT(), seedStreamResponseContext()
 
 ### Community 38 - "Env Validation"
+Cohesion: 0.2
+Nodes (4): ButtonGroupWrapper(), ButtonVariants(), ButtonsView(), ShinyButton()
+
+### Community 39 - "Email Send Actions (transport)"
+Cohesion: 0.24
+Nodes (4): formatDateRange(), formatMonthYear(), isSameMonthYear(), safeHttpUrl()
+
+### Community 40 - "Community 40"
 Cohesion: 0.27
 Nodes (4): ContentPanel(), ToolbarSlotProvider(), ToolbarSlotTarget(), useProfileNavigationEffects()
 
-### Community 41 - "Community 41"
+### Community 43 - "Community 43"
 Cohesion: 0.39
 Nodes (7): deriveUsernameFromEmail(), ensureRickRubinArticles(), ensureRickRubinConversations(), ensureRickRubinPosts(), ensureRickRubinUser(), ensureWorktreeOwnerBio(), ensureWorktreeOwnerProfile()
-
-### Community 42 - "Community 42"
-Cohesion: 0.47
-Nodes (5): backfillSlugs(), findFreeSlug(), assertValidSlug(), generateSlug(), isValidSlug()
 
 ### Community 45 - "Community 45"
 Cohesion: 0.33
@@ -321,41 +322,45 @@ Nodes (5): ArticleMetadataCoverRow(), ArticleMetadataTimestamps(), formatTimesta
 
 ### Community 49 - "Community 49"
 Cohesion: 0.28
-Nodes (5): BioEntryForm(), getDefaultValues(), epochMsToMonthYear(), monthYearToEpochMs(), toMutationArgs()
-
-### Community 50 - "Community 50"
-Cohesion: 0.28
 Nodes (3): dragHandleBy(), dragHandlePath(), getHandlePosition()
 
-### Community 51 - "Community 51"
+### Community 50 - "Community 50"
 Cohesion: 0.32
 Nodes (3): buildLineToTableMap(), findSchemaStorageRefs(), walkConvexFiles()
 
+### Community 53 - "Community 53"
+Cohesion: 0.32
+Nodes (5): ContentPanelToggle(), useOptionalWorkspaceChrome(), useWorkspaceChrome(), WorkspaceChromeProvider(), ContentToggleHarness()
+
 ### Community 54 - "Community 54"
+Cohesion: 0.29
+Nodes (3): MirrorLogoMenu(), MirrorLogo(), ProfileLogo()
+
+### Community 55 - "Community 55"
 Cohesion: 0.25
 Nodes (3): ImportResultStatus(), MarkdownFileInput(), ParsedMetadataPreview()
 
-### Community 56 - "Community 56"
+### Community 57 - "Community 57"
 Cohesion: 0.32
 Nodes (3): getDistanceFromBottom(), handleScroll(), isNearBottom()
 
-### Community 57 - "Community 57"
+### Community 58 - "Community 58"
 Cohesion: 0.32
 Nodes (3): useBioWorkspace(), useBioEntries(), useBioPanelHandlers()
 
-### Community 58 - "Community 58"
+### Community 59 - "Community 59"
 Cohesion: 0.25
 Nodes (3): DefaultContentTypeSelect(), SettingsToolbar(), useProfileSettings()
 
-### Community 64 - "Community 64"
+### Community 65 - "Community 65"
 Cohesion: 0.52
 Nodes (5): buildContentInventorySentence(), buildToolsVocabulary(), composeSystemPrompt(), SAFETY_PREFIX(), truncateToBudget()
 
-### Community 65 - "Community 65"
+### Community 66 - "Community 66"
 Cohesion: 0.38
 Nodes (3): normalizeConvexGlob(), normalizeConvexTestModules(), normalizeNestedTestPath()
 
-### Community 68 - "Community 68"
+### Community 69 - "Community 69"
 Cohesion: 0.43
 Nodes (4): HomePage(), enforceOnboardingGate(), hasFinishedOnboarding(), ProtectedLayout()
 
@@ -371,17 +376,21 @@ Nodes (3): ToastAction(), ToastClose(), useToastContext()
 Cohesion: 0.47
 Nodes (3): installUrlMocks(), restoreUrlMethod(), setUrlMethod()
 
+### Community 91 - "Community 91"
+Cohesion: 0.4
+Nodes (4): BioEntryForm(), BioEntryFormDialog(), getDefaultValues(), epochMsToMonthYear()
+
 ## Knowledge Gaps
-- **49 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **48 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `WorkspaceShell()` connect `Bio Embedding Source Tests` to `Body Walk & Ownership Registry`, `System Prompt Helper Tests`?**
+- **Why does `WorkspaceShell()` connect `Slug Backfill Tests` to `Bio Embedding Serializer`, `Body Walk & Ownership Registry`?**
   _High betweenness centrality (0.062) - this node is a cross-community bridge._
-- **Why does `buildProfileSectionHref()` connect `Waitlist Mutations` to `Community 68`?**
+- **Why does `buildProfileSectionHref()` connect `Email Send Actions (templates)` to `Community 69`?**
   _High betweenness centrality (0.062) - this node is a cross-community bridge._
-- **Why does `enforceOnboardingGate()` connect `Community 68` to `System Prompt Helper Tests`?**
+- **Why does `enforceOnboardingGate()` connect `Community 69` to `Bio Embedding Serializer`?**
   _High betweenness centrality (0.062) - this node is a cross-community bridge._
 - **Are the 9 inferred relationships involving `useChatSearchParams()` (e.g. with `MobileWorkspace()` and `ProfilePanel()`) actually correct?**
   _`useChatSearchParams()` has 9 INFERRED edges - model-reasoned connections that need verification._
