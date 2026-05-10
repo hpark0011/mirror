@@ -1,9 +1,13 @@
 import { expect, test } from "@playwright/test";
+import { join, sep } from "node:path";
+import { pathToFileURL } from "node:url";
 
-const repoRoot = process.cwd().endsWith("/apps/mirror")
-  ? process.cwd().slice(0, -"/apps/mirror".length)
+const appRootSuffix = `${sep}apps${sep}mirror`;
+const repoRoot = process.cwd().endsWith(appRootSuffix)
+  ? process.cwd().slice(0, -appRootSuffix.length)
   : process.cwd();
-const reportUrl = `file://${repoRoot}/workspace/reports/graphify-effectiveness/latest.html`;
+const reportPath = join(repoRoot, "workspace", "reports", "graphify-effectiveness", "latest.html");
+const reportUrl = pathToFileURL(reportPath).href;
 
 test.describe("Graphify effectiveness report", () => {
   test("renders the generated metric report", async ({ page }) => {

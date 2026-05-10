@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-05-10T11:35:10.715Z",
+  "generatedAt": "2026-05-10T12:59:08.171Z",
   "window": {
     "days": 14,
-    "start": "2026-04-26T11:35:10.715Z",
-    "end": "2026-05-10T11:35:10.715Z"
+    "start": "2026-04-26T12:59:08.171Z",
+    "end": "2026-05-10T12:59:08.171Z"
   },
   "targets": {
     "graphNativeAdoptionRate": 0.7,
@@ -13,26 +13,26 @@
     "verifiedEditRate": 0.8
   },
   "metrics": {
-    "totalRepoSessions": 63,
-    "eligibleSessions": 63,
-    "editSessions": 37,
-    "eligibleEditSessions": 37,
+    "totalRepoSessions": 64,
+    "eligibleSessions": 64,
+    "editSessions": 38,
+    "eligibleEditSessions": 38,
     "graphNativeSessions": 1,
-    "graphNativeBeforeBroadReadSessions": 1,
-    "graphNativeAdoptionRate": 0.015873015873015872,
-    "graphNativeBeforeBroadReadRate": 0.015873015873015872,
-    "medianReadsBeforeFirstEdit": 31,
-    "medianTimeToFirstEditSeconds": 246.158,
-    "graphUpdateComplianceRate": 0.5405405405405406,
-    "verifiedEditRate": 0.7567567567567568,
-    "testsNotRunRate": 0.13513513513513514
+    "graphNativeBeforeBroadReadSessions": 0,
+    "graphNativeAdoptionRate": 0.015625,
+    "graphNativeBeforeBroadReadRate": 0,
+    "medianReadsBeforeFirstEdit": 32.5,
+    "medianTimeToFirstEditSeconds": 249.43599999999998,
+    "graphUpdateComplianceRate": 0.2894736842105263,
+    "verifiedEditRate": 0.7894736842105263,
+    "testsNotRunRate": 0.13157894736842105
   },
   "graphHygiene": {
     "graphPath": "graphify-out/graph.json",
     "reportPath": "graphify-out/GRAPH_REPORT.md",
-    "builtFromCommit": "d332946f",
-    "head": "d332946f54471fa4e4834f260ef4d959afd2aece",
-    "headShort": "d332946f",
+    "builtFromCommit": "d26a88cf",
+    "head": "d26a88cf6f9e3c442fe1f4df477a7c350be59db1",
+    "headShort": "d26a88cf",
     "fresh": true,
     "absoluteSourcePathCount": 0,
     "hookStatusOk": true,

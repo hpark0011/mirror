@@ -6,13 +6,14 @@ import { homedir } from "node:os";
 import { dirname, join, relative, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const READ_RE = /\b(cat|sed|rg|grep|find|ls|tree|head|tail|wc|jq|git show|git diff|git status|nl)\b/i;
+const READ_RE =
+  /\b(cat|sed|rg|grep|ast-grep|fd|find|ls|tree|head|tail|wc|jq|git show|git diff|git status|nl)\b/i;
 const WRITE_SHELL_RE =
   /(apply_patch|cat\s+>|tee\s+|sed\s+-i|perl\s+-pi|python3?\s+- <<|echo\s+.+>|printf\s+.+>)/is;
 const GRAPH_NATIVE_RE = /(^|[;&|]\s*)graphify\s+(query|path|explain)\b/i;
 const GRAPH_UPDATE_RE = /(^|[;&|]\s*)graphify\s+update\b/i;
 const VALIDATION_RE =
-  /\b(pytest|rspec|vitest|jest|playwright|cypress|go test|cargo test|npm (run )?(test|lint|build|typecheck)|pnpm (run )?(test|lint|build|typecheck)|yarn (run )?(test|lint|build|typecheck)|bun (run )?(test|lint|build|typecheck)|eslint|tsc|typecheck|rubocop|ruff|mypy|black --check|bundle exec|rails test|mvn test|gradle test|make test|cargo clippy|git diff --check)\b/i;
+  /\b(pytest|rspec|vitest|jest|playwright|cypress|node\s+--test|go test|cargo test|(?:npm|pnpm|yarn|bun)(?:\s+(?:--filter(?:=|\s+)\S+|--workspace(?:=|\s+)\S+|--cwd(?:=|\s+)\S+|--dir(?:=|\s+)\S+|--if-present|-[A-Za-z]+))*\s+(?:run\s+)?(?:test(?::[\w-]+)?|lint(?::[\w-]+)?|build|typecheck)|eslint|tsc|typecheck|rubocop|ruff|mypy|black --check|bundle exec|rails test|mvn test|gradle test|make test|cargo clippy|git diff --check)\b/i;
 const TESTS_NOT_RUN_RE = /\b(not run|did not run|wasn.t run|unable to run|couldn.t run|not tested)\b/i;
 const ELIGIBLE_TEXT_RE =
   /\b(architecture|architectural|cross-module|cross module|how does|relate|relationship|debug|investigate|review|implement|fix|plan|orchestrate|parity|graphify)\b/i;
@@ -102,6 +103,21 @@ function textFromContent(value) {
   return "";
 }
 
+function visitStringLeaves(value, visitor, seen = new Set()) {
+  if (typeof value === "string") {
+    visitor(value);
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  if (seen.has(value)) return;
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) visitStringLeaves(item, visitor, seen);
+    return;
+  }
+  for (const item of Object.values(value)) visitStringLeaves(item, visitor, seen);
+}
+
 function commandFromCall(name, args) {
   if (name !== "exec_command") return name;
   return String(args.cmd ?? "");
@@ -125,7 +141,7 @@ function isValidationCommand(name, args) {
 
 function topAreaFromPath(path) {
   const normalized = String(path).replaceAll("\\", "/");
-  const match = normalized.match(/(?:^|\/)(apps|packages|scripts|workspace|\.claude|\.agents|tooling)\//);
+  const match = normalized.match(/(?:^|[\s"'=:\/])(apps|packages|scripts|workspace|\.claude|\.agents|tooling)\//);
   return match?.[1] ?? null;
 }
 
@@ -240,11 +256,10 @@ export function parseSessionFile(path, options = {}) {
       const cmd = commandFromCall(name, args);
       session.toolCalls += 1;
 
-      for (const value of Object.values(args)) {
-        if (typeof value !== "string") continue;
+      visitStringLeaves(args, (value) => {
         const area = topAreaFromPath(value);
         if (area) session.touchedAreas.add(area);
-      }
+      });
 
       if (isReadCommand(name, args)) {
         session.readCalls += 1;
@@ -261,6 +276,7 @@ export function parseSessionFile(path, options = {}) {
         session.firstEditAt ??= timestamp;
         session.lastEditAt = timestamp;
         session.firstValidationAfterLastEditAt = null;
+        session.firstGraphUpdateAfterEditAt = null;
       }
 
       if (isValidationCommand(name, args)) {
@@ -285,16 +301,17 @@ export function parseSessionFile(path, options = {}) {
     session.end = modified;
   }
 
-  const sixthReadAt = findNthReadTime(path, 6);
+  const sixthReadAt = findNthReadTime(path, 6, session.firstEditAt);
+  const graphNativeBeforeFirstEdit = !session.firstEditAt || session.firstGraphNativeAt <= session.firstEditAt;
   session.graphNativeBeforeBroadReads = Boolean(
-    session.firstGraphNativeAt && (!sixthReadAt || session.firstGraphNativeAt <= sixthReadAt),
+    session.firstGraphNativeAt && graphNativeBeforeFirstEdit && (!sixthReadAt || session.firstGraphNativeAt <= sixthReadAt),
   );
   session.repoSession = shouldIncludeRepoSession(session, repoRoot);
   session.eligible = isEligibleSession(session);
   return session;
 }
 
-function findNthReadTime(path, nth) {
+function findNthReadTime(path, nth, stopAt = null) {
   let count = 0;
   const raw = readFileSync(path, "utf8");
   for (const line of raw.split(/\r?\n/)) {
@@ -308,11 +325,13 @@ function findNthReadTime(path, nth) {
     const payload = event.payload && typeof event.payload === "object" ? event.payload : {};
     if (event.type !== "response_item") continue;
     if (payload.type !== "function_call" && payload.type !== "custom_tool_call") continue;
+    const timestamp = parseTime(event.timestamp) ?? parseTime(payload.timestamp);
+    if (stopAt && (!timestamp || timestamp >= stopAt)) continue;
     const name = String(payload.name ?? payload.tool_name ?? "");
     const args = asObject(payload.arguments ?? payload.input ?? payload.content ?? {});
     if (!isReadCommand(name, args)) continue;
     count += 1;
-    if (count === nth) return parseTime(event.timestamp) ?? parseTime(payload.timestamp);
+    if (count === nth) return timestamp;
   }
   return null;
 }

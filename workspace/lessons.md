@@ -2,6 +2,16 @@
 
 ## 2026-05-10
 
+### Measurement classifiers must model the repo's real commands
+
+- Session metrics are only useful if command classifiers recognize the commands
+  agents actually run. In this repo, validation commonly appears as
+  `pnpm --filter=<workspace> lint/test:e2e` and `node --test`, while discovery
+  can use `fd` or `ast-grep`; analyzer regexes need fixtures for those forms.
+- For "after final edit" compliance metrics, reset the compliance marker on
+  every later edit. Otherwise an early `graphify update .` or validation command
+  can make a session look compliant even after subsequent changes.
+
 ### Graphify clean rebuilds must start from a clean graph.json
 
 - `graphify update . --force` refreshes the commit marker and rebuilds AST

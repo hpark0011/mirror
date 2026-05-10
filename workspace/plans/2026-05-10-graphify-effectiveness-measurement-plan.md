@@ -50,9 +50,9 @@ Definitions:
 
 ## 3. Current State
 
-- The existing retro analyzer lives at `/Users/disquiet/.codex/skills/retro/scripts/analyze_sessions.py` and already reports `median_read_calls_before_first_edit`, `median_time_to_first_edit_seconds`, `verified_edit_rate`, and `tests_not_run_rate`.
+- The existing retro analyzer lives under `${CODEX_HOME:-$HOME/.codex}/skills/retro/scripts/analyze_sessions.py` and already reports `median_read_calls_before_first_edit`, `median_time_to_first_edit_seconds`, `verified_edit_rate`, and `tests_not_run_rate`.
 - `AGENTS.md` now requires graph-native commands before broad grep/file reads for cross-module relationship questions.
-- `graphify-out/GRAPH_REPORT.md` is current as of commit `c7f622c4`.
+- `graphify-out/GRAPH_REPORT.md` is current when its "Built from commit" matches `git rev-parse HEAD`.
 - `graphify-out/graph.json` was clean rebuilt from this worktree and has zero absolute `/Users/...` source paths.
 - `graphify hook status` reports `post-commit` and `post-checkout` installed after setting `core.hooksPath` to the common git hooks directory.
 
