@@ -17,6 +17,15 @@
 
 export type ContentKind = "articles" | "posts";
 
+export const DEFAULT_PROFILE_SECTION_VALUES = [
+  "bio",
+  "posts",
+  "articles",
+] as const;
+export type DefaultProfileSection =
+  (typeof DEFAULT_PROFILE_SECTION_VALUES)[number];
+export const DEFAULT_PROFILE_SECTION: DefaultProfileSection = "posts";
+
 export function buildContentHref(
   username: string,
   kind: ContentKind,
@@ -28,13 +37,14 @@ export function buildContentHref(
 
 // Profile section identifier — covers every ProfileTab the user-UI dispatcher
 // can navigate to. The agent's `openProfileSection` tool pins to a strict
-// subset (`bio | articles | posts`); `clone-settings` is owner-only and not
-// part of the agent's verb space (see `chat/tools.ts`).
+// subset (`bio | articles | posts`); owner-only sections are not part of the
+// agent's verb space (see `chat/tools.ts`).
 export type ProfileSection =
   | "bio"
   | "articles"
   | "posts"
-  | "clone-settings";
+  | "clone-settings"
+  | "settings";
 
 // Server-side parallel of `getProfileTabHref` at
 // `apps/mirror/features/profile-tabs/types.ts`. The href-parity invariant is

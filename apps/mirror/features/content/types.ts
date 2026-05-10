@@ -9,7 +9,11 @@ import { type ContentKind } from "@feel-good/convex/convex/content/href";
 
 export {
   buildContentHref as getContentHref,
+  buildProfileSectionHref,
+  DEFAULT_PROFILE_SECTION,
+  DEFAULT_PROFILE_SECTION_VALUES,
   type ContentKind,
+  type DefaultProfileSection,
 } from "@feel-good/convex/convex/content/href";
 
 export const CONTENT_KINDS = ["posts", "articles"] as const;

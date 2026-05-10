@@ -12,20 +12,21 @@ import {
 } from "../types";
 
 describe("PROFILE_TAB_KINDS", () => {
-  it("contains exactly four kinds", () => {
-    expect(PROFILE_TAB_KINDS.length).toBe(4);
+  it("contains exactly five kinds", () => {
+    expect(PROFILE_TAB_KINDS.length).toBe(5);
   });
 
   it("includes bio at index 2 to preserve the position-independent default", () => {
     expect(PROFILE_TAB_KINDS[2]).toBe("bio");
   });
 
-  it("includes the canonical four kinds", () => {
+  it("includes the canonical five kinds", () => {
     expect(PROFILE_TAB_KINDS).toEqual([
       "posts",
       "articles",
       "bio",
       "clone-settings",
+      "settings",
     ]);
   });
 });
@@ -46,16 +47,16 @@ describe("isProfileTabKind", () => {
     }
   });
 
-  it("returns true specifically for posts, articles, bio, clone-settings", () => {
+  it("returns true specifically for posts, articles, bio, clone-settings, settings", () => {
     expect(isProfileTabKind("posts")).toBe(true);
     expect(isProfileTabKind("articles")).toBe(true);
     expect(isProfileTabKind("bio")).toBe(true);
     expect(isProfileTabKind("clone-settings")).toBe(true);
+    expect(isProfileTabKind("settings")).toBe(true);
   });
 
   it("returns false for unknown strings", () => {
     expect(isProfileTabKind("unknown")).toBe(false);
-    expect(isProfileTabKind("settings")).toBe(false);
     expect(isProfileTabKind("dashboard")).toBe(false);
     expect(isProfileTabKind("")).toBe(false);
   });
@@ -74,6 +75,7 @@ describe("getProfileTabHref", () => {
     expect(getProfileTabHref("alice", "clone-settings")).toBe(
       "/@alice/clone-settings",
     );
+    expect(getProfileTabHref("alice", "settings")).toBe("/@alice/settings");
   });
 
   it("agrees with buildBioHref for the 'bio' kind — href-parity invariant", () => {

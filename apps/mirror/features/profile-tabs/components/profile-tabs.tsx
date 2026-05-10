@@ -27,7 +27,7 @@ export function ProfileTabs({
   const { navigateToProfileSection } = useCloneActions();
 
   const visibleKinds = PROFILE_TAB_DISPLAY_ORDER.filter(
-    (kind) => kind !== "clone-settings" || isOwner,
+    (kind) => (kind !== "clone-settings" && kind !== "settings") || isOwner,
   );
 
   // Funnels normal left-clicks through `useCloneActions().navigateToProfileSection`
@@ -56,11 +56,7 @@ export function ProfileTabs({
       <TabsList variant="minimal" className="gap-3">
         {visibleKinds.map((kind) => (
           <div key={kind} className="flex items-center">
-            <TabsTrigger
-              asChild
-              value={kind}
-              className="text-[13px]"
-            >
+            <TabsTrigger asChild value={kind} className="text-[13px]">
               <Link
                 href={buildChatAwareHref(getProfileTabHref(username, kind))}
                 prefetch={false}
@@ -68,7 +64,9 @@ export function ProfileTabs({
                 onClick={(event) => handleClick(event, kind)}
                 {...(kind === "clone-settings"
                   ? { "data-testid": "profile-tab-clone-settings" }
-                  : {})}
+                  : kind === "settings"
+                    ? { "data-testid": "profile-tab-settings" }
+                    : {})}
               >
                 <span className="font-normal">{PROFILE_TAB_LABELS[kind]}</span>
               </Link>

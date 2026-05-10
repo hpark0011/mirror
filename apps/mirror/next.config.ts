@@ -58,21 +58,42 @@ const nextConfig: NextConfig = {
   ],
   rewrites: async () => [
     { source: "/@:username/chat", destination: "/:username/chat" },
-    { source: "/@:username/chat/:conversationId", destination: "/:username/chat/:conversationId" },
+    {
+      source: "/@:username/chat/:conversationId",
+      destination: "/:username/chat/:conversationId",
+    },
     { source: "/@:username", destination: "/:username" },
     { source: "/@:username/articles", destination: "/:username/articles" },
-    { source: "/@:username/articles/:slug", destination: "/:username/articles/:slug" },
-    { source: "/@:username/articles/:slug/edit", destination: "/:username/articles/:slug/edit" },
+    {
+      source: "/@:username/articles/:slug",
+      destination: "/:username/articles/:slug",
+    },
+    {
+      source: "/@:username/articles/:slug/edit",
+      destination: "/:username/articles/:slug/edit",
+    },
     { source: "/@:username/posts", destination: "/:username/posts" },
-    { source: "/@:username/posts/:slug", destination: "/:username/posts/:slug" },
-    { source: "/@:username/posts/:slug/edit", destination: "/:username/posts/:slug/edit" },
-    { source: "/@:username/clone-settings", destination: "/:username/clone-settings" },
+    {
+      source: "/@:username/posts/:slug",
+      destination: "/:username/posts/:slug",
+    },
+    {
+      source: "/@:username/posts/:slug/edit",
+      destination: "/:username/posts/:slug/edit",
+    },
+    {
+      source: "/@:username/clone-settings",
+      destination: "/:username/clone-settings",
+    },
+    { source: "/@:username/settings", destination: "/:username/settings" },
     { source: "/@:username/bio", destination: "/:username/bio" },
   ],
 };
 
 const hasSentryUploadConfig = Boolean(
-  process.env.SENTRY_AUTH_TOKEN && process.env.SENTRY_ORG && process.env.SENTRY_PROJECT
+  process.env.SENTRY_AUTH_TOKEN &&
+  process.env.SENTRY_ORG &&
+  process.env.SENTRY_PROJECT,
 );
 
 export default withSentryConfig(nextConfig, {

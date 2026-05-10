@@ -72,6 +72,7 @@ import type * as posts_queries from "../posts/queries.js";
 import type * as seed from "../seed.js";
 import type * as seed_data from "../seed/data.js";
 import type * as seed_helpers from "../seed/helpers.js";
+import type * as users_defaultProfileSection from "../users/defaultProfileSection.js";
 import type * as users_helpers from "../users/helpers.js";
 import type * as users_mutations from "../users/mutations.js";
 import type * as users_queries from "../users/queries.js";
@@ -151,6 +152,7 @@ declare const fullApi: ApiFromModules<{
   seed: typeof seed;
   "seed/data": typeof seed_data;
   "seed/helpers": typeof seed_helpers;
+  "users/defaultProfileSection": typeof users_defaultProfileSection;
   "users/helpers": typeof users_helpers;
   "users/mutations": typeof users_mutations;
   "users/queries": typeof users_queries;
