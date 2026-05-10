@@ -11,6 +11,9 @@
 - For "after final edit" compliance metrics, reset the compliance marker on
   every later edit. Otherwise an early `graphify update .` or validation command
   can make a session look compliant even after subsequent changes.
+- Do not commit `latest.*` report snapshots when they include commit freshness
+  fields. The act of committing the generated file creates a new HEAD, so a
+  tracked snapshot can claim `fresh: true` for the previous commit.
 
 ### Graphify clean rebuilds must start from a clean graph.json
 

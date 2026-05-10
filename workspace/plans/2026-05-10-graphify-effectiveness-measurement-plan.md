@@ -132,7 +132,7 @@ Add a tiny Playwright spec:
 
 Assertions:
 
-- open `file://<repo>/workspace/reports/graphify-effectiveness/latest.html`
+- generate a temporary HTML report and open it through a `file://` URL
 - assert visible headings:
   - `Graphify Effectiveness`
   - `Median reads before first edit`
@@ -186,7 +186,10 @@ node scripts/measure-graphify-effectiveness.mjs --days 14 --format html --out wo
 pnpm --filter=@feel-good/mirror test:e2e -- graphify-effectiveness-report.spec.ts
 ```
 
-Record the first baseline in `workspace/reports/graphify-effectiveness/`.
+Generate the first baseline under `workspace/reports/graphify-effectiveness/`.
+The `latest.*` files are local generated artifacts, not tracked snapshots,
+because their graph freshness fields refer to the commit that was current at
+generation time.
 
 ## 5. Recommendation Engine
 
