@@ -120,6 +120,18 @@
   after a failed blob delete. Keep the row as the reclaim handle so later
   orphan cleanup or sweeps can still find the leaked storage object.
 
+### Chat-agent e2e specs need clean clone owners
+
+- Authenticated chat specs that use the canonical `test-user` profile can
+  inherit old conversations from previous local runs because the chat route
+  auto-selects the latest conversation when `?chat=1` has no conversation id.
+  For retrieval/navigation regressions, seed a dedicated test owner and chat
+  with that profile as the authenticated visitor so the conversation list
+  starts empty and assertions target the new exchange.
+- Cold-route compiles can take longer than the shared `openChat` helper's
+  10-second textarea wait. A focused spec may need a local helper with a
+  longer wait when it creates a brand-new profile route during setup.
+
 ## 2026-05-08
 
 ### Temporary blob previews need an explicit ownership handoff

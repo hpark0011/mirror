@@ -5,9 +5,16 @@ const TEST_EMAIL = "playwright-test@mirror.test";
 export interface ArticleFixtures {
   draftSlug: string;
   publishedSlug: string;
+  relevantSlug?: string;
+  relevantTitle?: string;
 }
 
 export interface EnsureTestArticleFixturesOptions {
+  /**
+   * Test-owner email whose article fixtures should be seeded. Defaults to
+   * the canonical authenticated Playwright user.
+   */
+  email?: string;
   /**
    * Per-spec key used to scope the draft slug. Required for any spec that
    * SAVES into the draft (paste, drop, replace, cascade-delete) so parallel
@@ -26,6 +33,12 @@ export interface EnsureTestArticleFixturesOptions {
    * returned — preserved for any non-inline-image consumer of this helper.
    */
   key?: string;
+  /**
+   * When true, also seeds a published article with a body that clearly
+   * matches the clone-agent relevant-content retrieval prompt and waits for
+   * its embeddings to be generated before returning.
+   */
+  relevantArticle?: boolean;
 }
 
 /**
@@ -34,7 +47,9 @@ export interface EnsureTestArticleFixturesOptions {
  * Calls the test-only `/test/ensure-article-fixtures` HTTP endpoint
  * (gated by `PLAYWRIGHT_TEST_SECRET`) which idempotently upserts a draft
  * (and a shared published) article owned by the test user, then returns
- * the slugs.
+ * the slugs. Some chat-agent specs also request a dedicated relevant
+ * published article whose embeddings are generated synchronously by the
+ * test endpoint.
  *
  * Fixture-pollution context: see workspace ticket FG_154. Inlining this
  * helper into each spec (the previous shape) drifted between specs and
@@ -49,8 +64,13 @@ export async function ensureTestArticleFixtures(
   const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
   const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
 
-  const body: { email: string; key?: string } = { email: TEST_EMAIL };
+  const body: { email: string; key?: string; relevantArticle?: boolean } = {
+    email: opts.email ?? TEST_EMAIL,
+  };
   if (opts.key !== undefined) body.key = opts.key;
+  if (opts.relevantArticle !== undefined) {
+    body.relevantArticle = opts.relevantArticle;
+  }
 
   const res = await fetch(`${convexSiteUrl}/test/ensure-article-fixtures`, {
     method: "POST",

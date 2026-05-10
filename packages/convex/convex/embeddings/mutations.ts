@@ -31,6 +31,7 @@ export const insertChunks = internalMutation({
         sourceTable: embeddingSourceTableValidator,
         sourceId: v.string(),
         userId: v.id("users"),
+        userSourceKey: v.string(),
         chunkIndex: v.number(),
         chunkText: v.string(),
         title: v.string(),

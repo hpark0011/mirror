@@ -39,6 +39,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // sit in the fixed region so they cannot be proportionally shrunk away
     // under budget pressure (FG_126).
     expect(segments[3]).toContain("getLatestPublished");
+    expect(segments[3]).toContain("findRelevantPublishedContent");
     expect(segments[3]).toContain("navigateToContent");
 
     // Segment 4: tagline
@@ -74,6 +75,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // immediately after the (omitted) tone slot.
     expect(segments).toHaveLength(5);
     expect(segments[1]).toContain(STYLE_RULES);
+    expect(segments[2]).toContain("findRelevantPublishedContent");
     expect(segments[2]).toContain("navigateToContent");
   });
 
@@ -98,6 +100,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
     // FG_126: navigation vocabulary must survive even when the only input is
     // `name`; the line is in the fixed (non-truncatable) region.
     expect(result).toContain("navigateToContent");
+    expect(result).toContain("findRelevantPublishedContent");
     expect(result).toContain("getLatestPublished");
     // Profile-tabs parity (this PR): the LLM cannot call a verb it has not
     // been told exists, so `openProfileSection` MUST appear in the
@@ -115,6 +118,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
   it("includes owner-write tool vocabulary only when the viewer is the profile owner", () => {
     const visitorPrompt = composeSystemPrompt({ name: "Frank" });
     expect(visitorPrompt).toContain("navigateToContent");
+    expect(visitorPrompt).toContain("findRelevantPublishedContent");
     expect(visitorPrompt).toContain("openProfileSection");
     expect(visitorPrompt).not.toContain("publishPost");
     expect(visitorPrompt).not.toContain("deleteArticle");
@@ -181,6 +185,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // tool names must appear verbatim even when persona+tagline+topics
       // are each oversize.
       expect(result).toContain("getLatestPublished");
+      expect(result).toContain("findRelevantPublishedContent");
       expect(result).toContain("navigateToContent");
     });
 
@@ -202,6 +207,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // FG_126: TOOLS_VOCABULARY also in the fixed region — both tool
       // names must survive proportional truncation verbatim.
       expect(result).toContain("getLatestPublished");
+      expect(result).toContain("findRelevantPublishedContent");
       expect(result).toContain("navigateToContent");
     });
 
@@ -226,6 +232,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // MAX_NAME_CHARS cap keeps the fixed total well under budget so
       // both tool names survive even when the input name is oversize.
       expect(result).toContain("getLatestPublished");
+      expect(result).toContain("findRelevantPublishedContent");
       expect(result).toContain("navigateToContent");
     });
 
@@ -253,6 +260,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // FG_126: TOOLS_VOCABULARY in the fixed region survives a 5500-char
       // tagline — both tool names appear verbatim.
       expect(result).toContain("getLatestPublished");
+      expect(result).toContain("findRelevantPublishedContent");
       expect(result).toContain("navigateToContent");
     });
 

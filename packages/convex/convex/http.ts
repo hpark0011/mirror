@@ -161,9 +161,10 @@ if (isPlaywrightTestMode()) {
     handler: httpAction(async (ctx, req) => {
       const deny = authorizeTestRequest(req);
       if (deny) return deny;
-      const { email, key } = (await req.json()) as {
+      const { email, key, relevantArticle } = (await req.json()) as {
         email: string;
         key?: string;
+        relevantArticle?: boolean;
       };
       if (!email) {
         return new Response("Bad Request: email required", { status: 400 });
@@ -179,11 +180,30 @@ if (isPlaywrightTestMode()) {
           status: 400,
         });
       }
+      if (
+        relevantArticle !== undefined &&
+        typeof relevantArticle !== "boolean"
+      ) {
+        return new Response("Bad Request: relevantArticle must be a boolean", {
+          status: 400,
+        });
+      }
       const result = await ctx.runMutation(
         internal.auth.testHelpers.ensureTestArticleFixtures,
-        key !== undefined ? { email, key } : { email },
+        {
+          email,
+          ...(key !== undefined ? { key } : {}),
+          ...(relevantArticle !== undefined ? { relevantArticle } : {}),
+        },
       );
-      return new Response(JSON.stringify(result), {
+      const { relevantArticleId, ...responseBody } = result;
+      if (relevantArticleId) {
+        await ctx.runAction(internal.embeddings.actions.generateEmbedding, {
+          sourceTable: "articles",
+          sourceId: relevantArticleId,
+        });
+      }
+      return new Response(JSON.stringify(responseBody), {
         status: 200,
         headers: { "Content-Type": "application/json" },
       });

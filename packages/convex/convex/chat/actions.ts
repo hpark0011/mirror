@@ -42,7 +42,12 @@ export const RAG_CONTEXT_HEADER = "\n\n## Relevant Background and Writing\n\n";
  * Exported so it can be unit tested without the Convex harness.
  */
 export function buildRagContext(
-  chunks: Array<{ title: string; chunkText: string; slug?: string }>,
+  chunks: Array<{
+    title: string;
+    chunkText: string;
+    slug?: string;
+    sourceTable?: "articles" | "posts" | "bioEntries";
+  }>,
 ): string {
   if (chunks.length === 0) {
     return "";
@@ -54,8 +59,14 @@ export function buildRagContext(
   for (const chunk of chunks) {
     const truncatedText = chunk.chunkText.slice(0, RAG_CHUNK_MAX_CHARS);
     const slug = chunk.slug?.trim();
+    const sourceHint =
+      chunk.sourceTable === "articles" && slug
+        ? `\nSource: article slug ${slug}`
+        : chunk.sourceTable === "posts" && slug
+          ? `\nSource: post slug ${slug}`
+          : "";
     const linkLine = slug ? `\n[Read more](/${slug})` : "";
-    const part = `### ${chunk.title}\n${truncatedText}${linkLine}`;
+    const part = `### ${chunk.title}${sourceHint}\n${truncatedText}${linkLine}`;
     // Account for "\n\n" separator between parts (absent before the first).
     const added = parts.length === 0 ? part.length : part.length + 2;
 
@@ -142,12 +153,10 @@ export const streamResponse = internalAction({
             );
 
             if (chunks.length > 0) {
-              // `chunks` already has `{ title, chunkText, slug? }` per
-              // `fetchChunksByIds`'s validator — no cast needed. `slug` is
-              // optional so bio chunks (slug undefined) and article/post
-              // chunks (slug present) flow through the same path; the
-              // conditional `[Read more]` link inside `buildRagContext`
-              // handles the difference.
+              // `chunks` carries source metadata from `fetchChunksByIds`, so
+              // article/post snippets expose enough hidden context for the
+              // model to pair a relevant chunk with the navigation tool's
+              // required `kind` and `slug`. Bio chunks remain linkless.
               ragContext = buildRagContext(chunks);
             }
           }

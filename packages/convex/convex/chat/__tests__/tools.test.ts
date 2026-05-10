@@ -72,7 +72,12 @@ vi.mock("../../auth/client", () => {
 import { internal } from "../../_generated/api";
 import { buildCloneTools } from "../tools";
 import { buildContentHref } from "../toolQueries";
+import {
+  findRelevantPublishedContent,
+  type RelevantContentSearchCtx,
+} from "../relevantContent";
 import { buildBioHref } from "../../content/href";
+import { buildEmbeddingUserSourceKey } from "../../embeddings/schema";
 import { normalizeConvexGlob } from "./testUtils";
 import { type Id } from "../../_generated/dataModel";
 
@@ -526,6 +531,382 @@ describe("chat/toolQueries.resolveBySlug", () => {
   });
 });
 
+describe("chat/toolQueries.resolvePublishedContentCandidates", () => {
+  it("returns published candidates in the input ranking order", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_relevant_order");
+
+    const ids = await t.run(async (ctx) => {
+      const second = await ctx.db.insert("articles", {
+        userId: owner,
+        slug: "second-ranked",
+        title: "Second Ranked",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      });
+      const first = await ctx.db.insert("articles", {
+        userId: owner,
+        slug: "first-ranked",
+        title: "First Ranked",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 2000,
+        createdAt: 2000,
+      });
+      return { first, second };
+    });
+
+    const result = await t.query(
+      internal.chat.toolQueries.resolvePublishedContentCandidates,
+      {
+        userId: owner,
+        candidates: [
+          {
+            kind: "articles",
+            sourceId: ids.first,
+            slug: "first-ranked",
+            score: 0.91,
+            excerpt: "best excerpt",
+          },
+          {
+            kind: "articles",
+            sourceId: ids.second,
+            slug: "second-ranked",
+            score: 0.88,
+            excerpt: "second excerpt",
+          },
+        ],
+      },
+    );
+
+    expect(result.map((row) => row.slug)).toEqual([
+      "first-ranked",
+      "second-ranked",
+    ]);
+    expect(result[0]).toMatchObject({
+      kind: "articles",
+      title: "First Ranked",
+      href: buildContentHref(
+        "owner_relevant_order",
+        "articles",
+        "first-ranked",
+      ),
+      excerpt: "best excerpt",
+      score: 0.91,
+    });
+  });
+
+  it("resolves candidates by source id and returns the row's current slug", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_relevant_renamed");
+
+    const ids = await t.run(async (ctx) => {
+      const renamed = await ctx.db.insert("articles", {
+        userId: owner,
+        slug: "current-slug",
+        title: "Renamed Article",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      });
+      const reusedOldSlug = await ctx.db.insert("articles", {
+        userId: owner,
+        slug: "old-slug",
+        title: "Different Article Reusing Old Slug",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 2000,
+        createdAt: 2000,
+      });
+      return { renamed, reusedOldSlug };
+    });
+
+    const result = await t.query(
+      internal.chat.toolQueries.resolvePublishedContentCandidates,
+      {
+        userId: owner,
+        candidates: [
+          {
+            kind: "articles",
+            sourceId: ids.renamed,
+            slug: "old-slug",
+            score: 0.96,
+            excerpt: "stale slug excerpt",
+          },
+        ],
+      },
+    );
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      kind: "articles",
+      slug: "current-slug",
+      title: "Renamed Article",
+      href: buildContentHref(
+        "owner_relevant_renamed",
+        "articles",
+        "current-slug",
+      ),
+      excerpt: "stale slug excerpt",
+      score: 0.96,
+    });
+    expect(result[0]!.title).not.toBe("Different Article Reusing Old Slug");
+    expect(ids.reusedOldSlug).toBeDefined();
+  });
+
+  it("excludes drafts even when a stale embedding candidate names the slug", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_relevant_draft");
+
+    const draftId = await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "draft-match",
+        title: "Draft Match",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.query(
+      internal.chat.toolQueries.resolvePublishedContentCandidates,
+      {
+        userId: owner,
+        candidates: [
+          {
+            kind: "articles",
+            sourceId: draftId,
+            slug: "draft-match",
+            score: 0.99,
+            excerpt: "draft excerpt",
+          },
+        ],
+      },
+    );
+
+    expect(result).toEqual([]);
+  });
+
+  it("excludes cross-user candidates with the same slug", async () => {
+    const t = makeT();
+    const userA = await insertOwner(t, "relevant_user_a");
+    const userB = await insertOwner(t, "relevant_user_b");
+
+    const userBArticleId = await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: userB,
+        slug: "shared-topic",
+        title: "B's Article",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.query(
+      internal.chat.toolQueries.resolvePublishedContentCandidates,
+      {
+        userId: userA,
+        candidates: [
+          {
+            kind: "articles",
+            sourceId: userBArticleId,
+            slug: "shared-topic",
+            score: 0.94,
+            excerpt: "cross user excerpt",
+          },
+        ],
+      },
+    );
+
+    expect(result).toEqual([]);
+  });
+
+  it("scopes the same slug independently across articles and posts", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_relevant_kinds");
+
+    const ids = await t.run(async (ctx) => {
+      const article = await ctx.db.insert("articles", {
+        userId: owner,
+        slug: "shared-slug",
+        title: "Shared Article",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      });
+      const post = await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "shared-slug",
+        title: "Shared Post",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 2000,
+        createdAt: 2000,
+      });
+      return { article, post };
+    });
+
+    const result = await t.query(
+      internal.chat.toolQueries.resolvePublishedContentCandidates,
+      {
+        userId: owner,
+        candidates: [
+          {
+            kind: "posts",
+            sourceId: ids.post,
+            slug: "shared-slug",
+            score: 0.93,
+            excerpt: "post excerpt",
+          },
+          {
+            kind: "articles",
+            sourceId: ids.article,
+            slug: "shared-slug",
+            score: 0.9,
+            excerpt: "article excerpt",
+          },
+        ],
+      },
+    );
+
+    expect(result.map((row) => row.title)).toEqual([
+      "Shared Post",
+      "Shared Article",
+    ]);
+    expect(result.map((row) => row.href)).toEqual([
+      buildContentHref("owner_relevant_kinds", "posts", "shared-slug"),
+      buildContentHref("owner_relevant_kinds", "articles", "shared-slug"),
+    ]);
+  });
+});
+
+describe("chat/relevantContent.findRelevantPublishedContent", () => {
+  type CapturedVectorQuery = {
+    limit?: number;
+    filter?: (q: {
+      eq: (fieldName: string, value: unknown) => unknown;
+    }) => unknown;
+  };
+  type CapturedVectorResult = {
+    _id: Id<"contentEmbeddings">;
+    _score: number;
+  };
+
+  function makeRelevantContentCtx(
+    vectorResultsByCall: CapturedVectorResult[][] = [],
+  ) {
+    const capturedQueries: CapturedVectorQuery[] = [];
+    const runQuery = vi.fn();
+    const vectorSearch = vi.fn(
+      async (
+        _tableName: string,
+        _indexName: string,
+        query: CapturedVectorQuery,
+      ) => {
+        capturedQueries.push(query);
+        return vectorResultsByCall[capturedQueries.length - 1] ?? [];
+      },
+    );
+
+    return {
+      ctx: {
+        runQuery,
+        vectorSearch,
+      } as unknown as RelevantContentSearchCtx,
+      getCapturedQueries: () => capturedQueries,
+    };
+  }
+
+  it("uses the composite owner+source filter for kind-restricted vector search", async () => {
+    const owner = "users_owner_kind_filter" as Id<"users">;
+    const { ctx, getCapturedQueries } = makeRelevantContentCtx();
+
+    await findRelevantPublishedContent(ctx, {
+      profileOwnerId: owner,
+      query: "greyboard ai",
+      kind: "articles",
+    });
+
+    const [query] = getCapturedQueries();
+    expect(query).toBeDefined();
+    expect(query!.limit).toBe(16);
+
+    const eq = vi.fn((fieldName: string, value: unknown) => ({
+      fieldName,
+      value,
+    }));
+    expect(query!.filter?.({ eq })).toEqual({
+      fieldName: "userSourceKey",
+      value: buildEmbeddingUserSourceKey(owner, "articles"),
+    });
+    expect(eq).toHaveBeenCalledTimes(1);
+  });
+
+  it("falls back to owner-only vector search for legacy kind embeddings", async () => {
+    const owner = "users_owner_legacy_filter" as Id<"users">;
+    const { ctx, getCapturedQueries } = makeRelevantContentCtx();
+
+    await findRelevantPublishedContent(ctx, {
+      profileOwnerId: owner,
+      query: "greyboard ai",
+      kind: "articles",
+    });
+
+    const [, legacyQuery] = getCapturedQueries();
+    expect(legacyQuery).toBeDefined();
+    expect(legacyQuery!.limit).toBe(256);
+
+    const eq = vi.fn((fieldName: string, value: unknown) => ({
+      fieldName,
+      value,
+    }));
+    expect(legacyQuery!.filter?.({ eq })).toEqual({
+      fieldName: "userId",
+      value: owner,
+    });
+    expect(eq).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the owner-only filter for unrestricted relevant-content search", async () => {
+    const owner = "users_owner_general_filter" as Id<"users">;
+    const { ctx, getCapturedQueries } = makeRelevantContentCtx();
+
+    await findRelevantPublishedContent(ctx, {
+      profileOwnerId: owner,
+      query: "greyboard ai",
+    });
+
+    const [query] = getCapturedQueries();
+    expect(query).toBeDefined();
+    expect(getCapturedQueries()).toHaveLength(1);
+
+    const eq = vi.fn((fieldName: string, value: unknown) => ({
+      fieldName,
+      value,
+    }));
+    expect(query!.filter?.({ eq })).toEqual({
+      fieldName: "userId",
+      value: owner,
+    });
+    expect(eq).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
   // The cross-user isolation contract (`.claude/rules/embeddings.md`) hinges
   // on the LLM-visible `inputSchema` not exposing any user identifier — the
@@ -597,6 +978,27 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     );
   });
 
+  it("findRelevantPublishedContent.inputSchema does not expose any user identifier", () => {
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.findRelevantPublishedContent.inputSchema as
+      | { shape?: Record<string, unknown> }
+      | undefined;
+
+    expect(schema).toBeDefined();
+    expect(schema!.shape).toBeDefined();
+    expect("userId" in schema!.shape!).toBe(false);
+    expect("user_id" in schema!.shape!).toBe(false);
+    expect("ownerId" in schema!.shape!).toBe(false);
+    expect("username" in schema!.shape!).toBe(false);
+
+    const allKeys = collectAllKeys(schema!.shape!);
+    expect(
+      allKeys.every(
+        (k) => !/^(userId|user_id|ownerId|username)$/i.test(k),
+      ),
+    ).toBe(true);
+  });
+
   it("getLatestPublished.inputSchema exposes only `kind` (the LLM-visible surface)", () => {
     const tools = buildCloneTools(fakeOwner);
     const schema = tools.getLatestPublished.inputSchema as {
@@ -611,6 +1013,33 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       shape: Record<string, unknown>;
     };
     expect(Object.keys(schema.shape).sort()).toEqual(["kind", "slug"]);
+  });
+
+  it("findRelevantPublishedContent.inputSchema exposes only query, kind, and limit", () => {
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.findRelevantPublishedContent.inputSchema as {
+      shape: Record<string, unknown>;
+      safeParse: (value: unknown) => { success: boolean };
+    };
+
+    expect(Object.keys(schema.shape).sort()).toEqual([
+      "kind",
+      "limit",
+      "query",
+    ]);
+    expect(
+      schema.safeParse({
+        query: "greyboard ai",
+        kind: "articles",
+        limit: 2,
+      }).success,
+    ).toBe(true);
+    expect(
+      schema.safeParse({
+        query: "greyboard ai",
+        kind: "bio",
+      }).success,
+    ).toBe(false);
   });
 
   it("openProfileSection.inputSchema does not expose userId (or any user identifier)", () => {
