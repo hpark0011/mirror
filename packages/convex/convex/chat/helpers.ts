@@ -77,10 +77,10 @@ const DEFAULT_PERSONA =
 // the inventory sentence so the agent learns nouns ("articles", "posts") and
 // verbs ("getLatestPublished", "navigateToContent") in the same region.
 const CONTENT_NAVIGATION_VOCABULARY =
-  "You can open content for the visitor by calling getLatestPublished to look up the latest article or post, then calling navigateToContent with that kind and slug.";
+  "You can search relevant published writing by calling findRelevantPublishedContent with the visitor's question, optionally restricted to articles or posts. Use it for topical, project, article, or what-is-this questions before saying there is no matching article or post; if the visitor asks to see, show, open, or read the source, call navigateToContent with the returned kind and slug. For latest-only requests, call getLatestPublished to look up the latest article or post, then call navigateToContent with that kind and slug.";
 
 const PROFILE_SECTION_VOCABULARY =
-  "Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background, and with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use getLatestPublished and navigateToContent instead).";
+  "Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background, and with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use findRelevantPublishedContent or getLatestPublished and navigateToContent instead).";
 
 const POST_OWNER_WRITE_VOCABULARY =
   "Call deletePost with the slug only when the visitor (who must be the profile owner) explicitly asks to remove a post — never delete on your own initiative, and always confirm the slug before calling. Call publishPost with the slug only when the profile owner explicitly asks to publish one of their posts. Call unpublishPost with the slug only when the profile owner explicitly asks to unpublish one of their posts.";

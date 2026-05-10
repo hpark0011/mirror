@@ -9,11 +9,11 @@
 //   })
 //
 // Instead, we verify the *same `userId` filter expression* at the index
-// layer via `withIndex("by_userId", q.eq(...))`. The vector index's
-// `filterFields: ["userId"]` (see `embeddings/schema.ts`) routes the
-// runtime filter through the same column the index test exercises here —
-// if cross-user isolation breaks at the index, it breaks at vector search,
-// and vice versa.
+// layer via `withIndex("by_userId", q.eq(...))`. The vector index includes
+// `userId` in its filterFields (see `embeddings/schema.ts`) so unrestricted
+// RAG retrieval routes through the same column this index test exercises.
+// Kind-restricted search uses a composite owner+source key for the same
+// isolation invariant.
 //
 // The real `vectorSearch` filter expression is exercised end-to-end by
 // `apps/mirror/e2e/bio/bio-rag-cross-user.spec.ts` (Wave 4 — Playwright).

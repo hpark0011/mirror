@@ -76,6 +76,32 @@ describe("buildRagContext (FR-08)", () => {
     expect(result).toContain("[Read more](/some-article-slug)");
   });
 
+  it("adds an article source hint when sourceTable and slug are present", () => {
+    const result = buildRagContext([
+      {
+        title: "Article Title",
+        chunkText: "article body text",
+        slug: "some-article-slug",
+        sourceTable: "articles",
+      },
+    ]);
+
+    expect(result).toContain("Source: article slug some-article-slug");
+  });
+
+  it("adds a post source hint when sourceTable and slug are present", () => {
+    const result = buildRagContext([
+      {
+        title: "Post Title",
+        chunkText: "post body text",
+        slug: "some-post-slug",
+        sourceTable: "posts",
+      },
+    ]);
+
+    expect(result).toContain("Source: post slug some-post-slug");
+  });
+
   it("does NOT render [Read more] link when slug is undefined (bio chunk)", () => {
     const result = buildRagContext([
       {
@@ -85,6 +111,7 @@ describe("buildRagContext (FR-08)", () => {
       },
     ]);
     expect(result).not.toContain("[Read more]");
+    expect(result).not.toContain("Source:");
   });
 
   it("does NOT render [Read more] link when slug is an empty string", () => {

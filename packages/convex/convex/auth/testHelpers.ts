@@ -1,5 +1,6 @@
 import { internalMutation, internalQuery } from "../_generated/server";
 import { v } from "convex/values";
+import { type Id } from "../_generated/dataModel";
 
 const TEST_EMAIL_SUFFIX = "@mirror.test";
 
@@ -273,6 +274,8 @@ export const ensureTestPostFixtures = internalMutation({
 
 const ARTICLE_DRAFT_FIXTURE_SLUG = "test-article-fixture-draft";
 const ARTICLE_PUBLISHED_FIXTURE_SLUG = "test-article-fixture-published";
+const ARTICLE_RELEVANT_FIXTURE_SLUG = "greyboard-software-with-less-input";
+const ARTICLE_RELEVANT_FIXTURE_TITLE = "Software with Less Input";
 // Per-spec key shape: `inline-<key>-fixture-draft`. The key is constrained so
 // the resulting slug always passes the canonical slug pattern
 // (`^[a-z0-9]+(?:-[a-z0-9]+)*$`) — see packages/convex/convex/content/slug.ts.
@@ -299,10 +302,14 @@ export const ensureTestArticleFixtures = internalMutation({
   args: {
     email: v.string(),
     key: v.optional(v.string()),
+    relevantArticle: v.optional(v.boolean()),
   },
   returns: v.object({
     draftSlug: v.string(),
     publishedSlug: v.string(),
+    relevantSlug: v.optional(v.string()),
+    relevantTitle: v.optional(v.string()),
+    relevantArticleId: v.optional(v.id("articles")),
   }),
   handler: async (ctx, args) => {
     assertTestEmail(args.email);
@@ -398,9 +405,72 @@ export const ensureTestArticleFixtures = internalMutation({
       });
     }
 
+    let relevantArticleId: Id<"articles"> | undefined;
+    if (args.relevantArticle === true) {
+      const relevantBody = {
+        type: "doc",
+        content: [
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "Greyboard AI is a project about making software with less input, where agents handle configuration and complexity so people can think, write, and express ideas with less friction.",
+              },
+            ],
+          },
+          {
+            type: "paragraph",
+            content: [
+              {
+                type: "text",
+                text: "The article explains why many tools add cognitive load while trying to reduce it, and why Greyboard explores interfaces that help people own their thinking.",
+              },
+            ],
+          },
+        ],
+      };
+
+      const existingRelevant = await ctx.db
+        .query("articles")
+        .withIndex("by_userId_and_slug", (q) =>
+          q.eq("userId", userId).eq("slug", ARTICLE_RELEVANT_FIXTURE_SLUG),
+        )
+        .unique();
+
+      if (existingRelevant) {
+        relevantArticleId = existingRelevant._id;
+        await ctx.db.patch(existingRelevant._id, {
+          status: "published",
+          title: ARTICLE_RELEVANT_FIXTURE_TITLE,
+          category: "test",
+          publishedAt: existingRelevant.publishedAt ?? now,
+          body: relevantBody,
+        });
+      } else {
+        relevantArticleId = await ctx.db.insert("articles", {
+          userId,
+          slug: ARTICLE_RELEVANT_FIXTURE_SLUG,
+          title: ARTICLE_RELEVANT_FIXTURE_TITLE,
+          body: relevantBody,
+          category: "test",
+          createdAt: now,
+          publishedAt: now,
+          status: "published",
+        });
+      }
+    }
+
     return {
       draftSlug,
       publishedSlug: ARTICLE_PUBLISHED_FIXTURE_SLUG,
+      ...(args.relevantArticle === true
+        ? {
+            relevantSlug: ARTICLE_RELEVANT_FIXTURE_SLUG,
+            relevantTitle: ARTICLE_RELEVANT_FIXTURE_TITLE,
+            relevantArticleId,
+          }
+        : {}),
     };
   },
 });

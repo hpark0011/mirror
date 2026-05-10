@@ -8,7 +8,10 @@ import { internal } from "../_generated/api";
 import { extractPlainText } from "./textExtractor";
 import { chunkText } from "./chunker";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "./config";
-import { embeddingSourceTableValidator } from "./schema";
+import {
+  buildEmbeddingUserSourceKey,
+  embeddingSourceTableValidator,
+} from "./schema";
 import { type JSONContent } from "./textExtractor";
 
 export const generateEmbedding = internalAction({
@@ -98,6 +101,7 @@ export const generateEmbedding = internalAction({
           sourceTable,
           sourceId,
           userId,
+          userSourceKey: buildEmbeddingUserSourceKey(userId, sourceTable),
           chunkIndex: i,
           chunkText: chunks[i]!,
           title,

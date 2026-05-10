@@ -106,6 +106,9 @@ export const fetchChunksByIds = internalQuery({
   },
   returns: v.array(
     v.object({
+      id: v.id("contentEmbeddings"),
+      sourceTable: embeddingSourceTableValidator,
+      sourceId: v.string(),
       title: v.string(),
       slug: v.optional(v.string()),
       chunkText: v.string(),
@@ -117,6 +120,9 @@ export const fetchChunksByIds = internalQuery({
         const doc = await ctx.db.get(id);
         if (!doc) return null;
         return {
+          id: doc._id,
+          sourceTable: doc.sourceTable,
+          sourceId: doc.sourceId,
           title: doc.title,
           slug: doc.slug,
           chunkText: doc.chunkText,

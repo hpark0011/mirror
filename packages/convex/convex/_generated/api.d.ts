@@ -34,6 +34,7 @@ import type * as chat_helpers from "../chat/helpers.js";
 import type * as chat_mutations from "../chat/mutations.js";
 import type * as chat_queries from "../chat/queries.js";
 import type * as chat_rateLimits from "../chat/rateLimits.js";
+import type * as chat_relevantContent from "../chat/relevantContent.js";
 import type * as chat_testHelpers from "../chat/testHelpers.js";
 import type * as chat_tonePresets from "../chat/tonePresets.js";
 import type * as chat_toolMutations from "../chat/toolMutations.js";
@@ -114,6 +115,7 @@ declare const fullApi: ApiFromModules<{
   "chat/mutations": typeof chat_mutations;
   "chat/queries": typeof chat_queries;
   "chat/rateLimits": typeof chat_rateLimits;
+  "chat/relevantContent": typeof chat_relevantContent;
   "chat/testHelpers": typeof chat_testHelpers;
   "chat/tonePresets": typeof chat_tonePresets;
   "chat/toolMutations": typeof chat_toolMutations;
