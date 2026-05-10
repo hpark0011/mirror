@@ -92,7 +92,7 @@ function ChatMessageScrollArea({
     <div
       data-slot="chat-message-scroll-area"
       className={cn(
-        "flex-1 overflow-y-auto overscroll-y-contain px-4 pt-18 pb-[160px]",
+        "flex-1 overflow-y-auto overscroll-y-contain px-4 pt-22 pb-[160px]",
         className,
       )}
       {...props}
