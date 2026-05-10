@@ -6,10 +6,12 @@ import { internal } from "../_generated/api";
 import { type ActionCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "../embeddings/config";
+import { buildEmbeddingUserSourceKey } from "../embeddings/schema";
 
 export const RELEVANT_CONTENT_DEFAULT_LIMIT = 3;
 export const RELEVANT_CONTENT_MAX_LIMIT = 5;
 const RELEVANT_CONTENT_VECTOR_LIMIT = 16;
+const RELEVANT_CONTENT_LEGACY_VECTOR_LIMIT = 256;
 const RELEVANT_CONTENT_SCORE_THRESHOLD = 0.3;
 const RELEVANT_CONTENT_EXCERPT_MAX_CHARS = 260;
 
@@ -60,17 +62,42 @@ export async function findRelevantPublishedContent(
     },
   });
 
-  const vectorResults = await ctx.vectorSearch(
+  const primaryVectorResults = await ctx.vectorSearch(
     "contentEmbeddings",
     "by_embedding",
     {
       vector: embedding,
       limit: RELEVANT_CONTENT_VECTOR_LIMIT,
-      filter: (q) => q.eq("userId", args.profileOwnerId),
+      filter: (q) =>
+        args.kind
+          ? q.eq(
+              "userSourceKey",
+              buildEmbeddingUserSourceKey(args.profileOwnerId, args.kind),
+            )
+          : q.eq("userId", args.profileOwnerId),
     },
   );
+  const legacyVectorResults =
+    // Rows embedded before `userSourceKey` existed cannot match the composite
+    // filter. Keep them reachable until the next backfill/regeneration pass.
+    args.kind && primaryVectorResults.length < RELEVANT_CONTENT_VECTOR_LIMIT
+      ? await ctx.vectorSearch("contentEmbeddings", "by_embedding", {
+          vector: embedding,
+          limit: RELEVANT_CONTENT_LEGACY_VECTOR_LIMIT,
+          filter: (q) => q.eq("userId", args.profileOwnerId),
+        })
+      : [];
 
-  const relevantResults = vectorResults.filter(
+  const vectorResultByChunkId = new Map(
+    primaryVectorResults.map((result) => [result._id, result] as const),
+  );
+  for (const result of legacyVectorResults) {
+    if (!vectorResultByChunkId.has(result._id)) {
+      vectorResultByChunkId.set(result._id, result);
+    }
+  }
+
+  const relevantResults = [...vectorResultByChunkId.values()].filter(
     (result) => result._score >= RELEVANT_CONTENT_SCORE_THRESHOLD,
   );
   if (relevantResults.length === 0) return [];
@@ -87,6 +114,7 @@ export async function findRelevantPublishedContent(
     string,
     {
       kind: NavigableContentKind;
+      sourceId: string;
       slug: string;
       score: number;
       excerpt: string;
@@ -106,6 +134,7 @@ export async function findRelevantPublishedContent(
     const key = `${chunk.sourceTable}:${chunk.sourceId}`;
     const candidate = {
       kind: chunk.sourceTable,
+      sourceId: chunk.sourceId,
       slug,
       score,
       excerpt: excerptFor(chunk.chunkText),

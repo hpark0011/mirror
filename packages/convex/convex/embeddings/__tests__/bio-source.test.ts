@@ -70,6 +70,7 @@ vi.mock("../../auth/client", () => {
 });
 
 import { internal } from "../../_generated/api";
+import { buildEmbeddingUserSourceKey } from "../schema";
 
 function normalizeConvexGlob(
   raw: Record<string, () => Promise<unknown>>,
@@ -261,6 +262,9 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
     expect(rows.length).toBe(1);
     const row = rows[0]!;
     expect(row.userId).toBe(ownerId);
+    expect(row.userSourceKey).toBe(
+      buildEmbeddingUserSourceKey(ownerId, "bioEntries"),
+    );
     expect(row.chunkIndex).toBe(0);
     // FR-12: chunkText matches the actual prose template for education.
     expect(row.chunkText).toMatch(/^Studied Computer Science at MIT from /);
@@ -308,6 +312,9 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
         .take(1),
     );
     expect(row).toBeDefined();
+    expect(row!.userSourceKey).toBe(
+      buildEmbeddingUserSourceKey(ownerId, "articles"),
+    );
 
     const chunks = await t.query(internal.embeddings.queries.fetchChunksByIds, {
       ids: [row!._id],

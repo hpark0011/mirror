@@ -75,6 +75,7 @@ const contentKindValidator = v.union(
 
 const relevantContentCandidateValidator = v.object({
   kind: contentKindValidator,
+  sourceId: v.string(),
   slug: v.string(),
   score: v.number(),
   excerpt: v.string(),
@@ -181,9 +182,10 @@ export const resolveBySlug = internalQuery({
  *
  * Embeddings can be stale: a row may have been unpublished, deleted, or
  * renamed after its chunk was written. This query re-checks each candidate
- * against the canonical content tables, scopes every lookup to the
- * server-derived profile owner, and returns only published rows with a valid
- * owner username. Input order is preserved so vector ranking remains intact.
+ * against the canonical content tables by source id, scopes every lookup to
+ * the server-derived profile owner, and returns only published rows with a
+ * valid owner username. Input order is preserved so vector ranking remains
+ * intact, and stale embedding slugs are replaced with the row's current slug.
  */
 export const resolvePublishedContentCandidates = internalQuery({
   args: {
@@ -207,14 +209,13 @@ export const resolvePublishedContentCandidates = internalQuery({
       score: number;
     }> = [];
     for (const candidate of candidates) {
-      const row = await ctx.db
-        .query(candidate.kind)
-        .withIndex("by_userId_and_slug", (q) =>
-          q.eq("userId", userId as Id<"users">).eq("slug", candidate.slug),
-        )
-        .unique();
+      const row =
+        candidate.kind === "articles"
+          ? await ctx.db.get(candidate.sourceId as Id<"articles">)
+          : await ctx.db.get(candidate.sourceId as Id<"posts">);
 
       if (!row) continue;
+      if (row.userId !== userId) continue;
       if (row.status !== "published") continue;
 
       rows.push({

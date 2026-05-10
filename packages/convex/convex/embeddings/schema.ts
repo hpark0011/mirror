@@ -2,6 +2,15 @@ import { defineTable } from "convex/server";
 import { v } from "convex/values";
 import { EMBEDDING_DIMENSIONS } from "./config";
 
+export type EmbeddingSourceTable = "articles" | "posts" | "bioEntries";
+
+export function buildEmbeddingUserSourceKey(
+  userId: string,
+  sourceTable: EmbeddingSourceTable,
+): string {
+  return `${userId}:${sourceTable}`;
+}
+
 /**
  * Single source of truth for the `sourceTable` literal union used across
  * `contentEmbeddings`, `generateEmbedding` args, `getContentForEmbedding`,
@@ -15,8 +24,10 @@ import { EMBEDDING_DIMENSIONS } from "./config";
  * INVARIANT (cross-user isolation): every consumer that writes to
  * `contentEmbeddings` MUST set `userId` from a server-derived value via
  * `getAppUser(ctx, ctx.user._id)` — never from a client-supplied argument.
- * The `by_embedding` vector index's `userId` filter is the sole barrier
- * preventing cross-user retrieval leakage.
+ * The `by_embedding` vector index's `userId` and `userSourceKey` filters are
+ * the sole barriers preventing cross-user retrieval leakage. `userSourceKey`
+ * is a composite owner+source key because Convex vector filters support `or`
+ * and `eq`, but not an `and(userId, sourceTable)` expression.
  */
 export const embeddingSourceTableValidator = v.union(
   v.literal("articles"),
@@ -28,6 +39,11 @@ export const contentEmbeddingsTable = defineTable({
   sourceTable: embeddingSourceTableValidator,
   sourceId: v.string(),
   userId: v.id("users"),
+  // Optional so rows written before this field was introduced remain valid.
+  // New writes always set it; kind-specific vector search uses it to apply
+  // owner + source-table filtering before the vector limit is taken, with a
+  // temporary owner-only fallback for legacy rows until they are re-embedded.
+  userSourceKey: v.optional(v.string()),
   chunkIndex: v.number(),
   chunkText: v.string(),
   title: v.string(),
@@ -45,5 +61,5 @@ export const contentEmbeddingsTable = defineTable({
   .vectorIndex("by_embedding", {
     vectorField: "embedding",
     dimensions: EMBEDDING_DIMENSIONS,
-    filterFields: ["userId"],
+    filterFields: ["userId", "userSourceKey"],
   });

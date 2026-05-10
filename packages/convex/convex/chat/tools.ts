@@ -60,7 +60,8 @@ type BuildCloneToolsOptions = {
  * the server-derived `viewerId` before doing any lookup or mutation. The
  * `inputSchema` of every tool here MUST NOT include a `userId` field — the
  * cross-user isolation boundary is the same one the RAG side uses
- * (`vectorSearch.filter` keyed on `profileOwnerId`).
+ * (`vectorSearch.filter` keyed on `profileOwnerId`, or on a composite
+ * owner+source key for kind-restricted searches).
  *
  * Tools attach per-call inside `streamResponse`'s `thread.streamText(...)`
  * call. The `cloneAgent` singleton in `chat/agent.ts` stays tools-less
