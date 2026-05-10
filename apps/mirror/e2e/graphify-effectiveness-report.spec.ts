@@ -9,26 +9,32 @@ const appRootSuffix = `${sep}apps${sep}mirror`;
 const repoRoot = process.cwd().endsWith(appRootSuffix)
   ? process.cwd().slice(0, -appRootSuffix.length)
   : process.cwd();
-const reportDir = mkdtempSync(join(tmpdir(), "graphify-effectiveness-report-"));
-const reportPath = join(reportDir, "latest.html");
-execFileSync(
-  "node",
-  [
-    join(repoRoot, "scripts", "measure-graphify-effectiveness.mjs"),
-    "--days",
-    "14",
-    "--format",
-    "html",
-    "--out",
-    reportPath,
-  ],
-  { cwd: repoRoot, stdio: "pipe" },
-);
-const reportUrl = pathToFileURL(reportPath).href;
+const reportGenerationTimeoutMs = 60_000;
+let reportDir = "";
+let reportUrl = "";
 
 test.describe("Graphify effectiveness report", () => {
+  test.beforeAll(() => {
+    reportDir = mkdtempSync(join(tmpdir(), "graphify-effectiveness-report-"));
+    const reportPath = join(reportDir, "latest.html");
+    execFileSync(
+      "node",
+      [
+        join(repoRoot, "scripts", "measure-graphify-effectiveness.mjs"),
+        "--days",
+        "14",
+        "--format",
+        "html",
+        "--out",
+        reportPath,
+      ],
+      { cwd: repoRoot, stdio: "pipe", timeout: reportGenerationTimeoutMs },
+    );
+    reportUrl = pathToFileURL(reportPath).href;
+  });
+
   test.afterAll(() => {
-    rmSync(reportDir, { recursive: true, force: true });
+    if (reportDir) rmSync(reportDir, { recursive: true, force: true });
   });
 
   test("renders the generated metric report", async ({ page }) => {
