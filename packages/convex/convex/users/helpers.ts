@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { type QueryCtx, type MutationCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { tonePresetValidator, type TonePreset } from "../chat/tonePresets";
+import { defaultProfileSectionValidator } from "./defaultProfileSection";
 
 export const RESERVED_USERNAMES = new Set([
   "api",
@@ -21,6 +22,7 @@ const profileReturnFields = {
   tagline: v.optional(v.string()),
   avatarUrl: v.union(v.string(), v.null()),
   onboardingComplete: v.boolean(),
+  defaultProfileSection: defaultProfileSectionValidator,
 } as const;
 
 export const profileReturnValidator = v.object(profileReturnFields);
@@ -44,6 +46,7 @@ export const publicProfileReturnValidator = v.object({
   tagline: v.optional(v.string()),
   avatarUrl: v.union(v.string(), v.null()),
   onboardingComplete: v.boolean(),
+  defaultProfileSection: defaultProfileSectionValidator,
   chatAuthRequired: v.optional(v.boolean()),
 });
 
@@ -77,18 +80,28 @@ export interface PersonaSettingsArgs {
   topicsToAvoid?: string | null;
 }
 
-export function buildPersonaPatch(args: PersonaSettingsArgs): Record<string, unknown> {
+export function buildPersonaPatch(
+  args: PersonaSettingsArgs,
+): Record<string, unknown> {
   // Length guards — checked BEFORE any DB write.
-  if (typeof args.personaPrompt === "string" && args.personaPrompt.length > 4000) {
+  if (
+    typeof args.personaPrompt === "string" &&
+    args.personaPrompt.length > 4000
+  ) {
     throw new Error("personaPrompt exceeds 4000 characters");
   }
-  if (typeof args.topicsToAvoid === "string" && args.topicsToAvoid.length > 500) {
+  if (
+    typeof args.topicsToAvoid === "string" &&
+    args.topicsToAvoid.length > 500
+  ) {
     throw new Error("topicsToAvoid exceeds 500 characters");
   }
 
   const patch: Record<string, unknown> = {};
-  if (args.personaPrompt !== undefined) patch.personaPrompt = args.personaPrompt;
+  if (args.personaPrompt !== undefined)
+    patch.personaPrompt = args.personaPrompt;
   if (args.tonePreset !== undefined) patch.tonePreset = args.tonePreset;
-  if (args.topicsToAvoid !== undefined) patch.topicsToAvoid = args.topicsToAvoid;
+  if (args.topicsToAvoid !== undefined)
+    patch.topicsToAvoid = args.topicsToAvoid;
   return patch;
 }

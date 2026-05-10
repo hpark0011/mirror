@@ -9,6 +9,7 @@ import { type DataModel } from "../_generated/dataModel";
 import authConfig from "../auth.config";
 import { isPlaywrightTestEmail, isPlaywrightTestMode } from "./testMode";
 import { env } from "../env";
+import { DEFAULT_PROFILE_SECTION } from "../content/href";
 import {
   resolveAuthBaseURL,
   resolveOAuthProxyPlugins,
@@ -83,6 +84,7 @@ export const authComponent: ReturnType<typeof createClient<DataModel>> =
             authId: doc._id,
             email: doc.email,
             onboardingComplete: false,
+            defaultProfileSection: DEFAULT_PROFILE_SECTION,
           });
 
           // Dev-only: pre-populate the new account with Rick's fixtures + an

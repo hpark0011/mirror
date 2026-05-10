@@ -1,5 +1,6 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { defaultProfileSectionValidator } from "./defaultProfileSection";
 
 export const userFields = {
   authId: v.string(),
@@ -29,6 +30,7 @@ export const userFields = {
   ),
   topicsToAvoid: v.optional(v.union(v.string(), v.null())),
   chatAuthRequired: v.optional(v.boolean()),
+  defaultProfileSection: v.optional(defaultProfileSectionValidator),
 };
 
 export const usersTable = defineTable(userFields)

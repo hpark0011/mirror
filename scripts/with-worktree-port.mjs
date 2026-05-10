@@ -112,14 +112,96 @@ async function withLock(callback) {
   }
 }
 
-function isPortFree(port) {
+function canListen(port, host) {
   return new Promise((resolve) => {
     const server = net.createServer();
-    server.once("error", () => resolve(false));
+    server.unref();
+    server.once("error", (error) => {
+      resolve(["EADDRNOTAVAIL", "EAFNOSUPPORT"].includes(error.code));
+    });
     server.once("listening", () => {
       server.close(() => resolve(true));
     });
-    server.listen(port, "127.0.0.1");
+    server.listen({ port, host, exclusive: true });
+  });
+}
+
+async function isPortFree(port) {
+  if (!(await canListen(port, "::"))) {
+    return false;
+  }
+
+  return canListen(port, "127.0.0.1");
+}
+
+function isAssignedToOtherRoot(registry, name, root, port) {
+  return Object.entries(registry[name]).some(
+    ([otherRoot, entry]) => otherRoot !== root && entry.port === port,
+  );
+}
+
+function shouldSyncLocalAuthUrl(name, args) {
+  return (
+    name === "mirror" &&
+    args[0] === "next" &&
+    ["dev", "start"].includes(args[1]) &&
+    process.env.FEEL_GOOD_SKIP_AUTH_URL_SYNC !== "1"
+  );
+}
+
+function syncLocalAuthUrl(root, port) {
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(root, "scripts/ensure-local-auth-url.mjs"),
+      "--port",
+      String(port),
+    ],
+    {
+      cwd: root,
+      stdio: "inherit",
+    },
+  );
+
+  if (result.status !== 0) {
+    throw new Error(`Failed to sync Convex auth URL for port ${port}.`);
+  }
+}
+
+function syncLocalAuthUrlOrExit(root, port, child) {
+  try {
+    syncLocalAuthUrl(root, port);
+  } catch (error) {
+    console.error(error.message);
+    child?.kill("SIGTERM");
+    process.exit(1);
+  }
+}
+
+function watchForActualMirrorPort(root, stream, output, syncedPorts, child) {
+  let buffer = "";
+
+  stream.on("data", (chunk) => {
+    output.write(chunk);
+    buffer = `${buffer}${chunk.toString("utf8")}`;
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() ?? "";
+
+    for (const line of lines) {
+      const match = line.match(/https?:\/\/localhost:(\d+)/);
+      if (!match) continue;
+
+      const actualPort = Number.parseInt(match[1], 10);
+      if (!Number.isInteger(actualPort) || syncedPorts.has(actualPort)) {
+        continue;
+      }
+
+      syncedPorts.add(actualPort);
+      process.stderr.write(
+        `[with-worktree-port] Mirror started on port ${actualPort}; syncing Convex auth URL.\n`,
+      );
+      syncLocalAuthUrlOrExit(root, actualPort, child);
+    }
   });
 }
 
@@ -142,9 +224,18 @@ async function allocatePort(name, root) {
 
     const existing = registry[name][root];
     if (existing?.port) {
-      registry[name][root] = { port: existing.port, updatedAt: Date.now() };
-      writeRegistry(registry);
-      return existing.port;
+      if (
+        !isAssignedToOtherRoot(registry, name, root, existing.port) &&
+        (await isPortFree(existing.port))
+      ) {
+        registry[name][root] = { port: existing.port, updatedAt: Date.now() };
+        writeRegistry(registry);
+        return existing.port;
+      }
+
+      process.stderr.write(
+        `[with-worktree-port] ${name} port ${existing.port} is already in use; looking for another free port.\n`,
+      );
     }
 
     for (let i = 0; i < 701; i += 1) {
@@ -156,8 +247,11 @@ async function allocatePort(name, root) {
               ? fallbackOffset + i - 1
               : preferred - 3100 + i) %
               700);
-      const assignedToOtherRoot = Object.entries(registry[name]).some(
-        ([otherRoot, entry]) => otherRoot !== root && entry.port === port,
+      const assignedToOtherRoot = isAssignedToOtherRoot(
+        registry,
+        name,
+        root,
+        port,
       );
 
       if (!assignedToOtherRoot && (await isPortFree(port))) {
@@ -183,6 +277,12 @@ if (command.length === 0) {
   throw new Error("Usage: with-worktree-port.mjs <service> -- <command>");
 }
 
+const syncsLocalAuthUrl = shouldSyncLocalAuthUrl(service, command);
+
+if (syncsLocalAuthUrl) {
+  syncLocalAuthUrlOrExit(root, port);
+}
+
 const env = {
   ...process.env,
   [serviceEnvName(service)]: String(port),
@@ -201,9 +301,27 @@ const child = spawn(
   {
     cwd: process.cwd(),
     env,
-    stdio: "inherit",
+    stdio: syncsLocalAuthUrl ? ["inherit", "pipe", "pipe"] : "inherit",
   },
 );
+
+if (syncsLocalAuthUrl) {
+  const syncedMirrorPorts = new Set([port]);
+  watchForActualMirrorPort(
+    root,
+    child.stdout,
+    process.stdout,
+    syncedMirrorPorts,
+    child,
+  );
+  watchForActualMirrorPort(
+    root,
+    child.stderr,
+    process.stderr,
+    syncedMirrorPorts,
+    child,
+  );
+}
 
 child.on("exit", (code, signal) => {
   if (signal) {

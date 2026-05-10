@@ -6,6 +6,7 @@ import { isReservedUsername } from "@/lib/reserved-usernames";
 import { fetchAuthQuery, preloadAuthQuery } from "@/lib/auth-server";
 import { enforceOnboardingGate } from "@/lib/route-guards";
 import { api } from "@feel-good/convex/convex/_generated/api";
+import { DEFAULT_PROFILE_SECTION } from "@feel-good/convex/convex/content/href";
 import { ProfileRouteDataProvider } from "./_providers/profile-route-data-context";
 import { CloneActionsProvider } from "./_providers/clone-actions-context";
 import { WorkspacePanelBridgeProvider } from "./_providers/workspace-panel-bridge-context";
@@ -59,12 +60,11 @@ export default async function ProfileLayout({
 
   await enforceOnboardingGate();
 
-  const [convexProfile, preloadedProfile, currentAuthUser] =
-    await Promise.all([
-      getProfileByUsername(username),
-      preloadAuthQuery(api.users.queries.getByUsername, { username }),
-      fetchAuthQuery(api.auth.queries.getCurrentUser, {}),
-    ]);
+  const [convexProfile, preloadedProfile, currentAuthUser] = await Promise.all([
+    getProfileByUsername(username),
+    preloadAuthQuery(api.users.queries.getByUsername, { username }),
+    fetchAuthQuery(api.auth.queries.getCurrentUser, {}),
+  ]);
 
   if (!convexProfile) notFound();
 
@@ -75,6 +75,8 @@ export default async function ProfileLayout({
     name: convexProfile.name ?? "",
     tagline: convexProfile.tagline ?? "",
     avatarUrl: convexProfile.avatarUrl,
+    defaultProfileSection:
+      convexProfile.defaultProfileSection ?? DEFAULT_PROFILE_SECTION,
     ...(convexProfile.username === "rick-rubin" && {
       media: { video: "/portrait-video.mp4", poster: "/rr.webp" },
     }),

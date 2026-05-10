@@ -25,28 +25,26 @@ vi.mock("next/navigation", () => ({
 }));
 
 // Stable profile fixture — username "alice" used in all assertions.
-vi.mock(
-  "@/app/[username]/_providers/profile-route-data-context",
-  () => ({
-    useProfileRouteData: () => ({
-      profile: {
-        _id: "user_alice" as unknown as string,
-        authId: "auth_alice",
-        username: "alice",
-        name: "Alice",
-        bio: "",
-        avatarUrl: undefined,
-      },
-      isOwner: false,
-      videoCallOpen: false,
-      setVideoCallOpen: vi.fn(),
-      isEditing: false,
-      setIsEditing: vi.fn(),
-      isSubmitting: false,
-      setIsSubmitting: vi.fn(),
-    }),
+vi.mock("@/app/[username]/_providers/profile-route-data-context", () => ({
+  useProfileRouteData: () => ({
+    profile: {
+      _id: "user_alice" as unknown as string,
+      authId: "auth_alice",
+      username: "alice",
+      name: "Alice",
+      bio: "",
+      avatarUrl: undefined,
+      defaultProfileSection: "posts",
+    },
+    isOwner: false,
+    videoCallOpen: false,
+    setVideoCallOpen: vi.fn(),
+    isEditing: false,
+    setIsEditing: vi.fn(),
+    isSubmitting: false,
+    setIsSubmitting: vi.fn(),
   }),
-);
+}));
 
 // Chat-open variant: buildChatAwareHref appends ?chat=1&conversation=conv_123
 const CONV_ID = "conv_123";
@@ -75,25 +73,21 @@ vi.mock("@/hooks/use-chat-search-params", () => ({
 // to assert ordering deterministically.
 const ensureContentPanelOpenSpy = vi.fn();
 const registerSpy = vi.fn(() => () => {});
-vi.mock(
-  "@/app/[username]/_providers/workspace-panel-bridge-context",
-  () => {
-    return {
-      useWorkspacePanelBridge: () => ({
-        register: registerSpy,
-        ensureContentPanelOpen: ensureContentPanelOpenSpy,
-      }),
-      WorkspacePanelBridgeProvider: ({ children }: { children: ReactNode }) =>
-        children,
-    };
-  },
-);
+vi.mock("@/app/[username]/_providers/workspace-panel-bridge-context", () => {
+  return {
+    useWorkspacePanelBridge: () => ({
+      register: registerSpy,
+      ensureContentPanelOpen: ensureContentPanelOpenSpy,
+    }),
+    WorkspacePanelBridgeProvider: ({ children }: { children: ReactNode }) =>
+      children,
+  };
+});
 
 // ── Import after mocks ────────────────────────────────────────────────────────
 
-const { useCloneActions, CloneActionsProvider } = await import(
-  "@/app/[username]/_providers/clone-actions-context"
-);
+const { useCloneActions, CloneActionsProvider } =
+  await import("@/app/[username]/_providers/clone-actions-context");
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -206,7 +200,9 @@ describe("CloneActionsProvider — navigateToContent href bypass (FG_129)", () =
           href: "/@alice/articles/server-built",
         });
       });
-      expect(pushSpy.mock.calls[0][0]).toContain("?chat=1&conversation=conv_123");
+      expect(pushSpy.mock.calls[0][0]).toContain(
+        "?chat=1&conversation=conv_123",
+      );
 
       pushSpy.mockReset();
 
@@ -214,7 +210,9 @@ describe("CloneActionsProvider — navigateToContent href bypass (FG_129)", () =
       act(() => {
         result.current.navigateToContent({ kind: "articles", slug: "x" });
       });
-      expect(pushSpy.mock.calls[0][0]).toContain("?chat=1&conversation=conv_123");
+      expect(pushSpy.mock.calls[0][0]).toContain(
+        "?chat=1&conversation=conv_123",
+      );
     });
 
     it("does NOT append chat suffix when isChatOpen is false", () => {
@@ -252,9 +250,9 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
   // `useCloneActions().navigateToProfileSection`. The agent path passes a
   // server-built href; the user-UI path omits it and the dispatcher
   // composes via `getProfileTabHref(username, section)`. The
-  // `clone-settings` case exercises the dispatcher's wider section enum
+  // Owner-only cases exercise the dispatcher's wider section enum
   // (the agent enum is narrower — bio/articles/posts only) since the
-  // dispatcher is also the user-UI path for the owner's Clone tab.
+  // dispatcher is also the user-UI path for owner-only tabs.
   afterEach(() => {
     cleanup();
     pushSpy.mockReset();
@@ -263,7 +261,13 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
     mockIsChatOpen = true;
   });
 
-  const sections = ["bio", "articles", "posts", "clone-settings"] as const;
+  const sections = [
+    "bio",
+    "articles",
+    "posts",
+    "clone-settings",
+    "settings",
+  ] as const;
 
   for (const section of sections) {
     describe(`section: ${section}`, () => {
@@ -403,8 +407,7 @@ describe("CloneActionsProvider — panel-bridge integration (PLAN_010)", () => {
   function expectBridgeCalledBeforePush() {
     expect(ensureContentPanelOpenSpy).toHaveBeenCalledTimes(1);
     expect(pushSpy).toHaveBeenCalledTimes(1);
-    const bridgeOrder =
-      ensureContentPanelOpenSpy.mock.invocationCallOrder[0];
+    const bridgeOrder = ensureContentPanelOpenSpy.mock.invocationCallOrder[0];
     const pushOrder = pushSpy.mock.invocationCallOrder[0];
     expect(bridgeOrder).toBeLessThan(pushOrder);
   }
@@ -433,7 +436,13 @@ describe("CloneActionsProvider — panel-bridge integration (PLAN_010)", () => {
     expectBridgeCalledBeforePush();
   });
 
-  const sections = ["bio", "articles", "posts", "clone-settings"] as const;
+  const sections = [
+    "bio",
+    "articles",
+    "posts",
+    "clone-settings",
+    "settings",
+  ] as const;
 
   for (const section of sections) {
     it(`navigateToProfileSection({ section: ${section}, href }) calls ensureContentPanelOpen before router.push`, () => {

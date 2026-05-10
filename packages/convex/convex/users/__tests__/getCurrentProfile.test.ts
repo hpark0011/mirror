@@ -37,7 +37,13 @@ describe("currentProfileReturnValidator (UT-10)", () => {
 
   it("includes core profile fields (_id, authId, email, onboardingComplete)", () => {
     const fieldKeys = Object.keys(currentProfileReturnValidator.fields);
-    for (const field of ["_id", "authId", "email", "onboardingComplete"]) {
+    for (const field of [
+      "_id",
+      "authId",
+      "email",
+      "onboardingComplete",
+      "defaultProfileSection",
+    ]) {
       expect(fieldKeys).toContain(field);
     }
   });

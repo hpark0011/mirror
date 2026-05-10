@@ -1,5 +1,6 @@
 import { query } from "../_generated/server";
 import { v } from "convex/values";
+import { DEFAULT_PROFILE_SECTION } from "../content/href";
 import { authComponent } from "../auth/client";
 import {
   currentProfileReturnValidator,
@@ -22,7 +23,7 @@ export const getCurrentProfile = query({
       .unique();
     if (!appUser) {
       console.warn(
-        `[auth] Authenticated user has no app profile record. authId=${authUser._id} email=${authUser.email}`
+        `[auth] Authenticated user has no app profile record. authId=${authUser._id}`,
       );
       return null;
     }
@@ -38,6 +39,8 @@ export const getCurrentProfile = query({
       tagline: appUser.tagline,
       avatarUrl,
       onboardingComplete: appUser.onboardingComplete,
+      defaultProfileSection:
+        appUser.defaultProfileSection ?? DEFAULT_PROFILE_SECTION,
       personaPrompt: appUser.personaPrompt,
       tonePreset: appUser.tonePreset,
       topicsToAvoid: appUser.topicsToAvoid,
@@ -67,6 +70,8 @@ export const getByUsername = query({
       tagline: appUser.tagline,
       avatarUrl,
       onboardingComplete: appUser.onboardingComplete,
+      defaultProfileSection:
+        appUser.defaultProfileSection ?? DEFAULT_PROFILE_SECTION,
       chatAuthRequired: appUser.chatAuthRequired,
     };
   },
