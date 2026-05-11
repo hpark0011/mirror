@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { serverEnv } from "@/lib/env/server";
 
 interface TestSessionRequestBody {
   email: string;
@@ -60,8 +61,15 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!body.email || typeof body.email !== "string" || body.email.trim() === "") {
-    return NextResponse.json({ error: "Missing or empty email" }, { status: 400 });
+  if (
+    !body.email ||
+    typeof body.email !== "string" ||
+    body.email.trim() === ""
+  ) {
+    return NextResponse.json(
+      { error: "Missing or empty email" },
+      { status: 400 },
+    );
   }
 
   if (!body.email.endsWith(TEST_EMAIL_SUFFIX)) {
@@ -72,13 +80,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { email } = body;
-  const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
-  if (!convexSiteUrl) {
-    return NextResponse.json(
-      { error: "NEXT_PUBLIC_CONVEX_SITE_URL is not configured" },
-      { status: 500 },
-    );
-  }
+  const convexSiteUrl = serverEnv.CONVEX_SITE_URL;
 
   // Step 1: Trigger OTP send. The sendVerificationOTP hook intercepts in test
   // mode and stores the plain OTP in the testOtpStore table instead of emailing it.
@@ -153,7 +155,9 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   if (!normalizeRes.ok) {
     return NextResponse.json(
       {
-        error: body.withoutUsername ? "reset-user failed" : "ensure-user failed",
+        error: body.withoutUsername
+          ? "reset-user failed"
+          : "ensure-user failed",
       },
       { status: normalizeRes.status },
     );

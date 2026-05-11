@@ -3,13 +3,18 @@ import { preloadQuery } from "convex/nextjs";
 import { cookies } from "next/headers";
 import { type FunctionReference } from "convex/server";
 import { type Preloaded } from "convex/react";
-import { clientEnv } from "./env/client";
+import { serverEnv } from "./env/server";
 
-export const { handler, isAuthenticated, getToken, preloadAuthQuery, fetchAuthQuery } =
-  createAuthServerUtils({
-    convexUrl: clientEnv.NEXT_PUBLIC_CONVEX_URL,
-    convexSiteUrl: clientEnv.NEXT_PUBLIC_CONVEX_SITE_URL,
-  });
+export const {
+  handler,
+  isAuthenticated,
+  getToken,
+  preloadAuthQuery,
+  fetchAuthQuery,
+} = createAuthServerUtils({
+  convexUrl: serverEnv.NEXT_PUBLIC_CONVEX_URL,
+  convexSiteUrl: serverEnv.CONVEX_SITE_URL,
+});
 
 // Skips the Convex auth-token round-trip when there is no Better Auth session
 // cookie. Use for queries that return authenticated-only fields (e.g. drafts)
@@ -38,9 +43,5 @@ export async function preloadAuthOptionalQuery<
   // slots for zero-arg queries. preloadQuery's signature is
   // preloadQuery(query, args?, options?) — collapsing to two positional args
   // (query, { token }) would make Convex read the token object as query args.
-  return preloadQuery(
-    query,
-    args[0] as Query["_args"],
-    { token },
-  );
+  return preloadQuery(query, args[0] as Query["_args"], { token });
 }

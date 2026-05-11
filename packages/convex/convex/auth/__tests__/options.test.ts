@@ -4,6 +4,7 @@ import {
   parseCsv,
   resolveAuthBaseURL,
   resolveOAuthProxyPlugins,
+  resolveRouteTrustedOrigins,
   resolveTrustedOrigins,
 } from "../options";
 
@@ -59,6 +60,36 @@ describe("auth/options", () => {
       fallback: "http://localhost:3350",
       protocol: "http",
     });
+  });
+
+  it("resolves route trusted origins for worktree localhost ports", () => {
+    const trustedOrigins = resolveRouteTrustedOrigins({
+      SITE_URL: "http://localhost:3547",
+      AUTH_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*",
+    });
+
+    expect(
+      trustedOrigins(
+        new Request("https://example.convex.site/api/auth/session", {
+          headers: { origin: "http://localhost:3548" },
+        }),
+      ),
+    ).toEqual(["http://localhost:3548", "http://localhost:3547"]);
+  });
+
+  it("falls back to SITE_URL when the request origin is not allowed", () => {
+    const trustedOrigins = resolveRouteTrustedOrigins({
+      SITE_URL: "http://localhost:3547",
+      AUTH_ALLOWED_HOSTS: "localhost:*,127.0.0.1:*",
+    });
+
+    expect(
+      trustedOrigins(
+        new Request("https://example.convex.site/api/auth/session", {
+          headers: { origin: "https://evil.example" },
+        }),
+      ),
+    ).toEqual(["http://localhost:3547"]);
   });
 
   it("treats common truthy strings as OAuth proxy enabled", () => {

@@ -8,13 +8,19 @@ import {
   TEST_EMAIL_SUFFIX,
 } from "./auth/testMode";
 import { authComponent, createAuth } from "./auth/client";
+import { resolveRouteTrustedOrigins } from "./auth/options";
+import { env } from "./env";
 
 const http = httpRouter();
 
-// CORS-scoped via Better Auth's `trustedOrigins` in convex/auth/client.ts.
-// `cors: true` enables the CORS wrapper; allowed origins are sourced from
-// `trustedOrigins` (see @convex-dev/better-auth create-client.ts).
-authComponent.registerRoutes(http, createAuth, { cors: true });
+// Use lazy registration so @convex-dev/better-auth does not eagerly resolve
+// Better Auth's static context. Static resolution currently trips over the
+// dynamic `baseURL` object we need for localhost worktree ports.
+authComponent.registerRoutesLazy(http, createAuth, {
+  basePath: "/api/auth",
+  trustedOrigins: resolveRouteTrustedOrigins(env),
+  cors: true,
+});
 
 // Constant-time string compare to avoid leaking secret length via timing.
 function secretsMatch(a: string, b: string): boolean {

@@ -33,24 +33,59 @@ function authProtocolFor(siteUrl: string): AuthProtocol {
   return isLocalSiteUrl(siteUrl) ? "http" : "auto";
 }
 
-export function resolveAuthBaseURL(
+function allowedHostPatternsFor(
   env: Pick<Env, "SITE_URL" | "AUTH_ALLOWED_HOSTS">,
-): AuthBaseURL {
+): string[] {
   const configuredHosts = parseCsv(env.AUTH_ALLOWED_HOSTS);
-
   if (configuredHosts.length > 0) {
-    return {
-      allowedHosts: unique([...configuredHosts, siteUrlHost(env.SITE_URL)]),
-      fallback: env.SITE_URL,
-      protocol: authProtocolFor(env.SITE_URL),
-    };
+    return unique([...configuredHosts, siteUrlHost(env.SITE_URL)]);
   }
 
   if (isLocalSiteUrl(env.SITE_URL)) {
+    return unique([...LOCAL_ALLOWED_HOSTS, siteUrlHost(env.SITE_URL)]);
+  }
+
+  return [siteUrlHost(env.SITE_URL)];
+}
+
+function originMatchesAllowedHost(origin: string, patterns: string[]): boolean {
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return false;
+  }
+
+  return patterns.some((pattern) => {
+    const hostSource = pattern.includes("://")
+      ? (pattern.split("://", 2)[1] ?? "")
+      : pattern;
+    const hostPattern = hostSource.split(/[/?#]/, 1)[0] ?? "";
+    if (hostPattern === url.host || hostPattern === url.hostname) {
+      return true;
+    }
+    if (hostPattern.endsWith(":*")) {
+      return url.hostname === hostPattern.slice(0, -2);
+    }
+    if (hostPattern.startsWith("*.")) {
+      const root = hostPattern.slice(2);
+      return url.hostname === root || url.hostname.endsWith(`.${root}`);
+    }
+    return false;
+  });
+}
+
+export function resolveAuthBaseURL(
+  env: Pick<Env, "SITE_URL" | "AUTH_ALLOWED_HOSTS">,
+): AuthBaseURL {
+  if (
+    parseCsv(env.AUTH_ALLOWED_HOSTS).length > 0 ||
+    isLocalSiteUrl(env.SITE_URL)
+  ) {
     return {
-      allowedHosts: unique([...LOCAL_ALLOWED_HOSTS, siteUrlHost(env.SITE_URL)]),
+      allowedHosts: allowedHostPatternsFor(env),
       fallback: env.SITE_URL,
-      protocol: "http",
+      protocol: authProtocolFor(env.SITE_URL),
     };
   }
 
@@ -65,6 +100,24 @@ export function resolveTrustedOrigins(
     return undefined;
   }
   return [siteUrl];
+}
+
+export function resolveRouteTrustedOrigins(
+  env: Pick<Env, "SITE_URL" | "AUTH_ALLOWED_HOSTS">,
+): (request?: Request) => string[] {
+  const fallbackOrigin = new URL(env.SITE_URL).origin;
+  const allowedHostPatterns = allowedHostPatternsFor(env);
+
+  return (request?: Request) => {
+    const requestOrigin = request?.headers.get("origin");
+    if (
+      requestOrigin &&
+      originMatchesAllowedHost(requestOrigin, allowedHostPatterns)
+    ) {
+      return unique([requestOrigin, fallbackOrigin]);
+    }
+    return [fallbackOrigin];
+  };
 }
 
 export function isOAuthProxyEnabled(value: string | undefined): boolean {

@@ -8,9 +8,9 @@ import { magicLinkClient, emailOTPClient } from "better-auth/client/plugins";
  * Create an auth client with all plugins.
  * This helper is used to infer the full client type including plugins.
  */
-function createFullAuthClient(baseURL: string) {
+function createFullAuthClient(baseURL?: string) {
   return createAuthClient({
-    baseURL,
+    ...(baseURL ? { baseURL } : {}),
     plugins: [convexClient(), magicLinkClient(), emailOTPClient()],
   });
 }
@@ -23,28 +23,23 @@ export type AuthClient = ReturnType<typeof createFullAuthClient>;
 
 // Singleton cache for auth clients by URL
 const clientCache = new Map<string, AuthClient>();
+const SAME_ORIGIN_AUTH_KEY = "__same_origin_auth__";
 
 /**
  * Get or create an auth client for the given base URL.
- * Uses singleton pattern to avoid creating multiple clients for the same URL.
+ * Omitting a base URL uses Better Auth's same-origin `/api/auth` default,
+ * which keeps Vercel previews on their unique deployment host.
  */
 export function getAuthClient(baseURL?: string): AuthClient {
   const url = baseURL ?? process.env.NEXT_PUBLIC_AUTH_URL;
-
-  if (!url) {
-    throw new Error(
-      "Missing baseURL parameter or NEXT_PUBLIC_AUTH_URL environment variable.\n\n" +
-        "Set this in your .env.local file:\n" +
-        '  NEXT_PUBLIC_AUTH_URL="http://localhost:3001"'
-    );
-  }
+  const cacheKey = url ?? SAME_ORIGIN_AUTH_KEY;
 
   // Return cached instance if exists
-  if (clientCache.has(url)) {
-    return clientCache.get(url)!;
+  if (clientCache.has(cacheKey)) {
+    return clientCache.get(cacheKey)!;
   }
 
   const client = createFullAuthClient(url);
-  clientCache.set(url, client);
+  clientCache.set(cacheKey, client);
   return client;
 }

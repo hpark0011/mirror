@@ -11,15 +11,17 @@ NEXT_PUBLIC_SITE_URL="https://yourapp.com"
 # Convex configuration
 NEXT_PUBLIC_CONVEX_URL="https://your-deployment.convex.cloud"
 NEXT_PUBLIC_CONVEX_SITE_URL="https://your-deployment.convex.site"
+CONVEX_SITE_URL="https://your-deployment.convex.site"
 ```
 
 ### Required Variables
 
-| Variable | Description |
-|----------|-------------|
-| `NEXT_PUBLIC_SITE_URL` | Base URL for the application (used by auth client) |
-| `NEXT_PUBLIC_CONVEX_URL` | URL of your Convex deployment |
-| `NEXT_PUBLIC_CONVEX_SITE_URL` | Convex HTTP-actions host (ends in `.convex.site`) — target for the Better Auth proxy |
+| Variable                      | Description                                                                                                        |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `NEXT_PUBLIC_SITE_URL`        | Base URL for the application                                                                                       |
+| `NEXT_PUBLIC_CONVEX_URL`      | URL of your Convex deployment                                                                                      |
+| `CONVEX_SITE_URL`             | Convex HTTP-actions host (ends in `.convex.site`) — optional when `NEXT_PUBLIC_CONVEX_URL` ends in `.convex.cloud` |
+| `NEXT_PUBLIC_CONVEX_SITE_URL` | Local/dev fallback for tools that still read the legacy public Convex site URL                                     |
 
 ### Sentry Variables (Optional)
 
@@ -53,6 +55,9 @@ If `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, or `SENTRY_PROJECT` are missing, Mirror bu
    - with upload vars to confirm source map upload is enabled
 
 Environment variables are validated at startup. Missing or invalid variables will cause clear error messages.
+Server-side auth derives the Convex site URL from `NEXT_PUBLIC_CONVEX_URL` when
+`CONVEX_SITE_URL` is unavailable at runtime, which keeps Vercel previews on the
+freshly deployed Convex backend.
 
 ### Sentry Developer CLI
 

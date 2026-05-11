@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { serverEnv } from "@/lib/env/server";
 
 interface ExhaustRequestBody {
   username: string;
@@ -42,13 +43,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     );
   }
 
-  const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
-  if (!convexSiteUrl) {
-    return NextResponse.json(
-      { error: "NEXT_PUBLIC_CONVEX_SITE_URL is not configured" },
-      { status: 500 },
-    );
-  }
+  const convexSiteUrl = serverEnv.CONVEX_SITE_URL;
 
   const res = await fetch(`${convexSiteUrl}/test/exhaust-chat-daily`, {
     method: "POST",

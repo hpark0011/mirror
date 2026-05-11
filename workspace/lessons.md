@@ -2,6 +2,44 @@
 
 ## 2026-05-11
 
+### Dynamic Better Auth base URLs need lazy Convex route registration
+
+- When Better Auth `baseURL` is a dynamic object for local worktree hosts,
+  `@convex-dev/better-auth`'s eager `registerRoutes` path can evaluate the
+  static auth context and crash before auth handlers run. Use
+  `registerRoutesLazy` and pass a request-aware trusted-origins helper so CORS
+  keeps working without forcing `baseURL` back to a string.
+- Normalize app-side base URLs before joining paths. A trailing slash in
+  `NEXT_PUBLIC_CONVEX_SITE_URL` turns string-concatenated auth calls into
+  `//api/auth/...`, which Convex HTTP routing does not normalize; the symptom is
+  a misleading 404 from `/api/test/session` even though the same endpoint works
+  when probed with a trimmed URL.
+- Convex project-level preview defaults only apply when a preview backend is
+  created. If Vercel logs show `InvalidModules` because an existing preview
+  deployment is missing `SITE_URL`, `GOOGLE_CLIENT_ID`, or
+  `GOOGLE_CLIENT_SECRET`, set both the `--type preview` defaults for future
+  backends and the specific `--deployment <name>` env values for the already
+  reused preview backend named in the Vercel log.
+- Client-side Better Auth should stay same-origin in apps that proxy
+  `/api/auth`. Passing `NEXT_PUBLIC_SITE_URL` to `createAuthClient` bakes a
+  build-time host into the browser bundle; in Vercel previews that can be a
+  placeholder domain, so Google/email auth fetches get blocked by CSP before the
+  proxy ever runs.
+- Vercel preview auth has two independent Convex URL channels. `npx convex
+deploy --cmd` injects `CONVEX_SITE_URL` for the current preview backend during
+  build, but that value is not automatically present at Vercel serverless
+  runtime; `NEXT_PUBLIC_CONVEX_SITE_URL` can also be a stale project env var.
+  Server auth proxies should prefer runtime `CONVEX_SITE_URL`, then derive
+  `.convex.site` from the build-inlined `NEXT_PUBLIC_CONVEX_URL`, and only fall
+  back to the legacy public site var for local env files. Otherwise a fresh Next
+  preview can still forward `/api/auth/*` to an old Convex backend and keep
+  returning `INVALID_ORIGIN`.
+- Preview Convex backends also need a real `BETTER_AUTH_SECRET`. Better Auth may
+  not fail schema validation if the app doesn't require it explicitly, but
+  runtime auth endpoints reject the default secret in deployed environments.
+  Include `BETTER_AUTH_SECRET` in the Convex env schema and in preview defaults,
+  not just production.
+
 ### Optional titles still need an explicit slug invariant
 
 - For slug-addressed content, making `title` optional means every create

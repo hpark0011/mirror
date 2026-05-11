@@ -23,7 +23,7 @@ browser → https://<app-domain>/api/auth/*
                                                           x-forwarded-host)
             → https://<deployment>.convex.site/api/auth/*
                  └─ convex/http.ts                       (HTTP router)
-                      └─ authComponent.registerRoutes    (Better Auth handler)
+                      └─ authComponent.registerRoutesLazy (Better Auth handler)
                            └─ convex/auth/client.ts      (betterAuth({...}))
 ```
 
@@ -31,16 +31,21 @@ browser → https://<app-domain>/api/auth/*
 
 Four URL-ish env vars. Don't mix them up.
 
-| Var | Lives in | Value | Used by |
-|---|---|---|---|
-| `NEXT_PUBLIC_SITE_URL` | Vercel (build-time inlined) | App's public URL (e.g. `https://greymirror.ai`) | Browser — `lib/auth-client.ts` |
-| `SITE_URL` | Convex deployment env | Same app URL | Better Auth `baseURL` + `trustedOrigins` + `cors.allowedOrigins` |
-| `NEXT_PUBLIC_CONVEX_URL` | Vercel (build-time, injected by `npx convex deploy --cmd-url-env-var-name`) | `https://<deployment>.convex.cloud` | `ConvexReactClient` for queries/mutations/subscriptions |
-| `NEXT_PUBLIC_CONVEX_SITE_URL` | Vercel | `https://<deployment>.convex.site` | The Next.js proxy's target for `/api/auth/*` |
+| Var                           | Lives in                                                                    | Value                                           | Used by                                                          |
+| ----------------------------- | --------------------------------------------------------------------------- | ----------------------------------------------- | ---------------------------------------------------------------- |
+| `NEXT_PUBLIC_SITE_URL`        | Vercel (build-time inlined)                                                 | App's public URL (e.g. `https://greymirror.ai`) | Browser — `lib/auth-client.ts`                                   |
+| `SITE_URL`                    | Convex deployment env                                                       | Same app URL                                    | Better Auth `baseURL` + `trustedOrigins` + `cors.allowedOrigins` |
+| `NEXT_PUBLIC_CONVEX_URL`      | Vercel (build-time, injected by `npx convex deploy --cmd-url-env-var-name`) | `https://<deployment>.convex.cloud`             | `ConvexReactClient` for queries/mutations/subscriptions          |
+| `CONVEX_SITE_URL`             | Convex deploy build subprocess                                              | `https://<deployment>.convex.site`              | The Next.js proxy's target for `/api/auth/*`                     |
+| `NEXT_PUBLIC_CONVEX_SITE_URL` | Local/dev fallback                                                          | `https://<deployment>.convex.site`              | Legacy fallback for local env files and Playwright helpers       |
 
 Rules:
+
 - `SITE_URL` on Convex **must** equal `NEXT_PUBLIC_SITE_URL` on Vercel. They're the same value in two places.
 - `.convex.cloud` ≠ `.convex.site`. The RPC/WebSocket host is `.convex.cloud`; the HTTP-actions host (where Better Auth lives) is `.convex.site`. Swapping them silently breaks sign-in with no useful error.
+- Normalize app-side URL env vars at the env boundary (`clientEnv` / Playwright config) before concatenating paths. A trailing slash in `NEXT_PUBLIC_CONVEX_SITE_URL` produces `//api/auth/...`, and Convex HTTP routing treats that as "No matching routes found".
+- Browser auth clients should use same-origin `/api/auth` unless there is a strong cross-origin reason. Passing `NEXT_PUBLIC_SITE_URL` into `createAuthClient` bakes placeholder preview URLs into client bundles and causes CSP-blocked auth calls from Vercel preview deployments.
+- Server-side auth proxy code must use the current Convex deployment. Prefer `CONVEX_SITE_URL` when present, otherwise derive `.convex.site` from the build-inlined `NEXT_PUBLIC_CONVEX_URL`, and only then fall back to legacy `NEXT_PUBLIC_CONVEX_SITE_URL`. `npx convex deploy` injects `CONVEX_SITE_URL` for the build command, but it is not a Vercel runtime env var; a stale Vercel `NEXT_PUBLIC_CONVEX_SITE_URL` can otherwise make a fresh preview proxy auth to an old Convex backend.
 
 ## Where `trustedOrigins` and CORS go
 
@@ -48,7 +53,11 @@ Rules:
 
 ```ts
 // packages/convex/convex/http.ts
-authComponent.registerRoutes(http, createAuth, { cors: true });
+authComponent.registerRoutesLazy(http, createAuth, {
+  basePath: "/api/auth",
+  trustedOrigins: resolveRouteTrustedOrigins(env),
+  cors: true,
+});
 
 // packages/convex/convex/auth/client.ts
 betterAuth({
@@ -59,7 +68,8 @@ betterAuth({
 ```
 
 - `trustedOrigins` on `betterAuth({...})` handles CSRF-style origin checks on cookie-setting POSTs. The `@convex-dev/better-auth` adapter version we use **does not** accept `trustedOrigins` on `registerRoutes` — TypeScript will reject it.
-- `cors` on `registerRoutes` gates the CORS wrapper itself:
+- Use `registerRoutesLazy`, not `registerRoutes`, for the Convex HTTP auth routes. `registerRoutes` eagerly resolves Better Auth's static context for CORS and can crash when `baseURL` is the dynamic object we need for localhost worktree ports. Pass `resolveRouteTrustedOrigins(env)` through the lazy route options instead.
+- `cors` on `registerRoutesLazy` gates the CORS wrapper itself:
   - `cors: true` — enable the wrapper; allowed origins = `trustedOrigins` from `betterAuth(...)`. This is what we want.
   - `cors: { allowedOrigins: [...] }` — same, but appends extra origins beyond `trustedOrigins`. Only use this if a non-app origin legitimately needs cookie-bearing access.
   - **Omitting `cors` entirely** skips the wrapper — the raw handler runs with no preflight/allow-origin headers at all. Don't do this.
@@ -125,6 +135,7 @@ Any new env var read by either Next or Convex must also be added to `turbo.json`
 Do **not** put `CONVEX_DEPLOY_KEY` in `apps/mirror/.env.local` (or any other `.env*` file the Convex CLI reads). The Convex CLI treats `CONVEX_DEPLOY_KEY` as authoritative and silently overrides `CONVEX_DEPLOYMENT`, which means every `npx convex dev` invocation gets routed at whichever deployment the key targets — for a `prod:` key, that's production, even though `CONVEX_DEPLOYMENT=dev:…` says otherwise. The CLI prints no warning.
 
 Where `CONVEX_DEPLOY_KEY` SHOULD live:
+
 - **Vercel project env vars** — the only place a `prod:` (or `preview:`) key belongs in this monorepo. The build command at the top of this section reads it from there.
 - **Shell-scoped, single-command export** for ad-hoc local manual deploys against prod, e.g. `CONVEX_DEPLOY_KEY=prod:… npx convex deploy`. Do not persist it in any file the Convex CLI auto-loads.
 
@@ -136,12 +147,32 @@ Vercel builds every PR as a Preview. The build command invokes `npx convex deplo
 
 Six steps, in order. Skipping any one breaks the preview:
 
-1. **Generate a Convex Preview Deploy Key** in the Convex dashboard → **Project Settings** (click the project name in the top-left breadcrumb to get out of the Production deployment view; the key is a *project-level* artifact, not a deployment-level one). The key's format is `preview:<team-slug>:<project-slug>|<token>`.
-2. **Register the key on Vercel as `CONVEX_DEPLOY_KEY` — Preview scope only.** Do *not* overwrite or share scope with the Production key; a Preview-scoped key deploys ephemeral per-PR backends, a Production-scoped key deploys prod.
+1. **Generate a Convex Preview Deploy Key** in the Convex dashboard → **Project Settings** (click the project name in the top-left breadcrumb to get out of the Production deployment view; the key is a _project-level_ artifact, not a deployment-level one). The key's format is `preview:<team-slug>:<project-slug>|<token>`.
+2. **Register the key on Vercel as `CONVEX_DEPLOY_KEY` — Preview scope only.** Do _not_ overwrite or share scope with the Production key; a Preview-scoped key deploys ephemeral per-PR backends, a Production-scoped key deploys prod.
 3. **Use the Vercel dashboard, not `vercel env add`, for this one.** The CLI's `vercel env add NAME preview` supports branch scoping via `preview:<branch>` syntax, so a value containing colons (which Convex preview keys do — `preview:<team>:<project>|…`) gets mis-parsed as `preview` + branch `<team>:<project>|…` and fails with "Branch ... not found in the connected Git repository". The dashboard has separate Value and Environment fields and avoids the ambiguity.
-4. **Seed Convex Project-level Default Environment Variables** for every var our `packages/convex/convex/env.ts` zod schema requires: `SITE_URL`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Every new preview backend spawns empty; these defaults are what populate it on creation. Placeholders are fine (`https://preview.placeholder.invalid`, non-empty strings) — auth won't work on preview URLs anyway because the OAuth redirect URIs are app-domain-specific.
+4. **Seed Convex Project-level Default Environment Variables** for every var our `packages/convex/convex/env.ts` zod schema requires: `SITE_URL`, `BETTER_AUTH_SECRET`, `AUTH_ALLOWED_HOSTS`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`. Every new preview backend spawns empty; these defaults are what populate it on creation. Use `AUTH_ALLOWED_HOSTS=*.vercel.app` so preview hosts pass Better Auth's origin guard. Generate a real random `BETTER_AUTH_SECRET`; placeholders are fine for the Google values (`https://preview.placeholder.invalid`, non-empty strings) — auth won't complete on preview URLs anyway unless OAuth proxy or preview-specific Google credentials are configured.
 5. **Defaults only apply to NEWLY-created preview deployments.** A preview deploy that failed before you set the defaults won't retroactively get them — push an empty commit (`git commit --allow-empty && git push`) to force Convex to provision a fresh backend that picks the defaults up.
 6. **Preview deploy URL behavior you should expect:** the app loads, Convex queries/mutations/streaming work, email-OTP sign-in works, but Google OAuth sign-in fails at callback (redirect-URI mismatch — Google's client has prod/dev domains whitelisted, not `mirror-<hash>-hpark0011s-projects.vercel.app`). If preview-auth matters for review, provision a dedicated "preview" Google OAuth client with the preview-URL pattern authorized and swap the placeholders for its real credentials.
+
+Concrete CLI recovery when Vercel logs show `InvalidModules` with missing `SITE_URL` / Google vars:
+
+```bash
+cd packages/convex
+pnpm exec convex env default set --type preview SITE_URL https://preview.placeholder.invalid
+pnpm exec convex env default set --type preview BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
+pnpm exec convex env default set --type preview AUTH_ALLOWED_HOSTS "*.vercel.app"
+pnpm exec convex env default set --type preview GOOGLE_CLIENT_ID preview-placeholder-client-id
+pnpm exec convex env default set --type preview GOOGLE_CLIENT_SECRET preview-placeholder-client-secret
+
+# If the failing Vercel retry reuses an existing Convex preview deployment,
+# seed that deployment too. The deployment name is in the Vercel build log:
+# "Deploying to https://<deployment-name>.convex.cloud..."
+pnpm exec convex env set --deployment <deployment-name> SITE_URL https://preview.placeholder.invalid
+pnpm exec convex env set --deployment <deployment-name> BETTER_AUTH_SECRET "$(openssl rand -base64 32)"
+pnpm exec convex env set --deployment <deployment-name> AUTH_ALLOWED_HOSTS "*.vercel.app"
+pnpm exec convex env set --deployment <deployment-name> GOOGLE_CLIENT_ID preview-placeholder-client-id
+pnpm exec convex env set --deployment <deployment-name> GOOGLE_CLIENT_SECRET preview-placeholder-client-secret
+```
 
 Preview backends auto-clean after 5 days (14 on Convex Pro) and count toward the project's deployment limit.
 

@@ -2,11 +2,23 @@ import { resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 import { config as loadEnv } from "dotenv";
 import { defineConfig, devices } from "@playwright/test";
+import { normalizeBaseUrl } from "./lib/env/url";
 
 // Load .env.local for Playwright's Node process (Next.js loads it automatically
 // for the dev server, but the test runner is separate). Existing process.env
 // values win so CI overrides are respected.
 loadEnv({ path: resolve(__dirname, ".env.local"), override: false });
+
+for (const name of [
+  "NEXT_PUBLIC_SITE_URL",
+  "NEXT_PUBLIC_CONVEX_URL",
+  "NEXT_PUBLIC_CONVEX_SITE_URL",
+]) {
+  const value = process.env[name];
+  if (value) {
+    process.env[name] = normalizeBaseUrl(value);
+  }
+}
 
 function resolvePort(): number {
   const explicitPort = process.env.MIRROR_PORT ?? process.env.PORT;

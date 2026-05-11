@@ -66,6 +66,10 @@ import type {
 } from "@feel-good/features/auth/types";
 ```
 
+Prefer `getAuthClient()` without a base URL when the app proxies Better Auth at
+same-origin `/api/auth`. Passing a build-time app origin makes Vercel previews
+fragile because each preview deployment has a different host.
+
 ## Structure
 
 ```
