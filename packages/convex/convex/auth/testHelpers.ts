@@ -1,8 +1,26 @@
-import { internalMutation, internalQuery } from "../_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  type MutationCtx,
+} from "../_generated/server";
 import { v } from "convex/values";
 import { type Id } from "../_generated/dataModel";
+import {
+  buildReferencedStorageSet,
+  collectReferencedFromCandidates,
+} from "../content/storageRegistry";
 
 const TEST_EMAIL_SUFFIX = "@mirror.test";
+const MAX_TEST_CLEANUP_IDS = 100;
+const DEFAULT_STORAGE_CLEANUP_LIMIT = 200;
+const TEST_COVER_ARTICLE_SLUG_PATTERN =
+  /^(?:artifact-video-shot|cover-video|inline-cover-video)(?:-|$)/;
+
+type StorageCleanupResult = {
+  deletedStorage: number;
+  deletedOwnership: number;
+  preservedReferenced: number;
+};
 
 function assertTestEmail(email: string): void {
   if (!email.endsWith(TEST_EMAIL_SUFFIX)) {
@@ -10,6 +28,77 @@ function assertTestEmail(email: string): void {
       `Test helpers only accept emails ending in ${TEST_EMAIL_SUFFIX}`,
     );
   }
+}
+
+function uniqueStorageIds(
+  ids: Array<Id<"_storage"> | undefined>,
+): Id<"_storage">[] {
+  const out: Id<"_storage">[] = [];
+  const seen = new Set<string>();
+  for (const id of ids) {
+    if (id === undefined || seen.has(id)) continue;
+    seen.add(id);
+    out.push(id);
+  }
+  return out;
+}
+
+function clampCleanupLimit(value: number | undefined): number {
+  if (value === undefined || !Number.isFinite(value)) {
+    return DEFAULT_STORAGE_CLEANUP_LIMIT;
+  }
+  return Math.max(1, Math.min(Math.floor(value), 500));
+}
+
+function storageSizeBytes(storage: { size?: number } | null): number {
+  return typeof storage?.size === "number" ? storage.size : 0;
+}
+
+async function deleteCoverOwnership(
+  ctx: MutationCtx,
+  storageId: Id<"_storage">,
+): Promise<number> {
+  const row = await ctx.db
+    .query("coverImageOwnership")
+    .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
+    .unique();
+  if (!row) return 0;
+  await ctx.db.delete(row._id);
+  return 1;
+}
+
+async function cleanupUnreferencedStorageIds(
+  ctx: MutationCtx,
+  ids: Id<"_storage">[],
+): Promise<StorageCleanupResult> {
+  const storageIds = uniqueStorageIds(ids);
+  if (storageIds.length === 0) {
+    return {
+      deletedStorage: 0,
+      deletedOwnership: 0,
+      preservedReferenced: 0,
+    };
+  }
+
+  const referenced = await collectReferencedFromCandidates(ctx, storageIds);
+  let deletedStorage = 0;
+  let deletedOwnership = 0;
+  let preservedReferenced = 0;
+
+  for (const storageId of storageIds) {
+    if (referenced.has(storageId)) {
+      preservedReferenced += 1;
+      continue;
+    }
+    const storage = await ctx.db.system.get(storageId);
+    if (storage !== null) {
+      await ctx.storage.delete(storageId);
+      deletedStorage += 1;
+    }
+    deletedOwnership += await deleteCoverOwnership(ctx, storageId);
+  }
+
+  return { deletedStorage, deletedOwnership, preservedReferenced };
 }
 
 /**
@@ -105,8 +194,7 @@ export const ensureTestUser = internalMutation({
       .collect();
     const blockingOwner = usernameOwners.find(
       (owner) =>
-        owner.email !== args.email &&
-        !owner.email.endsWith(TEST_EMAIL_SUFFIX),
+        owner.email !== args.email && !owner.email.endsWith(TEST_EMAIL_SUFFIX),
     );
     if (blockingOwner) {
       throw new Error(
@@ -250,7 +338,10 @@ export const ensureTestPostFixtures = internalMutation({
         status: "published",
         title: "Test Published Post",
         publishedAt: existingPublished.publishedAt ?? now,
-        body: existingPublished.body ?? { type: "doc", content: [{ type: "paragraph" }] },
+        body: existingPublished.body ?? {
+          type: "doc",
+          content: [{ type: "paragraph" }],
+        },
       });
     } else {
       await ctx.db.insert("posts", {
@@ -351,10 +442,14 @@ export const ensureTestArticleFixtures = internalMutation({
       // Always reset the body so concurrent / sequential e2e tests start from
       // a deterministic empty draft. Inline-image specs paste images into
       // the draft and save, which would otherwise leak into the next run.
-      // Cover blobs (image + PLAN_010 video + poster) are similarly cleared
-      // to keep the cascade-delete and image↔video swap specs honest. FR-07
-      // cascade is exercised at the `articles.mutations.remove` surface,
-      // not here, so we don't try to GC blobs in this fixture.
+      // Cover blobs (image + PLAN_010 video + poster) are similarly cleared,
+      // then reclaimed if no other row references them. This keeps repeated
+      // local e2e runs from turning fixture resets into storage leaks.
+      const previousCoverStorageIds = uniqueStorageIds([
+        existingDraft.coverImageStorageId,
+        existingDraft.coverVideoStorageId,
+        existingDraft.coverVideoPosterStorageId,
+      ]);
       await ctx.db.patch(existingDraft._id, {
         status: "draft",
         title: "Test Draft Article",
@@ -365,6 +460,7 @@ export const ensureTestArticleFixtures = internalMutation({
         coverVideoStorageId: undefined,
         coverVideoPosterStorageId: undefined,
       });
+      await cleanupUnreferencedStorageIds(ctx, previousCoverStorageIds);
     } else {
       await ctx.db.insert("articles", {
         userId,
@@ -471,6 +567,251 @@ export const ensureTestArticleFixtures = internalMutation({
             relevantArticleId,
           }
         : {}),
+    };
+  },
+});
+
+export const cleanupTestCoverStorageIds = internalMutation({
+  args: {
+    storageIds: v.array(v.id("_storage")),
+  },
+  returns: v.object({
+    deletedStorage: v.number(),
+    deletedOwnership: v.number(),
+    preservedReferenced: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    if (args.storageIds.length > MAX_TEST_CLEANUP_IDS) {
+      throw new Error(
+        `cleanupTestCoverStorageIds accepts at most ${MAX_TEST_CLEANUP_IDS} ids`,
+      );
+    }
+
+    return await cleanupUnreferencedStorageIds(ctx, args.storageIds);
+  },
+});
+
+export const cleanupTestArticleCoverMedia = internalMutation({
+  args: {
+    email: v.string(),
+    slugs: v.array(v.string()),
+  },
+  returns: v.object({
+    patchedArticles: v.number(),
+    candidateStorageIds: v.number(),
+    deletedStorage: v.number(),
+    deletedOwnership: v.number(),
+    preservedReferenced: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+    if (args.slugs.length > MAX_TEST_CLEANUP_IDS) {
+      throw new Error(
+        `cleanupTestArticleCoverMedia accepts at most ${MAX_TEST_CLEANUP_IDS} slugs`,
+      );
+    }
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+    if (!user) {
+      return {
+        patchedArticles: 0,
+        candidateStorageIds: 0,
+        deletedStorage: 0,
+        deletedOwnership: 0,
+        preservedReferenced: 0,
+      };
+    }
+
+    let patchedArticles = 0;
+    const candidates: Id<"_storage">[] = [];
+    for (const slug of new Set(args.slugs)) {
+      const article = await ctx.db
+        .query("articles")
+        .withIndex("by_userId_and_slug", (q) =>
+          q.eq("userId", user._id).eq("slug", slug),
+        )
+        .unique();
+      if (!article) continue;
+
+      const storageIds = uniqueStorageIds([
+        article.coverImageStorageId,
+        article.coverVideoStorageId,
+        article.coverVideoPosterStorageId,
+      ]);
+      if (storageIds.length === 0) continue;
+
+      candidates.push(...storageIds);
+      await ctx.db.patch(article._id, {
+        coverImageStorageId: undefined,
+        coverImageThumbhash: undefined,
+        coverVideoStorageId: undefined,
+        coverVideoPosterStorageId: undefined,
+      });
+      patchedArticles += 1;
+    }
+
+    const cleanup = await cleanupUnreferencedStorageIds(ctx, candidates);
+    return {
+      patchedArticles,
+      candidateStorageIds: uniqueStorageIds(candidates).length,
+      ...cleanup,
+    };
+  },
+});
+
+export const cleanupTestStorage = internalMutation({
+  args: {
+    email: v.string(),
+    olderThanMs: v.number(),
+    dryRun: v.boolean(),
+    includeTestArticleCoverMedia: v.boolean(),
+    maxStorageRows: v.optional(v.number()),
+    maxArticles: v.optional(v.number()),
+  },
+  returns: v.object({
+    dryRun: v.boolean(),
+    storageScanned: v.number(),
+    unreferencedStorageIds: v.number(),
+    unreferencedBytes: v.number(),
+    staleTestArticleCoverStorageIds: v.number(),
+    staleTestArticleCoverBytes: v.number(),
+    patchedTestArticles: v.number(),
+    deletedStorage: v.number(),
+    deletedOwnership: v.number(),
+    preservedReferenced: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+    if (!Number.isFinite(args.olderThanMs) || args.olderThanMs < 0) {
+      throw new Error("olderThanMs must be a non-negative finite number");
+    }
+
+    const cutoff = Date.now() - args.olderThanMs;
+    const storageLimit = clampCleanupLimit(args.maxStorageRows);
+    const storagePage = await ctx.db.system
+      .query("_storage")
+      .withIndex("by_creation_time", (q) => q.lt("_creationTime", cutoff))
+      .take(storageLimit);
+    const referenced = await buildReferencedStorageSet(ctx);
+
+    const unreferencedIds: Id<"_storage">[] = [];
+    let unreferencedBytes = 0;
+    for (const storage of storagePage) {
+      if (referenced.has(storage._id)) continue;
+      unreferencedIds.push(storage._id);
+      unreferencedBytes += storageSizeBytes(storage);
+    }
+
+    let staleTestArticleCoverBytes = 0;
+    let patchedTestArticles = 0;
+    const staleTestArticleCoverIds: Id<"_storage">[] = [];
+
+    if (args.includeTestArticleCoverMedia) {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email))
+        .unique();
+
+      if (user) {
+        const articleLimit = clampCleanupLimit(args.maxArticles);
+        const articles = await ctx.db
+          .query("articles")
+          .withIndex("by_userId", (q) => q.eq("userId", user._id))
+          .take(articleLimit);
+
+        for (const article of articles) {
+          if (article.status !== "draft") continue;
+          if (!TEST_COVER_ARTICLE_SLUG_PATTERN.test(article.slug)) continue;
+
+          const fieldUpdates: {
+            coverImageStorageId?: undefined;
+            coverImageThumbhash?: undefined;
+            coverVideoStorageId?: undefined;
+            coverVideoPosterStorageId?: undefined;
+          } = {};
+          const coverFields = [
+            {
+              storageId: article.coverImageStorageId,
+              field: "coverImageStorageId" as const,
+            },
+            {
+              storageId: article.coverVideoStorageId,
+              field: "coverVideoStorageId" as const,
+            },
+            {
+              storageId: article.coverVideoPosterStorageId,
+              field: "coverVideoPosterStorageId" as const,
+            },
+          ];
+
+          for (const coverField of coverFields) {
+            if (coverField.storageId === undefined) continue;
+            const storage = await ctx.db.system.get(coverField.storageId);
+            if (storage !== null && storage._creationTime >= cutoff) continue;
+
+            staleTestArticleCoverIds.push(coverField.storageId);
+            staleTestArticleCoverBytes += storageSizeBytes(storage);
+            fieldUpdates[coverField.field] = undefined;
+            if (coverField.field === "coverImageStorageId") {
+              fieldUpdates.coverImageThumbhash = undefined;
+            }
+          }
+
+          if (!args.dryRun && Object.keys(fieldUpdates).length > 0) {
+            await ctx.db.patch(article._id, fieldUpdates);
+            patchedTestArticles += 1;
+          }
+        }
+      }
+    }
+
+    if (args.dryRun) {
+      return {
+        dryRun: true,
+        storageScanned: storagePage.length,
+        unreferencedStorageIds: uniqueStorageIds(unreferencedIds).length,
+        unreferencedBytes,
+        staleTestArticleCoverStorageIds: uniqueStorageIds(
+          staleTestArticleCoverIds,
+        ).length,
+        staleTestArticleCoverBytes,
+        patchedTestArticles: 0,
+        deletedStorage: 0,
+        deletedOwnership: 0,
+        preservedReferenced: 0,
+      };
+    }
+
+    const unreferencedCleanup = await cleanupUnreferencedStorageIds(
+      ctx,
+      unreferencedIds,
+    );
+    const staleMediaCleanup = await cleanupUnreferencedStorageIds(
+      ctx,
+      staleTestArticleCoverIds,
+    );
+
+    return {
+      dryRun: false,
+      storageScanned: storagePage.length,
+      unreferencedStorageIds: uniqueStorageIds(unreferencedIds).length,
+      unreferencedBytes,
+      staleTestArticleCoverStorageIds: uniqueStorageIds(
+        staleTestArticleCoverIds,
+      ).length,
+      staleTestArticleCoverBytes,
+      patchedTestArticles,
+      deletedStorage:
+        unreferencedCleanup.deletedStorage + staleMediaCleanup.deletedStorage,
+      deletedOwnership:
+        unreferencedCleanup.deletedOwnership +
+        staleMediaCleanup.deletedOwnership,
+      preservedReferenced:
+        unreferencedCleanup.preservedReferenced +
+        staleMediaCleanup.preservedReferenced,
     };
   },
 });

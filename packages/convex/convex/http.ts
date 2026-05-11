@@ -292,6 +292,140 @@ if (isPlaywrightTestMode()) {
     }),
   });
 
+  http.route({
+    path: "/test/cleanup-cover-storage-ids",
+    method: "POST",
+    handler: httpAction(async (ctx, req) => {
+      const deny = authorizeTestRequest(req);
+      if (deny) return deny;
+      const { storageIds } = (await req.json()) as { storageIds?: unknown };
+      if (
+        !Array.isArray(storageIds) ||
+        storageIds.some((storageId) => typeof storageId !== "string")
+      ) {
+        return new Response("Bad Request: storageIds array required", {
+          status: 400,
+        });
+      }
+      const result = await ctx.runMutation(
+        internal.auth.testHelpers.cleanupTestCoverStorageIds,
+        { storageIds: storageIds as Id<"_storage">[] },
+      );
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }),
+  });
+
+  http.route({
+    path: "/test/cleanup-article-cover-media",
+    method: "POST",
+    handler: httpAction(async (ctx, req) => {
+      const deny = authorizeTestRequest(req);
+      if (deny) return deny;
+      const { email, slugs } = (await req.json()) as {
+        email?: unknown;
+        slugs?: unknown;
+      };
+      if (typeof email !== "string" || email.length === 0) {
+        return new Response("Bad Request: email required", { status: 400 });
+      }
+      if (
+        !Array.isArray(slugs) ||
+        slugs.some((slug) => typeof slug !== "string")
+      ) {
+        return new Response("Bad Request: slugs array required", {
+          status: 400,
+        });
+      }
+      const result = await ctx.runMutation(
+        internal.auth.testHelpers.cleanupTestArticleCoverMedia,
+        { email, slugs },
+      );
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }),
+  });
+
+  http.route({
+    path: "/test/cleanup-storage",
+    method: "POST",
+    handler: httpAction(async (ctx, req) => {
+      const deny = authorizeTestRequest(req);
+      if (deny) return deny;
+      const body = (await req.json()) as {
+        email?: unknown;
+        olderThanMs?: unknown;
+        dryRun?: unknown;
+        includeTestArticleCoverMedia?: unknown;
+        maxStorageRows?: unknown;
+        maxArticles?: unknown;
+      };
+      if (typeof body.email !== "string" || body.email.length === 0) {
+        return new Response("Bad Request: email required", { status: 400 });
+      }
+      if (
+        typeof body.olderThanMs !== "number" ||
+        !Number.isFinite(body.olderThanMs) ||
+        body.olderThanMs < 0
+      ) {
+        return new Response(
+          "Bad Request: olderThanMs must be a non-negative number",
+          { status: 400 },
+        );
+      }
+      if (typeof body.dryRun !== "boolean") {
+        return new Response("Bad Request: dryRun boolean required", {
+          status: 400,
+        });
+      }
+      if (typeof body.includeTestArticleCoverMedia !== "boolean") {
+        return new Response(
+          "Bad Request: includeTestArticleCoverMedia boolean required",
+          { status: 400 },
+        );
+      }
+      if (
+        body.maxStorageRows !== undefined &&
+        typeof body.maxStorageRows !== "number"
+      ) {
+        return new Response("Bad Request: maxStorageRows must be a number", {
+          status: 400,
+        });
+      }
+      if (
+        body.maxArticles !== undefined &&
+        typeof body.maxArticles !== "number"
+      ) {
+        return new Response("Bad Request: maxArticles must be a number", {
+          status: 400,
+        });
+      }
+
+      const result = await ctx.runMutation(
+        internal.auth.testHelpers.cleanupTestStorage,
+        {
+          email: body.email,
+          olderThanMs: body.olderThanMs,
+          dryRun: body.dryRun,
+          includeTestArticleCoverMedia: body.includeTestArticleCoverMedia,
+          ...(body.maxStorageRows !== undefined
+            ? { maxStorageRows: body.maxStorageRows }
+            : {}),
+          ...(body.maxArticles !== undefined
+            ? { maxArticles: body.maxArticles }
+            : {}),
+        },
+      );
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }),
+  });
 }
 
 export default http;
