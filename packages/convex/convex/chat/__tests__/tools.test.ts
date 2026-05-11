@@ -77,6 +77,10 @@ import {
   type RelevantContentSearchCtx,
 } from "../relevantContent";
 import { buildBioHref } from "../../content/href";
+import {
+  CONTENT_SOURCES,
+  NAVIGABLE_CONTENT_SOURCES,
+} from "../../content/sourceRegistry";
 import { buildEmbeddingUserSourceKey } from "../../embeddings/schema";
 import { normalizeConvexGlob } from "./testUtils";
 import { type Id } from "../../_generated/dataModel";
@@ -905,6 +909,39 @@ describe("chat/relevantContent.findRelevantPublishedContent", () => {
     });
     expect(eq).toHaveBeenCalledTimes(1);
   });
+
+  it("excludes every non-navigable registry source from relevant-content navigation candidates", async () => {
+    const owner = "users_owner_non_nav" as Id<"users">;
+    const nonNavigableSources = CONTENT_SOURCES.filter(
+      (source) => !source.navigation.navigable,
+    );
+    expect(nonNavigableSources.length).toBeGreaterThan(0);
+
+    const vectorResults = nonNavigableSources.map((source, index) => ({
+      _id: `contentEmbeddings_${source.sourceTable}_${index}` as Id<"contentEmbeddings">,
+      _score: 0.95,
+    }));
+    const { ctx } = makeRelevantContentCtx([vectorResults]);
+    const runQuery = ctx.runQuery as unknown as ReturnType<typeof vi.fn>;
+    runQuery.mockResolvedValueOnce(
+      nonNavigableSources.map((source, index) => ({
+        id: vectorResults[index]!._id,
+        sourceTable: source.sourceTable,
+        sourceId: `${source.sourceTable}_${index}`,
+        title: source.label.singular,
+        slug: "should-not-open",
+        chunkText: "Ambient context only.",
+      })),
+    );
+
+    const result = await findRelevantPublishedContent(ctx, {
+      profileOwnerId: owner,
+      query: "background",
+    });
+
+    expect(result).toEqual([]);
+    expect(runQuery).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
@@ -1040,6 +1077,32 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
         kind: "bio",
       }).success,
     ).toBe(false);
+  });
+
+  it("navigateToContent registry drift: accepts navigable kinds and rejects non-navigable source tables", () => {
+    const tools = buildCloneTools(fakeOwner);
+    const schema = tools.navigateToContent.inputSchema as {
+      safeParse: (value: unknown) => { success: boolean };
+    };
+
+    for (const source of NAVIGABLE_CONTENT_SOURCES) {
+      expect(
+        schema.safeParse({
+          kind: source.navigation.kind,
+          slug: "example-slug",
+        }).success,
+      ).toBe(true);
+    }
+
+    for (const source of CONTENT_SOURCES) {
+      if (source.navigation.navigable) continue;
+      expect(
+        schema.safeParse({
+          kind: source.sourceTable,
+          slug: "example-slug",
+        }).success,
+      ).toBe(false);
+    }
   });
 
   it("openProfileSection.inputSchema does not expose userId (or any user identifier)", () => {
@@ -1887,6 +1950,17 @@ describe("chat/toolQueries.buildContentHref", () => {
   it("omits slug when not provided (list-route shape)", () => {
     expect(buildContentHref("alice", "articles")).toBe("/@alice/articles");
     expect(buildContentHref("bob", "posts")).toBe("/@bob/posts");
+  });
+
+  it("registry drift: every navigable source builds its canonical route segment", () => {
+    for (const source of NAVIGABLE_CONTENT_SOURCES) {
+      expect(
+        buildContentHref("owner", source.navigation.kind, "example-slug"),
+      ).toBe(`/@owner/${source.navigation.routeSegment}/example-slug`);
+      expect(buildContentHref("owner", source.navigation.kind)).toBe(
+        `/@owner/${source.navigation.routeSegment}`,
+      );
+    }
   });
 
   it("resolveBySlug returns the same href the helper builds (single source of truth)", async () => {
