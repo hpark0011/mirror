@@ -9,6 +9,7 @@ import {
   FormMessage,
 } from "@feel-good/ui/primitives/form";
 import { type UseFormReturn } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { type PostMetadataFormData } from "../../lib/schemas/post-metadata.schema";
 
 export interface PostMetadataTextFieldsProps {
@@ -20,6 +21,7 @@ export function PostMetadataTextFields({
   form,
   onSlugChange,
 }: PostMetadataTextFieldsProps) {
+  const { t } = useTranslation();
   return (
     <>
       <FormField
@@ -29,14 +31,14 @@ export function PostMetadataTextFields({
           <FormItem className="gap-1">
             <div className="flex gap-1 items-center">
               <FormLabel className="text-[13px] text-muted-foreground w-30">
-                Slug
+                {t("editor.slugLabel")}
               </FormLabel>
               <FormControl>
                 <Input
                   {...field}
                   value={field.value ?? ""}
                   data-testid="post-slug-input"
-                  placeholder="auto-from-title"
+                  placeholder={t("editor.slugPlaceholder")}
                   variant="underline"
                   className="border-transparent"
                   size="sm"
@@ -58,13 +60,13 @@ export function PostMetadataTextFields({
           <FormItem className="gap-1">
             <div className="flex gap-1 items-center">
               <FormLabel className="text-[13px] text-muted-foreground w-30">
-                Category
+                {t("editor.categoryLabel")}
               </FormLabel>
               <FormControl>
                 <Input
                   {...field}
                   data-testid="post-category-input"
-                  placeholder="e.g. Notes, Updates"
+                  placeholder={t("postEditor.categoryPlaceholder")}
                   variant="underline"
                   className="border-transparent"
                   size="sm"

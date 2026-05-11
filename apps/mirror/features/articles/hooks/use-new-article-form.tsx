@@ -26,17 +26,17 @@ import { useForm } from "react-hook-form";
 import { showToast } from "@feel-good/ui/components/toast";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
-import { useArticleCoverImageUpload } from "./use-article-cover-image-upload";
+import { useArticleCoverImageUpload } from "@/features/articles/hooks/use-article-cover-image-upload";
 import {
   useArticleCoverVideoUpload,
   type CoverUploadState,
-} from "./use-article-cover-video-upload";
-import { useArticleInlineImageUpload } from "./use-article-inline-image-upload";
+} from "@/features/articles/hooks/use-article-cover-video-upload";
+import { useArticleInlineImageUpload } from "@/features/articles/hooks/use-article-inline-image-upload";
 import {
   articleMetadataSchema,
   type ArticleMetadataFormData,
   type ArticleStatus,
-} from "../lib/schemas/article-metadata.schema";
+} from "@/features/articles/lib/schemas/article-metadata.schema";
 
 const EMPTY_BODY: JSONContent = {
   type: "doc",

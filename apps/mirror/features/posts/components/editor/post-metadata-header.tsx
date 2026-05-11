@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@feel-good/ui/primitives/form";
 import { type UseFormReturn } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { useAutoSlug } from "../../hooks/use-auto-slug";
 import { PostMetadataCoverRow } from "./post-metadata-cover-row";
 import { PostMetadataTextFields } from "./post-metadata-text-fields";
@@ -47,6 +48,7 @@ export function PostMetadataHeader({
   onCoverUpload,
   onCoverClear,
 }: PostMetadataHeaderProps) {
+  const { t } = useTranslation();
   const { handleTitleChange, handleSlugChange } = useAutoSlug(form);
 
   return (
@@ -61,8 +63,8 @@ export function PostMetadataHeader({
                 <Input
                   {...field}
                   data-testid="post-title-input"
-                  placeholder="Post Title"
-                  aria-label="Title"
+                  placeholder={t("postEditor.titlePlaceholder")}
+                  aria-label={t("editor.titleAriaLabel")}
                   className="h-fit border-0 p-0 text-2xl font-medium shadow-none focus-visible:ring-0 md:text-2xl rounded-none hover:bg-transparent"
                   onChange={(e) =>
                     handleTitleChange(e.target.value, field.onChange)

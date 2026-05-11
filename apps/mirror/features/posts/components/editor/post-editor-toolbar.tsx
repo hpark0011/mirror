@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@feel-good/ui/primitives/button";
+import { useTranslation } from "react-i18next";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import { WorkspaceBackButton } from "@/features/content";
 import { PostPublishToggle } from "./post-publish-toggle";
@@ -23,6 +24,7 @@ export function PostEditorToolbar({
   onPublishToggle,
   onCancel,
 }: PostEditorToolbarProps) {
+  const { t } = useTranslation();
   return (
     <WorkspaceToolbar>
       <div className="flex h-9 w-full items-center gap-2 border-b border-border-subtle px-3.5 pb-1.5 relative">
@@ -45,7 +47,7 @@ export function PostEditorToolbar({
             onClick={() => void onSave()}
             disabled={isSaving || hasPendingUploads}
           >
-            {isSaving ? "Saving…" : "Save"}
+            {isSaving ? t("editor.saving") : t("editor.save")}
           </Button>
         </div>
       </div>

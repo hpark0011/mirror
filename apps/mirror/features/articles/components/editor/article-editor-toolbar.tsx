@@ -1,6 +1,7 @@
 "use client";
 
 import { Button } from "@feel-good/ui/primitives/button";
+import { useTranslation } from "react-i18next";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import { WorkspaceBackButton } from "@/features/content";
 import { ArticlePublishToggle } from "./article-publish-toggle";
@@ -23,13 +24,14 @@ export function ArticleEditorToolbar({
   onPublishToggle,
   onCancel,
 }: ArticleEditorToolbarProps) {
+  const { t } = useTranslation();
   return (
     <WorkspaceToolbar>
-      <div className="flex h-9 w-full items-center justify-between gap-2 border-b border-border-subtle px-3.5 pb-1.5 relative">
+      <div className="flex h-9 w-full items-center gap-2 border-b border-border-subtle px-3.5 pb-1.5 relative">
         {onCancel && (
           <WorkspaceBackButton onClick={onCancel} disabled={isSaving} />
         )}
-        <div className="flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           <ArticlePublishToggle
             status={status}
             isPending={isSaving}
@@ -45,7 +47,7 @@ export function ArticleEditorToolbar({
             onClick={() => void onSave()}
             disabled={isSaving || hasPendingUploads}
           >
-            {isSaving ? "Saving…" : "Save"}
+            {isSaving ? t("editor.saving") : t("editor.save")}
           </Button>
         </div>
       </div>

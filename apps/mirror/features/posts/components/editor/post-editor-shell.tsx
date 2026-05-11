@@ -14,13 +14,13 @@ import {
   type InlineImageUploadResult,
 } from "@feel-good/features/editor";
 import { type UseFormReturn } from "react-hook-form";
-import { PostEditorToolbar } from "./post-editor-toolbar";
-import { PostMetadataHeader } from "./post-metadata-header";
-import { type CoverUploadState } from "../../hooks/use-post-cover-video-upload";
+import { PostEditorToolbar } from "@/features/posts/components/editor/post-editor-toolbar";
+import { PostMetadataHeader } from "@/features/posts/components/editor/post-metadata-header";
+import { type CoverUploadState } from "@/features/posts/hooks/use-post-cover-video-upload";
 import {
   type PostMetadataFormData,
   type PostStatus,
-} from "../../lib/schemas/post-metadata.schema";
+} from "@/features/posts/lib/schemas/post-metadata.schema";
 
 export interface PostEditorShellProps {
   // Metadata — title/slug/category live on the RHF form; the header binds
