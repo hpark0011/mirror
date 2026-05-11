@@ -5,18 +5,31 @@
 // `use-profile-workspace-route-data.ts`) keep importing
 // `getContentHref` from `@/features/content`. See
 // `.claude/rules/agent-parity.md` § Href-parity invariant.
-import { type ContentKind } from "@feel-good/convex/convex/content/href";
-
-export {
-  buildContentHref as getContentHref,
+import {
+  buildContentHref,
   buildProfileSectionHref,
   DEFAULT_PROFILE_SECTION,
   DEFAULT_PROFILE_SECTION_VALUES,
   type ContentKind,
   type DefaultProfileSection,
 } from "@feel-good/convex/convex/content/href";
+import {
+  getNavigableContentSource,
+  isNavigableContentKind,
+  NAVIGABLE_CONTENT_KINDS,
+} from "@feel-good/convex/convex/content/sourceRegistry";
 
-export const CONTENT_KINDS = ["posts", "articles"] as const;
+export {
+  buildContentHref as getContentHref,
+  buildProfileSectionHref,
+  DEFAULT_PROFILE_SECTION,
+  DEFAULT_PROFILE_SECTION_VALUES,
+  isNavigableContentKind,
+  type ContentKind,
+  type DefaultProfileSection,
+};
+
+export const CONTENT_KINDS = NAVIGABLE_CONTENT_KINDS;
 
 export const DEFAULT_PROFILE_CONTENT_KIND: ContentKind = "posts";
 
@@ -28,15 +41,17 @@ export type ContentRouteState = {
   slug?: string;
 };
 
-export const CONTENT_KIND_LABELS: Record<ContentKind, string> = {
-  posts: "Posts",
-  articles: "Articles",
-};
+export const CONTENT_KIND_LABELS = Object.fromEntries(
+  CONTENT_KINDS.map((kind) => [
+    kind,
+    getNavigableContentSource(kind).label.plural,
+  ]),
+) as Record<ContentKind, string>;
 
 export function isContentKind(
   value: string | null | undefined,
 ): value is ContentKind {
-  return value === "articles" || value === "posts";
+  return isNavigableContentKind(value);
 }
 
 export function getContentRouteState(

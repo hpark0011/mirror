@@ -1,5 +1,16 @@
 import { describe, expect, it } from "vitest";
-import { getContentHref, getContentRouteState, isContentKind } from "../types";
+import {
+  CONTENT_KIND_LABELS,
+  CONTENT_KINDS,
+  getContentHref,
+  getContentRouteState,
+  isContentKind,
+} from "../types";
+import {
+  CONTENT_SOURCES,
+  NAVIGABLE_CONTENT_KINDS,
+  NAVIGABLE_CONTENT_SOURCES,
+} from "@feel-good/convex/convex/content/sourceRegistry";
 
 describe("getContentRouteState", () => {
   it("returns a route state for the 'posts' content kind", () => {
@@ -64,9 +75,38 @@ describe("getContentHref", () => {
     expect(getContentHref("alice", "articles")).toBe("/@alice/articles");
     expect(getContentHref("bob", "posts")).toBe("/@bob/posts");
   });
+
+  it("derives canonical hrefs for every navigable registry source", () => {
+    for (const source of NAVIGABLE_CONTENT_SOURCES) {
+      expect(getContentHref("alice", source.navigation.kind, "item-slug")).toBe(
+        `/@alice/${source.navigation.routeSegment}/item-slug`,
+      );
+      expect(getContentHref("alice", source.navigation.kind)).toBe(
+        `/@alice/${source.navigation.routeSegment}`,
+      );
+    }
+  });
 });
 
 describe("isContentKind", () => {
+  it("derives content kinds and labels from navigable registry entries", () => {
+    expect(CONTENT_KINDS).toEqual(NAVIGABLE_CONTENT_KINDS);
+
+    for (const source of NAVIGABLE_CONTENT_SOURCES) {
+      expect(isContentKind(source.navigation.kind)).toBe(true);
+      expect(CONTENT_KIND_LABELS[source.navigation.kind]).toBe(
+        source.label.plural,
+      );
+    }
+  });
+
+  it("excludes non-navigable registry entries", () => {
+    for (const source of CONTENT_SOURCES) {
+      if (source.navigation.navigable) continue;
+      expect(isContentKind(source.sourceTable)).toBe(false);
+    }
+  });
+
   it("returns true for 'posts'", () => {
     expect(isContentKind("posts")).toBe(true);
   });

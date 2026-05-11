@@ -50,6 +50,8 @@ import type * as content_inlineImageOwnershipSchema from "../content/inlineImage
 import type * as content_markdownImport from "../content/markdownImport.js";
 import type * as content_safeFetch from "../content/safeFetch.js";
 import type * as content_slug from "../content/slug.js";
+import type * as content_sourceRegistry from "../content/sourceRegistry.js";
+import type * as content_sourceValidators from "../content/sourceValidators.js";
 import type * as content_storagePolicy from "../content/storagePolicy.js";
 import type * as content_storageRegistry from "../content/storageRegistry.js";
 import type * as crons from "../crons.js";
@@ -130,6 +132,8 @@ declare const fullApi: ApiFromModules<{
   "content/markdownImport": typeof content_markdownImport;
   "content/safeFetch": typeof content_safeFetch;
   "content/slug": typeof content_slug;
+  "content/sourceRegistry": typeof content_sourceRegistry;
+  "content/sourceValidators": typeof content_sourceValidators;
   "content/storagePolicy": typeof content_storagePolicy;
   "content/storageRegistry": typeof content_storageRegistry;
   crons: typeof crons;

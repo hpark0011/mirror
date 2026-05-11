@@ -8,6 +8,10 @@ import { internal } from "../_generated/api";
 import { cloneAgent } from "./agent";
 import { buildCloneTools } from "./tools";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "../embeddings/config";
+import {
+  getNavigableContentSourceByTable,
+  type ContentSourceTable,
+} from "../content/sourceRegistry";
 
 const RAG_RESULT_LIMIT = 5;
 const RAG_SCORE_THRESHOLD = 0.3;
@@ -33,8 +37,8 @@ export const RAG_CONTEXT_HEADER = "\n\n## Relevant Background and Writing\n\n";
  *  - input order is preserved (deterministic)
  *
  * Slug behavior:
- *  - articles/posts have a non-empty `slug` and get a `[Read more](/<slug>)`
- *    line appended after the chunk text.
+ *  - navigable content sources have a non-empty `slug` and get a
+ *    `[Read more](/<slug>)` line appended after the chunk text.
  *  - bio entries are stored with `slug: undefined`. The link is omitted
  *    rather than emitted with an empty path (which would produce a
  *    malformed `/` link in the prompt).
@@ -46,7 +50,7 @@ export function buildRagContext(
     title: string;
     chunkText: string;
     slug?: string;
-    sourceTable?: "articles" | "posts" | "bioEntries";
+    sourceTable?: ContentSourceTable;
   }>,
 ): string {
   if (chunks.length === 0) {
@@ -59,12 +63,15 @@ export function buildRagContext(
   for (const chunk of chunks) {
     const truncatedText = chunk.chunkText.slice(0, RAG_CHUNK_MAX_CHARS);
     const slug = chunk.slug?.trim();
+    const source = chunk.sourceTable
+      ? getNavigableContentSourceByTable(chunk.sourceTable)
+      : null;
     const sourceHint =
-      chunk.sourceTable === "articles" && slug
-        ? `\nSource: article slug ${slug}`
-        : chunk.sourceTable === "posts" && slug
-          ? `\nSource: post slug ${slug}`
-          : "";
+      source && slug
+        ? `\nSource: ${
+            source.embedding.sourceHintLabel ?? source.label.singular
+          } slug ${slug}`
+        : "";
     const linkLine = slug ? `\n[Read more](/${slug})` : "";
     const part = `### ${chunk.title}${sourceHint}\n${truncatedText}${linkLine}`;
     // Account for "\n\n" separator between parts (absent before the first).

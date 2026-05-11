@@ -5,13 +5,22 @@ import { createTool } from "@convex-dev/agent";
 import { internal } from "../_generated/api";
 import { type Id } from "../_generated/dataModel";
 import {
+  getNavigableContentSource,
+  NAVIGABLE_CONTENT_KINDS,
+  type NavigableContentKind,
+} from "../content/sourceRegistry";
+import {
   findRelevantPublishedContent,
   RELEVANT_CONTENT_MAX_LIMIT,
   type RelevantContentSearchCtx,
 } from "./relevantContent";
 
-type ContentKind = "articles" | "posts";
+type ContentKind = NavigableContentKind;
 type ContentStatus = "draft" | "published";
+const NAVIGABLE_CONTENT_KIND_ENUM_VALUES = NAVIGABLE_CONTENT_KINDS as [
+  ContentKind,
+  ...ContentKind[],
+];
 
 type OwnedContentRow = {
   kind: ContentKind;
@@ -42,7 +51,7 @@ type StatusMutationResult =
     };
 
 type ProfileSectionList = {
-  kind: "articles" | "posts";
+  kind: ContentKind;
   username: string;
   href: string;
   hasEntries: boolean;
@@ -93,7 +102,7 @@ export function buildCloneTools(
         "Look up the most recent published article or post for this profile. Use this when the visitor asks for the latest writing of a given kind so you can resolve a slug before navigating.",
       inputSchema: z.object({
         kind: z
-          .enum(["articles", "posts"])
+          .enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES)
           .describe(
             "Which content kind to look up the latest published item for.",
           ),
@@ -122,7 +131,7 @@ export function buildCloneTools(
             "The visitor's topical question or phrase to search for in published content.",
           ),
         kind: z
-          .enum(["articles", "posts"])
+          .enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES)
           .optional()
           .describe(
             "Optionally restrict the semantic search to articles or posts.",
@@ -155,7 +164,7 @@ export function buildCloneTools(
         "Open an article or post in the visitor's right panel. Pass the kind and slug; do not pass any user identifier. The slug must come from getLatestPublished, findRelevantPublishedContent, or from content the profile owner has authored. The result includes the canonical href; the client uses it to navigate.",
       inputSchema: z.object({
         kind: z
-          .enum(["articles", "posts"])
+          .enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES)
           .describe("Which content kind to open."),
         slug: z
           .string()
@@ -168,7 +177,7 @@ export function buildCloneTools(
         // tool path and any future caller. We pass through the structured
         // result; the client-side intent watcher reads `href` and routes.
         const row: {
-          kind: "articles" | "posts";
+          kind: ContentKind;
           slug: string;
           title: string;
           publishedAt?: number;
@@ -180,8 +189,9 @@ export function buildCloneTools(
           slug,
         });
         if (!row) {
+          const source = getNavigableContentSource(kind);
           throw new Error(
-            `No published ${kind === "articles" ? "article" : "post"} found for slug "${slug}".`,
+            `No published ${source.label.singular} found for slug "${slug}".`,
           );
         }
         return {
@@ -224,7 +234,7 @@ export function buildCloneTools(
         // client-side intent watcher passes this through `buildChatAwareHref`
         // — never recomposing the URL template.
         const list: {
-          kind: "articles" | "posts";
+          kind: ContentKind;
           username: string;
           href: string;
           hasEntries: boolean;
@@ -571,7 +581,7 @@ export function buildCloneTools(
         }
 
         const row: {
-          kind: "articles" | "posts";
+          kind: ContentKind;
           username: string;
           href: string;
           hasEntries: boolean;

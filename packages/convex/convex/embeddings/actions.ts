@@ -9,6 +9,10 @@ import { extractPlainText } from "./textExtractor";
 import { chunkText } from "./chunker";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "./config";
 import {
+  getIndexableContentSource,
+  INDEXABLE_CONTENT_SOURCES,
+} from "../content/sourceRegistry";
+import {
   buildEmbeddingUserSourceKey,
   embeddingSourceTableValidator,
 } from "./schema";
@@ -21,6 +25,8 @@ export const generateEmbedding = internalAction({
   },
   returns: v.null(),
   handler: async (ctx, { sourceTable, sourceId }) => {
+    const source = getIndexableContentSource(sourceTable);
+
     try {
       const content = await ctx.runQuery(
         internal.embeddings.queries.getContentForEmbedding,
@@ -37,13 +43,15 @@ export const generateEmbedding = internalAction({
         return null;
       }
 
-      // Discriminate on kind (NOT on a sentinel `status: "published"` value).
-      // The published-status gate is conceptually about prose docs that have a
-      // draft/published lifecycle — bio entries don't, so we never trip the
-      // gate on them. A future real `status` field on bio would not silently
-      // bypass the gate because the discriminator is `kind`, not absence of
-      // a field.
-      if (content.kind === "doc" && content.status !== "published") {
+      // The published-status gate is metadata-driven: prose document sources
+      // have a draft/published lifecycle, while structured bio entries are
+      // always indexable. A future source must declare its lifecycle in the
+      // registry before it can reach this action.
+      if (
+        source.embedding.lifecycle === "draft-published" &&
+        content.kind === "doc" &&
+        content.status !== "published"
+      ) {
         await ctx.runMutation(internal.embeddings.mutations.deleteBySource, {
           sourceTable,
           sourceId,
@@ -51,23 +59,23 @@ export const generateEmbedding = internalAction({
         return null;
       }
 
-      // Build the chunked text. `kind: "doc"` runs through TipTap-aware
-      // extraction + the paragraph/sentence chunker. `kind: "bio"` is
-      // already a short, pre-serialized prose blob and should NOT be fed
-      // through `extractPlainText` (would crash walking `.content[]` on a
-      // string) nor through `chunkText` (single chunk per entry is correct
-      // and keeps RAG retrieval tight).
+      // Build the chunked text according to the registry serializer. Document
+      // sources run through TipTap-aware extraction + the chunker. Bio entries
+      // are already short serialized prose and stay as a single chunk.
       let chunks: string[];
       let title: string;
       let userId;
       let slug: string | undefined;
 
-      if (content.kind === "bio") {
+      if (source.embedding.serializer === "bio" && content.kind === "bio") {
         chunks = [content.body];
         title = content.title;
         userId = content.userId;
         slug = undefined;
-      } else {
+      } else if (
+        source.embedding.serializer === "document" &&
+        content.kind === "doc"
+      ) {
         const bodyText = content.body
           ? extractPlainText(content.body as JSONContent).trim()
           : "";
@@ -78,6 +86,10 @@ export const generateEmbedding = internalAction({
         title = content.title;
         userId = content.userId;
         slug = content.slug;
+      } else {
+        throw new Error(
+          `Embedding serializer mismatch for ${source.sourceTable}: registry declares ${source.embedding.serializer}, query returned ${content.kind}.`,
+        );
       }
 
       const { embeddings } = await embedMany({
@@ -127,41 +139,25 @@ export const backfillEmbeddings = internalAction({
   args: {},
   returns: v.null(),
   handler: async (ctx) => {
-    // Fetch all published articles and posts, plus all bio entries.
-    const articles = await ctx.runQuery(
-      internal.embeddings.queries.listPublishedContent,
-      { sourceTable: "articles" },
-    );
-    const posts = await ctx.runQuery(
-      internal.embeddings.queries.listPublishedContent,
-      { sourceTable: "posts" },
-    );
-    const bioEntries = await ctx.runQuery(
-      internal.embeddings.queries.listPublishedContent,
-      { sourceTable: "bioEntries" },
+    const sourceIdsByTable = await Promise.all(
+      INDEXABLE_CONTENT_SOURCES.map(async (source) => ({
+        sourceTable: source.sourceTable,
+        ids: await ctx.runQuery(
+          internal.embeddings.queries.listPublishedContent,
+          { sourceTable: source.sourceTable },
+        ),
+      })),
     );
 
     // Fan out to independent scheduled actions to avoid timeout
-    for (const id of articles) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.embeddings.actions.generateEmbedding,
-        { sourceTable: "articles", sourceId: id },
-      );
-    }
-    for (const id of posts) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.embeddings.actions.generateEmbedding,
-        { sourceTable: "posts", sourceId: id },
-      );
-    }
-    for (const id of bioEntries) {
-      await ctx.scheduler.runAfter(
-        0,
-        internal.embeddings.actions.generateEmbedding,
-        { sourceTable: "bioEntries", sourceId: id },
-      );
+    for (const { sourceTable, ids } of sourceIdsByTable) {
+      for (const id of ids) {
+        await ctx.scheduler.runAfter(
+          0,
+          internal.embeddings.actions.generateEmbedding,
+          { sourceTable, sourceId: id },
+        );
+      }
     }
 
     return null;

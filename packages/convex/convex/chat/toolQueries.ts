@@ -3,6 +3,12 @@ import { internalQuery } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { contentStatusValidator } from "../content/schema";
 import {
+  getNavigableContentSource,
+  type NavigableContentKind,
+  type NavigableContentSourceTable,
+} from "../content/sourceRegistry";
+import { navigableContentKindValidator } from "../content/sourceValidators";
+import {
   buildBioHref,
   buildContentHref,
   buildProfileSectionHref,
@@ -46,7 +52,7 @@ const latestPublishedReturnValidator = v.union(
 const resolveBySlugReturnValidator = v.union(
   v.null(),
   v.object({
-    kind: v.union(v.literal("articles"), v.literal("posts")),
+    kind: navigableContentKindValidator,
     slug: v.string(),
     title: v.string(),
     publishedAt: v.optional(v.number()),
@@ -58,7 +64,7 @@ const resolveBySlugReturnValidator = v.union(
 const resolveOwnedContentBySlugReturnValidator = v.union(
   v.null(),
   v.object({
-    kind: v.union(v.literal("articles"), v.literal("posts")),
+    kind: navigableContentKindValidator,
     slug: v.string(),
     title: v.string(),
     status: contentStatusValidator,
@@ -68,10 +74,7 @@ const resolveOwnedContentBySlugReturnValidator = v.union(
   }),
 );
 
-const contentKindValidator = v.union(
-  v.literal("articles"),
-  v.literal("posts"),
-);
+const contentKindValidator = navigableContentKindValidator;
 
 const relevantContentCandidateValidator = v.object({
   kind: contentKindValidator,
@@ -105,12 +108,12 @@ export const queryLatestPublished = internalQuery({
   },
   returns: latestPublishedReturnValidator,
   handler: async (ctx, { userId, kind }) => {
-    const tableName = kind;
+    const source = getNavigableContentSource(kind);
     // The compound index pins the scan to published rows and orders by the
     // semantic publish timestamp. Ordering by `_creationTime` would return the
     // wrong "latest" item when an older draft is published after a newer row.
     const row = await ctx.db
-      .query(tableName)
+      .query(source.sourceTable)
       .withIndex("by_userId_status_publishedAt", (q) =>
         q.eq("userId", userId as Id<"users">).eq("status", "published"),
       )
@@ -149,9 +152,9 @@ export const resolveBySlug = internalQuery({
   },
   returns: resolveBySlugReturnValidator,
   handler: async (ctx, { userId, kind, slug }) => {
-    const tableName = kind;
+    const source = getNavigableContentSource(kind);
     const row = await ctx.db
-      .query(tableName)
+      .query(source.sourceTable)
       .withIndex("by_userId_and_slug", (q) =>
         q.eq("userId", userId as Id<"users">).eq("slug", slug),
       )
@@ -199,7 +202,7 @@ export const resolvePublishedContentCandidates = internalQuery({
     if (!owner.username) return [];
 
     const rows: Array<{
-      kind: "articles" | "posts";
+      kind: NavigableContentKind;
       slug: string;
       title: string;
       publishedAt?: number;
@@ -209,10 +212,10 @@ export const resolvePublishedContentCandidates = internalQuery({
       score: number;
     }> = [];
     for (const candidate of candidates) {
-      const row =
-        candidate.kind === "articles"
-          ? await ctx.db.get(candidate.sourceId as Id<"articles">)
-          : await ctx.db.get(candidate.sourceId as Id<"posts">);
+      const source = getNavigableContentSource(candidate.kind);
+      const row = await ctx.db.get(
+        candidate.sourceId as Id<NavigableContentSourceTable>,
+      );
 
       if (!row) continue;
       if (row.userId !== userId) continue;
@@ -224,7 +227,11 @@ export const resolvePublishedContentCandidates = internalQuery({
         title: row.title,
         publishedAt: row.publishedAt,
         username: owner.username,
-        href: buildContentHref(owner.username, candidate.kind, row.slug),
+        href: buildContentHref(
+          owner.username,
+          source.navigation.kind,
+          row.slug,
+        ),
         excerpt: candidate.excerpt,
         score: candidate.score,
       });
@@ -251,9 +258,9 @@ export const resolveOwnedContentBySlug = internalQuery({
   },
   returns: resolveOwnedContentBySlugReturnValidator,
   handler: async (ctx, { userId, kind, slug }) => {
-    const tableName = kind;
+    const source = getNavigableContentSource(kind);
     const row = await ctx.db
-      .query(tableName)
+      .query(source.sourceTable)
       .withIndex("by_userId_and_slug", (q) =>
         q.eq("userId", userId as Id<"users">).eq("slug", slug),
       )
@@ -334,7 +341,7 @@ export const queryBioPanel = internalQuery({
 const profileSectionListReturnValidator = v.union(
   v.null(),
   v.object({
-    kind: v.union(v.literal("articles"), v.literal("posts")),
+    kind: contentKindValidator,
     username: v.string(),
     href: v.string(),
     hasEntries: v.boolean(),
@@ -360,7 +367,7 @@ const profileSectionListReturnValidator = v.union(
 export const queryProfileSectionList = internalQuery({
   args: {
     userId: v.id("users"),
-    section: v.union(v.literal("articles"), v.literal("posts")),
+    section: contentKindValidator,
   },
   returns: profileSectionListReturnValidator,
   handler: async (ctx, { userId, section }) => {
@@ -368,9 +375,9 @@ export const queryProfileSectionList = internalQuery({
     if (!owner) return null;
     if (!owner.username) return null;
 
-    const tableName = section;
+    const source = getNavigableContentSource(section);
     const firstRow = await ctx.db
-      .query(tableName)
+      .query(source.sourceTable)
       .withIndex("by_userId_and_status", (q) =>
         q.eq("userId", userId as Id<"users">).eq("status", "published"),
       )

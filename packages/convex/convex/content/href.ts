@@ -15,7 +15,20 @@
 // template requires editing this file once — both consumers re-export from
 // here.
 
-export type ContentKind = "articles" | "posts";
+import {
+  getNavigableContentSource,
+  isNavigableContentKind,
+  NAVIGABLE_CONTENT_KINDS,
+  type NavigableContentKind,
+} from "./sourceRegistry";
+
+export type ContentKind = NavigableContentKind;
+
+export {
+  getNavigableContentSource,
+  isNavigableContentKind,
+  NAVIGABLE_CONTENT_KINDS,
+};
 
 export const DEFAULT_PROFILE_SECTION_VALUES = [
   "bio",
@@ -31,7 +44,8 @@ export function buildContentHref(
   kind: ContentKind,
   slug?: string,
 ): string {
-  const basePath = `/@${username}/${kind}`;
+  const source = getNavigableContentSource(kind);
+  const basePath = `/@${username}/${source.navigation.routeSegment}`;
   return slug ? `${basePath}/${slug}` : basePath;
 }
 
@@ -41,8 +55,7 @@ export function buildContentHref(
 // agent's verb space (see `chat/tools.ts`).
 export type ProfileSection =
   | "bio"
-  | "articles"
-  | "posts"
+  | ContentKind
   | "clone-settings"
   | "settings";
 
@@ -54,7 +67,7 @@ export function buildProfileSectionHref(
   username: string,
   section: ProfileSection,
 ): string {
-  if (section === "articles" || section === "posts") {
+  if (isNavigableContentKind(section)) {
     return buildContentHref(username, section);
   }
   return `/@${username}/${section}`;
