@@ -1,17 +1,20 @@
 "use client";
 
-// Defer-create-on-first-save state machine for `/articles/new`.
+// Defer-create-on-first-save state machine for `/posts/new`.
 //
-// Holds all metadata + body in local state until the user clicks Save.
-// At save time it calls `api.articles.mutations.create` and, on success,
-// navigates to `/<slug>/edit` so subsequent edits use the patch flow.
-// No row is written before Save — abandoning the page leaves no trace.
+// Holds all metadata + body in local state until the user clicks Save. At
+// save time it calls `api.posts.mutations.create` and, on success,
+// navigates to `/<slug>/edit` so subsequent edits use the patch flow. No
+// row is written before Save — abandoning the page leaves no trace.
 //
-// Cleanup strategy for cover-image orphans (FG_129):
+// Cleanup strategy for cover-blob orphans (FG_129 parity):
 //   Upload happens before create. If create throws (e.g. slug collision),
-//   the bytes are in _storage with no owning row. The catch branch calls
-//   `api.articles.mutations.deleteOrphanCoverImage` which re-verifies no
-//   articles row references the storageId before deleting.
+//   the bytes are in _storage with no owning row. The catch branch fires
+//   `api.posts.mutations.deleteOrphanCoverImage` /
+//   `deleteOrphanCoverVideo` which re-verify no row references the
+//   storageId before deleting.
+//
+// Mirrors `apps/mirror/features/articles/hooks/use-new-article-form.tsx`.
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import {
@@ -26,38 +29,38 @@ import { useForm } from "react-hook-form";
 import { showToast } from "@feel-good/ui/components/toast";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { generateSlug } from "@feel-good/convex/convex/content/slug";
-import { useArticleCoverImageUpload } from "@/features/articles/hooks/use-article-cover-image-upload";
+import { usePostCoverImageUpload } from "@/features/posts/hooks/use-post-cover-image-upload";
 import {
-  useArticleCoverVideoUpload,
+  usePostCoverVideoUpload,
   type CoverUploadState,
-} from "@/features/articles/hooks/use-article-cover-video-upload";
-import { useArticleInlineImageUpload } from "@/features/articles/hooks/use-article-inline-image-upload";
+} from "@/features/posts/hooks/use-post-cover-video-upload";
+import { usePostInlineImageUpload } from "@/features/posts/hooks/use-post-inline-image-upload";
 import {
-  articleMetadataSchema,
-  type ArticleMetadataFormData,
-  type ArticleStatus,
-} from "@/features/articles/lib/schemas/article-metadata.schema";
+  postMetadataSchema,
+  type PostMetadataFormData,
+  type PostStatus,
+} from "@/features/posts/lib/schemas/post-metadata.schema";
 
 const EMPTY_BODY: JSONContent = {
   type: "doc",
   content: [{ type: "paragraph" }],
 };
 
-interface UseNewArticleFormOptions {
+interface UseNewPostFormOptions {
   username: string;
 }
 
-export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
+export function useNewPostForm({ username }: UseNewPostFormOptions) {
   const router = useRouter();
-  const create = useMutation(api.articles.mutations.create);
+  const create = useMutation(api.posts.mutations.create);
   const deleteOrphanCoverImage = useMutation(
-    api.articles.mutations.deleteOrphanCoverImage,
+    api.posts.mutations.deleteOrphanCoverImage,
   );
   const deleteOrphanCoverVideo = useMutation(
-    api.articles.mutations.deleteOrphanCoverVideo,
+    api.posts.mutations.deleteOrphanCoverVideo,
   );
-  const { upload: uploadCoverImage } = useArticleCoverImageUpload();
-  const { upload: uploadInlineImage } = useArticleInlineImageUpload();
+  const { upload: uploadCoverImage } = usePostCoverImageUpload();
+  const { upload: uploadInlineImage } = usePostInlineImageUpload();
   const [coverUploadState, setCoverUploadState] =
     useState<CoverUploadState>("idle");
   const coverUploadInFlightRef = useRef(false);
@@ -67,12 +70,12 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     },
     [],
   );
-  const { upload: uploadCoverVideo } = useArticleCoverVideoUpload({
+  const { upload: uploadCoverVideo } = usePostCoverVideoUpload({
     onStateChange: handleCoverVideoUploadStateChange,
   });
 
-  const form = useForm<ArticleMetadataFormData>({
-    resolver: zodResolver(articleMetadataSchema),
+  const form = useForm<PostMetadataFormData>({
+    resolver: zodResolver(postMetadataSchema),
     defaultValues: {
       title: "",
       slug: "",
@@ -86,10 +89,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     useState<Id<"_storage"> | null>(null);
   const [coverImageThumbhash, setCoverImageThumbhash] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(null);
-  // PLAN_010: parallel video-cover state. Mutually exclusive with the
-  // image cover at write time — `persistValidated` enforces "at most
-  // one cover kind set" by sending whichever surface the local state
-  // points at.
   const [coverVideoStorageId, setCoverVideoStorageId] =
     useState<Id<"_storage"> | null>(null);
   const [coverVideoPosterStorageId, setCoverVideoPosterStorageId] =
@@ -101,11 +100,10 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   const [hasPendingUploads, setHasPendingUploads] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
-  // FG_132: track the active image/video blob URL so we can revoke it before
+  // Track the active image/video blob URL so we can revoke it before
   // reassignment and on unmount. Posters do not get a local blob preview.
   const blobUrlRef = useRef<string | null>(null);
 
-  // FG_132: revoke the active blob URL on unmount to prevent leaks.
   useEffect(() => {
     return () => {
       if (blobUrlRef.current?.startsWith("blob:")) {
@@ -152,9 +150,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
           const { videoStorageId, posterStorageId } =
             await uploadCoverVideo(file);
           const objectUrl = URL.createObjectURL(file);
-          // Selecting a video supersedes any existing image cover —
-          // mirror the server-side mutual-exclusion rule in local
-          // state so the UI reflects what the next save will commit.
           setCoverImageUrl((prev) => {
             if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
             return null;
@@ -166,9 +161,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
             return objectUrl;
           });
           blobUrlRef.current = objectUrl;
-          // Poster URL stays null locally — the picker shows the video
-          // itself as the preview, and the server-resolved poster URL
-          // arrives on the next reactive query tick after save.
           setCoverVideoPosterUrl(null);
           setCoverVideoStorageId(videoStorageId);
           setCoverVideoPosterStorageId(posterStorageId);
@@ -208,7 +200,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   );
 
   const persistValidated = useCallback(
-    async (data: ArticleMetadataFormData, targetStatus: ArticleStatus) => {
+    async (data: PostMetadataFormData, targetStatus: PostStatus) => {
       const slugSource = data.slug?.trim() ? data.slug : data.title;
       const finalSlug = generateSlug(slugSource);
       try {
@@ -218,30 +210,23 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
           category: data.category.trim(),
           body,
           status: targetStatus,
-          // PLAN_010: send whichever cover surface the local state
-          // points at. The mutation rejects if both image and video
-          // ids are supplied; mutual-exclusion in local state (set in
-          // `handleCoverUpload`) guarantees we never send both.
           ...(coverImageStorageId ? { coverImageStorageId } : {}),
           ...(coverImageThumbhash && { coverImageThumbhash }),
           ...(coverVideoStorageId ? { coverVideoStorageId } : {}),
           ...(coverVideoPosterStorageId ? { coverVideoPosterStorageId } : {}),
         });
       } catch (err) {
-        // FG_129 / PLAN_010: if create fails after a cover was
-        // uploaded, the bytes are already in `_storage` with no
-        // owning row. Schedule a server-side orphan check that
-        // TOCTOU-safely deletes any unreferenced blob.
-        //
-        // Clear local cover state too — a retry that resends the
-        // same storageIds would write a dangling reference once the
-        // orphan delete completes. Forcing a re-upload keeps things
-        // consistent.
+        // FG_129 parity: if create fails after a cover was uploaded, the
+        // bytes are already in `_storage` with no owning row. Schedule a
+        // server-side orphan check that TOCTOU-safely deletes any
+        // unreferenced blob. Clear local cover state too — a retry that
+        // resends the same storageIds would write a dangling reference
+        // once the orphan delete completes.
         if (coverImageStorageId) {
           deleteOrphanCoverImage({ storageId: coverImageStorageId }).catch(
             (cleanupErr) => {
               console.error(
-                "[new-article-form] cover-image orphan cleanup failed",
+                "[new-post-form] cover-image orphan cleanup failed",
                 cleanupErr,
               );
             },
@@ -257,7 +242,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
               : {}),
           }).catch((cleanupErr) => {
             console.error(
-              "[new-article-form] cover-video orphan cleanup failed",
+              "[new-post-form] cover-video orphan cleanup failed",
               cleanupErr,
             );
           });
@@ -271,7 +256,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
         }
         throw err;
       }
-      router.replace(`/@${username}/articles/${finalSlug}/edit`);
+      router.replace(`/@${username}/posts/${finalSlug}/edit`);
     },
     [
       body,
@@ -289,7 +274,11 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
   );
 
   const save = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
+    const hasCoverUploadInFlight =
+      coverUploadInFlightRef.current ||
+      coverUploadState === "preparing" ||
+      coverUploadState === "uploading";
+    if (isSaving || hasPendingUploads || hasCoverUploadInFlight) return;
     const currentStatus = form.getValues("status");
     setIsSaving(true);
     try {
@@ -303,7 +292,7 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
               reject(err);
             }
           },
-          () => resolve(), // validation failed — silently resolve (form errors displayed by form state)
+          () => resolve(), // validation failed — silently resolve (errors render via FormMessage)
         )();
       });
     } catch (err) {
@@ -311,11 +300,15 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     } finally {
       setIsSaving(false);
     }
-  }, [form, hasPendingUploads, isSaving, persistValidated]);
+  }, [coverUploadState, form, hasPendingUploads, isSaving, persistValidated]);
 
   const togglePublish = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
-    const nextStatus: ArticleStatus =
+    const hasCoverUploadInFlight =
+      coverUploadInFlightRef.current ||
+      coverUploadState === "preparing" ||
+      coverUploadState === "uploading";
+    if (isSaving || hasPendingUploads || hasCoverUploadInFlight) return;
+    const nextStatus: PostStatus =
       form.getValues("status") === "draft" ? "published" : "draft";
     setIsSaving(true);
     try {
@@ -330,10 +323,8 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
               reject(err);
             }
           },
-          // Reject (not resolve) on validation failure so the publish
-          // confirmation dialog stays open instead of silently closing
-          // on a no-op publish. Inline form errors render via
-          // <FormMessage />; the toast in the catch tells the user why.
+          // Reject on validation failure so the publish-confirmation
+          // dialog stays open instead of silently closing on a no-op.
           () =>
             reject(
               new Error("Please fix the highlighted fields before publishing."),
@@ -346,30 +337,18 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     } finally {
       setIsSaving(false);
     }
-  }, [form, hasPendingUploads, isSaving, persistValidated]);
+  }, [coverUploadState, form, hasPendingUploads, isSaving, persistValidated]);
 
   const onInlineImageError = useCallback((err: unknown) => {
     showToast({ type: "error", title: getMutationErrorMessage(err) });
   }, []);
 
-  // Derive watched values for consumers that need reactive reads. Status is
-  // surfaced separately because the toolbar's publish-toggle button reads it
-  // outside the metadata-header's RHF tree.
   const status = form.watch("status");
 
-  // Read formState.errors here so RHF registers a subscription on this hook —
-  // that's what makes the hook re-render when validation fails. Without this
-  // read, `form.formState.errors` returned via `form` stays empty in callers
-  // that don't themselves access the proxy (notably `renderHook` unit tests
-  // that don't mount the header). The metadata header has its own subscription
-  // via `<FormField>` / `<FormMessage>`, so this is purely the headless-caller
-  // anchor.
+  // Read formState.errors here so RHF registers a subscription on this hook.
   const errors = form.formState.errors;
 
   return {
-    // The RHF form instance. The metadata header binds to it directly via
-    // `<Form>` + `<FormField>`, which is what surfaces validation errors as
-    // `<FormMessage />`. Callers needing read access use `form.watch(...)`.
     form,
     errors,
     status,
@@ -382,7 +361,6 @@ export function useNewArticleForm({ username }: UseNewArticleFormOptions) {
     body,
     hasPendingUploads,
     isSaving,
-    // Test-only convenience setters — production callers drive RHF directly.
     setTitle: (value: string) => form.setValue("title", value),
     setSlug: (value: string) =>
       form.setValue("slug", value, { shouldValidate: false }),

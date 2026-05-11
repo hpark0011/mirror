@@ -7,7 +7,7 @@ import {
 import {
   postSummaryReturnValidator,
   postWithBodyReturnValidator,
-  resolvePostCoverImageUrl,
+  resolvePostCoverUrls,
   serializePost,
 } from "./helpers";
 import {
@@ -74,8 +74,8 @@ export const getByUsername = query({
       .collect();
 
     const visible = filterVisibleContent(posts, isOwner);
-    const coverImageUrls = await Promise.all(
-      visible.map((p) => resolvePostCoverImageUrl(ctx, p.coverImageStorageId)),
+    const coverUrls = await Promise.all(
+      visible.map((p) => resolvePostCoverUrls(ctx, p)),
     );
     // Rewrite inline image `src` per post. Bounded by the list page size and
     // the per-post image count — Policy A from FG_093. Without this, the
@@ -88,7 +88,7 @@ export const getByUsername = query({
     );
 
     return visible.map((post, i) =>
-      serializePost({ ...post, body: rewrittenBodies[i] }, coverImageUrls[i]!),
+      serializePost({ ...post, body: rewrittenBodies[i] }, coverUrls[i]!),
     );
   },
 });
@@ -117,15 +117,12 @@ export const getBySlug = query({
       return null;
     }
 
-    const coverImageUrl = await resolvePostCoverImageUrl(
-      ctx,
-      post.coverImageStorageId,
-    );
+    const coverUrls = await resolvePostCoverUrls(ctx, post);
 
     // Rewrite inline image `src` from `storageId` (FR-05). See the matching
     // articles `getBySlug` for the sync-mapper-with-pre-resolved-urls pattern.
     const rewrittenBody = await rewriteInlineImageSrc(ctx, post.body);
 
-    return serializePost({ ...post, body: rewrittenBody }, coverImageUrl);
+    return serializePost({ ...post, body: rewrittenBody }, coverUrls);
   },
 });

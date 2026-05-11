@@ -4,11 +4,11 @@ import { Button } from "@feel-good/ui/primitives/button";
 import { useTranslation } from "react-i18next";
 import { WorkspaceToolbar } from "@/components/workspace-toolbar-slot";
 import { WorkspaceBackButton } from "@/features/content";
-import { ArticlePublishToggle } from "./article-publish-toggle";
-import { type ArticleStatus } from "../../lib/schemas/article-metadata.schema";
+import { PostPublishToggle } from "./post-publish-toggle";
+import { type PostStatus } from "../../lib/schemas/post-metadata.schema";
 
-export interface ArticleEditorToolbarProps {
-  status: ArticleStatus;
+export interface PostEditorToolbarProps {
+  status: PostStatus;
   isSaving: boolean;
   hasPendingUploads: boolean;
   onSave: () => void | Promise<void>;
@@ -16,14 +16,14 @@ export interface ArticleEditorToolbarProps {
   onCancel?: () => void;
 }
 
-export function ArticleEditorToolbar({
+export function PostEditorToolbar({
   status,
   isSaving,
   hasPendingUploads,
   onSave,
   onPublishToggle,
   onCancel,
-}: ArticleEditorToolbarProps) {
+}: PostEditorToolbarProps) {
   const { t } = useTranslation();
   return (
     <WorkspaceToolbar>
@@ -32,7 +32,7 @@ export function ArticleEditorToolbar({
           <WorkspaceBackButton onClick={onCancel} disabled={isSaving} />
         )}
         <div className="ml-auto flex items-center gap-1.5">
-          <ArticlePublishToggle
+          <PostPublishToggle
             status={status}
             isPending={isSaving}
             disabled={isSaving || hasPendingUploads}
@@ -42,7 +42,7 @@ export function ArticleEditorToolbar({
             type="button"
             variant="primary"
             size="xs"
-            data-testid="save-article-btn"
+            data-testid="save-post-btn"
             className="w-12"
             onClick={() => void onSave()}
             disabled={isSaving || hasPendingUploads}

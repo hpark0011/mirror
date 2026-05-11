@@ -1,11 +1,12 @@
 "use client";
 
-// Composes the article editor: metadata header on top, body editor below,
+// Composes the post editor: metadata header on top, body editor below,
 // plus a workspace-toolbar portal that hosts the fixed format toolbar AND
-// the Save/Cancel actions.
+// the Save / Publish / Cancel actions.
 //
-// Used by both `/articles/new` (in-memory) and `/articles/[slug]/edit`
-// (server-bound). The form hooks pass identical props.
+// Used by both `/posts/new` (in-memory, defer-create) and
+// `/posts/[slug]/edit` (server-bound). The form hooks pass identical
+// props. Mirrors `articles/components/editor/article-editor-shell.tsx`.
 import {
   ArticleRichTextEditor,
   EditorToolbar,
@@ -13,19 +14,19 @@ import {
   type InlineImageUploadResult,
 } from "@feel-good/features/editor";
 import { type UseFormReturn } from "react-hook-form";
-import { ArticleEditorToolbar } from "@/features/articles/components/editor/article-editor-toolbar";
-import { ArticleMetadataHeader } from "@/features/articles/components/editor/article-metadata-header";
-import { type CoverUploadState } from "@/features/articles/hooks/use-article-cover-video-upload";
+import { PostEditorToolbar } from "@/features/posts/components/editor/post-editor-toolbar";
+import { PostMetadataHeader } from "@/features/posts/components/editor/post-metadata-header";
+import { type CoverUploadState } from "@/features/posts/hooks/use-post-cover-video-upload";
 import {
-  type ArticleMetadataFormData,
-  type ArticleStatus,
-} from "@/features/articles/lib/schemas/article-metadata.schema";
+  type PostMetadataFormData,
+  type PostStatus,
+} from "@/features/posts/lib/schemas/post-metadata.schema";
 
-export interface ArticleEditorShellProps {
-  // Metadata — title/slug/category live on the RHF form; the header binds to
-  // it directly via FormField/FormMessage.
-  form: UseFormReturn<ArticleMetadataFormData>;
-  status: ArticleStatus;
+export interface PostEditorShellProps {
+  // Metadata — title/slug/category live on the RHF form; the header binds
+  // to it directly via FormField/FormMessage.
+  form: UseFormReturn<PostMetadataFormData>;
+  status: PostStatus;
   coverImageUrl: string | null;
   coverVideoUrl: string | null;
   coverVideoPosterUrl: string | null;
@@ -45,17 +46,17 @@ export interface ArticleEditorShellProps {
   // Save flow
   onSave: () => void | Promise<void>;
   /**
-   * Persists the article with the toggled publish status. Throws on failure
-   * so the publish-confirmation dialog can stay open and the user can retry.
+   * Persists the post with the toggled publish status. Throws on failure
+   * so the publish-confirmation dialog can stay open and the user can
+   * retry.
    */
   onPublishToggle: () => Promise<void>;
   onCancel?: () => void;
   isSaving: boolean;
   hasPendingUploads: boolean;
-  cancelHref?: string;
 }
 
-export function ArticleEditorShell({
+export function PostEditorShell({
   form,
   status,
   coverImageUrl,
@@ -76,10 +77,10 @@ export function ArticleEditorShell({
   onCancel,
   isSaving,
   hasPendingUploads,
-}: ArticleEditorShellProps) {
+}: PostEditorShellProps) {
   return (
     <div className="relative flex h-full flex-col overflow-hidden">
-      <ArticleEditorToolbar
+      <PostEditorToolbar
         status={status}
         isSaving={isSaving}
         hasPendingUploads={hasPendingUploads}
@@ -89,7 +90,7 @@ export function ArticleEditorShell({
       />
       <div className="flex-1 overflow-auto">
         <div className="mx-auto flex w-full max-w-xl flex-col px-6 pt-4 pb-20">
-          <ArticleMetadataHeader
+          <PostMetadataHeader
             form={form}
             coverImageUrl={coverImageUrl}
             coverVideoUrl={coverVideoUrl}

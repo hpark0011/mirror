@@ -14,6 +14,22 @@ void i18n.use(initReactI18next).init({
   resources: {
     en: {
       translation: {
+        articleEditor: {
+          categoryPlaceholder: "e.g. Process, Inspiration",
+          titlePlaceholder: "Article Title",
+        },
+        editor: {
+          categoryLabel: "Category",
+          save: "Save",
+          saving: "Saving…",
+          slugLabel: "Slug",
+          slugPlaceholder: "auto-from-title",
+          titleAriaLabel: "Title",
+        },
+        postEditor: {
+          categoryPlaceholder: "e.g. Notes, Updates",
+          titlePlaceholder: "Post Title",
+        },
         profileTabs: {
           articles: "Articles",
           bio: "Bio",
