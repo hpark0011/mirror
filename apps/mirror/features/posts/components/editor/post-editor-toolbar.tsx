@@ -25,11 +25,11 @@ export function PostEditorToolbar({
 }: PostEditorToolbarProps) {
   return (
     <WorkspaceToolbar>
-      <div className="flex h-9 w-full items-center justify-between gap-2 border-b border-border-subtle px-3.5 pb-1.5 relative">
+      <div className="flex h-9 w-full items-center gap-2 border-b border-border-subtle px-3.5 pb-1.5 relative">
         {onCancel && (
           <WorkspaceBackButton onClick={onCancel} disabled={isSaving} />
         )}
-        <div className="flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-1.5">
           <PostPublishToggle
             status={status}
             isPending={isSaving}

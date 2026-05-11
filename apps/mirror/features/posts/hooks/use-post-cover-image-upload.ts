@@ -28,6 +28,9 @@ export function usePostCoverImageUpload(): UsePostCoverImageUploadReturn {
   const claimOwnership = useAction(
     api.posts.mutations.claimPostCoverImageOwnership,
   );
+  const deleteOrphanCoverImage = useMutation(
+    api.posts.mutations.deleteOrphanCoverImage,
+  );
 
   const upload = useCallback(
     async (file: File) => {
@@ -42,10 +45,20 @@ export function usePostCoverImageUpload(): UsePostCoverImageUploadReturn {
           return "";
         }),
       ]);
-      await claimOwnership({ storageId });
+      try {
+        await claimOwnership({ storageId });
+      } catch (err) {
+        deleteOrphanCoverImage({ storageId }).catch((cleanupErr) => {
+          console.error(
+            "[post-cover-image-upload] orphan cleanup failed after claim error",
+            cleanupErr,
+          );
+        });
+        throw err;
+      }
       return { storageId, thumbhash };
     },
-    [generateUploadUrl, claimOwnership],
+    [generateUploadUrl, claimOwnership, deleteOrphanCoverImage],
   );
 
   return { upload };
