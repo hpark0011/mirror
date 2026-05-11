@@ -1,6 +1,11 @@
 "use client";
 
-import { type MouseEvent, useCallback } from "react";
+import {
+  type MouseEvent,
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ContentBody } from "@feel-good/features/editor/components";
@@ -15,9 +20,56 @@ type PostListItemProps = {
   username: string;
 };
 
+// Mirrors `useVisibilityGatedVideoPlayback` in articles/list/article-list-featured-card.tsx.
+// IntersectionObserver pauses videos that scroll out of the viewport so a
+// long post list with many video covers doesn't churn through decoders.
+function useVisibilityGatedVideoPlayback() {
+  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
+    null,
+  );
+  const [visibleVideoElement, setVisibleVideoElement] =
+    useState<Element | null>(null);
+  const videoRef = useCallback((element: HTMLVideoElement | null) => {
+    setVideoElement(element);
+  }, []);
+
+  useEffect(() => {
+    if (!videoElement || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setVisibleVideoElement(entry?.isIntersecting ? entry.target : null);
+      },
+      { rootMargin: "200px" },
+    );
+
+    observer.observe(videoElement);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [videoElement]);
+
+  useEffect(() => {
+    if (!videoElement) return;
+
+    if (visibleVideoElement !== videoElement) {
+      videoElement.pause();
+      return;
+    }
+
+    void videoElement.play().catch(() => {
+      // Muted-autoplay rejections can still happen on some browsers.
+    });
+  }, [visibleVideoElement, videoElement]);
+
+  return videoRef;
+}
+
 export function PostListItem({ post, username }: PostListItemProps) {
   const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToContent } = useCloneActions();
+  const coverVideoRef = useVisibilityGatedVideoPlayback();
   // Keep `<Link href>` populated for SEO/middle-click semantics. The
   // onClick below routes "normal" left-clicks through the same dispatcher
   // the agent uses (`useCloneActions().navigateToContent`).
@@ -49,7 +101,28 @@ export function PostListItem({ post, username }: PostListItemProps) {
         </div>
         <div className="flex flex-col items-center w-full">
           <div className="max-w-lg flex flex-col gap-2 w-full">
-            {post.coverImageUrl && (
+            {post.coverVideoUrl ? (
+              <Link
+                href={href}
+                scroll={false}
+                onClick={handleClick}
+                className="block mb-3.5"
+              >
+                <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)]">
+                  <video
+                    ref={coverVideoRef}
+                    src={post.coverVideoUrl}
+                    poster={post.coverVideoPosterUrl ?? undefined}
+                    preload="metadata"
+                    loop
+                    muted
+                    playsInline
+                    className="absolute inset-0 w-full h-full object-cover"
+                    data-testid="post-list-cover-video"
+                  />
+                </div>
+              </Link>
+            ) : post.coverImageUrl ? (
               <Link
                 href={href}
                 scroll={false}
@@ -66,7 +139,7 @@ export function PostListItem({ post, username }: PostListItemProps) {
                   />
                 </div>
               </Link>
-            )}
+            ) : null}
             <div className="flex flex-col gap-3">
               <h2 className="text-xl leading-tight underline decoration-transparent transition-colors hover:text-blue-11">
                 <Link href={href} scroll={false} onClick={handleClick}>

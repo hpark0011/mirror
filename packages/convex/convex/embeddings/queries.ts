@@ -1,10 +1,101 @@
 import { v } from "convex/values";
 import { type Doc, type Id } from "../_generated/dataModel";
-import { internalQuery } from "../_generated/server";
+import { internalQuery, type QueryCtx } from "../_generated/server";
+import {
+  getIndexableContentSource,
+  type IndexableContentSourceTable,
+} from "../content/sourceRegistry";
 import { embeddingSourceTableValidator } from "./schema";
 import { serializeBioEntryForEmbedding } from "../bio/serializeForEmbedding";
 
 type DocWithStatus = Doc<"articles"> | Doc<"posts">;
+type DocumentEmbeddingContent = {
+  kind: "doc";
+  title: string;
+  body: unknown;
+  slug: string;
+  userId: Id<"users">;
+  status: "draft" | "published";
+};
+type BioEmbeddingContent = {
+  kind: "bio";
+  title: string;
+  body: string;
+  userId: Id<"users">;
+};
+type EmbeddingContent = DocumentEmbeddingContent | BioEmbeddingContent;
+type EmbeddingContentReader = (
+  ctx: QueryCtx,
+  sourceId: string,
+) => Promise<EmbeddingContent | null>;
+type EmbeddingSourceIdLister = (ctx: QueryCtx) => Promise<string[]>;
+
+function serializeDocumentForEmbedding(
+  record: DocWithStatus | null,
+): DocumentEmbeddingContent | null {
+  if (!record) return null;
+
+  return {
+    kind: "doc",
+    title: record.title,
+    body: record.body,
+    slug: record.slug,
+    userId: record.userId,
+    status: record.status,
+  };
+}
+
+const embeddingContentReaders = {
+  articles: async (ctx, sourceId) =>
+    serializeDocumentForEmbedding(
+      await ctx.db.get(sourceId as Id<"articles">),
+    ),
+  posts: async (ctx, sourceId) =>
+    serializeDocumentForEmbedding(await ctx.db.get(sourceId as Id<"posts">)),
+  bioEntries: async (ctx, sourceId) => {
+    const entry = await ctx.db.get(sourceId as Id<"bioEntries">);
+    if (!entry) return null;
+    const prose = serializeBioEntryForEmbedding(entry);
+    return {
+      kind: "bio",
+      // The display title for the chunk; `serializeBioEntryForEmbedding`
+      // produces a self-describing prose body, so the title is just a
+      // section heading for `buildRagContext`'s `### ${title}` line.
+      title: entry.title,
+      body: prose,
+      userId: entry.userId,
+    };
+  },
+} satisfies Record<IndexableContentSourceTable, EmbeddingContentReader>;
+
+const embeddingSourceIdListers = {
+  articles: async (ctx) => {
+    const docs = await ctx.db.query("articles").collect();
+    return docs
+      .filter((d) => d.status === "published")
+      .map((d) => d._id as string);
+  },
+  posts: async (ctx) => {
+    const docs = await ctx.db.query("posts").collect();
+    return docs
+      .filter((d) => d.status === "published")
+      .map((d) => d._id as string);
+  },
+  bioEntries: async (ctx) => {
+    // Bio entries have no draft/published lifecycle — every row is
+    // "published" by definition.
+    const docs = await ctx.db.query("bioEntries").collect();
+    return docs.map((d) => d._id as string);
+  },
+} satisfies Record<IndexableContentSourceTable, EmbeddingSourceIdLister>;
+
+export const EMBEDDING_CONTENT_READER_SOURCE_TABLES = Object.keys(
+  embeddingContentReaders,
+) as IndexableContentSourceTable[];
+
+export const EMBEDDING_SOURCE_ID_LISTER_SOURCE_TABLES = Object.keys(
+  embeddingSourceIdListers,
+) as IndexableContentSourceTable[];
 
 export const listPublishedContent = internalQuery({
   args: {
@@ -12,16 +103,8 @@ export const listPublishedContent = internalQuery({
   },
   returns: v.array(v.string()),
   handler: async (ctx, { sourceTable }) => {
-    if (sourceTable === "bioEntries") {
-      // Bio entries have no draft/published lifecycle — every row is
-      // "published" by definition.
-      const docs = await ctx.db.query("bioEntries").collect();
-      return docs.map((d) => d._id as string);
-    }
-    const docs = await ctx.db.query(sourceTable).collect();
-    return docs
-      .filter((d) => (d as DocWithStatus).status === "published")
-      .map((d) => d._id as string);
+    const source = getIndexableContentSource(sourceTable);
+    return await embeddingSourceIdListers[source.sourceTable](ctx);
   },
 });
 
@@ -60,36 +143,8 @@ export const getContentForEmbedding = internalQuery({
     v.null(),
   ),
   handler: async (ctx, { sourceTable, sourceId }) => {
-    if (sourceTable === "bioEntries") {
-      const entry = await ctx.db.get(sourceId as Id<"bioEntries">);
-      if (!entry) return null;
-      const prose = serializeBioEntryForEmbedding(entry);
-      return {
-        kind: "bio" as const,
-        // The display title for the chunk; `serializeBioEntryForEmbedding`
-        // produces a self-describing prose body, so the title is just a
-        // section heading for `buildRagContext`'s `### ${title}` line.
-        title: entry.title,
-        body: prose,
-        userId: entry.userId,
-      };
-    }
-
-    const doc =
-      sourceTable === "articles"
-        ? await ctx.db.get(sourceId as Id<"articles">)
-        : await ctx.db.get(sourceId as Id<"posts">);
-    if (!doc) return null;
-
-    const record = doc as DocWithStatus;
-    return {
-      kind: "doc" as const,
-      title: record.title,
-      body: record.body,
-      slug: record.slug,
-      userId: record.userId,
-      status: record.status,
-    };
+    const source = getIndexableContentSource(sourceTable);
+    return await embeddingContentReaders[source.sourceTable](ctx, sourceId);
   },
 });
 

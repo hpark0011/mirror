@@ -71,6 +71,15 @@ vi.mock("../../auth/client", () => {
 
 import { internal } from "../../_generated/api";
 import { buildEmbeddingUserSourceKey } from "../schema";
+import {
+  contentSourceRegistry,
+  INDEXABLE_CONTENT_SOURCE_TABLES,
+  INDEXABLE_CONTENT_SOURCES,
+} from "../../content/sourceRegistry";
+import {
+  EMBEDDING_CONTENT_READER_SOURCE_TABLES,
+  EMBEDDING_SOURCE_ID_LISTER_SOURCE_TABLES,
+} from "../queries";
 
 function normalizeConvexGlob(
   raw: Record<string, () => Promise<unknown>>,
@@ -99,6 +108,10 @@ function utcMonth(year: number, month: number): number {
   return Date.UTC(year, month - 1, 1);
 }
 
+function sorted(values: readonly string[]): string[] {
+  return [...values].sort();
+}
+
 async function insertOwner(t: ReturnType<typeof makeT>, name = "owner") {
   return t.run(async (ctx) =>
     ctx.db.insert("users", {
@@ -114,6 +127,28 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
   beforeEach(() => {
     embeddingsState.embedManyCalls = 0;
     embeddingsState.lastValues = [];
+  });
+
+  it("registry drift: every indexable source has embedding reader and lister coverage", () => {
+    const registryTables = sorted(INDEXABLE_CONTENT_SOURCE_TABLES);
+
+    expect(sorted(EMBEDDING_CONTENT_READER_SOURCE_TABLES)).toEqual(
+      registryTables,
+    );
+    expect(sorted(EMBEDDING_SOURCE_ID_LISTER_SOURCE_TABLES)).toEqual(
+      registryTables,
+    );
+
+    for (const [sourceTable, source] of Object.entries(contentSourceRegistry)) {
+      expect(source.sourceTable).toBe(sourceTable);
+    }
+
+    for (const source of INDEXABLE_CONTENT_SOURCES) {
+      expect(["document", "bio"]).toContain(source.embedding.serializer);
+      expect(["draft-published", "always-indexable"]).toContain(
+        source.embedding.lifecycle,
+      );
+    }
   });
 
   it("getContentForEmbedding returns kind:'bio' for a bioEntries source", async () => {

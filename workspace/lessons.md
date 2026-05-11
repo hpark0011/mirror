@@ -21,6 +21,14 @@
 
 ## 2026-05-10
 
+### Registry helpers need explicit type predicates for narrowed lookups
+
+- When a registry stores both enabled and disabled capability variants, checking
+  `entry.capability.enabled ? entry : null` may not narrow enough once the entry
+  came from indexed object lookup. Reuse the registry's type-predicate helper
+  (`isNavigableSource(source) ? source : null`) so TypeScript carries the
+  narrowed variant through exported lookup helpers.
+
 ### Measurement classifiers must model the repo's real commands
 
 - Session metrics are only useful if command classifiers recognize the commands

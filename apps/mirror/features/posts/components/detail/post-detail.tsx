@@ -32,7 +32,21 @@ export function PostDetail({ post }: PostDetailProps) {
 
         <div className="w-full flex flex-col items-center">
           <div className="max-w-lg flex flex-col gap-2 w-full">
-            {post.coverImageUrl && (
+            {post.coverVideoUrl ? (
+              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-3.5">
+                <video
+                  src={post.coverVideoUrl}
+                  poster={post.coverVideoPosterUrl ?? undefined}
+                  preload="metadata"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  className="absolute inset-0 w-full h-full object-cover"
+                  data-testid="post-detail-cover-video"
+                />
+              </div>
+            ) : post.coverImageUrl ? (
               <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)] mb-3.5">
                 <Image
                   src={post.coverImageUrl}
@@ -43,7 +57,7 @@ export function PostDetail({ post }: PostDetailProps) {
                   className="object-cover"
                 />
               </div>
-            )}
+            ) : null}
             <div className="flex flex-col gap-3">
               <h1 className="text-xl leading-tight underline capitalize">
                 {post.title}

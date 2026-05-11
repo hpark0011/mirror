@@ -15,9 +15,7 @@ export type PostToolbarContextValue = {
   search: UseContentSearchReturn<PostSummary>;
   filter: UsePostFilterReturn;
   categories: { name: string; count: number }[];
-  isUploadDialogOpen: boolean;
-  onOpenUploadDialog: () => void;
-  onCloseUploadDialog: () => void;
+  onNew: () => void;
 };
 
 export const PostToolbarContext =

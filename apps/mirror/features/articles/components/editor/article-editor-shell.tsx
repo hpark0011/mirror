@@ -13,13 +13,13 @@ import {
   type InlineImageUploadResult,
 } from "@feel-good/features/editor";
 import { type UseFormReturn } from "react-hook-form";
-import { ArticleEditorToolbar } from "./article-editor-toolbar";
-import { ArticleMetadataHeader } from "./article-metadata-header";
-import { type CoverUploadState } from "../../hooks/use-article-cover-video-upload";
+import { ArticleEditorToolbar } from "@/features/articles/components/editor/article-editor-toolbar";
+import { ArticleMetadataHeader } from "@/features/articles/components/editor/article-metadata-header";
+import { type CoverUploadState } from "@/features/articles/hooks/use-article-cover-video-upload";
 import {
   type ArticleMetadataFormData,
   type ArticleStatus,
-} from "../../lib/schemas/article-metadata.schema";
+} from "@/features/articles/lib/schemas/article-metadata.schema";
 
 export interface ArticleEditorShellProps {
   // Metadata — title/slug/category live on the RHF form; the header binds to

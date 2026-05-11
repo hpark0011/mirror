@@ -7,6 +7,12 @@ import { type ActionCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { EMBEDDING_DIMENSIONS, EMBEDDING_MODEL } from "../embeddings/config";
 import { buildEmbeddingUserSourceKey } from "../embeddings/schema";
+import {
+  getNavigableContentSource,
+  getNavigableContentSourceByTable,
+  type ContentSourceTable,
+  type NavigableContentKind,
+} from "../content/sourceRegistry";
 
 export const RELEVANT_CONTENT_DEFAULT_LIMIT = 3;
 export const RELEVANT_CONTENT_MAX_LIMIT = 5;
@@ -14,8 +20,6 @@ const RELEVANT_CONTENT_VECTOR_LIMIT = 16;
 const RELEVANT_CONTENT_LEGACY_VECTOR_LIMIT = 256;
 const RELEVANT_CONTENT_SCORE_THRESHOLD = 0.3;
 const RELEVANT_CONTENT_EXCERPT_MAX_CHARS = 260;
-
-type NavigableContentKind = "articles" | "posts";
 
 export type RelevantContentSearchCtx = Pick<
   ActionCtx,
@@ -33,12 +37,6 @@ function excerptFor(chunkText: string): string {
     return compact;
   }
   return `${compact.slice(0, RELEVANT_CONTENT_EXCERPT_MAX_CHARS - 3)}...`;
-}
-
-function isNavigableKind(
-  sourceTable: "articles" | "posts" | "bioEntries",
-): sourceTable is NavigableContentKind {
-  return sourceTable === "articles" || sourceTable === "posts";
 }
 
 export async function findRelevantPublishedContent(
@@ -72,7 +70,10 @@ export async function findRelevantPublishedContent(
         args.kind
           ? q.eq(
               "userSourceKey",
-              buildEmbeddingUserSourceKey(args.profileOwnerId, args.kind),
+              buildEmbeddingUserSourceKey(
+                args.profileOwnerId,
+                getNavigableContentSource(args.kind).sourceTable,
+              ),
             )
           : q.eq("userId", args.profileOwnerId),
     },
@@ -122,8 +123,11 @@ export async function findRelevantPublishedContent(
   >();
 
   for (const chunk of chunks) {
-    if (!isNavigableKind(chunk.sourceTable)) continue;
-    if (args.kind && chunk.sourceTable !== args.kind) continue;
+    const source = getNavigableContentSourceByTable(
+      chunk.sourceTable as ContentSourceTable,
+    );
+    if (!source) continue;
+    if (args.kind && source.navigation.kind !== args.kind) continue;
 
     const slug = chunk.slug?.trim();
     if (!slug) continue;
@@ -133,7 +137,7 @@ export async function findRelevantPublishedContent(
 
     const key = `${chunk.sourceTable}:${chunk.sourceId}`;
     const candidate = {
-      kind: chunk.sourceTable,
+      kind: source.navigation.kind,
       sourceId: chunk.sourceId,
       slug,
       score,

@@ -1,16 +1,9 @@
 import { ConvexError, v } from "convex/values";
 import { type Doc, type Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
-import {
-  action,
-  internalMutation,
-  internalQuery,
-  type ActionCtx,
-  type MutationCtx,
-} from "../_generated/server";
+import { action, internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
-import { authComponent } from "../auth/client";
 import { isOwnedByUser, validateContentStringLength } from "../content/helpers";
 import { assertValidSlug, generateSlug } from "../content/slug";
 import {
@@ -31,220 +24,18 @@ import {
 } from "../content/inlineImageOwnership";
 import { collectReferencedFromCandidates } from "../content/storageRegistry";
 import {
+  assertCoverBlobOwnership,
+  claimCoverBlobOwnershipFromAction,
+  deleteCoverBlobAndOwnership,
+  filterCallerOwnedCoverBlobIds,
+} from "../content/coverBlobOwnership";
+import {
   ALLOWED_INLINE_IMAGE_TYPES,
   ALLOWED_COVER_VIDEO_TYPES,
   MAX_COVER_VIDEO_BYTES,
   MAX_INLINE_DELETES_PER_INVOCATION,
   MAX_INLINE_IMAGE_BYTES,
 } from "../content/storagePolicy";
-
-type CoverBlobKind = "image" | "video" | "poster";
-
-// FG_147 / PLAN_010: Verify that `storageId` belongs to `userId` via the
-// `coverImageOwnership` table. Throws `ConvexError` if the row is missing
-// or attributed to a different user/kind.
-//
-// Called from `create` and `update` before writing any cover-blob storage
-// id (image, video, or video poster). Args validators for mutations that
-// write a cover storage id MUST NOT include `userId` — it is always
-// derived server-side from `getAppUser`. See `.claude/rules/embeddings.md`.
-// Legacy rows from before FG_196 have no `kind`; those are accepted only as
-// image claims during the widen/backfill/narrow migration window.
-async function assertCoverBlobOwnership(
-  ctx: MutationCtx,
-  storageId: Id<"_storage">,
-  userId: Id<"users">,
-  expectedKind: CoverBlobKind,
-): Promise<void> {
-  const row = await ctx.db
-    .query("coverImageOwnership")
-    .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
-    .unique();
-  if (!row || row.userId !== userId) {
-    throw new ConvexError("cover blob storage id does not belong to caller");
-  }
-  if (row.kind !== expectedKind) {
-    const isLegacyImageClaim =
-      row.kind === undefined && expectedKind === "image";
-    if (!isLegacyImageClaim) {
-      const actualKind = row.kind ?? "legacy image";
-      throw new ConvexError(
-        `cover blob is ${actualKind}, cannot be used as ${expectedKind}`,
-      );
-    }
-  }
-}
-
-async function filterCallerOwnedCoverBlobIds(
-  ctx: MutationCtx,
-  ids: Id<"_storage">[],
-  userId: Id<"users">,
-): Promise<Id<"_storage">[]> {
-  if (ids.length === 0) return ids;
-  const out: Id<"_storage">[] = [];
-  for (const storageId of ids) {
-    const row = await ctx.db
-      .query("coverImageOwnership")
-      .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
-      .unique();
-    if (!row) continue;
-    if (row.userId !== userId) continue;
-    out.push(storageId);
-  }
-  return out;
-}
-
-// PLAN_010: best-effort cleanup helper used when delete-after-patch fires.
-// Storage delete is non-transactional; a transient failure must not roll
-// back the patch we already committed. The cron sweep is the safety net.
-async function safeDeleteStorage(
-  ctx: MutationCtx,
-  storageId: Id<"_storage"> | undefined,
-): Promise<boolean> {
-  if (!storageId) return false;
-  try {
-    await ctx.storage.delete(storageId);
-    return true;
-  } catch (err) {
-    // Surface the failure in Convex function logs so a systematic backend
-    // regression (auth change, API shape drift) is visible — the cron
-    // sweep still owns recovery, but silent failures defeat observability.
-    console.error(
-      "[safeDeleteStorage] ctx.storage.delete failed",
-      storageId,
-      err,
-    );
-    return false;
-  }
-}
-
-async function safeDeleteActionStorage(
-  ctx: ActionCtx,
-  storageId: Id<"_storage">,
-): Promise<void> {
-  try {
-    await ctx.storage.delete(storageId);
-  } catch (err) {
-    console.error(
-      "[safeDeleteActionStorage] ctx.storage.delete failed",
-      storageId,
-      err,
-    );
-  }
-}
-
-async function deleteCoverBlobOwnership(
-  ctx: MutationCtx,
-  storageId: Id<"_storage"> | undefined,
-): Promise<void> {
-  if (!storageId) return;
-  const row = await ctx.db
-    .query("coverImageOwnership")
-    .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
-    .unique();
-  if (row) {
-    await ctx.db.delete(row._id);
-  }
-}
-
-async function deleteCoverBlobAndOwnership(
-  ctx: MutationCtx,
-  storageId: Id<"_storage"> | undefined,
-): Promise<void> {
-  if (await safeDeleteStorage(ctx, storageId)) {
-    await deleteCoverBlobOwnership(ctx, storageId);
-  }
-}
-
-const coverBlobKindValidator = v.union(
-  v.literal("image"),
-  v.literal("video"),
-  v.literal("poster"),
-);
-
-export const _coverBlobOwnershipExists = internalQuery({
-  args: {
-    storageId: v.id("_storage"),
-  },
-  returns: v.boolean(),
-  handler: async (ctx, args) => {
-    const row = await ctx.db
-      .query("coverImageOwnership")
-      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
-      .unique();
-    return row !== null;
-  },
-});
-
-export const _insertCoverBlobOwnership = internalMutation({
-  args: {
-    storageId: v.id("_storage"),
-    authId: v.string(),
-    kind: coverBlobKindValidator,
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const existing = await ctx.db
-      .query("coverImageOwnership")
-      .withIndex("by_storageId", (q) => q.eq("storageId", args.storageId))
-      .unique();
-    if (existing) return null;
-
-    const appUser = await getAppUser(ctx, args.authId);
-    await ctx.db.insert("coverImageOwnership", {
-      storageId: args.storageId,
-      userId: appUser._id,
-      createdAt: Date.now(),
-      kind: args.kind,
-    });
-    return null;
-  },
-});
-
-async function claimCoverBlobOwnershipFromAction(
-  ctx: ActionCtx,
-  args: { storageId: Id<"_storage"> },
-  policy: {
-    kind: CoverBlobKind;
-    label: string;
-    allowedTypes: ReadonlySet<string>;
-    maxBytes: number;
-  },
-): Promise<null> {
-  const authUser = await authComponent.getAuthUser(ctx);
-
-  const existing = await ctx.runQuery(
-    internal.articles.mutations._coverBlobOwnershipExists,
-    { storageId: args.storageId },
-  );
-  if (existing) return null;
-
-  const blob = await ctx.storage.get(args.storageId);
-  if (!blob) {
-    throw new ConvexError(`${policy.label} blob not found in storage`);
-  }
-
-  const contentType = blob.type ?? "";
-  if (!policy.allowedTypes.has(contentType)) {
-    await safeDeleteActionStorage(ctx, args.storageId);
-    throw new ConvexError(
-      `${policy.label} must be one of ${[...policy.allowedTypes].join(", ")}; got "${contentType}"`,
-    );
-  }
-  if (blob.size > policy.maxBytes) {
-    await safeDeleteActionStorage(ctx, args.storageId);
-    throw new ConvexError(
-      `${policy.label} exceeds maximum size of ${policy.maxBytes} bytes (got ${blob.size})`,
-    );
-  }
-
-  await ctx.runMutation(internal.articles.mutations._insertCoverBlobOwnership, {
-    storageId: args.storageId,
-    authId: authUser._id as string,
-    kind: policy.kind,
-  });
-  return null;
-}
 
 export const create = authMutation({
   args: {

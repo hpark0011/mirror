@@ -122,9 +122,15 @@ function parseEnvFile(filePath) {
     ) {
       value = value.slice(1, -1);
     }
+    value = value.replace(/\s+#.*$/, "").trim();
     out[key] = value;
   }
   return out;
+}
+
+function deploymentName(value) {
+  const match = /^dev:([a-z0-9-]+)/.exec(value ?? "");
+  return match ? match[1] : value;
 }
 
 function targetFromRoot(root, fallbackSecret) {
@@ -188,6 +194,52 @@ function mib(bytes) {
   return `${(bytes / 1024 / 1024).toFixed(2)} MiB`;
 }
 
+function cleanupArgs(opts) {
+  return {
+    email: opts.email,
+    olderThanMs: opts.olderThanHours * 60 * 60 * 1000,
+    dryRun: !opts.delete,
+    includeTestArticleCoverMedia: opts.includeTestCoverMedia,
+    maxStorageRows: Math.floor(opts.maxStorageRows),
+    maxArticles: Math.floor(opts.maxArticles),
+  };
+}
+
+function extractJson(output) {
+  const index = output.lastIndexOf("{");
+  if (index === -1) {
+    throw new Error(
+      `Convex run produced no JSON result: ${output.slice(-300)}`,
+    );
+  }
+  return JSON.parse(output.slice(index));
+}
+
+function cleanupTargetWithConvexRun(target, opts) {
+  const output = execFileSync(
+    "pnpm",
+    [
+      "--filter=@feel-good/convex",
+      "exec",
+      "convex",
+      "run",
+      "--deployment",
+      deploymentName(target.deployment),
+      "--push",
+      "auth/testHelpers:cleanupTestStorage",
+      JSON.stringify(cleanupArgs(opts)),
+    ],
+    {
+      cwd: repoRoot(),
+      encoding: "utf8",
+      maxBuffer: 8 * 1024 * 1024,
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 180_000,
+    },
+  );
+  return extractJson(output);
+}
+
 async function cleanupTarget(target, opts) {
   if (!target.secret) {
     throw new Error(
@@ -201,18 +253,14 @@ async function cleanupTarget(target, opts) {
       "content-type": "application/json",
       "x-test-secret": target.secret,
     },
-    body: JSON.stringify({
-      email: opts.email,
-      olderThanMs: opts.olderThanHours * 60 * 60 * 1000,
-      dryRun: !opts.delete,
-      includeTestArticleCoverMedia: opts.includeTestCoverMedia,
-      maxStorageRows: Math.floor(opts.maxStorageRows),
-      maxArticles: Math.floor(opts.maxArticles),
-    }),
+    body: JSON.stringify(cleanupArgs(opts)),
   });
 
   if (!response.ok) {
     const body = await response.text();
+    if (response.status === 404) {
+      return cleanupTargetWithConvexRun(target, opts);
+    }
     throw new Error(
       `${target.deployment} cleanup failed (${response.status}): ${body}`,
     );

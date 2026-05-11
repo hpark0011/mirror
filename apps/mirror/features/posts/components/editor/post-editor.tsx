@@ -1,38 +1,41 @@
 "use client";
 
-import { useCallback } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@feel-good/convex/convex/_generated/api";
-import { type JSONContent } from "@feel-good/features/editor";
-import { ContentEditor } from "@/features/content/components/content-editor";
-import { usePostInlineImageUpload } from "../../hooks/use-post-inline-image-upload";
+// Edit-existing-post host. Wraps the shared `PostEditorShell` with a
+// server-bound form hook so Save dispatches `posts.mutations.update` for
+// the loaded row. Mirrors `articles/components/editor/article-editor.tsx`.
 import { type PostSummary } from "../../types";
+import { useEditPostForm } from "../../hooks/use-edit-post-form";
+import { PostEditorShell } from "./post-editor-shell";
 
 type PostEditorProps = {
   post: PostSummary;
   username: string;
-  slug: string;
 };
 
-export function PostEditor({ post, username, slug }: PostEditorProps) {
-  const update = useMutation(api.posts.mutations.update);
-  const { upload } = usePostInlineImageUpload();
-
-  const handleSave = useCallback(
-    async (body: JSONContent) => {
-      await update({ id: post._id, body });
-    },
-    [post._id, update],
-  );
-
+export function PostEditor({ post, username }: PostEditorProps) {
+  const postForm = useEditPostForm({ username, initial: post });
   return (
-    <ContentEditor
-      title={post.title}
-      initialBody={post.body}
-      onSave={handleSave}
-      onImageUpload={upload}
-      cancelHref={`/@${username}/posts/${slug}`}
-      saveTestId="save-post-btn"
+    <PostEditorShell
+      form={postForm.form}
+      status={postForm.status}
+      coverImageUrl={postForm.coverImageUrl}
+      coverVideoUrl={postForm.coverVideoUrl}
+      coverVideoPosterUrl={postForm.coverVideoPosterUrl}
+      coverUploadState={postForm.coverUploadState}
+      createdAt={postForm.createdAt}
+      publishedAt={postForm.publishedAt}
+      onCoverUpload={postForm.handleCoverUpload}
+      onCoverClear={postForm.handleCoverClear}
+      body={postForm.body}
+      onBodyChange={postForm.setBody}
+      onInlineImageUpload={postForm.onInlineImageUpload}
+      onInlineImageError={postForm.onInlineImageError}
+      onPendingUploadsChange={postForm.setHasPendingUploads}
+      onSave={postForm.save}
+      onPublishToggle={postForm.togglePublish}
+      onCancel={postForm.cancel}
+      isSaving={postForm.isSaving}
+      hasPendingUploads={postForm.hasPendingUploads}
     />
   );
 }
