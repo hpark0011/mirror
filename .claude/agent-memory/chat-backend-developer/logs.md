@@ -253,7 +253,6 @@ Secondary nit: the result shape for `deletePost` looks like it should be slug-le
 - Grep invariant `grep -nE 'userId\s*:' packages/convex/convex/chat/tools.ts | grep -v profileOwnerId` exit 1 (zero hits).
 - Grep invariant `rg -n '\.filter\(' packages/convex/convex/chat/toolQueries.ts packages/convex/convex/chat/toolMutations.ts` exit 1 (zero hits).
 - Regression anchors: `chat/actions.ts:144` still logs RAG failure and falls through; `chat/actions.ts:170-173` still clears the streaming lock in `finally` with `expectedStartedAt`.
-- `graphify update .` exit 0 — rebuilt 2608 nodes / 2996 edges / 688 communities.
 
 **Bottleneck**: The ticket wording assumed "appropriate existing internal mutations" were available for post/article status toggles and article delete, but the current source only had `internal.posts.mutations.deleteByUserAndSlug`; article delete and both status-toggle paths were public `authMutation`s, which cannot be called from the internal chat action. Staying inside Worker B's ownership boundary meant adding chat-owned `toolMutations.ts` rather than touching `articles/` or `posts/`.
 

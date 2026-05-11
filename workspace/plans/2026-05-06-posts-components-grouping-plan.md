@@ -73,8 +73,8 @@ This plan assumes **(a)**. If the user prefers **(b)**, swap step 2 below to lea
 
 After the move, every `./<sibling>` relative import resolves inside the same target group EXCEPT one:
 
-| File (after move) | Cross-group sibling import |
-|---|---|
+| File (after move)         | Cross-group sibling import                        |
+| ------------------------- | ------------------------------------------------- |
 | `list/post-list-item.tsx` | `../detail/post-metadata` (was `./post-metadata`) |
 
 All other internal sibling imports stay valid (and stay `./<sibling>`) because the importer and importee move into the same group together — see the table in § "Implementation steps" for the per-group breakdown.
@@ -86,32 +86,32 @@ All other internal sibling imports stay valid (and stay `./<sibling>`) because t
 Every moved file uses `../types`, `../hooks/...`, or `../context/...` against the current `components/` location. Each path needs one extra `../`:
 
 | Old (from `components/<file>.tsx`) | New (from `components/<group>/<file>.tsx`) |
-|---|---|
-| `../types` | `../../types` |
-| `../hooks/...` | `../../hooks/...` |
-| `../context/...` | `../../context/...` |
+| ---------------------------------- | ------------------------------------------ |
+| `../types`                         | `../../types`                              |
+| `../hooks/...`                     | `../../hooks/...`                          |
+| `../context/...`                   | `../../context/...`                        |
 
 This differs from the articles reorg's plan-level claim of "no internal edits needed" — that claim was wrong; the merged article files are using `../../types`, `../../hooks`, `../../context`, `../../utils`, `../../lib` as expected. Posts uses the same pattern, so the same rewrite applies. **Don't trust the articles plan's wording on this point — trust the file contents.**
 
 Per-file occurrences (from `grep -n "from \"\\.\\./" components/`):
 
-| File | `../` paths to bump |
-|---|---|
-| `import-result-status.tsx` | `../hooks/use-create-post-from-file` |
-| `post-detail.tsx` | `../types` |
-| `post-list-toolbar.tsx` | `../types`, `../hooks/use-post-filter` |
-| `scrollable-post-list.tsx` | `../context/post-list-context` |
+| File                                   | `../` paths to bump                                                                                                                            |
+| -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
+| `import-result-status.tsx`             | `../hooks/use-create-post-from-file`                                                                                                           |
+| `post-detail.tsx`                      | `../types`                                                                                                                                     |
+| `post-list-toolbar.tsx`                | `../types`, `../hooks/use-post-filter`                                                                                                         |
+| `scrollable-post-list.tsx`             | `../context/post-list-context`                                                                                                                 |
 | `markdown-upload-dialog-connector.tsx` | `../context/post-toolbar-context`, `../hooks/use-markdown-file-parser`, `../hooks/use-create-post-from-file`, `../hooks/use-cover-image-state` |
-| `markdown-upload-dialog.tsx` | `../hooks/use-markdown-file-parser`, `../hooks/use-create-post-from-file` |
-| `post-detail-toolbar.tsx` | `../types` |
-| `post-list-item.tsx` | `../types` |
-| `post-list-toolbar-connector.tsx` | `../context/post-toolbar-context` |
-| `parsed-metadata-preview.tsx` | `../hooks/use-markdown-file-parser` |
-| `publish-toggle-connector.tsx` | `../hooks/use-publish-toggle`, `../types` |
-| `post-detail-connector.tsx` | `../types` |
-| `publish-toggle.tsx` | `../types` |
-| `post-metadata.tsx` | `../types` |
-| `post-editor.tsx` | `../hooks/use-post-inline-image-upload`, `../types` |
+| `markdown-upload-dialog.tsx`           | `../hooks/use-markdown-file-parser`, `../hooks/use-create-post-from-file`                                                                      |
+| `post-detail-toolbar.tsx`              | `../types`                                                                                                                                     |
+| `post-list-item.tsx`                   | `../types`                                                                                                                                     |
+| `post-list-toolbar-connector.tsx`      | `../context/post-toolbar-context`                                                                                                              |
+| `parsed-metadata-preview.tsx`          | `../hooks/use-markdown-file-parser`                                                                                                            |
+| `publish-toggle-connector.tsx`         | `../hooks/use-publish-toggle`, `../types`                                                                                                      |
+| `post-detail-connector.tsx`            | `../types`                                                                                                                                     |
+| `publish-toggle.tsx`                   | `../types`                                                                                                                                     |
+| `post-metadata.tsx`                    | `../types`                                                                                                                                     |
+| `post-editor.tsx`                      | `../hooks/use-post-inline-image-upload`, `../types`                                                                                            |
 
 Files with no `../` imports (pure-UI): `cover-image-picker.tsx`, `markdown-file-input.tsx`, `post-category-filter-row.tsx`, `post-detail-loading.tsx`. No rewrites needed in those.
 
@@ -168,8 +168,6 @@ The public barrel surface (`features/posts/index.ts` named exports) is **unchang
 
 8. **Run hard-verification Playwright suite** (see § Hard verification).
 
-9. **Run `graphify update .`** to refresh the knowledge graph with the new file locations (per `CLAUDE.md`).
-
 ---
 
 ## Hard verification — Playwright CLI
@@ -187,7 +185,7 @@ pnpm --filter=@feel-good/mirror test:e2e -- \
 
 **Why these three specs (one per surface):**
 
-- **`e2e/post-upload.authenticated.spec.ts`** exercises the **list** surface and the markdown-import flow — five list/* files (the markdown-upload-dialog cluster + cover-image-picker + parsed-metadata-preview + import-result-status + markdown-file-input) all live or die by this test. Pinned assertion: dialog visibility on toolbar click — `await expect(dialog.getByText("Import Markdown")).toBeVisible()` (line 67).
+- **`e2e/post-upload.authenticated.spec.ts`** exercises the **list** surface and the markdown-import flow — five list/\* files (the markdown-upload-dialog cluster + cover-image-picker + parsed-metadata-preview + import-result-status + markdown-file-input) all live or die by this test. Pinned assertion: dialog visibility on toolbar click — `await expect(dialog.getByText("Import Markdown")).toBeVisible()` (line 67).
 - **`e2e/post-publish-toggle.authenticated.spec.ts`** exercises the **detail** surface — covers `post-detail-toolbar` → `publish-toggle-connector` → `publish-toggle`, plus `post-metadata` (the `post-status-label` testid lives in `post-metadata.tsx`). Pinned assertion: `await expect(page.getByTestId("post-status-label")).toBeVisible()` (line 56).
 - **`e2e/post-inline-image-paste.authenticated.spec.ts`** exercises the **editor** surface — the only `post-editor.tsx` consumer route, and the test is the cleanest proof the editor still mounts after the move. Pinned assertion: `await expect(page.getByTestId("save-post-btn")).toBeVisible()` (line 59).
 

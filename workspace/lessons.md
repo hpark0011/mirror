@@ -36,36 +36,6 @@
   (`isNavigableSource(source) ? source : null`) so TypeScript carries the
   narrowed variant through exported lookup helpers.
 
-### Measurement classifiers must model the repo's real commands
-
-- Session metrics are only useful if command classifiers recognize the commands
-  agents actually run. In this repo, validation commonly appears as
-  `pnpm --filter=<workspace> lint/test:e2e` and `node --test`, while discovery
-  can use `fd` or `ast-grep`; analyzer regexes need fixtures for those forms.
-- For "after final edit" compliance metrics, reset the compliance marker on
-  every later edit. Otherwise an early `graphify update .` or validation command
-  can make a session look compliant even after subsequent changes.
-- Do not commit `latest.*` report snapshots when they include commit freshness
-  fields. The act of committing the generated file creates a new HEAD, so a
-  tracked snapshot can claim `fresh: true` for the previous commit.
-
-### Graphify clean rebuilds must start from a clean graph.json
-
-- `graphify update . --force` refreshes the commit marker and rebuilds AST
-  nodes, but it preserves existing nodes whose IDs are not produced by the new
-  AST pass. If `graphify-out/graph.json` contains nodes from another absolute
-  worktree, those stale nodes can survive normal updates because their IDs do
-  not collide with current relative-path nodes.
-- To remove cross-worktree contamination, move or delete
-  `graphify-out/graph.json` first, then run `graphify update . --force` from
-  the intended worktree root. Verify with `rg '/Users/' graphify-out/graph.json`
-  and confirm `GRAPH_REPORT.md`'s "Built from commit" matches
-  `git rev-parse HEAD`.
-- In linked git worktrees, Graphify's hook command can treat the `.git` pointer
-  file as a directory. Set `core.hooksPath` to `git rev-parse --git-path hooks`
-  before running `graphify hook install/status` so the command uses the common
-  hooks directory.
-
 ### Static Playwright report specs should avoid ESM-only helpers
 
 - In `apps/mirror/e2e`, a spec that imported Node built-ins and used

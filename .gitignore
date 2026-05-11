@@ -40,12 +40,6 @@ test-results
 # Convex local backend
 .convex
 
-# Graphify
-graphify-out/.graphify_root
-graphify-out/manifest.json
-graphify-out/cost.json
-graphify-out/cache/
-
 # Worktrees
 .worktrees
 .agents/worktrees
