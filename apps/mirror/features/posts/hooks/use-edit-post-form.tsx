@@ -17,6 +17,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useForm } from "react-hook-form";
 import { showToast } from "@feel-good/ui/components/toast";
+import { generateSlug } from "@feel-good/convex/convex/content/slug";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { usePostCoverImageUpload } from "./use-post-cover-image-upload";
 import {
@@ -42,6 +43,12 @@ export function useEditPostForm({
 }: UseEditPostFormOptions) {
   const router = useRouter();
   const update = useMutation(api.posts.mutations.update);
+  const deleteOrphanCoverImage = useMutation(
+    api.posts.mutations.deleteOrphanCoverImage,
+  );
+  const deleteOrphanCoverVideo = useMutation(
+    api.posts.mutations.deleteOrphanCoverVideo,
+  );
   const { upload: uploadCoverImage } = usePostCoverImageUpload();
   const { upload: uploadInlineImage } = usePostInlineImageUpload();
   const [coverUploadState, setCoverUploadState] =
@@ -122,6 +129,14 @@ export function useEditPostForm({
         coverUploadState === "preparing" || coverUploadState === "uploading"
           ? "idle"
           : coverUploadState;
+      // Capture any locally-claimed (not server-original) cover storageIds
+      // so we can best-effort orphan-delete them after the new upload
+      // succeeds. `deleteOrphanCover{Image,Video}` is TOCTOU-safe: it
+      // verifies no row references the storageId before deleting, so it
+      // no-ops on the server-original blobs that still belong to the post.
+      const previousImageStorageId = coverImageStorageId;
+      const previousVideoStorageId = coverVideoStorageId;
+      const previousVideoPosterStorageId = coverVideoPosterStorageId;
       try {
         if (file.type.startsWith("video/")) {
           setCoverUploadState("preparing");
@@ -147,6 +162,31 @@ export function useEditPostForm({
           setCoverVideoPosterStorageId(posterStorageId);
           setIsCoverCleared(false);
           setCoverUploadState("ready");
+          if (previousImageStorageId) {
+            deleteOrphanCoverImage({
+              storageId: previousImageStorageId,
+            }).catch((cleanupErr) => {
+              console.error(
+                "[edit-post-form] previous cover-image orphan cleanup failed",
+                cleanupErr,
+              );
+            });
+          }
+          if (previousVideoStorageId || previousVideoPosterStorageId) {
+            deleteOrphanCoverVideo({
+              ...(previousVideoStorageId
+                ? { videoStorageId: previousVideoStorageId }
+                : {}),
+              ...(previousVideoPosterStorageId
+                ? { posterStorageId: previousVideoPosterStorageId }
+                : {}),
+            }).catch((cleanupErr) => {
+              console.error(
+                "[edit-post-form] previous cover-video orphan cleanup failed",
+                cleanupErr,
+              );
+            });
+          }
           return { kind: "video" };
         }
 
@@ -172,6 +212,31 @@ export function useEditPostForm({
         setCoverImageThumbhash(thumbhash);
         setIsCoverCleared(false);
         setCoverUploadState("ready");
+        if (previousImageStorageId) {
+          deleteOrphanCoverImage({
+            storageId: previousImageStorageId,
+          }).catch((cleanupErr) => {
+            console.error(
+              "[edit-post-form] previous cover-image orphan cleanup failed",
+              cleanupErr,
+            );
+          });
+        }
+        if (previousVideoStorageId || previousVideoPosterStorageId) {
+          deleteOrphanCoverVideo({
+            ...(previousVideoStorageId
+              ? { videoStorageId: previousVideoStorageId }
+              : {}),
+            ...(previousVideoPosterStorageId
+              ? { posterStorageId: previousVideoPosterStorageId }
+              : {}),
+          }).catch((cleanupErr) => {
+            console.error(
+              "[edit-post-form] previous cover-video orphan cleanup failed",
+              cleanupErr,
+            );
+          });
+        }
         return { kind: "image" };
       } catch (err) {
         setCoverUploadState(previousCoverUploadState);
@@ -180,10 +245,25 @@ export function useEditPostForm({
         coverUploadInFlightRef.current = false;
       }
     },
-    [coverUploadState, uploadCoverImage, uploadCoverVideo],
+    [
+      coverImageStorageId,
+      coverUploadState,
+      coverVideoPosterStorageId,
+      coverVideoStorageId,
+      deleteOrphanCoverImage,
+      deleteOrphanCoverVideo,
+      uploadCoverImage,
+      uploadCoverVideo,
+    ],
   );
 
   const handleCoverClear = useCallback(() => {
+    // Capture locally-claimed (not server-original) storageIds before we
+    // drop the references. TOCTOU-safe orphan delete no-ops on the blobs
+    // that still belong to the post row.
+    const previousImageStorageId = coverImageStorageId;
+    const previousVideoStorageId = coverVideoStorageId;
+    const previousVideoPosterStorageId = coverVideoPosterStorageId;
     setCoverImageUrl((prev) => {
       if (prev?.startsWith("blob:")) URL.revokeObjectURL(prev);
       return null;
@@ -203,36 +283,60 @@ export function useEditPostForm({
     setCoverVideoPosterStorageId(null);
     setIsCoverCleared(true);
     setCoverUploadState("idle");
-  }, []);
+    if (previousImageStorageId) {
+      deleteOrphanCoverImage({
+        storageId: previousImageStorageId,
+      }).catch((cleanupErr) => {
+        console.error(
+          "[edit-post-form] cover-image orphan cleanup failed on clear",
+          cleanupErr,
+        );
+      });
+    }
+    if (previousVideoStorageId || previousVideoPosterStorageId) {
+      deleteOrphanCoverVideo({
+        ...(previousVideoStorageId
+          ? { videoStorageId: previousVideoStorageId }
+          : {}),
+        ...(previousVideoPosterStorageId
+          ? { posterStorageId: previousVideoPosterStorageId }
+          : {}),
+      }).catch((cleanupErr) => {
+        console.error(
+          "[edit-post-form] cover-video orphan cleanup failed on clear",
+          cleanupErr,
+        );
+      });
+    }
+  }, [
+    coverImageStorageId,
+    coverVideoPosterStorageId,
+    coverVideoStorageId,
+    deleteOrphanCoverImage,
+    deleteOrphanCoverVideo,
+  ]);
 
   const persistValidated = useCallback(
     async (data: PostMetadataFormData, targetStatus: PostStatus) => {
       const wasCoverCleared = isCoverCleared;
-      try {
-        await update({
-          id: initial._id,
-          title: data.title.trim(),
-          slug: data.slug?.trim() ? data.slug : undefined,
-          category: data.category.trim(),
-          body,
-          status: targetStatus,
-          coverImageStorageId:
-            coverImageStorageId !== null ? coverImageStorageId : undefined,
-          coverVideoStorageId:
-            coverVideoStorageId !== null ? coverVideoStorageId : undefined,
-          coverVideoPosterStorageId:
-            coverVideoPosterStorageId !== null
-              ? coverVideoPosterStorageId
-              : undefined,
-          clearCover: wasCoverCleared ? true : undefined,
-          ...(coverImageThumbhash && { coverImageThumbhash }),
-        });
-      } catch (err) {
-        if (wasCoverCleared) {
-          setIsCoverCleared(false);
-        }
-        throw err;
-      }
+      await update({
+        id: initial._id,
+        title: data.title.trim(),
+        slug: data.slug?.trim() ? data.slug : undefined,
+        category: data.category.trim(),
+        body,
+        status: targetStatus,
+        coverImageStorageId:
+          coverImageStorageId !== null ? coverImageStorageId : undefined,
+        coverVideoStorageId:
+          coverVideoStorageId !== null ? coverVideoStorageId : undefined,
+        coverVideoPosterStorageId:
+          coverVideoPosterStorageId !== null
+            ? coverVideoPosterStorageId
+            : undefined,
+        clearCover: wasCoverCleared ? true : undefined,
+        ...(coverImageThumbhash && { coverImageThumbhash }),
+      });
       if (targetStatus === "published") {
         setPublishedAt(Date.now());
       } else {
@@ -241,8 +345,12 @@ export function useEditPostForm({
       if (wasCoverCleared) {
         setIsCoverCleared(false);
       }
-      // Navigate to read view after save. Mirror articles' behaviour.
-      const targetSlug = data.slug?.trim() ? data.slug.trim() : initial.slug;
+      // Navigate to read view after save. Mirror the new-post flow: the
+      // server normalizes the slug via `generateSlug(slug ?? title)`, so
+      // the client must navigate to the same normalized value or the
+      // read route 404s.
+      const slugSource = data.slug?.trim() ? data.slug : data.title;
+      const targetSlug = generateSlug(slugSource);
       router.push(`/@${username}/posts/${targetSlug}`);
     },
     [
@@ -252,7 +360,6 @@ export function useEditPostForm({
       coverVideoStorageId,
       coverVideoPosterStorageId,
       initial._id,
-      initial.slug,
       isCoverCleared,
       router,
       update,
@@ -261,7 +368,11 @@ export function useEditPostForm({
   );
 
   const save = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
+    const hasCoverUploadInFlight =
+      coverUploadInFlightRef.current ||
+      coverUploadState === "preparing" ||
+      coverUploadState === "uploading";
+    if (isSaving || hasPendingUploads || hasCoverUploadInFlight) return;
     const currentStatus = form.getValues("status");
     setIsSaving(true);
     try {
@@ -283,10 +394,14 @@ export function useEditPostForm({
     } finally {
       setIsSaving(false);
     }
-  }, [form, hasPendingUploads, isSaving, persistValidated]);
+  }, [coverUploadState, form, hasPendingUploads, isSaving, persistValidated]);
 
   const togglePublish = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
+    const hasCoverUploadInFlight =
+      coverUploadInFlightRef.current ||
+      coverUploadState === "preparing" ||
+      coverUploadState === "uploading";
+    if (isSaving || hasPendingUploads || hasCoverUploadInFlight) return;
     const nextStatus: PostStatus =
       form.getValues("status") === "draft" ? "published" : "draft";
     setIsSaving(true);
@@ -314,7 +429,7 @@ export function useEditPostForm({
     } finally {
       setIsSaving(false);
     }
-  }, [form, hasPendingUploads, isSaving, persistValidated]);
+  }, [coverUploadState, form, hasPendingUploads, isSaving, persistValidated]);
 
   const cancel = useCallback(() => {
     router.push(`/@${username}/posts/${initial.slug}`);

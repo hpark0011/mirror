@@ -60,6 +60,7 @@ test.describe("Post editor — new post flow", () => {
     await page.goto(`/@${username}/posts`, {
       waitUntil: "domcontentloaded",
     });
+    await waitForAuthReady(page);
 
     const newBtn = page.getByTestId("new-post-btn");
     await expect(newBtn).toBeVisible({ timeout: 10_000 });

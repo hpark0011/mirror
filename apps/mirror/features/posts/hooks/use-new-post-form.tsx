@@ -274,7 +274,11 @@ export function useNewPostForm({ username }: UseNewPostFormOptions) {
   );
 
   const save = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
+    const hasCoverUploadInFlight =
+      coverUploadInFlightRef.current ||
+      coverUploadState === "preparing" ||
+      coverUploadState === "uploading";
+    if (isSaving || hasPendingUploads || hasCoverUploadInFlight) return;
     const currentStatus = form.getValues("status");
     setIsSaving(true);
     try {
@@ -296,10 +300,14 @@ export function useNewPostForm({ username }: UseNewPostFormOptions) {
     } finally {
       setIsSaving(false);
     }
-  }, [form, hasPendingUploads, isSaving, persistValidated]);
+  }, [coverUploadState, form, hasPendingUploads, isSaving, persistValidated]);
 
   const togglePublish = useCallback(async () => {
-    if (isSaving || hasPendingUploads) return;
+    const hasCoverUploadInFlight =
+      coverUploadInFlightRef.current ||
+      coverUploadState === "preparing" ||
+      coverUploadState === "uploading";
+    if (isSaving || hasPendingUploads || hasCoverUploadInFlight) return;
     const nextStatus: PostStatus =
       form.getValues("status") === "draft" ? "published" : "draft";
     setIsSaving(true);
@@ -329,7 +337,7 @@ export function useNewPostForm({ username }: UseNewPostFormOptions) {
     } finally {
       setIsSaving(false);
     }
-  }, [form, hasPendingUploads, isSaving, persistValidated]);
+  }, [coverUploadState, form, hasPendingUploads, isSaving, persistValidated]);
 
   const onInlineImageError = useCallback((err: unknown) => {
     showToast({ type: "error", title: getMutationErrorMessage(err) });
