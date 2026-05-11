@@ -17,8 +17,4 @@ export const conversationsTable = defineTable({
 })
   .index("by_profileOwnerId_and_viewerId", ["profileOwnerId", "viewerId"])
   .index("by_viewerId", ["viewerId"])
-  .index("by_threadId", ["threadId"])
-  .index("by_streamingInProgress_and_streamingStartedAt", [
-    "streamingInProgress",
-    "streamingStartedAt",
-  ]);
+  .index("by_threadId", ["threadId"]);

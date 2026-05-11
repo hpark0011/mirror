@@ -7,6 +7,23 @@ import { chatRateLimiter } from "./rateLimits";
 
 const MAX_MESSAGE_LENGTH = 3000;
 
+// A streaming-lock is treated as "held" only if it was acquired within the
+// last STREAMING_LOCK_TTL_MS. Older locks are presumed crashed (the
+// `streamResponse` action either finished and called `clearStreamingLock`
+// or it died) and the next message acquires fresh. Replaces the prior
+// 5-minute cron sweep — recovery now happens lazily at the only place
+// that cares about lock state.
+const STREAMING_LOCK_TTL_MS = 2 * 60 * 1000;
+
+function isStreamingLockHeld(conversation: {
+  streamingInProgress?: boolean;
+  streamingStartedAt?: number;
+}): boolean {
+  if (!conversation.streamingInProgress) return false;
+  if (conversation.streamingStartedAt === undefined) return false;
+  return conversation.streamingStartedAt > Date.now() - STREAMING_LOCK_TTL_MS;
+}
+
 type LimitName =
   | "sendMessage"
   | "retryMessage"
@@ -112,8 +129,9 @@ export const sendMessage = mutation({
 
       // Concurrency guard runs BEFORE rate-limit so a double-click / retry
       // against an already-streaming conversation is rejected without
-      // spending minute or daily budget.
-      if (existingConversation.streamingInProgress) {
+      // spending minute or daily budget. A stale lock (older than the TTL)
+      // is treated as released — see `isStreamingLockHeld`.
+      if (isStreamingLockHeld(existingConversation)) {
         throw new Error(
           "A response is already being generated. Please wait for it to complete.",
         );
@@ -242,7 +260,9 @@ export const retryMessage = mutation({
 
     // Concurrency guard runs BEFORE rate-limit so a retry against an
     // already-streaming conversation is rejected without spending budget.
-    if (conversation.streamingInProgress) {
+    // A stale lock (older than the TTL) is treated as released — see
+    // `isStreamingLockHeld`.
+    if (isStreamingLockHeld(conversation)) {
       throw new Error(
         "A response is already being generated. Please wait for it to complete.",
       );

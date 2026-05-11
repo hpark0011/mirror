@@ -16,32 +16,7 @@ import {
   buildReferencedStorageSet,
 } from "./content/storageRegistry";
 
-const STALE_THRESHOLD_MS = 2 * 60 * 1000; // 2 minutes
 const SWEEP_PAGE_SIZE = 200;
-
-export const clearStaleStreamingLocks = internalMutation({
-  args: {},
-  returns: v.null(),
-  handler: async (ctx) => {
-    const cutoff = Date.now() - STALE_THRESHOLD_MS;
-
-    const staleConversations = await ctx.db
-      .query("conversations")
-      .withIndex(
-        "by_streamingInProgress_and_streamingStartedAt",
-        (q) => q.eq("streamingInProgress", true).lt("streamingStartedAt", cutoff),
-      )
-      .collect();
-    for (const conversation of staleConversations) {
-      await ctx.db.patch(conversation._id, {
-        streamingInProgress: false,
-        streamingStartedAt: undefined,
-      });
-    }
-
-    return null;
-  },
-});
 
 // Re-exports for backward compatibility. The canonical home is
 // `content/storageRegistry.ts`; both the orphan sweep here and
@@ -135,25 +110,27 @@ export const sweepOrphanedStorage = internalMutation({
 
 const crons = cronJobs();
 
-crons.interval(
-  "clear stale streaming locks",
-  { minutes: 5 },
-  internal.crons.clearStaleStreamingLocks,
-  {},
-);
-
-crons.interval(
-  "cleanup stale test otps",
-  { minutes: 15 },
-  internal.auth.testHelpers.cleanupStaleTestOtps,
-  {},
-);
-
-crons.interval(
-  "sweep orphaned storage",
-  { hours: 24 },
-  internal.crons.sweepOrphanedStorage,
-  {},
-);
+// Crons run on every Convex deployment they're registered on, regardless
+// of whether anybody is connected. Per-worktree dev deployments
+// (.claude/rules/worktrees.md) accumulate quickly, so dev-side cron
+// registration burns Convex function-call quota for no benefit.
+//
+// Convex's own `CONVEX_CLOUD_URL` / `CONVEX_SITE_URL` vary by deployment
+// slug, not by environment type, and so cannot reliably distinguish prod
+// from dev. Set the gate explicitly on prod only:
+//
+//   pnpm --filter=@feel-good/convex exec convex env set IS_PROD true \
+//     --prod
+//
+// Verify: `convex run --prod crons:listCronJobs` returns the orphan sweep;
+// the same call against any dev deployment returns [].
+if (process.env.IS_PROD === "true") {
+  crons.interval(
+    "sweep orphaned storage",
+    { hours: 24 },
+    internal.crons.sweepOrphanedStorage,
+    {},
+  );
+}
 
 export default crons;
