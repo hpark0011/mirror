@@ -560,24 +560,3 @@ export const ensureTestBioFixtures = internalMutation({
   },
 });
 
-/**
- * Deletes testOtpStore rows older than TEST_OTP_TTL_MS. Scheduled from crons.ts
- * to keep the table from accumulating stale rows in dev/test environments.
- */
-const TEST_OTP_TTL_MS = 10 * 60 * 1000; // 10 minutes
-
-export const cleanupStaleTestOtps = internalMutation({
-  args: {},
-  returns: v.null(),
-  handler: async (ctx) => {
-    const cutoff = Date.now() - TEST_OTP_TTL_MS;
-    const stale = await ctx.db
-      .query("testOtpStore")
-      .withIndex("by_createdAt", (q) => q.lt("createdAt", cutoff))
-      .collect();
-    for (const row of stale) {
-      await ctx.db.delete(row._id);
-    }
-    return null;
-  },
-});
