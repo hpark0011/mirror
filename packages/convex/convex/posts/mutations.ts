@@ -4,10 +4,7 @@ import { internal } from "../_generated/api";
 import { action, internalMutation } from "../_generated/server";
 import { authMutation } from "../lib/auth";
 import { getAppUser } from "../users/helpers";
-import {
-  isOwnedByUser,
-  validateContentStringLength,
-} from "../content/helpers";
+import { isOwnedByUser, validateContentStringLength } from "../content/helpers";
 import { assertValidSlug, generateSlug } from "../content/slug";
 import { MAX_SLUG_LENGTH, MAX_TITLE_LENGTH } from "../content/schema";
 import { validateThumbhashFormat } from "../articles/helpers";
@@ -35,10 +32,7 @@ import {
   MAX_INLINE_DELETES_PER_INVOCATION,
   MAX_INLINE_IMAGE_BYTES,
 } from "../content/storagePolicy";
-import {
-  getPostCategoryForSlug,
-  MAX_POST_CATEGORY_LENGTH,
-} from "./categories";
+import { getPostCategoryForSlug, MAX_POST_CATEGORY_LENGTH } from "./categories";
 
 type PostPatch = Partial<
   Omit<Doc<"posts">, "_id" | "_creationTime" | "userId" | "createdAt">
@@ -46,7 +40,7 @@ type PostPatch = Partial<
 
 export const create = authMutation({
   args: {
-    title: v.string(),
+    title: v.optional(v.string()),
     slug: v.optional(v.string()),
     category: v.string(),
     body: v.any(),
@@ -63,8 +57,9 @@ export const create = authMutation({
   returns: v.id("posts"),
   handler: async (ctx, args) => {
     const appUser = await getAppUser(ctx, ctx.user._id);
+    const title = args.title?.trim() ?? "";
 
-    validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
+    validateContentStringLength(title, "Title", MAX_TITLE_LENGTH);
     validateContentStringLength(
       args.category,
       "Category",
@@ -103,9 +98,13 @@ export const create = authMutation({
     // Always normalize: `generateSlug` is idempotent, so already-clean slugs
     // pass through unchanged while malformed input gets sanitized. Never trust
     // the client to have done this. Treat empty/whitespace-only client slug as
-    // "not supplied" and fall back to the title.
+    // "not supplied" and fall back to the title. Titleless posts are allowed,
+    // but then callers must supply a slug because posts are route-addressed.
     // See `.claude/rules/identifiers.md`.
-    const slugSource = args.slug?.trim() ? args.slug : args.title;
+    const slugSource = args.slug?.trim() ? args.slug : title;
+    if (!slugSource.trim()) {
+      throw new Error("Slug is required when title is empty");
+    }
     const slug = generateSlug(slugSource);
     validateContentStringLength(slug, "Slug", MAX_SLUG_LENGTH);
     assertValidSlug(slug);
@@ -159,7 +158,7 @@ export const create = authMutation({
     const postId = await ctx.db.insert("posts", {
       userId: appUser._id,
       slug,
-      title: args.title,
+      title,
       category: args.category,
       body: args.body,
       status: args.status,
@@ -216,8 +215,9 @@ export const update = authMutation({
       throw new Error("Not authorized to update this post");
     }
 
-    if (args.title !== undefined) {
-      validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
+    const title = args.title === undefined ? undefined : args.title.trim();
+    if (title !== undefined) {
+      validateContentStringLength(title, "Title", MAX_TITLE_LENGTH);
     }
     if (args.category !== undefined) {
       validateContentStringLength(
@@ -328,7 +328,7 @@ export const update = authMutation({
     })();
 
     const patch: PostPatch = {};
-    if (args.title !== undefined) patch.title = args.title;
+    if (title !== undefined) patch.title = title;
     // Only patch slug when it actually changes — avoids a redundant write and
     // a needless uniqueness probe when the caller round-trips the existing
     // value verbatim.
