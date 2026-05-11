@@ -135,25 +135,42 @@ export const sweepOrphanedStorage = internalMutation({
 
 const crons = cronJobs();
 
-crons.interval(
-  "clear stale streaming locks",
-  { minutes: 5 },
-  internal.crons.clearStaleStreamingLocks,
-  {},
-);
+// Crons run on every Convex deployment they're registered on, regardless
+// of whether anybody is connected. With per-worktree dev deployments
+// (.claude/rules/worktrees.md), N idle dev deployments × 5-minute crons
+// burns Convex function-call quota for no benefit. Gate registration on
+// an explicit IS_PROD env var, set only on the prod deployment.
+//
+// Convex's own `CONVEX_CLOUD_URL` / `CONVEX_SITE_URL` vary by deployment
+// slug, not by environment type, so they can't be used to detect prod.
+// Set the gate explicitly:
+//
+//   pnpm --filter=@feel-good/convex exec convex env set IS_PROD true \
+//     --prod
+//
+// Verify after deploy: `convex run --prod crons:listCronJobs` returns
+// the three jobs; the same call against any dev deployment returns [].
+if (process.env.IS_PROD === "true") {
+  crons.interval(
+    "clear stale streaming locks",
+    { minutes: 5 },
+    internal.crons.clearStaleStreamingLocks,
+    {},
+  );
 
-crons.interval(
-  "cleanup stale test otps",
-  { minutes: 15 },
-  internal.auth.testHelpers.cleanupStaleTestOtps,
-  {},
-);
+  crons.interval(
+    "cleanup stale test otps",
+    { minutes: 15 },
+    internal.auth.testHelpers.cleanupStaleTestOtps,
+    {},
+  );
 
-crons.interval(
-  "sweep orphaned storage",
-  { hours: 24 },
-  internal.crons.sweepOrphanedStorage,
-  {},
-);
+  crons.interval(
+    "sweep orphaned storage",
+    { hours: 24 },
+    internal.crons.sweepOrphanedStorage,
+    {},
+  );
+}
 
 export default crons;
