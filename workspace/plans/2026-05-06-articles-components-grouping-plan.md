@@ -67,20 +67,20 @@ Write surface — shell, toolbar, metadata header, cover picker, publish toggle,
 
 All 16 internal sibling imports surfaced by `grep "from \"\\./" components/` resolve inside their own target group:
 
-| File (after move) | Sibling imports | All within same group? |
-|---|---|---|
-| `editor/article-editor-shell.tsx` | `./article-editor-toolbar`, `./article-metadata-header` | yes (editor) |
-| `editor/article-editor-toolbar.tsx` | `./article-publish-toggle` | yes (editor) |
-| `editor/article-metadata-header.tsx` | `./cover-image-picker` | yes (editor) |
-| `editor/article-editor.tsx` | `./article-editor-shell` | yes (editor) |
-| `editor/new-article-editor.tsx` | `./article-editor-shell` | yes (editor) |
-| `list/article-list-item.tsx` | `./animated-article-row` | yes (list) |
-| `list/article-list-toolbar-connector.tsx` | `./article-list-toolbar` | yes (list) |
-| `list/article-list-toolbar.tsx` | `./article-filter-dropdown`, `./article-search-input`, `./article-sort-dropdown`, `./delete-articles-dialog` | yes (list) |
-| `list/scrollable-article-list.tsx` | `./article-list` | yes (list) |
-| `list/filter/category-filter-content.tsx` | `./category-filter-search`, `./category-filter-badges`, `./category-filter-list` | yes (list/filter) |
+| File (after move)                         | Sibling imports                                                                                              | All within same group? |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------ | ---------------------- |
+| `editor/article-editor-shell.tsx`         | `./article-editor-toolbar`, `./article-metadata-header`                                                      | yes (editor)           |
+| `editor/article-editor-toolbar.tsx`       | `./article-publish-toggle`                                                                                   | yes (editor)           |
+| `editor/article-metadata-header.tsx`      | `./cover-image-picker`                                                                                       | yes (editor)           |
+| `editor/article-editor.tsx`               | `./article-editor-shell`                                                                                     | yes (editor)           |
+| `editor/new-article-editor.tsx`           | `./article-editor-shell`                                                                                     | yes (editor)           |
+| `list/article-list-item.tsx`              | `./animated-article-row`                                                                                     | yes (list)             |
+| `list/article-list-toolbar-connector.tsx` | `./article-list-toolbar`                                                                                     | yes (list)             |
+| `list/article-list-toolbar.tsx`           | `./article-filter-dropdown`, `./article-search-input`, `./article-sort-dropdown`, `./delete-articles-dialog` | yes (list)             |
+| `list/scrollable-article-list.tsx`        | `./article-list`                                                                                             | yes (list)             |
+| `list/filter/category-filter-content.tsx` | `./category-filter-search`, `./category-filter-badges`, `./category-filter-list`                             | yes (list/filter)      |
 
-So every `./sibling` relative import stays valid as-is after each file moves into its target folder. No import-rewrites are needed *inside* the moved files (the relative paths resolve identically). The only rewrites are at **external** import sites.
+So every `./sibling` relative import stays valid as-is after each file moves into its target folder. No import-rewrites are needed _inside_ the moved files (the relative paths resolve identically). The only rewrites are at **external** import sites.
 
 ---
 
@@ -124,8 +124,6 @@ External public surface (`features/articles/index.ts` named exports) is **unchan
 5. **Run unit tests** — `pnpm test:unit --filter=@feel-good/mirror`. The metadata-header vitest spec is the canary for the test-file path update.
 
 6. **Run hard-verification Playwright suite** (see § Hard verification).
-
-7. **Run `graphify update .`** to refresh the knowledge graph with the new file locations (per `CLAUDE.md`).
 
 ---
 

@@ -9,7 +9,6 @@
     "lint": "turbo run lint",
     "clean": "turbo run clean",
     "convex:cleanup-storage": "node scripts/cleanup-convex-storage.mjs",
-    "measure:graphify": "node scripts/measure-graphify-effectiveness.mjs --days 14",
     "format": "prettier --write \"**/*.{ts,tsx,md,json}\""
   },
   "devDependencies": {

@@ -12,6 +12,7 @@ apps: [mirror]
 packages: [convex]
 verification_tier: 5
 ---
+
 ## 1. Summary
 
 The reported failure is a retrieval and tool-policy gap in clone chat. When a visitor asks a topical project question like "What is greyboard ai?", the agent has enough data in principle: published articles are embedded into `contentEmbeddings`, and `streamResponse` already injects RAG chunks into the system prompt. But the agent's action surface only has "latest article/post", "open section list", and "navigate to known kind plus slug". There is no tool that means "find the relevant published content for this query".
@@ -63,7 +64,7 @@ The tool should:
 This is intentionally a lookup tool, not a new navigation verb. If a match is found and the user asked to see/show/open the source, or the answer should be grounded in a specific article, the agent calls:
 
 ```ts
-navigateToContent({ kind: match.kind, slug: match.slug })
+navigateToContent({ kind: match.kind, slug: match.slug });
 ```
 
 That means `useAgentIntentWatcher`, `useCloneActions`, chat-aware href preservation, and content-panel opening continue to be handled by the existing dispatcher path.
@@ -207,12 +208,6 @@ Hard e2e assertions:
 - The article detail heading is visible.
 - The final path is not `/posts`, `/posts/<slug>`, or the bare `/articles`list.
 
-After code changes, run:
-
-```bash
-graphify update .
-```
-
 ## 6. Constraints And Non-Goals
 
 - Do not expose any user identifier in tool schemas.
@@ -235,4 +230,4 @@ graphify update .
 - When a relevant published article exists, the right panel opens that article through `navigateToContent`.
 - When no relevant article/post exists, the agent says so without inventing a posts result.
 - Cross-user and draft isolation remain covered by tests.
-- Build, lint, targeted unit tests, targeted Playwright test, and graphify update all pass.
+- Build, lint, targeted unit tests, and targeted Playwright test all pass.
