@@ -1,5 +1,24 @@
 # Lessons Learned
 
+## 2026-05-11
+
+### Storage-heavy e2e specs need explicit cleanup hooks
+
+- Tests that upload to Convex Storage must track every storage ID or owning
+  fixture slug they create and clean it in `afterEach`. Relying on the next
+  fixture reset or the 24-hour orphan sweep lets large blobs accumulate across
+  local retries and persistent worktree deployments.
+- Rejection-path tests are not exempt: a server-side action may be intended to
+  delete before failing, but the test should still register the uploaded ID for
+  best-effort cleanup after assertion failure or timeout.
+- Cleanup helpers must treat missing storage as already cleaned. Convex throws
+  if `ctx.storage.delete` receives a missing ID, so check `_storage` first and
+  still remove any stale ownership row.
+- Dev storage cleanup should default to dry-run and report bytes before
+  deletion. Include an explicit flag for referenced test fixture media, because
+  those blobs are not orphans and a generic orphan sweep will correctly preserve
+  them.
+
 ## 2026-05-10
 
 ### Measurement classifiers must model the repo's real commands
@@ -223,7 +242,7 @@
 
 ### Authenticated Playwright specs need a deterministic ConvexAuth-ready signal
 
-`ConvexBetterAuthProvider` installs the JWT in a *post-mount* effect:
+`ConvexBetterAuthProvider` installs the JWT in a _post-mount_ effect:
 `authClient.useSession()` resolves → `fetchAccessToken()` round-trips
 `/api/auth/convex/token` → `client.setAuth(...)` flips
 `useConvexAuth().isAuthenticated` to `true`. Any `useMutation(...)` fired
@@ -237,7 +256,7 @@ network.
 The fix is one inert probe + one fixture helper, applied uniformly:
 
 - `apps/mirror/providers/convex-auth-probe.tsx` mounts a hidden `<span
-  data-testid="convex-auth-state" data-authenticated="…">` that mirrors
+data-testid="convex-auth-state" data-authenticated="…">` that mirrors
   `useConvexAuth()`. It's `aria-hidden` and `display:none` so the
   production cost is one tiny element render.
 - `apps/mirror/e2e/fixtures/auth.ts` exports `waitForAuthReady(page)`,
@@ -260,7 +279,7 @@ signal is the `useConvexAuth` boolean mirrored into the DOM.
   which keeps multi-line secrets intact and avoids bespoke parser drift.
 - Inline storage cascade deletes must prove a blob is globally unreferenced after the write lands, not merely removed from the current body. Same-owner copy/paste can leave the same `storageId` in another article or post, so immediate cleanup needs a current article/post/user reference scan before `ctx.storage.delete`.
 - When a hook records a result in React state and the caller must branch on it immediately, return the result as well. Relying on just-set state from the connector can race the close/reset path and hide user-visible import failures.
-- "Always Choose the Compounding Option" means *less error-prone over time*, not *abstractly cleaner architecture*. Following the framework's idiom (e.g. the convex CLI's per-package `.env.local` auto-write) compounds; fighting it with custom config (`--env-file`, version pins, relative-path coupling) accumulates bespoke complexity even when it eliminates duplication. Single-source-of-truth appeal is real but it's a tradeoff, not a trump card — ask whether the proposed shape stays on the well-trodden path that future framework releases will keep working without intervention.
+- "Always Choose the Compounding Option" means _less error-prone over time_, not _abstractly cleaner architecture_. Following the framework's idiom (e.g. the convex CLI's per-package `.env.local` auto-write) compounds; fighting it with custom config (`--env-file`, version pins, relative-path coupling) accumulates bespoke complexity even when it eliminates duplication. Single-source-of-truth appeal is real but it's a tradeoff, not a trump card — ask whether the proposed shape stays on the well-trodden path that future framework releases will keep working without intervention.
 - When fixing a symptom, also patch the **class** upstream. The "`convex dev` prompts every new worktree" symptom was solved by re-seeding one file; the class — `new-worktree.sh` silently producing a half-configured worktree if any required `.env.local` is missing in main — was solved by adding a `REQUIRED_ENVS` assertion at the top of the script with per-file seed hints. Patching the script means the next missing-canonical-file (a future package's `.env.local`) can't repeat the same surprise.
 - Verify CLI flag behavior on the **installed version**, not the latest changelog. `convex 1.32` ships `--env-file` but the 1.33 changelog patches it for "more reliability" — translation: there's a known bug in 1.32. Recommending a flag-based fix without checking the installed version's reliability history nearly shipped a broken solution.
 

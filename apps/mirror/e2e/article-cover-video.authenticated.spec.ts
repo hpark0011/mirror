@@ -16,11 +16,15 @@ import { requireEnv } from "./lib/env";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { MAX_COVER_VIDEO_BYTES } from "@feel-good/convex/convex/content/storagePolicy";
+import { type TestInfo } from "@playwright/test";
 import { ConvexHttpClient } from "convex/browser";
 import path from "path";
 import fs from "fs";
 
 const username = "test-user";
+const TEST_EMAIL = "playwright-test@mirror.test";
+const CLEANUP_STORAGE_ID_ANNOTATION = "cover-video-cleanup-storage-id";
+const CLEANUP_ARTICLE_SLUG_ANNOTATION = "cover-video-cleanup-article-slug";
 const convexUrl = requireEnv("NEXT_PUBLIC_CONVEX_URL");
 const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
 const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
@@ -124,7 +128,73 @@ async function expectRejectedBlobCleaned(
     .toEqual({ storageExists: false, ownershipExists: false });
 }
 
+function recordCleanupStorageId(
+  testInfo: TestInfo,
+  storageId: Id<"_storage">,
+): void {
+  testInfo.annotations.push({
+    type: CLEANUP_STORAGE_ID_ANNOTATION,
+    description: storageId,
+  });
+}
+
+function recordCleanupArticleSlug(testInfo: TestInfo, slug: string): void {
+  testInfo.annotations.push({
+    type: CLEANUP_ARTICLE_SLUG_ANNOTATION,
+    description: slug,
+  });
+}
+
+async function postTestJson(pathname: string, body: object): Promise<void> {
+  const response = await fetch(`${convexSiteUrl}${pathname}`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      "x-test-secret": testSecret,
+    },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(
+      `${pathname} failed (${response.status}): ${await response.text()}`,
+    );
+  }
+}
+
 test.describe("Article cover video picker (PLAN_010)", () => {
+  test.afterEach(async ({}, testInfo) => {
+    const storageIds = Array.from(
+      new Set(
+        testInfo.annotations
+          .filter(
+            (annotation) => annotation.type === CLEANUP_STORAGE_ID_ANNOTATION,
+          )
+          .map((annotation) => annotation.description)
+          .filter((value): value is string => typeof value === "string"),
+      ),
+    );
+    const articleSlugs = Array.from(
+      new Set(
+        testInfo.annotations
+          .filter(
+            (annotation) => annotation.type === CLEANUP_ARTICLE_SLUG_ANNOTATION,
+          )
+          .map((annotation) => annotation.description)
+          .filter((value): value is string => typeof value === "string"),
+      ),
+    );
+
+    if (articleSlugs.length > 0) {
+      await postTestJson("/test/cleanup-article-cover-media", {
+        email: TEST_EMAIL,
+        slugs: articleSlugs,
+      });
+    }
+    if (storageIds.length > 0) {
+      await postTestJson("/test/cleanup-cover-storage-ids", { storageIds });
+    }
+  });
+
   test("picker exposes a file input that accepts video/mp4 alongside images", async ({
     authenticatedPage: page,
   }) => {
@@ -169,7 +239,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
 
   test("happy path: upload MP4 → save → detail page renders <video autoPlay loop muted playsInline>", async ({
     authenticatedPage: page,
-  }) => {
+  }, testInfo) => {
     // The fixture traverses the network twice (video + poster). 90s
     // gives ample headroom for slow links.
     test.setTimeout(90_000);
@@ -177,6 +247,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
     const { draftSlug } = await ensureTestArticleFixtures({
       key: "cover-video-happy",
     });
+    recordCleanupArticleSlug(testInfo, draftSlug);
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.goto(`/@${username}/articles/${draftSlug}/edit`, {
       waitUntil: "domcontentloaded",
@@ -231,7 +302,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
     expect(src).toMatch(/convex\.(cloud|site)/);
   });
 
-  test("claimCoverVideoOwnership rejects a non-MP4 upload and deletes the blob", async () => {
+  test("claimCoverVideoOwnership rejects a non-MP4 upload and deletes the blob", async ({}, testInfo) => {
     const client = createAuthedConvexClient();
     const { videoUrl } = await client.mutation(
       api.articles.mutations.generateArticleCoverVideoUploadUrls,
@@ -242,6 +313,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
       SMALL_PNG_BYTES,
       "image/png",
     );
+    recordCleanupStorageId(testInfo, storageId);
 
     await expect(
       client.action(api.articles.mutations.claimCoverVideoOwnership, {
@@ -252,7 +324,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
     await expectRejectedBlobCleaned(storageId);
   });
 
-  test("claimCoverVideoOwnership rejects an over-25 MiB MP4 and deletes the blob", async () => {
+  test("claimCoverVideoOwnership rejects an over-25 MiB MP4 and deletes the blob", async ({}, testInfo) => {
     test.setTimeout(120_000);
 
     const client = createAuthedConvexClient();
@@ -270,6 +342,7 @@ test.describe("Article cover video picker (PLAN_010)", () => {
       mp4Bytes,
       "video/mp4",
     );
+    recordCleanupStorageId(testInfo, storageId);
 
     await expect(
       client.action(api.articles.mutations.claimCoverVideoOwnership, {
@@ -287,13 +360,14 @@ test.describe("Article cover video picker (PLAN_010)", () => {
   // path above, which uses `update` and navigates to /detail.
   test("create flow: /new → upload MP4 → save → /edit page rehydrates with the video preview", async ({
     authenticatedPage: page,
-  }) => {
+  }, testInfo) => {
     test.setTimeout(120_000);
 
     // Unique slug per run so re-running doesn't hit the
     // "slug already exists" reject path.
     const slug = `cover-video-create-${Date.now()}`;
     const title = `Cover video create ${Date.now()}`;
+    recordCleanupArticleSlug(testInfo, slug);
 
     await page.setViewportSize({ width: 1440, height: 960 });
     await page.goto(`/@${username}/articles/new`, {
