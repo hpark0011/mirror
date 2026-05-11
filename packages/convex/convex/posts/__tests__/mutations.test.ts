@@ -98,6 +98,22 @@ describe("posts.mutations.create — slug normalization", () => {
     expect(row?.slug).toBe("hello-world");
   });
 
+  it("allows title to be omitted when a slug is supplied", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    const id = await t.mutation(api.posts.mutations.create, {
+      slug: "body-only-post",
+      category: "Creativity",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+
+    const row = await t.run(async (ctx) => ctx.db.get(id));
+    expect(row?.title).toBe("");
+    expect(row?.slug).toBe("body-only-post");
+  });
+
   it("treats empty-string slug as 'no slug supplied' and falls back to the title (F5)", async () => {
     const t = makeT();
     await insertAppUserAndSignIn(t);
@@ -112,6 +128,19 @@ describe("posts.mutations.create — slug normalization", () => {
 
     const row = await t.run(async (ctx) => ctx.db.get(id));
     expect(row?.slug).toBe("hello");
+  });
+
+  it("requires a slug when title is omitted", async () => {
+    const t = makeT();
+    await insertAppUserAndSignIn(t);
+
+    await expect(
+      t.mutation(api.posts.mutations.create, {
+        category: "Creativity",
+        body: { type: "doc", content: [] },
+        status: "draft",
+      }),
+    ).rejects.toThrow(/slug is required when title is empty/i);
   });
 
   it("throws when the supplied slug has no alphanumerics", async () => {

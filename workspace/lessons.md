@@ -2,6 +2,13 @@
 
 ## 2026-05-11
 
+### Optional titles still need an explicit slug invariant
+
+- For slug-addressed content, making `title` optional means every create
+  path must either receive a non-empty slug or have a separate slug source.
+  Move the user-facing validation from `title` to `slug` instead of letting
+  `generateSlug("")` surface as a generic mutation failure.
+
 ### Storage-heavy e2e specs need explicit cleanup hooks
 
 - Tests that upload to Convex Storage must track every storage ID or owning

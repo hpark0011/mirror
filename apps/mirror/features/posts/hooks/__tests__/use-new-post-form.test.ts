@@ -146,6 +146,52 @@ describe("useNewPostForm — defer-create-on-first-save", () => {
     );
   });
 
+  it("creates a titleless post when a manual slug is supplied", async () => {
+    mockCreate.mockResolvedValue("post_id_titleless");
+    const { result } = renderHook(() =>
+      useNewPostForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setSlug("body-only-post");
+      result.current.setCategory("Notes");
+      result.current.setBody(SAMPLE_BODY);
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate.mock.calls[0]![0]).toMatchObject({
+      title: "",
+      slug: "body-only-post",
+      category: "Notes",
+      body: SAMPLE_BODY,
+    });
+    expect(mockReplace).toHaveBeenCalledWith(
+      "/@test-user/posts/body-only-post/edit",
+    );
+  });
+
+  it("requires a slug when saving a post without a title", async () => {
+    const { result } = renderHook(() =>
+      useNewPostForm({ username: "test-user" }),
+    );
+
+    act(() => {
+      result.current.setCategory("Notes");
+    });
+
+    await act(async () => {
+      await result.current.save();
+    });
+
+    expect(mockCreate).not.toHaveBeenCalled();
+    expect(result.current.errors.slug?.message).toBe(
+      "Slug is required when title is empty",
+    );
+  });
+
   it("forwards a manually-edited slug verbatim", async () => {
     mockCreate.mockResolvedValue("post_id_2");
     const { result } = renderHook(() =>

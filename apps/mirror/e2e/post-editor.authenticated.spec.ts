@@ -132,9 +132,39 @@ test.describe("Post editor — new post flow", () => {
 
     // List query reflects it (owner view shows drafts inline)
     await page.goto(`/@${username}/posts`, { waitUntil: "domcontentloaded" });
-    await expect(
-      page.getByRole("link", { name: title }),
-    ).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByRole("link", { name: title })).toBeVisible({
+      timeout: 10_000,
+    });
+  });
+
+  test("Save creates a titleless post when a manual slug is supplied", async ({
+    authenticatedPage: page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await page.goto(`/@${username}/posts/new`, {
+      waitUntil: "domcontentloaded",
+    });
+    await waitForAuthReady(page);
+
+    const slug = `titleless-post-${Date.now()}`;
+    await page.getByTestId("post-slug-input").fill(slug);
+    await page.getByTestId("post-category-input").fill("Notes");
+
+    const editor = page.locator(".tiptap-content .ProseMirror");
+    await editor.click();
+    await typeIntoEditor(page, "A post body without a title.");
+
+    await page.getByTestId("save-post-btn").click();
+    await expect(page).toHaveURL(
+      new RegExp(`/@${username}/posts/${slug}/edit$`),
+      {
+        timeout: 15_000,
+      },
+    );
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("post-title-input")).toHaveValue("");
+    await expect(page.getByTestId("post-slug-input")).toHaveValue(slug);
   });
 
   test("cover image upload renders preview and persists on save", async ({
@@ -156,9 +186,7 @@ test.describe("Post editor — new post flow", () => {
       .locator('input[type="file"]');
     await fileInput.setInputFiles(png);
 
-    const preview = page
-      .getByTestId("post-cover-image-picker")
-      .locator("img");
+    const preview = page.getByTestId("post-cover-image-picker").locator("img");
     await expect(preview).toBeVisible({ timeout: 10_000 });
     await expect(preview).toHaveAttribute(
       "src",
@@ -279,9 +307,9 @@ test.describe("Post editor — slug uniqueness", () => {
 
     await page.getByTestId("save-post-btn").click();
 
-    await expect(
-      page.getByText(/slug.*(already|exists|taken)/i),
-    ).toBeVisible({ timeout: 5000 });
+    await expect(page.getByText(/slug.*(already|exists|taken)/i)).toBeVisible({
+      timeout: 5000,
+    });
     await expect(page).toHaveURL(new RegExp(`/@${username}/posts/new$`));
     await expect(page.getByTestId("post-title-input")).toHaveValue(
       "Conflict test",
