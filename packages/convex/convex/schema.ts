@@ -4,6 +4,7 @@ import { articlesTable, coverImageOwnershipTable } from "./articles/schema";
 import { betaAllowlistTable } from "./betaAllowlist/schema";
 import { bioEntriesTable } from "./bio/schema";
 import { conversationsTable } from "./chat/schema";
+import { contactEntriesTable } from "./contacts/schema";
 import { contentEmbeddingsTable } from "./embeddings/schema";
 import { inlineImageOwnershipTable } from "./content/inlineImageOwnershipSchema";
 import { postsTable } from "./posts/schema";
@@ -16,6 +17,7 @@ export default defineSchema({
   coverImageOwnership: coverImageOwnershipTable,
   posts: postsTable,
   bioEntries: bioEntriesTable,
+  contactEntries: contactEntriesTable,
   conversations: conversationsTable,
   contentEmbeddings: contentEmbeddingsTable,
   inlineImageOwnership: inlineImageOwnershipTable,

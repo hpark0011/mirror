@@ -144,7 +144,9 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
     }
 
     for (const source of INDEXABLE_CONTENT_SOURCES) {
-      expect(["document", "bio"]).toContain(source.embedding.serializer);
+      expect(["document", "bio", "contact"]).toContain(
+        source.embedding.serializer,
+      );
       expect(["draft-published", "always-indexable"]).toContain(
         source.embedding.lifecycle,
       );

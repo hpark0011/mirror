@@ -19,6 +19,7 @@ export default defineConfig({
       "convex/betaAllowlist/**/*.test.ts",
       "convex/waitlistRequests/**/*.test.ts",
       "convex/bio/**/*.test.ts",
+      "convex/contacts/**/*.test.ts",
       "convex/embeddings/**/*.test.ts",
       "convex/content/**/*.test.ts",
       "convex/articles/**/*.test.ts",

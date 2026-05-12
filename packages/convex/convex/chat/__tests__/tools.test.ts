@@ -1198,10 +1198,11 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
 
   it("openProfileSection.inputSchema exposes only `section`, bounded to the visitor-visible subset", () => {
     // Pins both the shape (one key, `section`) and the enum range
-    // (`bio | articles | posts` only — `clone-settings` is owner-only and
-    // not in the agent's verb space). A future edit that widens the enum
-    // to `clone-settings` would let the agent navigate visitors into a
-    // page they cannot render; this test catches that drift.
+    // (`bio | contact | articles | posts` only — `clone-settings` is
+    // owner-only and not in the agent's verb space). A future edit that
+    // widens the enum to `clone-settings` would let the agent navigate
+    // visitors into a page they cannot render; this test catches that
+    // drift.
     const tools = buildCloneTools(fakeOwner);
     const schema = tools.openProfileSection.inputSchema as {
       shape: Record<string, unknown>;
@@ -1224,7 +1225,12 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       : rawEntries
         ? Object.values(rawEntries as Record<string, string>)
         : [];
-    expect([...values].sort()).toEqual(["articles", "bio", "posts"]);
+    expect([...values].sort()).toEqual([
+      "articles",
+      "bio",
+      "contact",
+      "posts",
+    ]);
   });
 
   it("owner-write tools reject anonymous and non-owner viewers before reads or writes", async () => {

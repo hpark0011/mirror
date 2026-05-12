@@ -4,6 +4,7 @@ import { v } from "convex/values";
 // packages/convex/convex/content/href.ts.
 export const defaultProfileSectionValidator = v.union(
   v.literal("bio"),
+  v.literal("contact"),
   v.literal("posts"),
   v.literal("articles"),
 );

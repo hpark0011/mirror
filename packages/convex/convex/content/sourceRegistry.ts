@@ -1,4 +1,4 @@
-type EmbeddingSerializer = "document" | "bio";
+type EmbeddingSerializer = "document" | "bio" | "contact";
 type EmbeddingLifecycle = "draft-published" | "always-indexable";
 
 type ContentSourceRegistryEntry = {
@@ -84,6 +84,22 @@ export const contentSourceRegistry = defineContentSourceRegistry({
     embedding: {
       indexable: true,
       serializer: "bio",
+      lifecycle: "always-indexable",
+    },
+    navigation: {
+      navigable: false,
+    },
+  },
+  contactEntries: {
+    sourceTable: "contactEntries",
+    label: {
+      singular: "contact",
+      plural: "Contacts",
+      inventory: "contact details (email and social links)",
+    },
+    embedding: {
+      indexable: true,
+      serializer: "contact",
       lifecycle: "always-indexable",
     },
     navigation: {

@@ -901,3 +901,71 @@ export const ensureTestBioFixtures = internalMutation({
   },
 });
 
+/**
+ * Replaces the test user's contactEntries with `args.entries`. Mirrors
+ * `ensureTestBioFixtures` — wipes existing rows for this user, then
+ * re-inserts the supplied list. Used by Playwright e2e tests under
+ * `apps/mirror/e2e/contact/*`.
+ *
+ * WARNING: Only call from test infrastructure. Never expose as public API.
+ */
+export const ensureTestContactFixtures = internalMutation({
+  args: {
+    email: v.string(),
+    entries: v.array(
+      v.object({
+        kind: v.union(
+          v.literal("email"),
+          v.literal("linkedin"),
+          v.literal("instagram"),
+          v.literal("x"),
+          v.literal("tiktok"),
+          v.literal("youtube"),
+        ),
+        value: v.string(),
+      }),
+    ),
+  },
+  returns: v.object({
+    userId: v.id("users"),
+    insertedCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (!user) {
+      throw new Error(
+        `Test user with email ${args.email} not found. Call ensureTestUser first.`,
+      );
+    }
+
+    const userId = user._id;
+
+    const existing = await ctx.db
+      .query("contactEntries")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+
+    for (const entry of args.entries) {
+      await ctx.db.insert("contactEntries", {
+        userId,
+        kind: entry.kind,
+        value: entry.value,
+      });
+    }
+
+    return {
+      userId,
+      insertedCount: args.entries.length,
+    };
+  },
+});
+
