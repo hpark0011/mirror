@@ -19,7 +19,7 @@ The previous symlink model (shared `packages/convex/.env.local` across worktrees
 | File                         | How the worktree gets it                                                                                                                                                                         |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `apps/mirror/.env.local`     | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
-| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 7 days"`, which creates an expiring empty dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. Code push, seeding, and owner allowlist happen later in `finalize-worktree.sh`. Override the TTL with `CONVEX_WORKTREE_EXPIRATION`, e.g. `CONVEX_WORKTREE_EXPIRATION="in 2 days"`. |
+| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 2 days"`, which creates an expiring empty dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. Code push, seeding, and owner allowlist happen later in `finalize-worktree.sh`. Override the TTL with `CONVEX_WORKTREE_EXPIRATION`, e.g. `CONVEX_WORKTREE_EXPIRATION="in 12 hours"`. |
 
 ### Workflow for a fresh worktree
 
@@ -30,7 +30,7 @@ bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
 #   2. pnpm install
 #   3. cp apps/mirror/.env.local from main
 #   4. ./scripts/provision-worktree-convex.sh
-#        - convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 7 days"
+#        - convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 2 days"
 #          (creates an EMPTY deployment — no env vars, no code, no data)
 #   5. ./scripts/finalize-worktree.sh — four steps in dependency order:
 #        a. sync-worktree-convex-env.sh — rewrite CONVEX_* in
@@ -73,12 +73,12 @@ Per [Convex multi-deployment docs](https://docs.convex.dev/production/multiple-d
 
 ### Expiration and cleanup
 
-Per-worktree dev deployments default to `--expiration "in 7 days"` so forgotten
-branches do not consume Convex team deployment quota forever. Use a shorter TTL
-for throwaway work with:
+Per-worktree dev deployments default to `--expiration "in 2 days"` so forgotten
+branches do not consume Convex team deployment quota forever. Use an even
+shorter TTL for throwaway work with:
 
 ```bash
-CONVEX_WORKTREE_EXPIRATION="in 2 days" \
+CONVEX_WORKTREE_EXPIRATION="in 12 hours" \
   bash .claude/skills/new-worktree/scripts/new-worktree.sh chore-short-test
 ```
 

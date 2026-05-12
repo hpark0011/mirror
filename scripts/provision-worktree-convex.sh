@@ -62,7 +62,7 @@ fi
 MAIN_DEP=$(worktree_read_convex_deployment "$MAIN_CONVEX_ENV")
 THIS_DEP=$(worktree_read_convex_deployment "$THIS_CONVEX_ENV")
 DEPLOYMENT_NAME=$(worktree_deployment_name "$GIT_ROOT")
-EXPIRATION="${CONVEX_WORKTREE_EXPIRATION:-in 7 days}"
+EXPIRATION="${CONVEX_WORKTREE_EXPIRATION:-in 2 days}"
 
 # Convex deployment reference format: <team>:<project>:dev/<namespace>/<branch>.
 # The full team:project: prefix is required because a fresh worktree has
