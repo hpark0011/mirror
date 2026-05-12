@@ -52,6 +52,6 @@ Tell the user:
 - That the expiring Convex dev deployment was provisioned, env synced, code pushed, demo seeded, and `git config user.email` allowlisted
 - Start command: `cd .worktrees/<branch-name> && pnpm dev:safe`
 - *(optional, after first Google sign-in)* `pnpm --filter=@feel-good/convex exec convex run seed:seedWorktreeOwnerDemo "{\"email\":\"$(git config user.email)\"}"` — clones Rick's fixtures under your own user so `/@<your-username>` is pre-populated
-- Why this matters: see `.claude/rules/worktrees.md` § Per-worktree dev Convex deployment.
+- Why this matters: see `.claude/rules/worktrees.md` § Fresh Worktree.
 
 If the script fails partway, the four phases of `finalize-worktree.sh` are individually re-runnable (env coords → secrets → push+seed → allowlist). Re-run `./scripts/finalize-worktree.sh` from inside the worktree.

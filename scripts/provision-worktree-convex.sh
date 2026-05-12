@@ -1,19 +1,9 @@
 #!/bin/bash
 # Provision a per-worktree Convex dev deployment, non-interactively.
 #
-# Creates an EMPTY deployment shell and writes packages/convex/.env.local.
-# That's it — no code push, no seed. Pushing the code requires the
-# deployment's server-side env vars (SITE_URL, GOOGLE_CLIENT_*, etc.) to
-# be set first, because `packages/convex/convex/env.ts` validates them at
-# module-load time. Those env vars are synced by
-# `sync-worktree-convex-secrets.sh`, which runs from `finalize-worktree.sh`
-# AFTER this script. Push + seed + owner allowlist also live in
-# `finalize-worktree.sh`.
-#
-# Background: Convex's "many parallel feature branches" workflow
-# (https://docs.convex.dev/production/multiple-deployments) creates a
-# separate dev deployment under the SAME project for each branch, named
-# `dev/<namespace>/<branch>`. No new Convex project, no interactive prompt.
+# Creates an empty deployment shell and writes packages/convex/.env.local.
+# `finalize-worktree.sh` then syncs env vars, pushes code, seeds, and
+# allowlists the owner.
 #
 # Prerequisite: the user is logged in to the Convex CLI on this machine
 # (`npx convex login`). The auth carries across worktrees.

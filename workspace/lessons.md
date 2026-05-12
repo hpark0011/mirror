@@ -2,6 +2,13 @@
 
 ## 2026-05-12
 
+### Worktree rules should delegate enforced invariants to scripts
+
+- Once `provision-worktree-convex.sh` constructs the full
+  `team:project:dev/<namespace>/<branch>` ref and uses `--type dev`, docs do
+  not need to repeatedly explain that no separate Convex project is created.
+  Keep rules focused on operator choices and recovery paths.
+
 ### Worktree Convex setup must converge on the deterministic deployment ref
 
 - A worktree-local `packages/convex/.env.local` can be a stale regular file

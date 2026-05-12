@@ -2,59 +2,24 @@
 
 Rules for operating safely inside `.worktrees/<branch>/` and other git worktree roots.
 
-## Per-worktree dev Convex deployment (mandatory)
+## Fresh Worktree
 
-Each worktree provisions its **own** dev Convex deployment. Deployments are NOT shared with main or with sibling worktrees.
-
-### Why
-
-Shared dev deployment + diverging schemas = a guaranteed `convex dev` push failure across sibling branches.
-
-If branch A adds an optional field to a table and writes a row, branch B (whose schema doesn't list the field) refuses to push because the existing row contains a field B's validator rejects. Convex has no "tolerate unknown fields" mode — the only escape hatches are deleting the offending row, narrowing it to match B, or merging A's schema into B. None of that scales when many worktrees may be doing schema-touching work in parallel.
-
-The previous symlink model (shared `packages/convex/.env.local` across worktrees) made this collision automatic. Per-worktree deployments make it impossible.
-
-### What's seeded vs what you provision
-
-| File | How the worktree gets it |
-|------|--------------------------|
-| `apps/mirror/.env.local` | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
-| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 2 days"`, which creates an expiring empty dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. Code push, seeding, and owner allowlist happen later in `finalize-worktree.sh`. Override the TTL with `CONVEX_WORKTREE_EXPIRATION`, e.g. `CONVEX_WORKTREE_EXPIRATION="in 12 hours"`. |
-
-### Workflow for a fresh worktree
+Use the script; do not hand-roll env/deployment setup.
 
 ```bash
 bash .agents/skills/new-worktree/scripts/new-worktree.sh <branch-name>
-# new-worktree.sh runs end-to-end:
-#   1. git worktree add .worktrees/<branch-name>
-#   2. pnpm install
-#   3. cp apps/mirror/.env.local from main
-#   4. ./scripts/provision-worktree-convex.sh
-#        - convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 2 days"
-#          (creates an EMPTY deployment — no env vars, no code, no data)
-#   5. ./scripts/finalize-worktree.sh — four steps in dependency order:
-#        a. sync-worktree-convex-env.sh — rewrite CONVEX_* in
-#           apps/mirror/.env.local so Next targets this deployment.
-#        b. sync-worktree-convex-secrets.sh — copy BETTER_AUTH_SECRET,
-#           GOOGLE_*, OAUTH_PROXY_*, ANTHROPIC_API_KEY etc. from main;
-#           set SITE_URL + AUTH_ALLOWED_HOSTS for this worktree's port.
-#           Must precede (c): convex/env.ts validates SITE_URL + GOOGLE_*
-#           at module load, so an unpopulated deployment can't accept a
-#           code push.
-#        c. convex dev --once --run seed:seedRickRubinDemo — push Convex
-#           code AND seed the demo workspace. Push fails without (b);
-#           seed fails without push.
-#        d. allowlist-worktree-owner.sh — call betaAllowlist mutation
-#           for `git config user.email`. Requires (c): the mutation only
-#           exists once code is deployed.
-# Idempotent end-to-end. Safe to re-run if any step fails partway —
-# `finalize-worktree.sh` is the recovery entry point.
-
 cd .worktrees/<branch-name>
 pnpm dev:safe
 ```
 
-After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
+The script creates the worktree, installs deps, copies `apps/mirror/.env.local`
+as a regular file, provisions an expiring Convex dev deployment, syncs env
+vars/secrets, pushes Convex code, seeds demo data, and allowlists
+`git config user.email`.
+
+If setup fails after provisioning, rerun `./scripts/finalize-worktree.sh` from
+inside the worktree. If `packages/convex/.env.local` is missing, run
+`./scripts/provision-worktree-convex.sh` first.
 
 The worktree helper scripts resolve the main checkout from Git's common
 directory or `MIRROR_CANONICAL_ROOT`, so recovery commands also work from
@@ -63,11 +28,20 @@ checkout is currently on a feature branch. Codex cloud setup only installs
 dependencies via `.codex/environments/environment.toml`; it does not provision a
 local Convex deployment.
 
-### Expiration and cleanup
+## Convex Deployment Model
 
-Per-worktree dev deployments default to `--expiration "in 2 days"` so forgotten
-branches do not consume Convex team deployment quota forever. Use an even
-shorter TTL for throwaway work with:
+Local worktrees use Convex **dev** deployments. Preview deployments are for CI
+previews and have different TTL/data semantics, so do not use them for local
+worktree setup.
+
+`provision-worktree-convex.sh` constructs
+`team:project:dev/<namespace>/<branch>` and calls:
+
+```bash
+convex deployment create "$DEPLOYMENT_REF" --type dev --select --expiration "$EXPIRATION"
+```
+
+Default expiration is `in 2 days`; shorten it for throwaway work:
 
 ```bash
 CONVEX_WORKTREE_EXPIRATION="in 12 hours" \
@@ -77,7 +51,7 @@ CONVEX_WORKTREE_EXPIRATION="in 12 hours" \
 Use `CONVEX_WORKTREE_EXPIRATION=none` only for a long-lived branch that truly
 needs persistent backend state.
 
-### Optional: pre-populate your own profile
+## Optional Profile Seed
 
 After running `pnpm dev:safe` and signing in with Google at the worktree's
 app URL (the `users` row only exists once the auth flow has run), clone
@@ -96,29 +70,19 @@ content (matches Rick's seed). For a full snapshot of main's data
 (reproducing a prod bug, etc.), use `convex export` / `convex import`
 instead.
 
-### Why code-based seeding instead of `convex export` / `import`?
-
-The Convex Stack article on [seeding preview deployments](https://stack.convex.dev/seeding-data-for-preview-deployments) recommends code-based seeding (`convex/seed.ts`) over data import for cross-deployment workflows. For our case the trade-offs come out clearly in favor of seeding:
-
-- Doesn't depend on main's data state — sibling branches' schema-divergent rows can't poison the seed.
-- Schema-safe by construction — the seed runs through the current branch's validators.
-- Idempotent — re-running adds nothing if data exists.
-- Reviewable in PRs — the seed lives in source, not in a binary zip.
-
-`convex export` / `convex import` is still the right tool when you specifically need to replicate a real user-by-user snapshot (e.g., reproducing a production bug locally). For everyday "make this worktree browseable for dev work," use the seed.
-
-### Migrating an existing symlinked worktree
+## Existing Worktrees
 
 ```bash
 cd .worktrees/<branch-name>
 rm apps/mirror/.env.local             # removes the symlink, NOT main's file
-rm packages/convex/.env.local         # ditto
+rm packages/convex/.env.local         # removes the old deployment pointer
 cp ../../apps/mirror/.env.local apps/mirror/.env.local
-./scripts/provision-worktree-convex.sh   # new expiring empty dev deployment under mirror
+./scripts/provision-worktree-convex.sh
 ./scripts/finalize-worktree.sh           # env-coords + secrets + push+seed + allowlist
 ```
 
-Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both should show `-rw-` (regular file), not `lrwxr` (symlink). The `sync-worktree-*.sh` scripts (run by `finalize-worktree.sh`) refuse to write through a symlink.
+Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both
+should show `-rw-` (regular file), not `lrwxr` (symlink).
 
 ## Vercel CLI footgun: `--yes` in an unlinked dir auto-pulls env
 

@@ -47,7 +47,7 @@ Detailed conventions live in `.claude/rules/`. All rules auto-load via `paths:` 
 - **[TypeScript](.claude/rules/typescript.md)** — inline type imports; feature types in `features/<feature>/types.ts`, shared in `types/<domain>.types.ts`.
 - **[Providers](.claude/rules/providers.md)** — separate client singleton (`lib/<service>.ts`) from React provider (`providers/<service>-provider.tsx`); never `!` on `process.env`; lazy-init external clients.
 - **[Dev process](.claude/rules/dev-process.md)** — session discipline, planning, problem-solving flow; **after any correction, update `workspace/lessons.md`.**
-- **[Worktrees](.claude/rules/worktrees.md)** — each worktree provisions its **own** dev Convex deployment (no shared state with main); `new-worktree.sh` handles end-to-end setup. **Never run `vercel <cmd> --yes` in an unlinked dir** — it auto-links and clobbers this worktree's `.env.local`. Recovery: `./scripts/restore-env-local.sh`.
+- **[Worktrees](.claude/rules/worktrees.md)** — use `new-worktree.sh` for setup. **Never run `vercel <cmd> --yes` in an unlinked dir** — it auto-links and clobbers this worktree's `.env.local`. Recovery: `./scripts/restore-env-local.sh`.
 - **[App-specific](.claude/rules/apps/)** — per-app topic rules (see `apps/mirror/` for current files).
 - **[Sentry](.claude/rules/sentry/)** — exception capture, tracing spans, and logger patterns for Next.js.
 

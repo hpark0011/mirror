@@ -1,26 +1,7 @@
 #!/bin/bash
-# Sync Convex env secrets from main's dev deployment into the current
-# worktree's deployment.
-#
-# Convex env (BETTER_AUTH_SECRET, GOOGLE_CLIENT_*, ANTHROPIC_API_KEY,
-# RESEND_API_KEY, PLAYWRIGHT_TEST_SECRET, etc.) is per-deployment. A
-# freshly provisioned deployment has none of them set, so the first
-# `convex dev` push fails with `validateEnv` errors from
-# `packages/convex/convex/env.ts`. This script must run BEFORE that first
-# push. It does not touch deployed Convex functions, so it works against
-# an empty deployment.
-#
-# What it does NOT do: the betaAllowlist mutation that whitelists the
-# worktree owner for first Google sign-in. That runs a Convex function,
-# so it requires code to already be pushed. It lives in
-# `allowlist-worktree-owner.sh`, called from `finalize-worktree.sh` AFTER
-# the code push.
-#
-# Idempotent: re-running overwrites with the latest values from main.
-#
-# Implementation note: Convex CLI v1.33+ supports round-tripping
-# `convex env list` output into `convex env set` stdin. Keep that path
-# intact so multi-line values survive.
+# Sync Convex env secrets from main into this worktree's deployment before
+# the first code push. Idempotent; preserves the CLI's round-trippable
+# `env list` -> `env set --force` path so multi-line values survive.
 
 set -e
 

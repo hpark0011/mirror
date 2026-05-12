@@ -2,8 +2,8 @@
 # Sync Convex coords from packages/convex/.env.local into apps/mirror/.env.local
 # for the current worktree.
 #
-# Run after `pnpm --filter=@feel-good/convex dev` provisions a new dev
-# deployment for this worktree. See .claude/rules/worktrees.md.
+# Run after `./scripts/provision-worktree-convex.sh` writes this worktree's
+# packages/convex/.env.local.
 #
 # Idempotent: rewrites the three CONVEX_* lines in apps/mirror/.env.local
 # in place; everything else (Sentry, Tavus, Anthropic, Better Auth) is preserved.
@@ -14,7 +14,7 @@ GIT_ROOT=$(git rev-parse --show-toplevel)
 CONVEX_ENV="$GIT_ROOT/packages/convex/.env.local"
 APP_ENV="$GIT_ROOT/apps/mirror/.env.local"
 
-[[ -f "$CONVEX_ENV" ]] || { echo "Error: $CONVEX_ENV not found. Run \`pnpm --filter=@feel-good/convex dev\` first." >&2; exit 1; }
+[[ -f "$CONVEX_ENV" ]] || { echo "Error: $CONVEX_ENV not found. Run \`./scripts/provision-worktree-convex.sh\` first." >&2; exit 1; }
 [[ -f "$APP_ENV"    ]] || { echo "Error: $APP_ENV not found." >&2; exit 1; }
 
 # Bail loudly if apps/mirror/.env.local is still a symlink. A successful
