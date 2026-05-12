@@ -60,7 +60,7 @@ cp "$APP_ENV_SRC" "$APP_ENV_DEST"
 echo ""
 echo "Copied $APP_ENV_REL from main"
 
-# --- 6. Provision a per-worktree Convex dev deployment (empty shell) --------
+# --- 6. Provision an expiring per-worktree Convex dev deployment ------------
 # Non-interactive — `convex deployment create` adds a new dev deployment
 # under the existing `mirror` project, named `dev/<ns>/<branch>`. No new
 # Convex project gets created. Per

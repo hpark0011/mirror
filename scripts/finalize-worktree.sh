@@ -35,10 +35,17 @@
 
 set -e
 
-GIT_ROOT=$(git rev-parse --show-toplevel)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/worktree-lib.sh"
 
-if [[ -d "$GIT_ROOT/.git" ]]; then
+GIT_ROOT=$(worktree_git_root)
+MAIN_ROOT=$(worktree_find_main_root || true)
+
+if [[ -z "$MAIN_ROOT" || "$GIT_ROOT" == "$MAIN_ROOT" ]]; then
   echo "Error: finalize-worktree.sh must be run from inside a worktree, not the main checkout." >&2
+  if [[ -z "$MAIN_ROOT" ]]; then
+    echo "       Could not find main checkout. Set MIRROR_CANONICAL_ROOT if needed." >&2
+  fi
   exit 1
 fi
 

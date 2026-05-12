@@ -1,5 +1,15 @@
 # Lessons Learned
 
+## 2026-05-12
+
+### Worktree Convex setup must converge on the deterministic deployment ref
+
+- A worktree-local `packages/convex/.env.local` can be a stale regular file
+  copied from another worktree, not only a symlink to main. Provisioning should
+  remove any existing selection and create-or-select the expected
+  `team:project:dev/<namespace>/<worktree>` ref instead of trusting any
+  arbitrary `dev:*` deployment.
+
 ## 2026-05-11
 
 ### Optional titles still need an explicit slug invariant

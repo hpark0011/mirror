@@ -24,13 +24,17 @@
 
 set -e
 
-GIT_ROOT=$(git rev-parse --show-toplevel)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/worktree-lib.sh"
 
-# Find main's checkout (one level up from .worktrees/<branch>/).
-if [[ "$GIT_ROOT" == */.worktrees/* ]]; then
-  MAIN_ROOT="${GIT_ROOT%/.worktrees/*}"
-else
+GIT_ROOT=$(worktree_git_root)
+MAIN_ROOT=$(worktree_find_main_root || true)
+
+if [[ -z "$MAIN_ROOT" || "$GIT_ROOT" == "$MAIN_ROOT" ]]; then
   echo "Error: this script must be run from a worktree, not main." >&2
+  if [[ -z "$MAIN_ROOT" ]]; then
+    echo "       Could not find main checkout. Set MIRROR_CANONICAL_ROOT if needed." >&2
+  fi
   exit 1
 fi
 
@@ -38,7 +42,7 @@ MAIN_CONVEX_ENV="$MAIN_ROOT/packages/convex/.env.local"
 THIS_CONVEX_ENV="$GIT_ROOT/packages/convex/.env.local"
 
 [[ -f "$MAIN_CONVEX_ENV" ]] || { echo "Error: $MAIN_CONVEX_ENV not found." >&2; exit 1; }
-[[ -f "$THIS_CONVEX_ENV" ]] || { echo "Error: $THIS_CONVEX_ENV not found. Run \`pnpm --filter=@feel-good/convex dev\` first." >&2; exit 1; }
+[[ -f "$THIS_CONVEX_ENV" ]] || { echo "Error: $THIS_CONVEX_ENV not found. Run \`./scripts/provision-worktree-convex.sh\` first." >&2; exit 1; }
 
 # The two deployments MUST be different. Otherwise the script would echo
 # main's env back into itself — and on a misconfigured worktree where
@@ -50,7 +54,7 @@ THIS_DEP=$(grep '^CONVEX_DEPLOYMENT=' "$THIS_CONVEX_ENV" | head -n1 | cut -d= -f
 if [[ "$MAIN_DEP" == "$THIS_DEP" ]]; then
   echo "Error: this worktree's CONVEX_DEPLOYMENT ($THIS_DEP) is identical to main's." >&2
   echo "       That means the deployment is shared — sync would write main's secrets to itself." >&2
-  echo "       Provision a fresh deployment with \`pnpm --filter=@feel-good/convex dev\` first." >&2
+  echo "       Provision a fresh deployment with \`./scripts/provision-worktree-convex.sh\` first." >&2
   exit 1
 fi
 

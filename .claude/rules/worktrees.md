@@ -1,6 +1,6 @@
 # Worktree Discipline
 
-Rules for operating safely inside `.worktrees/<branch>/`.
+Rules for operating safely inside `.worktrees/<branch>/` and other git worktree roots.
 
 ## Per-worktree dev Convex deployment (mandatory)
 
@@ -19,7 +19,7 @@ The previous symlink model (shared `packages/convex/.env.local` across worktrees
 | File                         | How the worktree gets it                                                                                                                                                                         |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `apps/mirror/.env.local`     | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
-| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select`, which creates an empty dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. Code push, seeding, and owner allowlist happen later in `finalize-worktree.sh`. |
+| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 7 days"`, which creates an expiring empty dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. Code push, seeding, and owner allowlist happen later in `finalize-worktree.sh`. Override the TTL with `CONVEX_WORKTREE_EXPIRATION`, e.g. `CONVEX_WORKTREE_EXPIRATION="in 2 days"`. |
 
 ### Workflow for a fresh worktree
 
@@ -30,7 +30,7 @@ bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
 #   2. pnpm install
 #   3. cp apps/mirror/.env.local from main
 #   4. ./scripts/provision-worktree-convex.sh
-#        - convex deployment create dev/<ns>/<branch> --type dev --select
+#        - convex deployment create dev/<ns>/<branch> --type dev --select --expiration "in 7 days"
 #          (creates an EMPTY deployment — no env vars, no code, no data)
 #   5. ./scripts/finalize-worktree.sh — four steps in dependency order:
 #        a. sync-worktree-convex-env.sh — rewrite CONVEX_* in
@@ -56,6 +56,12 @@ pnpm dev:safe
 
 After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
 
+The worktree helper scripts resolve the main checkout from `git worktree list`
+or `MIRROR_CANONICAL_ROOT`, so recovery commands also work from external git
+worktree roots such as Codex or Conductor paths. Codex cloud setup only installs
+dependencies via `.codex/environments/environment.toml`; it does not provision a
+local Convex deployment.
+
 ### Why `convex deployment create` and not `convex dev` interactive?
 
 Per [Convex multi-deployment docs](https://docs.convex.dev/production/multiple-deployments), the canonical pattern for parallel feature-branch development is creating a separate **dev deployment under the same project** for each branch, named `dev/<namespace>/<branch>`. This is what `provision-worktree-convex.sh` does. Trade-offs of the alternatives we rejected:
@@ -64,6 +70,20 @@ Per [Convex multi-deployment docs](https://docs.convex.dev/production/multiple-d
 - **`convex dev --configure new` with a fresh project per worktree**: non-interactive but creates a new Convex project for every branch — pollutes the dashboard forever, no documented cleanup path.
 - **Preview deployments (`--preview-create`)**: 5-day TTL on free / 14-day on paid, every schema change wipes data, no `convex dev` file-watch. Designed for CI previews, not local dev iteration.
 - **Local mode (`--dev-deployment local`)**: in beta; no public URL means inbound webhooks (Stripe, Twilio) require ngrok; vector search and `ctx.storage` parity are undocumented. Worth revisiting once GA.
+
+### Expiration and cleanup
+
+Per-worktree dev deployments default to `--expiration "in 7 days"` so forgotten
+branches do not consume Convex team deployment quota forever. Use a shorter TTL
+for throwaway work with:
+
+```bash
+CONVEX_WORKTREE_EXPIRATION="in 2 days" \
+  bash .claude/skills/new-worktree/scripts/new-worktree.sh chore-short-test
+```
+
+Use `CONVEX_WORKTREE_EXPIRATION=none` only for a long-lived branch that truly
+needs persistent backend state.
 
 ### Optional: pre-populate your own profile
 
@@ -104,7 +124,7 @@ cd .worktrees/<branch-name>
 rm apps/mirror/.env.local             # removes the symlink, NOT main's file
 rm packages/convex/.env.local         # discards the old deployment pointer
 cp ../../apps/mirror/.env.local apps/mirror/.env.local
-./scripts/provision-worktree-convex.sh   # new empty dev deployment under mirror
+./scripts/provision-worktree-convex.sh   # new expiring empty dev deployment under mirror
 ./scripts/finalize-worktree.sh           # env-coords + secrets + push+seed + allowlist
 ```
 
