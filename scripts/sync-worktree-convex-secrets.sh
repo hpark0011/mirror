@@ -1,36 +1,21 @@
 #!/bin/bash
-# Sync Convex env secrets from main's dev deployment into the current
-# worktree's deployment.
-#
-# Convex env (BETTER_AUTH_SECRET, GOOGLE_CLIENT_*, ANTHROPIC_API_KEY,
-# RESEND_API_KEY, PLAYWRIGHT_TEST_SECRET, etc.) is per-deployment. A
-# freshly provisioned deployment has none of them set, so the first
-# `convex dev` push fails with `validateEnv` errors from
-# `packages/convex/convex/env.ts`. This script must run BEFORE that first
-# push. It does not touch deployed Convex functions, so it works against
-# an empty deployment.
-#
-# What it does NOT do: the betaAllowlist mutation that whitelists the
-# worktree owner for first Google sign-in. That runs a Convex function,
-# so it requires code to already be pushed. It lives in
-# `allowlist-worktree-owner.sh`, called from `finalize-worktree.sh` AFTER
-# the code push.
-#
-# Idempotent: re-running overwrites with the latest values from main.
-#
-# Implementation note: Convex CLI v1.33+ supports round-tripping
-# `convex env list` output into `convex env set` stdin. Keep that path
-# intact so multi-line values survive.
+# Sync Convex env secrets from main into this worktree's deployment before
+# the first code push. Idempotent; preserves the CLI's round-trippable
+# `env list` -> `env set --force` path so multi-line values survive.
 
 set -e
 
-GIT_ROOT=$(git rev-parse --show-toplevel)
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/worktree-lib.sh"
 
-# Find main's checkout (one level up from .worktrees/<branch>/).
-if [[ "$GIT_ROOT" == */.worktrees/* ]]; then
-  MAIN_ROOT="${GIT_ROOT%/.worktrees/*}"
-else
+GIT_ROOT=$(worktree_git_root)
+MAIN_ROOT=$(worktree_find_main_root || true)
+
+if [[ -z "$MAIN_ROOT" || "$GIT_ROOT" == "$MAIN_ROOT" ]]; then
   echo "Error: this script must be run from a worktree, not main." >&2
+  if [[ -z "$MAIN_ROOT" ]]; then
+    echo "       Could not find main checkout. Set MIRROR_CANONICAL_ROOT if needed." >&2
+  fi
   exit 1
 fi
 
@@ -38,7 +23,7 @@ MAIN_CONVEX_ENV="$MAIN_ROOT/packages/convex/.env.local"
 THIS_CONVEX_ENV="$GIT_ROOT/packages/convex/.env.local"
 
 [[ -f "$MAIN_CONVEX_ENV" ]] || { echo "Error: $MAIN_CONVEX_ENV not found." >&2; exit 1; }
-[[ -f "$THIS_CONVEX_ENV" ]] || { echo "Error: $THIS_CONVEX_ENV not found. Run \`pnpm --filter=@feel-good/convex dev\` first." >&2; exit 1; }
+[[ -f "$THIS_CONVEX_ENV" ]] || { echo "Error: $THIS_CONVEX_ENV not found. Run \`./scripts/provision-worktree-convex.sh\` first." >&2; exit 1; }
 
 # The two deployments MUST be different. Otherwise the script would echo
 # main's env back into itself — and on a misconfigured worktree where
@@ -50,7 +35,7 @@ THIS_DEP=$(grep '^CONVEX_DEPLOYMENT=' "$THIS_CONVEX_ENV" | head -n1 | cut -d= -f
 if [[ "$MAIN_DEP" == "$THIS_DEP" ]]; then
   echo "Error: this worktree's CONVEX_DEPLOYMENT ($THIS_DEP) is identical to main's." >&2
   echo "       That means the deployment is shared — sync would write main's secrets to itself." >&2
-  echo "       Provision a fresh deployment with \`pnpm --filter=@feel-good/convex dev\` first." >&2
+  echo "       Provision a fresh deployment with \`./scripts/provision-worktree-convex.sh\` first." >&2
   exit 1
 fi
 

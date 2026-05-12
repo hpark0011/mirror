@@ -3,19 +3,9 @@
 #
 # Usage: new-worktree.sh <branch-name>
 #
-# Steps:
-#   1. Validate the branch-name argument.
-#   2. Verify apps/mirror/.env.local is present in main. (gitignored, only
-#      lives in the main checkout — the worktree inherits a copy in step 5.)
-#   3. Create a fresh worktree under .worktrees/<branch-name> branched off main.
-#   4. Install dependencies with pnpm.
-#   5. COPY apps/mirror/.env.local from main (no symlink — see worktrees.md).
-#      packages/convex/.env.local is intentionally NOT seeded; the user
-#      provisions a per-worktree dev Convex deployment on first run of
-#      `pnpm --filter=@feel-good/convex dev`. This makes cross-worktree
-#      schema divergence impossible (sibling branches' `convex dev` push
-#      can no longer be broken by a field one branch wrote on a shared
-#      deployment).
+# Creates .worktrees/<branch-name>, installs deps, copies the app env,
+# provisions a per-worktree Convex dev deployment, then finalizes env/secrets,
+# code push, seed data, and owner allowlist. See .claude/rules/worktrees.md.
 
 set -e  # Exit immediately on any failed command.
 
@@ -45,7 +35,7 @@ fi
 mkdir -p "$GIT_ROOT/.worktrees"
 git worktree add --quiet -b "$BRANCH_NAME" "$WORKTREE_PATH" main
 
-# --- 3. Run local setup ------------------------------------------------------
+# --- 4. Run local setup ------------------------------------------------------
 
 cd "$WORKTREE_PATH"
 pnpm install --frozen-lockfile --prefer-offline --reporter=append-only
@@ -60,13 +50,8 @@ cp "$APP_ENV_SRC" "$APP_ENV_DEST"
 echo ""
 echo "Copied $APP_ENV_REL from main"
 
-# --- 6. Provision a per-worktree Convex dev deployment (empty shell) --------
-# Non-interactive — `convex deployment create` adds a new dev deployment
-# under the existing `mirror` project, named `dev/<ns>/<branch>`. No new
-# Convex project gets created. Per
-# https://docs.convex.dev/production/multiple-deployments.
-# The deployment is empty after this step: no env vars set, no code
-# pushed, no seed data. Step 7 (finalize) handles all of that.
+# --- 6. Provision an expiring per-worktree Convex dev deployment ------------
+# Empty shell only; finalize handles env vars, code push, seed, and allowlist.
 
 echo ""
 echo "==> Provisioning Convex dev deployment (empty shell)"

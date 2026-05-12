@@ -1,5 +1,30 @@
 # Lessons Learned
 
+## 2026-05-12
+
+### Worktree rules should delegate enforced invariants to scripts
+
+- Once `provision-worktree-convex.sh` constructs the full
+  `team:project:dev/<namespace>/<branch>` ref and uses `--type dev`, docs do
+  not need to repeatedly explain that no separate Convex project is created.
+  Keep rules focused on operator choices and recovery paths.
+
+### Worktree Convex setup must converge on the deterministic deployment ref
+
+- A worktree-local `packages/convex/.env.local` can be a stale regular file
+  copied from another worktree, not only a symlink to main. Provisioning should
+  remove any existing selection and create-or-select the expected
+  `team:project:dev/<namespace>/<worktree>` ref instead of trusting any
+  arbitrary `dev:*` deployment.
+
+### Worktree root discovery should use Git common-dir, not branch state
+
+- `git worktree list --porcelain` only reports the branch currently checked out
+  in each worktree. If the primary checkout has switched from `main` to a
+  feature branch, matching `branch refs/heads/main` fails even though the
+  canonical checkout is present. Use `git rev-parse --git-common-dir` to find
+  the primary checkout, and keep branch scanning as a fallback only.
+
 ## 2026-05-11
 
 ### Optional titles still need an explicit slug invariant
