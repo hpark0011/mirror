@@ -19,7 +19,7 @@ The previous symlink model (shared `packages/convex/.env.local` across worktrees
 | File                         | How the worktree gets it                                                                                                                                                                         |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `apps/mirror/.env.local`     | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
-| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select`, which creates a new dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. |
+| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select`, which creates an empty dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. Code push, seeding, and owner allowlist happen later in `finalize-worktree.sh`. |
 
 ### Workflow for a fresh worktree
 
@@ -31,14 +31,24 @@ bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
 #   3. cp apps/mirror/.env.local from main
 #   4. ./scripts/provision-worktree-convex.sh
 #        - convex deployment create dev/<ns>/<branch> --type dev --select
-#        - convex dev --once --run seed:seedRickRubinDemo (push code + seed)
-#   5. ./scripts/finalize-worktree.sh
-#        - sync-worktree-convex-env.sh: rewrite CONVEX_* in apps/mirror/.env.local
-#        - sync-worktree-convex-secrets.sh: copy BETTER_AUTH_SECRET, GOOGLE_*,
-#          OAUTH_PROXY_*, ANTHROPIC_API_KEY etc. from main; set SITE_URL +
-#          AUTH_ALLOWED_HOSTS for this worktree's port; allowlist
-#          `git config user.email` for first Google sign-in.
-# Idempotent end-to-end. Safe to re-run if any step fails partway.
+#          (creates an EMPTY deployment — no env vars, no code, no data)
+#   5. ./scripts/finalize-worktree.sh — four steps in dependency order:
+#        a. sync-worktree-convex-env.sh — rewrite CONVEX_* in
+#           apps/mirror/.env.local so Next targets this deployment.
+#        b. sync-worktree-convex-secrets.sh — copy BETTER_AUTH_SECRET,
+#           GOOGLE_*, OAUTH_PROXY_*, ANTHROPIC_API_KEY etc. from main;
+#           set SITE_URL + AUTH_ALLOWED_HOSTS for this worktree's port.
+#           Must precede (c): convex/env.ts validates SITE_URL + GOOGLE_*
+#           at module load, so an unpopulated deployment can't accept a
+#           code push.
+#        c. convex dev --once --run seed:seedRickRubinDemo — push Convex
+#           code AND seed the demo workspace. Push fails without (b);
+#           seed fails without push.
+#        d. allowlist-worktree-owner.sh — call betaAllowlist mutation
+#           for `git config user.email`. Requires (c): the mutation only
+#           exists once code is deployed.
+# Idempotent end-to-end. Safe to re-run if any step fails partway —
+# `finalize-worktree.sh` is the recovery entry point.
 
 cd .worktrees/<branch-name>
 pnpm dev:safe
@@ -94,8 +104,8 @@ cd .worktrees/<branch-name>
 rm apps/mirror/.env.local             # removes the symlink, NOT main's file
 rm packages/convex/.env.local         # discards the old deployment pointer
 cp ../../apps/mirror/.env.local apps/mirror/.env.local
-./scripts/provision-worktree-convex.sh   # new dev deployment under mirror
-./scripts/finalize-worktree.sh           # env-sync + secret-sync
+./scripts/provision-worktree-convex.sh   # new empty dev deployment under mirror
+./scripts/finalize-worktree.sh           # env-coords + secrets + push+seed + allowlist
 ```
 
 Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both should show `-rw-` (regular file), not `lrwxr` (symlink). The old per-worktree Convex *project* in the dashboard can be deleted manually; new deployments now live under the canonical `mirror` project.

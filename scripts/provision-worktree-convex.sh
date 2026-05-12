@@ -1,6 +1,15 @@
 #!/bin/bash
 # Provision a per-worktree Convex dev deployment, non-interactively.
 #
+# Creates an EMPTY deployment shell and writes packages/convex/.env.local.
+# That's it — no code push, no seed. Pushing the code requires the
+# deployment's server-side env vars (SITE_URL, GOOGLE_CLIENT_*, etc.) to
+# be set first, because `packages/convex/convex/env.ts` validates them at
+# module-load time. Those env vars are synced by
+# `sync-worktree-convex-secrets.sh`, which runs from `finalize-worktree.sh`
+# AFTER this script. Push + seed + owner allowlist also live in
+# `finalize-worktree.sh`.
+#
 # Background: Convex's "many parallel feature branches" workflow
 # (https://docs.convex.dev/production/multiple-deployments) creates a
 # separate dev deployment under the SAME project for each branch, named
@@ -56,13 +65,11 @@ DEPLOYMENT_REF="$TEAM:$PROJECT:dev/$USER-claude/$BRANCH"
 echo "Provisioning Convex dev deployment: $DEPLOYMENT_REF"
 cd "$GIT_ROOT/packages/convex"
 
-# Step 1: create the deployment and select it (writes .env.local).
+# Create the deployment and select it (writes .env.local).
+# Code push + seed happen later in finalize-worktree.sh, once env vars
+# have been synced onto this deployment.
 pnpm exec convex deployment create "$DEPLOYMENT_REF" --type dev --select
 
-# Step 2: push code + seed in one shot (file-watch off via --once).
 echo ""
-echo "Pushing code + seeding rick-rubin demo..."
-pnpm exec convex dev --once --run seed:seedRickRubinDemo
-
-echo ""
-echo "Convex deployment provisioned: $DEPLOYMENT_REF"
+echo "Convex deployment provisioned (empty): $DEPLOYMENT_REF"
+echo "Next: run ./scripts/finalize-worktree.sh to sync env, push code, seed data, and allowlist owner."

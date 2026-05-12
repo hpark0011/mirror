@@ -19,30 +19,39 @@ The previous symlink model (shared `packages/convex/.env.local` across worktrees
 | File | How the worktree gets it |
 |------|--------------------------|
 | `apps/mirror/.env.local` | **copied** from main by `new-worktree.sh` (independent file — Sentry/Tavus/Anthropic/Better-Auth secrets propagate; the three Convex coord lines get rewritten by `sync-worktree-convex-env.sh`) |
-| `packages/convex/.env.local` | **provisioned per worktree** — Convex CLI writes it on first `pnpm --filter=@feel-good/convex dev` run |
+| `packages/convex/.env.local` | **provisioned per worktree, automatically** — `provision-worktree-convex.sh` runs `convex deployment create dev/<ns>/<branch> --type dev --select`, which creates an empty dev deployment under the existing `mirror` project and writes this file. No new Convex project is created. Code push, seeding, and owner allowlist happen later in `finalize-worktree.sh`. |
 
 ### Workflow for a fresh worktree
 
 ```bash
-bash .claude/skills/new-worktree/scripts/new-worktree.sh <branch-name>
+bash .agents/skills/new-worktree/scripts/new-worktree.sh <branch-name>
+# new-worktree.sh runs end-to-end:
+#   1. git worktree add .worktrees/<branch-name>
+#   2. pnpm install
+#   3. cp apps/mirror/.env.local from main
+#   4. ./scripts/provision-worktree-convex.sh
+#        - convex deployment create dev/<ns>/<branch> --type dev --select
+#          (creates an EMPTY deployment — no env vars, no code, no data)
+#   5. ./scripts/finalize-worktree.sh — four steps in dependency order:
+#        a. sync-worktree-convex-env.sh — rewrite CONVEX_* in
+#           apps/mirror/.env.local so Next targets this deployment.
+#        b. sync-worktree-convex-secrets.sh — copy BETTER_AUTH_SECRET,
+#           GOOGLE_*, OAUTH_PROXY_*, ANTHROPIC_API_KEY etc. from main;
+#           set SITE_URL + AUTH_ALLOWED_HOSTS for this worktree's port.
+#           Must precede (c): convex/env.ts validates SITE_URL + GOOGLE_*
+#           at module load, so an unpopulated deployment can't accept a
+#           code push.
+#        c. convex dev --once --run seed:seedRickRubinDemo — push Convex
+#           code AND seed the demo workspace. Push fails without (b);
+#           seed fails without push.
+#        d. allowlist-worktree-owner.sh — call betaAllowlist mutation
+#           for `git config user.email`. Requires (c): the mutation only
+#           exists once code is deployed.
+# Idempotent end-to-end. Safe to re-run if any step fails partway —
+# `finalize-worktree.sh` is the recovery entry point.
+
 cd .worktrees/<branch-name>
-pnpm --filter=@feel-good/convex dev
-  # When prompted, choose "create a new project". The CLI writes
-  # packages/convex/.env.local for this branch. Interactive — this is
-  # the only step that can't be automated.
-./scripts/finalize-worktree.sh
-  # One-shot wrapper that runs, in order:
-  #   1. sync-worktree-convex-env.sh — rewrites the three CONVEX_* lines
-  #      in apps/mirror/.env.local so Next.js targets this deployment.
-  #   2. sync-worktree-convex-secrets.sh — copies BETTER_AUTH_SECRET,
-  #      GOOGLE_*, ANTHROPIC_API_KEY, etc. from main's deployment, then
-  #      sets SITE_URL to the worktree's stable Mirror port and inserts
-  #      `git config user.email` into `betaAllowlist` (so first Google
-  #      sign-in doesn't hit `?error=unable_to_create_user`).
-  #   3. seed:seedRickRubinDemo — populates the deployment with the
-  #      rick-rubin demo workspace. Browse at the worktree's localhost
-  #      URL once `pnpm dev:safe` is up.
-  # Idempotent end-to-end. Safe to re-run if any step fails partway.
+pnpm dev:safe
 ```
 
 After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
@@ -84,8 +93,8 @@ cd .worktrees/<branch-name>
 rm apps/mirror/.env.local             # removes the symlink, NOT main's file
 rm packages/convex/.env.local         # ditto
 cp ../../apps/mirror/.env.local apps/mirror/.env.local
-pnpm --filter=@feel-good/convex dev   # choose "create a new project"
-./scripts/finalize-worktree.sh        # env-sync + secret-sync + demo seed
+./scripts/provision-worktree-convex.sh   # new empty dev deployment under mirror
+./scripts/finalize-worktree.sh           # env-coords + secrets + push+seed + allowlist
 ```
 
 Verify with `ls -la apps/mirror/.env.local packages/convex/.env.local` — both should show `-rw-` (regular file), not `lrwxr` (symlink). The `sync-worktree-*.sh` scripts (run by `finalize-worktree.sh`) refuse to write through a symlink.

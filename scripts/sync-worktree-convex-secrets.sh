@@ -3,11 +3,18 @@
 # worktree's deployment.
 #
 # Convex env (BETTER_AUTH_SECRET, GOOGLE_CLIENT_*, ANTHROPIC_API_KEY,
-# RESEND_API_KEY, PLAYWRIGHT_TEST_SECRET, etc.) is per-deployment. After
-# `pnpm --filter=@feel-good/convex dev` provisions a fresh deployment for
-# this worktree, those secrets are missing — server functions that need
-# them throw at runtime. This script reads them from main's deployment
-# and writes them to this worktree's deployment.
+# RESEND_API_KEY, PLAYWRIGHT_TEST_SECRET, etc.) is per-deployment. A
+# freshly provisioned deployment has none of them set, so the first
+# `convex dev` push fails with `validateEnv` errors from
+# `packages/convex/convex/env.ts`. This script must run BEFORE that first
+# push. It does not touch deployed Convex functions, so it works against
+# an empty deployment.
+#
+# What it does NOT do: the betaAllowlist mutation that whitelists the
+# worktree owner for first Google sign-in. That runs a Convex function,
+# so it requires code to already be pushed. It lives in
+# `allowlist-worktree-owner.sh`, called from `finalize-worktree.sh` AFTER
+# the code push.
 #
 # Idempotent: re-running overwrites with the latest values from main.
 #
@@ -102,50 +109,6 @@ echo "  DEV_AUTOSEED_OWNER=true"
 # profiles).
 (cd "$GIT_ROOT/packages/convex" && pnpm exec convex env set DEV_AUTOSEED_OWNER "true" >/dev/null)
 
-# Auto-allowlist the worktree owner so first Google sign-in doesn't trip
-# the BETA_CLOSED gate (`?error=unable_to_create_user`). The mutation
-# lowercases on write and no-ops on duplicate, so re-running this script
-# is safe.
-OWNER_EMAIL=$(git config user.email 2>/dev/null || true)
-if [[ -z "$OWNER_EMAIL" ]]; then
-  echo "" >&2
-  echo "Error: \`git config user.email\` is empty; cannot auto-allowlist worktree owner." >&2
-  echo "       Set it with: git config --global user.email you@example.com" >&2
-  exit 1
-fi
-
-echo ""
-echo "Allowlisting worktree owner for first Google sign-in:"
-echo "  email=$OWNER_EMAIL"
-ALLOWLIST_ARG=$(printf '{"email":%s,"note":"worktree owner (auto)"}' \
-  "$(node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' "$OWNER_EMAIL")")
-QUERY_ARG=$(printf '{"email":%s}' \
-  "$(node -e 'process.stdout.write(JSON.stringify(process.argv[1]))' "$OWNER_EMAIL")")
-
-# Run the mutation OUTSIDE a subshell — bash `set -e` does not always propagate
-# from `(...)` reliably, which is the silent-failure mode that previously left
-# the owner un-allowlisted while the script still printed success.
-cd "$GIT_ROOT/packages/convex"
-if ! pnpm exec convex run betaAllowlist/mutations:addAllowlistEntry "$ALLOWLIST_ARG" >/dev/null; then
-  cd "$GIT_ROOT"
-  echo "Error: failed to add $OWNER_EMAIL to betaAllowlist." >&2
-  exit 1
-fi
-
-# Verify the row landed. Catches the case where the mutation appeared to
-# succeed but wrote to a different deployment (stale CONVEX_DEPLOYMENT
-# export, CLI auth drift, etc.). Without this check the user would only
-# discover the gap when Google OAuth redirects back with
-# `?error=unable_to_create_user`.
-ALLOWED=$(pnpm exec convex run betaAllowlist/queries:isEmailAllowed "$QUERY_ARG" 2>/dev/null | tail -n1)
-cd "$GIT_ROOT"
-if [[ "$ALLOWED" != "true" ]]; then
-  echo "Error: betaAllowlist verify failed for $OWNER_EMAIL (got: $ALLOWED)." >&2
-  echo "       The add mutation reported success but the row isn't readable." >&2
-  echo "       Check that packages/convex/.env.local points at this worktree's deployment." >&2
-  exit 1
-fi
-
 echo ""
 echo "Synced $COUNT env vars from main → this worktree's deployment."
-echo "Allowlisted: $OWNER_EMAIL"
+echo "Owner allowlist runs separately via allowlist-worktree-owner.sh (needs code pushed first)."
