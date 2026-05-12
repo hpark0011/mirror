@@ -56,9 +56,10 @@ pnpm dev:safe
 
 After that, `pnpm dev:safe` and `pnpm --filter=@feel-good/convex dev` both target this worktree's deployment. Schema changes here can't break any sibling branch's `convex dev`.
 
-The worktree helper scripts resolve the main checkout from `git worktree list`
-or `MIRROR_CANONICAL_ROOT`, so recovery commands also work from external git
-worktree roots such as Codex or Conductor paths. Codex cloud setup only installs
+The worktree helper scripts resolve the main checkout from Git's common
+directory or `MIRROR_CANONICAL_ROOT`, so recovery commands also work from
+external git worktree roots such as Codex or Conductor paths, even when the main
+checkout is currently on a feature branch. Codex cloud setup only installs
 dependencies via `.codex/environments/environment.toml`; it does not provision a
 local Convex deployment.
 

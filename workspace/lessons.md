@@ -10,6 +10,14 @@
   `team:project:dev/<namespace>/<worktree>` ref instead of trusting any
   arbitrary `dev:*` deployment.
 
+### Worktree root discovery should use Git common-dir, not branch state
+
+- `git worktree list --porcelain` only reports the branch currently checked out
+  in each worktree. If the primary checkout has switched from `main` to a
+  feature branch, matching `branch refs/heads/main` fails even though the
+  canonical checkout is present. Use `git rev-parse --git-common-dir` to find
+  the primary checkout, and keep branch scanning as a fallback only.
+
 ## 2026-05-11
 
 ### Optional titles still need an explicit slug invariant

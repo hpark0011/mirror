@@ -17,6 +17,16 @@ worktree_find_main_root() {
     return 0
   fi
 
+  local common_dir canonical_root
+  common_dir=$(git rev-parse --path-format=absolute --git-common-dir 2>/dev/null || true)
+  if [[ -n "$common_dir" && "$(basename "$common_dir")" == ".git" ]]; then
+    canonical_root=$(dirname "$common_dir")
+    if [[ -d "$canonical_root" ]]; then
+      worktree_realpath "$canonical_root"
+      return 0
+    fi
+  fi
+
   local current=""
   while IFS= read -r line; do
     case "$line" in
