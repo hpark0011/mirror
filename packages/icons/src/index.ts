@@ -124,6 +124,7 @@ export { QuestionMarkCircleFillIcon } from "./components/question-mark-circle-fi
 export { QuoteClosingIcon } from "./components/quote-closing";
 export { QuoteOpeningIcon } from "./components/quote-opening";
 export { RectangleLeadingHalfFilledIcon } from "./components/rectangle-leading-half-filled";
+export { RectanglePortraitAndArrowForwardFillIcon } from "./components/rectangle-portrait-and-arrow-forward-fill";
 export { RectanglePortraitAndArrowRightIcon } from "./components/rectangle-portrait-and-arrow-right";
 export { RectangleTrailingHalfFilledIcon } from "./components/rectangle-trailing-half-filled";
 export { RoundBubbleLeftIcon } from "./components/round-bubble-left";
