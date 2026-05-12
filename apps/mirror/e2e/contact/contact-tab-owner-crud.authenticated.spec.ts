@@ -93,6 +93,9 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
 
     const card = page.getByTestId("contact-entry-card").first();
     await expect(card).toBeVisible();
+    // Edit / Delete use `group-hover:flex` so they're `display:none` until the
+    // card is hovered. Hover first to surface the controls.
+    await card.hover();
     await expect(card.getByTestId("contact-entry-edit")).toBeVisible();
     await expect(card.getByTestId("contact-entry-delete")).toBeVisible();
   });
@@ -124,9 +127,9 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
     // Dialog closes synchronously on submit.
     await expect(dialog).not.toBeVisible({ timeout: 5_000 });
 
-    const card = page
-      .getByTestId("contact-entry-card")
-      .filter({ has: page.locator('[data-kind="email"]') });
+    const card = page.locator(
+      '[data-testid="contact-entry-card"][data-kind="email"]',
+    );
     await expect(card).toBeVisible({ timeout: 5_000 });
     await expect(card).toContainText("hpark0011@gmail.com");
   });
@@ -152,6 +155,8 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
 
     await waitForAuthReady(page);
 
+    // Edit button is hidden by `group-hover:flex` — hover the row first.
+    await card.hover();
     await card.getByTestId("contact-entry-edit").click();
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible({ timeout: 5_000 });
@@ -186,7 +191,11 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
 
     await waitForAuthReady(page);
 
-    const xCard = cards.filter({ has: page.locator('[data-kind="x"]') });
+    const xCard = page.locator(
+      '[data-testid="contact-entry-card"][data-kind="x"]',
+    );
+    // Edit / Delete render via `group-hover:flex` so hover the row first.
+    await xCard.hover();
     await xCard.getByTestId("contact-entry-delete").click();
 
     await expect(cards).toHaveCount(1, { timeout: 5_000 });

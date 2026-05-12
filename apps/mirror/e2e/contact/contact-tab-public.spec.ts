@@ -133,8 +133,12 @@ test.describe("Contact tab — signed-out visitor", () => {
     const cards = page.getByTestId("contact-entry-card");
     await expect(cards).toHaveCount(4, { timeout: 10_000 });
 
-    // Email card: mailto link, no target, no rel.
-    const emailCard = cards.filter({ has: page.locator('[data-kind="email"]') });
+    // Card kind discriminator lives on the article ELEMENT (`data-kind`), so
+    // a direct CSS selector beats `filter({ has })` which only matches
+    // descendants. The Locator is scoped by both testid AND attribute.
+    const emailCard = page.locator(
+      '[data-testid="contact-entry-card"][data-kind="email"]',
+    );
     await expect(emailCard).toContainText("Email");
     await expect(emailCard).toContainText("hpark0011@gmail.com");
     const emailLink = emailCard.getByTestId("contact-entry-link");
@@ -143,8 +147,9 @@ test.describe("Contact tab — signed-out visitor", () => {
       "mailto:hpark0011@gmail.com",
     );
 
-    // LinkedIn card: https link + secure target + rel.
-    const liCard = cards.filter({ has: page.locator('[data-kind="linkedin"]') });
+    const liCard = page.locator(
+      '[data-testid="contact-entry-card"][data-kind="linkedin"]',
+    );
     await expect(liCard).toContainText("LinkedIn");
     const liLink = liCard.getByTestId("contact-entry-link");
     await expect(liLink).toHaveAttribute(
@@ -154,8 +159,9 @@ test.describe("Contact tab — signed-out visitor", () => {
     await expect(liLink).toHaveAttribute("target", "_blank");
     await expect(liLink).toHaveAttribute("rel", "noopener noreferrer");
 
-    // X card: same expectations.
-    const xCard = cards.filter({ has: page.locator('[data-kind="x"]') });
+    const xCard = page.locator(
+      '[data-testid="contact-entry-card"][data-kind="x"]',
+    );
     await expect(xCard).toContainText("X");
     const xLink = xCard.getByTestId("contact-entry-link");
     await expect(xLink).toHaveAttribute("href", "https://x.com/hpark0011");
