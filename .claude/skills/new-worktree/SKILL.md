@@ -42,15 +42,16 @@ The script bails on its own if the worktree path or branch already exists.
 
 ### 3. Report and tell the user the next steps
 
+`new-worktree.sh` is fully non-interactive and runs end-to-end. On success the worktree is immediately usable.
+
 Tell the user:
 
 - Worktree path (`.worktrees/<branch-name>`)
 - Branch name
 - That `pnpm install` completed
-- Reminder to use a different port if running dev servers in multiple worktrees
-- **Provision the worktree's dev Convex deployment** (one-time per worktree):
-  1. `cd .worktrees/<branch-name>`
-  2. `pnpm --filter=@feel-good/convex dev` — choose "create a new project" when prompted (interactive; can't be scripted)
-  3. `./scripts/finalize-worktree.sh` — wraps env-sync + secret-sync (incl. `betaAllowlist` for `git config user.email`) + rick-rubin demo seed into one idempotent step
-  4. *(optional, after first sign-in)* `pnpm --filter=@feel-good/convex exec convex run seed:seedWorktreeOwnerDemo "{\"email\":\"$(git config user.email)\"}"` — clones Rick's fixtures under your own user so `/@<your-username>` is pre-populated
+- That the Convex dev deployment was provisioned, env synced, code pushed, demo seeded, and `git config user.email` allowlisted
+- Start command: `cd .worktrees/<branch-name> && pnpm dev:safe`
+- *(optional, after first Google sign-in)* `pnpm --filter=@feel-good/convex exec convex run seed:seedWorktreeOwnerDemo "{\"email\":\"$(git config user.email)\"}"` — clones Rick's fixtures under your own user so `/@<your-username>` is pre-populated
 - Why this matters: see `.claude/rules/worktrees.md` § Per-worktree dev Convex deployment.
+
+If the script fails partway, the four phases of `finalize-worktree.sh` are individually re-runnable (env coords → secrets → push+seed → allowlist). Re-run `./scripts/finalize-worktree.sh` from inside the worktree.

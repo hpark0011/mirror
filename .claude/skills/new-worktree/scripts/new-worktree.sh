@@ -60,20 +60,25 @@ cp "$APP_ENV_SRC" "$APP_ENV_DEST"
 echo ""
 echo "Copied $APP_ENV_REL from main"
 
-# --- 6. Provision a per-worktree Convex dev deployment ----------------------
+# --- 6. Provision a per-worktree Convex dev deployment (empty shell) --------
 # Non-interactive — `convex deployment create` adds a new dev deployment
 # under the existing `mirror` project, named `dev/<ns>/<branch>`. No new
 # Convex project gets created. Per
 # https://docs.convex.dev/production/multiple-deployments.
+# The deployment is empty after this step: no env vars set, no code
+# pushed, no seed data. Step 7 (finalize) handles all of that.
 
 echo ""
-echo "==> Provisioning Convex dev deployment + seeding"
+echo "==> Provisioning Convex dev deployment (empty shell)"
 "$WORKTREE_PATH/scripts/provision-worktree-convex.sh"
 
-# --- 7. Sync env coords + secrets into the new deployment -------------------
+# --- 7. Finalize: env coords -> deployment env vars -> code push + seed -> allowlist ---
+# Order matters here. `convex env.ts` validates SITE_URL / GOOGLE_* at
+# module load, so secrets must be synced before the code push. The
+# betaAllowlist mutation can only run after code is pushed.
 
 echo ""
-echo "==> Finalizing worktree (env sync + secrets sync + allowlist)"
+echo "==> Finalizing worktree (env coords, secrets, push+seed, owner allowlist)"
 "$WORKTREE_PATH/scripts/finalize-worktree.sh"
 
 cat <<EOF
