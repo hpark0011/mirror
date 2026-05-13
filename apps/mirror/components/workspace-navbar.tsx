@@ -10,7 +10,10 @@ import {
 import { useProfileRouteData } from "@/app/[username]/_providers/profile-route-data-context";
 import { useSelectedLayoutSegments } from "next/navigation";
 import { useOptionalWorkspaceChrome } from "@/app/[username]/_providers/workspace-chrome-context";
-import { INTERACTION_PANEL_ID } from "@/app/[username]/_components/workspace-panels";
+import {
+  CONTENT_PANEL_ID,
+  INTERACTION_PANEL_ID,
+} from "@/app/[username]/_components/workspace-panels";
 import { Icon } from "@feel-good/ui/components/icon";
 import { IconButton } from "@feel-good/ui/components/icon-button";
 import { SidebarTrigger } from "@feel-good/ui/components/sidebar-trigger";
@@ -88,21 +91,30 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
           />
         </div>
 
-        <Button
-          variant="wrapper"
-          size="wrapper-xs"
-          className="gap-1.5 text-muted-foreground/80"
-          onClick={chrome?.toggleContentPanel}
-        >
-          <span className="text-[13px]">
-            Hide
-          </span>
+        {chrome?.canCollapseContentPanel
+          ? (
+            <Button
+              variant="wrapper"
+              size="wrapper-xs"
+              className="gap-1.5 text-muted-foreground/80"
+              onClick={chrome.toggleContentPanel}
+              aria-controls={CONTENT_PANEL_ID}
+              aria-expanded={!chrome.isContentPanelCollapsed}
+              aria-label={chrome.isContentPanelCollapsed
+                ? "Show content panel"
+                : "Hide content panel"}
+            >
+              <span className="text-[13px]">
+                {chrome.isContentPanelCollapsed ? "Show" : "Hide"}
+              </span>
 
-          <SidebarTrigger
-            isOpen={!chrome?.isContentPanelCollapsed}
-            align="right"
-          />
-        </Button>
+              <SidebarTrigger
+                isOpen={!chrome.isContentPanelCollapsed}
+                align="right"
+              />
+            </Button>
+          )
+          : null}
       </div>
     </nav>
   );
