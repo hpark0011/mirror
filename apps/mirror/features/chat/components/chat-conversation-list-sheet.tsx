@@ -6,6 +6,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@feel-good/ui/primitives/sheet";
+import { useTranslation } from "react-i18next";
 import { ConversationList } from "./conversation-list";
 import { type Conversation } from "../types";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
@@ -17,6 +18,7 @@ type ChatConversationListSheetProps = {
   activeConversationId: Id<"conversations"> | null;
   onSelect: (id: Id<"conversations">) => void;
   isAuthenticated: boolean;
+  title?: string;
 };
 
 export function ChatConversationListSheet({
@@ -26,7 +28,10 @@ export function ChatConversationListSheet({
   activeConversationId,
   onSelect,
   isAuthenticated,
+  title,
 }: ChatConversationListSheetProps) {
+  const { t } = useTranslation();
+  const resolvedTitle = title ?? t("chat.conversationList.title", { defaultValue: "Conversations" });
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent
@@ -37,7 +42,7 @@ export function ChatConversationListSheet({
       >
         <SheetHeader className="px-3.5 py-2.5">
           <SheetTitle className="font-medium text-sm text-muted-foreground">
-            Conversations
+            {resolvedTitle}
           </SheetTitle>
         </SheetHeader>
         <div className="flex-1 min-h-0 overflow-y-auto pb-4">

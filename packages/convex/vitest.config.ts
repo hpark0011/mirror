@@ -26,6 +26,7 @@ export default defineConfig({
       "convex/posts/**/*.test.ts",
       "convex/seed/**/*.test.ts",
       "convex/users/**/*.vitest.test.ts",
+      "convex/migrations/**/*.test.ts",
     ],
     server: {
       deps: {

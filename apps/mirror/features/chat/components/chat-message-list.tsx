@@ -5,6 +5,7 @@ import { ArrowDownIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { cn } from "@feel-good/utils/cn";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { ArcSphere } from "../../../components/animated-geometries/arc-sphere";
 import { WireframeSphere } from "../../../components/animated-geometries/wireframe-sphere";
 import { ChatMessageItem } from "./chat-message-item";
@@ -41,8 +42,15 @@ function ChatMessageLoadingState({
 function ChatMessageEmptyState({
   className,
   profileName,
+  mode,
   ...props
-}: Omit<React.ComponentProps<"div">, "children"> & { profileName: string }) {
+}: Omit<React.ComponentProps<"div">, "children"> & {
+  profileName: string;
+  mode: "clone" | "configuration";
+}) {
+  const { t } = useTranslation();
+  const isConfigurationMode = mode === "configuration";
+
   return (
     <div
       data-slot="chat-message-empty-state"
@@ -55,12 +63,17 @@ function ChatMessageEmptyState({
       <WireframeSphere />
       <div className="flex flex-col">
         <div className="text-center leading-[1.2] pb-20 text-lg">
-          <p>
-            Hi! I&apos;m {profileName}&apos;s digital clone.
-          </p>
-          <p>
-            Ask me anything about work and ideas.
-          </p>
+          {isConfigurationMode ? (
+            <>
+              <p>{t("chat.empty.configurationGreeting.title", { defaultValue: "Hi! I can help configure your profile." })}</p>
+              <p>{t("chat.empty.configurationGreeting.body", { defaultValue: "Paste a resume, LinkedIn URL, or profile update." })}</p>
+            </>
+          ) : (
+            <>
+              <p>{t("chat.empty.cloneGreeting.title", { profileName, defaultValue: `Hi! I'm ${profileName}'s digital clone.` })}</p>
+              <p>{t("chat.empty.cloneGreeting.body", { defaultValue: "Ask me anything about work and ideas." })}</p>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -106,6 +119,7 @@ type ChatMessageListProps = {
   messages: UIMessage[];
   avatarUrl: string | null;
   profileName: string;
+  mode: "clone" | "configuration";
   status: "LoadingFirstPage" | "CanLoadMore" | "LoadingMore" | "Exhausted";
   loadMore: (numItems: number) => void;
   onRetry?: () => void;
@@ -116,6 +130,7 @@ function ChatMessageList({
   messages,
   avatarUrl,
   profileName,
+  mode,
   status,
   loadMore,
   onRetry,
@@ -135,7 +150,7 @@ function ChatMessageList({
       setIsPinnedToBottom((currentPinnedToBottom) =>
         currentPinnedToBottom === nextPinnedToBottom
           ? currentPinnedToBottom
-          : nextPinnedToBottom
+          : nextPinnedToBottom,
       );
     },
     [],
@@ -220,7 +235,7 @@ function ChatMessageList({
   }
 
   if (messages.length === 0) {
-    return <ChatMessageEmptyState profileName={profileName} />;
+    return <ChatMessageEmptyState profileName={profileName} mode={mode} />;
   }
 
   return (

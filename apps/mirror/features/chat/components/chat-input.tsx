@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 import { Icon } from "@feel-good/ui/components/icon";
@@ -11,9 +12,11 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@feel-good/ui/primitives/input-group";
+import { type ChatMode } from "../types";
 
 type ChatInputProps = {
   profileName: string;
+  mode: ChatMode;
   isResponding: boolean;
   onSend: (message: string) => void;
   sendError?: string | null;
@@ -22,13 +25,16 @@ type ChatInputProps = {
 
 export function ChatInput({
   profileName,
+  mode,
   isResponding,
   onSend,
   sendError,
   onClearError,
 }: ChatInputProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState("");
   const { ref: textareaRef, resize, reset } = useAutoResizeTextarea();
+  const isConfigurationMode = mode === "configuration";
 
   const handleSend = useCallback(() => {
     const trimmed = message.trim();
@@ -77,7 +83,11 @@ export function ChatInput({
           value={message}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder={`Message ${profileName}...`}
+          placeholder={
+            isConfigurationMode
+              ? t("chat.input.placeholder.configuration", { defaultValue: "Paste a resume, LinkedIn URL, or profile update..." })
+              : t("chat.input.placeholder.clone", { profileName, defaultValue: `Message ${profileName}...` })
+          }
           disabled={isResponding}
           className={cn(
             "min-h-[40px] max-h-[120px]",
@@ -119,7 +129,9 @@ export function ChatInput({
       )}
 
       <p className="text-[13px] text-muted-foreground text-center mt-2 px-2">
-        Conversations may be visible to {profileName}
+        {isConfigurationMode
+          ? t("chat.input.disclaimer.configuration", { defaultValue: "Profile helper chats can update your public profile" })
+          : t("chat.input.disclaimer.clone", { profileName, defaultValue: `Conversations may be visible to ${profileName}` })}
       </p>
     </div>
   );

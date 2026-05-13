@@ -47,8 +47,10 @@ const authState = {
 
 // -- Module mocks ----------------------------------------------------------
 
-vi.mock("@convex-dev/agent", () => {
+vi.mock("@convex-dev/agent", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@convex-dev/agent")>();
   return {
+    ...actual,
     createThread: vi.fn(async () => {
       agentState.createThreadCalls += 1;
       return `thread_${agentState.createThreadCalls}`;
@@ -221,6 +223,7 @@ async function insertConversation(
   profileOwnerId: Awaited<ReturnType<typeof insertOwner>>,
   overrides: {
     viewerId?: Awaited<ReturnType<typeof insertOwner>>;
+    mode?: "clone" | "configuration";
     threadId?: string;
     title?: string;
   } = {},
@@ -229,6 +232,7 @@ async function insertConversation(
     ctx.db.insert("conversations", {
       profileOwnerId,
       viewerId: overrides.viewerId,
+      mode: overrides.mode,
       threadId: overrides.threadId ?? `thread_${Date.now()}`,
       status: "active",
       title: overrides.title ?? "seed",
@@ -607,6 +611,405 @@ describe("chat rate limits (Wave 1)", () => {
 });
 
 // --------------------------------------------------------------------------
+// Configuration-mode conversation invariants
+// --------------------------------------------------------------------------
+
+describe("chat configuration mode invariants", () => {
+  beforeEach(() => {
+    agentState.createThreadCalls = 0;
+    agentState.saveMessageCalls = 0;
+    agentState.streamTextCalls = [];
+    authState.currentAuthUser = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("rejects anonymous callers before creating a configuration conversation row", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_anon_owner",
+      email: "config-anon-owner@example.com",
+    });
+
+    await expect(
+      t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: "Please update my profile from this resume",
+      }),
+    ).rejects.toThrow(/Authentication required to configure this profile/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db.query("conversations").collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("rejects non-owner callers before creating a configuration conversation row", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_owner_only",
+      email: "config-owner-only@example.com",
+    });
+    await insertAppUserAndSignIn(
+      t,
+      "auth_config_non_owner",
+      "config-non-owner@example.com",
+    );
+
+    await expect(
+      t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: "Add my LinkedIn",
+      }),
+    ).rejects.toThrow(/Only the profile owner can configure this profile/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db.query("conversations").collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("creates configuration conversations with viewerId pinned to profileOwnerId and immutable mode", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_owner_insert",
+      email: "config-owner-insert@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_owner_insert" };
+
+    const { conversationId } = await t.mutation(
+      api.chat.mutations.sendMessage,
+      {
+        profileOwnerId,
+        mode: "configuration",
+        content: "Add https://www.linkedin.com/in/profile-owner to my contacts",
+      },
+    );
+
+    const row = await t.run(async (ctx) => ctx.db.get(conversationId));
+    expect(row).toMatchObject({
+      profileOwnerId,
+      viewerId: profileOwnerId,
+      mode: "configuration",
+      status: "active",
+    });
+  });
+
+  it("rejects cross-mode sendMessage when a clone conversation id is sent with configuration mode", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_mode_owner",
+      email: "config-mode-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_mode_owner" };
+    const cloneConversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: profileOwnerId,
+      threadId: "thread_clone_mode_mismatch",
+    });
+
+    await expect(
+      t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        conversationId: cloneConversationId,
+        mode: "configuration",
+        content: "Switch this existing clone thread into config mode",
+      }),
+    ).rejects.toThrow(/Conversation mode mismatch/);
+  });
+
+  it("rejects retryMessage when the requested mode does not match the conversation row", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_retry_owner",
+      email: "config-retry-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_retry_owner" };
+    const configurationConversationId = await insertConversation(
+      t,
+      profileOwnerId,
+      {
+        viewerId: profileOwnerId,
+        mode: "configuration",
+        threadId: "thread_config_retry_mismatch",
+      },
+    );
+
+    await expect(
+      t.mutation(api.chat.mutations.retryMessage, {
+        conversationId: configurationConversationId,
+        mode: "clone",
+      }),
+    ).rejects.toThrow(/Conversation mode mismatch/);
+  });
+
+  it("conversation list queries are mode-scoped and configuration rows are owner-only", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_list_owner",
+      email: "config-list-owner@example.com",
+    });
+    const visitorId = await insertAppUserAndSignIn(
+      t,
+      "auth_config_list_visitor",
+      "config-list-visitor@example.com",
+    );
+    const cloneConversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: visitorId,
+      threadId: "thread_config_list_clone",
+      title: "clone row",
+    });
+    const configurationConversationId = await insertConversation(
+      t,
+      profileOwnerId,
+      {
+        viewerId: profileOwnerId,
+        mode: "configuration",
+        threadId: "thread_config_list_configuration",
+        title: "configuration row",
+      },
+    );
+    const malformedConfigurationConversationId = await insertConversation(
+      t,
+      profileOwnerId,
+      {
+        viewerId: visitorId,
+        mode: "configuration",
+        threadId: "thread_config_list_malformed",
+        title: "malformed configuration row",
+      },
+    );
+
+    authState.currentAuthUser = { _id: "auth_config_list_owner" };
+    const cloneRows = await t.query(api.chat.queries.getConversations, {
+      profileOwnerId,
+      mode: "clone",
+    });
+    const configurationRows = await t.query(api.chat.queries.getConversations, {
+      profileOwnerId,
+      mode: "configuration",
+    });
+
+    expect(cloneRows.map((row) => row._id)).toContain(cloneConversationId);
+    expect(cloneRows.map((row) => row._id)).not.toContain(
+      configurationConversationId,
+    );
+    expect(configurationRows.map((row) => row._id)).toEqual([
+      configurationConversationId,
+    ]);
+    await expect(
+      t.query(api.chat.queries.getConversation, {
+        conversationId: malformedConfigurationConversationId,
+      }),
+    ).resolves.toBeNull();
+
+    authState.currentAuthUser = { _id: "auth_config_list_visitor" };
+    const visitorConfigurationRows = await t.query(
+      api.chat.queries.getConversations,
+      {
+        profileOwnerId,
+        mode: "configuration",
+      },
+    );
+    expect(visitorConfigurationRows).toEqual([]);
+  });
+
+  it("read paths treat a legacy conversation row without mode as clone", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_legacy_mode_owner",
+      email: "legacy-mode-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_legacy_mode_owner" };
+    const legacyConversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: profileOwnerId,
+      threadId: "thread_legacy_no_mode",
+      // Intentionally omit `mode` to simulate a pre-backfill row written
+      // before PLAN_012 added the field. Every read path must default this
+      // to "clone" until the narrow phase removes the optionality.
+    });
+
+    const raw = await t.run(async (ctx) => ctx.db.get(legacyConversationId));
+    expect(raw?.mode).toBeUndefined();
+
+    const fromGetConversation = await t.query(
+      api.chat.queries.getConversation,
+      { conversationId: legacyConversationId },
+    );
+    expect(fromGetConversation?.mode).toBe("clone");
+
+    const cloneList = await t.query(api.chat.queries.getConversations, {
+      profileOwnerId,
+      mode: "clone",
+    });
+    expect(cloneList.map((row) => row._id)).toContain(legacyConversationId);
+    for (const row of cloneList) {
+      expect(row.mode).toBe("clone");
+    }
+
+    const configurationList = await t.query(
+      api.chat.queries.getConversations,
+      { profileOwnerId, mode: "configuration" },
+    );
+    expect(configurationList.map((row) => row._id)).not.toContain(
+      legacyConversationId,
+    );
+  });
+
+  it("configuration retry streaming uses the configuration prompt and tools", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_stream_owner",
+      email: "config-stream-owner@example.com",
+    });
+    await t.run(async (ctx) =>
+      ctx.db.patch(profileOwnerId, {
+        username: "config_stream_owner",
+        personaPrompt: "SECRET CLONE PERSONA SHOULD NOT LEAK",
+        tagline: "Secret clone tagline",
+      }),
+    );
+    const conversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: profileOwnerId,
+      mode: "configuration",
+      threadId: "thread_config_retry_stream",
+    });
+
+    const startIdx = agentState.streamTextCalls.length;
+    await t.action(internal.chat.actions.streamResponse, {
+      conversationId,
+      profileOwnerId,
+      promptMessageId: "",
+      lockStartedAt: Date.now(),
+    });
+
+    const firstArg = agentState.streamTextCalls[startIdx]?.firstArg as Record<
+      string,
+      unknown
+    >;
+    expect(firstArg).toBeDefined();
+    expect(firstArg.promptMessageId).toBeUndefined();
+    expect(firstArg.system).toEqual(
+      expect.stringContaining("profile configuration helper"),
+    );
+    expect(firstArg.system).not.toEqual(
+      expect.stringContaining("SECRET CLONE PERSONA SHOULD NOT LEAK"),
+    );
+    expect(firstArg.system).not.toEqual(expect.stringContaining("Tagline:"));
+
+    const tools = firstArg.tools as Record<string, unknown>;
+    expect(Object.keys(tools).sort()).toEqual([
+      "applyBioEntryPatch",
+      "applyContactEntryPatch",
+      "fetchProfileSource",
+      "getProfileConfiguration",
+    ]);
+  });
+
+  // -- estimateInputTokenCount formula pin ----------------------------------
+
+  it("estimateInputTokenCount formula: returns Math.ceil(length/4) clamped to 1", async () => {
+    // Import the exported helper directly. This test pins the Math.ceil/4
+    // heuristic so that a change to the formula (e.g. returning a constant 1)
+    // is caught before the exhaustion test would even run.
+    const { estimateInputTokenCount } = await import("../mutations");
+    expect(estimateInputTokenCount("")).toBe(1);
+    expect(estimateInputTokenCount("a")).toBe(1);
+    expect(estimateInputTokenCount("a".repeat(4))).toBe(1);
+    expect(estimateInputTokenCount("a".repeat(4001))).toBe(1001);
+    // 12,000 chars → 3,000 tokens (the exhaustion test payload size)
+    expect(estimateInputTokenCount("a".repeat(12_000))).toBe(3_000);
+  });
+
+  // -- sendConfigurationDailyOwner bucket exhaustion -----------------------
+  //
+  // Bucket: capacity 15,000 tokens; rate 60,000/day (token bucket, refills
+  // continuously). A 12,000-char message charges exactly 3,000 tokens. Five
+  // such messages exhaust the 15,000-token capacity; the 6th must be rejected.
+  //
+  // We advance fake time 70s between sends (> 1 minute) to keep the per-minute
+  // `sendConfigurationMessage` / `createConfigurationConversation` fixed-window
+  // buckets from firing. The daily token bucket refills at 60,000 tokens/day,
+  // so in 5 × 70s = 350s it refills ≈ 60,000 × 350/86,400 ≈ 243 tokens — far
+  // below the 15,000 capacity, so the bucket still exhausts.
+
+  it("sendConfigurationDailyOwner bucket: 5 × 12k-char messages exhaust capacity, 6th throws RATE_LIMIT_DAILY and leaves streamingInProgress false", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_daily_owner",
+      email: "config-daily-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_daily_owner" };
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-15T00:00:00Z"));
+
+    const payload = "x".repeat(12_000); // 12,000 chars → 3,000 tokens each
+
+    // Send 5 messages; each one should pass and consume 3,000 tokens from the
+    // 15,000-capacity bucket. Each call creates a new conversation (no
+    // conversationId supplied) so we avoid the streaming-lock concurrency
+    // guard and the per-minute `sendConfigurationMessage` (existing-conv) bucket.
+    // The new-conversation path hits `createConfigurationConversation` (rate 2/min)
+    // — we advance 70s between sends so the fixed window resets each time.
+    let lastConversationId: Awaited<ReturnType<typeof insertConversation>>;
+    for (let i = 0; i < 5; i++) {
+      vi.advanceTimersByTime(70_000);
+      const result = await t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: payload,
+      });
+      lastConversationId = result.conversationId;
+    }
+
+    // Verify the 5th conversation's lock is false before the doomed call so
+    // we can attribute any post-call change to the rate-limit rejection path.
+    const beforeDoc = await t.run(async (ctx) => ctx.db.get(lastConversationId!));
+    expect(beforeDoc?.streamingInProgress).toBeTruthy(); // set by sendMessage
+
+    // Clear the lock to isolate the rate-limit from the concurrency guard.
+    await clearLock(t, lastConversationId!);
+    const clearedDoc = await t.run(async (ctx) => ctx.db.get(lastConversationId!));
+    expect(clearedDoc?.streamingInProgress).toBeFalsy();
+
+    // 6th call — daily bucket is exhausted (~3,000 tokens remaining would be
+    // exactly 0 after 5 × 3,000, so the 6th charge of 3,000 must be rejected).
+    vi.advanceTimersByTime(70_000);
+    let caught: unknown;
+    try {
+      await t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: payload,
+      });
+    } catch (e) {
+      caught = e;
+    }
+
+    expect(caught).toBeInstanceOf(ConvexError);
+    const data = getErrorData(caught);
+    expect(data.code).toBe("RATE_LIMIT_DAILY");
+    expect(data.retryAfterMs).toBeGreaterThan(0);
+
+    // NFR-03: the rejected send must NOT have advanced streamingInProgress.
+    // The last conversation that was created is `lastConversationId` — the
+    // doomed call creates a NEW conversation only if it passes rate-limiting;
+    // since it was rejected before the DB insert, no new row exists. Confirm
+    // by checking all conversation rows: none should have streamingInProgress true.
+    const allConversations = await t.run(async (ctx) =>
+      ctx.db.query("conversations").collect(),
+    );
+    for (const conv of allConversations) {
+      expect(conv.streamingInProgress).toBeFalsy();
+    }
+  }, 30_000);
+});
+
+// --------------------------------------------------------------------------
 // FR-01: `thread.streamText` is invoked with `maxOutputTokens: 1024`
 //
 // Behavioral (not source-string) verification: we mock `./agent` so that
@@ -680,7 +1083,10 @@ describe("FR-01: streamResponse passes maxOutputTokens: 1024 to thread.streamTex
       const fa = c.firstArg as Record<string, unknown> | null;
       return fa && fa.promptMessageId === "msg_seed";
     });
-    expect(ourCall, `ourCalls=${JSON.stringify(ourCalls.map((c) => c.firstArg))}`).toBeDefined();
+    expect(
+      ourCall,
+      `ourCalls=${JSON.stringify(ourCalls.map((c) => c.firstArg))}`,
+    ).toBeDefined();
     const firstArg = ourCall!.firstArg as Record<string, unknown>;
     expect(firstArg).toMatchObject({
       maxOutputTokens: 1024,

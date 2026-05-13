@@ -3,6 +3,8 @@ import { listMessages } from "@convex-dev/agent";
 import { internalQuery } from "../_generated/server";
 import { components } from "../_generated/api";
 import { TONE_PRESETS, type TonePreset } from "./tonePresets";
+import { chatModeValidator, getConversationMode } from "./mode";
+import { composeConfigurationPrompt } from "./configurationPrompt";
 
 /**
  * Inventory of which structured RAG-ingestion sources the profile owner has
@@ -250,6 +252,7 @@ export const loadStreamingContext = internalQuery({
   returns: v.object({
     threadId: v.string(),
     systemPrompt: v.string(),
+    mode: chatModeValidator,
     viewerId: v.optional(v.id("users")),
   }),
   handler: async (ctx, { conversationId, profileOwnerId }) => {
@@ -264,6 +267,20 @@ export const loadStreamingContext = internalQuery({
     const profileOwner = await ctx.db.get(profileOwnerId);
     if (!profileOwner) {
       throw new Error("Profile owner not found");
+    }
+
+    const mode = getConversationMode(conversation);
+
+    if (mode === "configuration") {
+      if (conversation.viewerId !== profileOwnerId) {
+        throw new Error("Only the profile owner can configure this profile");
+      }
+      return {
+        threadId: conversation.threadId,
+        systemPrompt: composeConfigurationPrompt(),
+        mode,
+        viewerId: conversation.viewerId,
+      };
     }
 
     // Inventory of structured content the profile owner has populated.
@@ -321,6 +338,7 @@ export const loadStreamingContext = internalQuery({
         contentInventory,
         canUseOwnerWriteTools,
       }),
+      mode,
       ...(conversation.viewerId !== undefined
         ? { viewerId: conversation.viewerId }
         : {}),

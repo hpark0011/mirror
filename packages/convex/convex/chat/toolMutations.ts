@@ -10,6 +10,18 @@ import {
   filterUnreferencedStorageIds,
 } from "../content/inlineImageOwnership";
 import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
+import { bioEntryKindValidator } from "../bio/schema";
+import {
+  createBioEntryForUser,
+  removeBioEntryForUser,
+  updateBioEntryForUser,
+} from "../bio/writeHelpers";
+import { contactEntryKindValidator } from "../contacts/schema";
+import {
+  removeContactEntryByKindForUser,
+  upsertContactEntryForUser,
+} from "../contacts/writeHelpers";
+import { buildBioHref, buildContactHref } from "../content/href";
 
 type ContentStatus = "draft" | "published";
 
@@ -43,6 +55,70 @@ const deleteArticleReturnValidator = v.union(
     slug: v.string(),
   }),
 );
+
+const monthDateValidator = v.object({
+  year: v.number(),
+  month: v.optional(v.number()),
+});
+
+const optionalTextPatchValidator = v.optional(v.string());
+
+const bioEntryPatchOperationValidator = v.union(
+  v.object({
+    action: v.literal("create"),
+    kind: bioEntryKindValidator,
+    title: v.string(),
+    startDate: monthDateValidator,
+    endDate: v.union(monthDateValidator, v.null()),
+    description: optionalTextPatchValidator,
+    link: optionalTextPatchValidator,
+  }),
+  v.object({
+    action: v.literal("update"),
+    id: v.id("bioEntries"),
+    kind: v.optional(bioEntryKindValidator),
+    title: v.optional(v.string()),
+    startDate: v.optional(monthDateValidator),
+    endDate: v.optional(v.union(monthDateValidator, v.null())),
+    description: optionalTextPatchValidator,
+    link: optionalTextPatchValidator,
+  }),
+  v.object({
+    action: v.literal("delete"),
+    id: v.id("bioEntries"),
+  }),
+);
+
+const bioEntryPatchReturnValidator = v.object({
+  section: v.literal("bio"),
+  href: v.string(),
+  applied: v.object({
+    created: v.number(),
+    updated: v.number(),
+    deleted: v.number(),
+  }),
+});
+
+const contactEntryPatchOperationValidator = v.union(
+  v.object({
+    action: v.literal("set"),
+    kind: contactEntryKindValidator,
+    value: v.string(),
+  }),
+  v.object({
+    action: v.literal("delete"),
+    kind: contactEntryKindValidator,
+  }),
+);
+
+const contactEntryPatchReturnValidator = v.object({
+  section: v.literal("contact"),
+  href: v.string(),
+  applied: v.object({
+    upserted: v.number(),
+    deleted: v.number(),
+  }),
+});
 
 async function setStatusForPost(
   ctx: MutationCtx,
@@ -110,6 +186,17 @@ async function setStatusForPost(
     previousStatus,
     publishedAt,
   };
+}
+
+function toMonthTimestamp(date: { year: number; month?: number }): number {
+  if (!Number.isInteger(date.year) || date.year < 1900 || date.year > 3000) {
+    throw new Error("year must be between 1900 and 3000");
+  }
+  const month = date.month ?? 1;
+  if (!Number.isInteger(month) || month < 1 || month > 12) {
+    throw new Error("month must be between 1 and 12");
+  }
+  return Date.UTC(date.year, month - 1, 1);
 }
 
 async function setStatusForArticle(
@@ -292,6 +379,112 @@ export const deleteArticleByUserAndSlug = internalMutation({
       deleted: true as const,
       title: article.title,
       slug: article.slug,
+    };
+  },
+});
+
+export const applyBioEntryPatch = internalMutation({
+  args: {
+    userId: v.id("users"),
+    operations: v.array(bioEntryPatchOperationValidator),
+  },
+  returns: bioEntryPatchReturnValidator,
+  handler: async (ctx, args) => {
+    const owner = await ctx.db.get(args.userId);
+    if (!owner?.username) {
+      throw new Error("Bio panel is unavailable for this profile.");
+    }
+
+    let created = 0;
+    let updated = 0;
+    let deleted = 0;
+
+    for (const operation of args.operations) {
+      if (operation.action === "create") {
+        await createBioEntryForUser(ctx, args.userId, {
+          kind: operation.kind,
+          title: operation.title,
+          startDate: toMonthTimestamp(operation.startDate),
+          endDate:
+            operation.endDate === null
+              ? null
+              : toMonthTimestamp(operation.endDate),
+          description: operation.description,
+          link: operation.link,
+        });
+        created += 1;
+        continue;
+      }
+
+      if (operation.action === "update") {
+        await updateBioEntryForUser(ctx, args.userId, {
+          id: operation.id,
+          kind: operation.kind,
+          title: operation.title,
+          startDate: operation.startDate
+            ? toMonthTimestamp(operation.startDate)
+            : undefined,
+          endDate:
+            operation.endDate === undefined
+              ? undefined
+              : operation.endDate === null
+                ? null
+                : toMonthTimestamp(operation.endDate),
+          description: operation.description,
+          link: operation.link,
+        });
+        updated += 1;
+        continue;
+      }
+
+      await removeBioEntryForUser(ctx, args.userId, operation.id);
+      deleted += 1;
+    }
+
+    return {
+      section: "bio" as const,
+      href: buildBioHref(owner.username),
+      applied: { created, updated, deleted },
+    };
+  },
+});
+
+export const applyContactEntryPatch = internalMutation({
+  args: {
+    userId: v.id("users"),
+    operations: v.array(contactEntryPatchOperationValidator),
+  },
+  returns: contactEntryPatchReturnValidator,
+  handler: async (ctx, args) => {
+    const owner = await ctx.db.get(args.userId);
+    if (!owner?.username) {
+      throw new Error("Contact panel is unavailable for this profile.");
+    }
+
+    let upserted = 0;
+    let deleted = 0;
+
+    for (const operation of args.operations) {
+      if (operation.action === "set") {
+        await upsertContactEntryForUser(ctx, args.userId, {
+          kind: operation.kind,
+          value: operation.value,
+        });
+        upserted += 1;
+        continue;
+      }
+
+      if (
+        await removeContactEntryByKindForUser(ctx, args.userId, operation.kind)
+      ) {
+        deleted += 1;
+      }
+    }
+
+    return {
+      section: "contact" as const,
+      href: buildContactHref(owner.username),
+      applied: { upserted, deleted },
     };
   },
 });

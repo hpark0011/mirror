@@ -12,8 +12,15 @@ import { ChatInput } from "./chat-input";
 import { ChatMessageList } from "./chat-message-list";
 
 export function ChatThread() {
-  const { routeResolution, profileName, avatarUrl, closeChat, headerAddon } =
-    useChatContext();
+  const {
+    routeResolution,
+    profileName,
+    avatarUrl,
+    mode,
+    closeChat,
+    headerAddon,
+  } = useChatContext();
+  const headerName = mode === "configuration" ? "Profile helper" : profileName;
 
   if (routeResolution.status === "resolving") {
     return (
@@ -21,7 +28,7 @@ export function ChatThread() {
         {headerAddon}
         <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
           <ChatHeader
-            profileName={profileName}
+            profileName={headerName}
             avatarUrl={avatarUrl}
             onProfileClick={closeChat}
           />
@@ -41,7 +48,7 @@ export function ChatThread() {
       <div className="flex flex-col h-full relative">
         {headerAddon}
         <ChatHeader
-          profileName={profileName}
+          profileName={headerName}
           avatarUrl={avatarUrl}
           onProfileClick={closeChat}
         />
@@ -65,6 +72,7 @@ function ChatActiveThread() {
     profileOwnerId,
     profileName,
     avatarUrl,
+    mode,
     conversationId,
     conversations,
     routeResolution,
@@ -97,9 +105,13 @@ function ChatActiveThread() {
     sendAnimationKey,
   } = useChat({
     profileOwnerId,
+    mode,
     conversationId,
     onConversationCreated: setConversationId,
   });
+
+  const isConfigurationMode = mode === "configuration";
+  const chatDisplayName = isConfigurationMode ? "Profile helper" : profileName;
 
   // Watch for agent tool-results that drive UI navigation (the agent half
   // of the "two routes, one dispatcher" pattern — see
@@ -121,9 +133,10 @@ function ChatActiveThread() {
           activeConversationId={activeConversationId}
           onSelect={setConversationId}
           isAuthenticated={isAuthenticated}
+          title={isConfigurationMode ? "Profile helper chats" : "Conversations"}
         />
         <ChatHeader
-          profileName={profileName}
+          profileName={chatDisplayName}
           avatarUrl={avatarUrl}
           onProfileClick={closeChat}
           onNewConversation={startNewConversation}
@@ -148,10 +161,11 @@ function ChatActiveThread() {
         activeConversationId={activeConversationId}
         onSelect={setConversationId}
         isAuthenticated={isAuthenticated}
+        title={isConfigurationMode ? "Profile helper chats" : "Conversations"}
       />
       <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
         <ChatHeader
-          profileName={profileName}
+          profileName={chatDisplayName}
           avatarUrl={avatarUrl}
           onProfileClick={closeChat}
           onNewConversation={startNewConversation}
@@ -163,6 +177,7 @@ function ChatActiveThread() {
         messages={messages}
         avatarUrl={avatarUrl}
         profileName={profileName}
+        mode={mode}
         status={status}
         loadMore={loadMore}
         onRetry={retryMessage}
@@ -172,6 +187,7 @@ function ChatActiveThread() {
       <div className="absolute bottom-0 w-full mx-auto bg-linear-to-t from-background via-30% via-background to-transparent">
         <ChatInput
           profileName={profileName}
+          mode={mode}
           isResponding={isResponding}
           onSend={sendMessage}
           sendError={sendError}

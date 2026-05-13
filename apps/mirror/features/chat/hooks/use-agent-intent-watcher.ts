@@ -45,6 +45,8 @@ const UNPUBLISH_POST_TYPE = "tool-unpublishPost";
 const DELETE_ARTICLE_TYPE = "tool-deleteArticle";
 const PUBLISH_ARTICLE_TYPE = "tool-publishArticle";
 const UNPUBLISH_ARTICLE_TYPE = "tool-unpublishArticle";
+const APPLY_BIO_ENTRY_PATCH_TYPE = "tool-applyBioEntryPatch";
+const APPLY_CONTACT_ENTRY_PATCH_TYPE = "tool-applyContactEntryPatch";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -91,9 +93,11 @@ function isNavigateOutput(output: unknown): output is NavigateOutput {
   if (!output || typeof output !== "object") return false;
   const o = output as Record<string, unknown>;
   return (
-    typeof o.slug === "string" && o.slug.length > 0 &&
+    typeof o.slug === "string" &&
+    o.slug.length > 0 &&
     typeof o.title === "string" &&
-    typeof o.href === "string" && o.href.length > 0 &&
+    typeof o.href === "string" &&
+    o.href.length > 0 &&
     isContentKind(typeof o.kind === "string" ? o.kind : undefined)
   );
 }
@@ -209,6 +213,33 @@ function isDeleteArticleOutput(output: unknown): output is DeleteArticleOutput {
   );
 }
 
+type ConfigurationPatchOutput = {
+  section: "bio" | "contact";
+  href: string;
+  applied: Record<string, number>;
+};
+
+function isConfigurationPatchOutput(
+  output: unknown,
+): output is ConfigurationPatchOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  if (o.section !== "bio" && o.section !== "contact") return false;
+  if (typeof o.href !== "string" || o.href.length === 0) return false;
+  if (!o.applied || typeof o.applied !== "object") return false;
+  const applied = o.applied as Record<string, unknown>;
+  if (o.section === "bio") {
+    return (
+      typeof applied.created === "number" &&
+      typeof applied.updated === "number" &&
+      typeof applied.deleted === "number"
+    );
+  }
+  return (
+    typeof applied.upserted === "number" && typeof applied.deleted === "number"
+  );
+}
+
 function isPublishToolType(type: string): boolean {
   return type === PUBLISH_POST_TYPE || type === PUBLISH_ARTICLE_TYPE;
 }
@@ -242,7 +273,9 @@ export function useAgentIntentWatcher(
           part.type !== UNPUBLISH_POST_TYPE &&
           part.type !== DELETE_ARTICLE_TYPE &&
           part.type !== PUBLISH_ARTICLE_TYPE &&
-          part.type !== UNPUBLISH_ARTICLE_TYPE
+          part.type !== UNPUBLISH_ARTICLE_TYPE &&
+          part.type !== APPLY_BIO_ENTRY_PATCH_TYPE &&
+          part.type !== APPLY_CONTACT_ENTRY_PATCH_TYPE
         ) {
           continue;
         }
@@ -331,6 +364,19 @@ export function useAgentIntentWatcher(
           // posts list) — see `apps/mirror/features/posts/hooks/use-delete-post.ts`.
           navigateToProfileSection({
             section: toolPart.output.kind,
+            href: toolPart.output.href,
+          });
+          continue;
+        }
+
+        if (
+          toolPart.type === APPLY_BIO_ENTRY_PATCH_TYPE ||
+          toolPart.type === APPLY_CONTACT_ENTRY_PATCH_TYPE
+        ) {
+          if (!isConfigurationPatchOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+          navigateToProfileSection({
+            section: toolPart.output.section,
             href: toolPart.output.href,
           });
           continue;

@@ -4,8 +4,15 @@ import { mutation, internalMutation } from "../_generated/server";
 import { internal, components } from "../_generated/api";
 import { authComponent } from "../auth/client";
 import { chatRateLimiter } from "./rateLimits";
+import {
+  DEFAULT_CHAT_MODE,
+  chatModeValidator,
+  getConversationMode,
+  type ChatMode,
+} from "./mode";
 
 const MAX_MESSAGE_LENGTH = 3000;
+const MAX_CONFIGURATION_MESSAGE_LENGTH = 12000;
 
 // A streaming-lock is treated as "held" only if it was acquired within the
 // last STREAMING_LOCK_TTL_MS. Older locks are presumed crashed (the
@@ -29,7 +36,11 @@ type LimitName =
   | "retryMessage"
   | "createConversation"
   | "sendMessageDailyAnon"
-  | "sendMessageDailyAuth";
+  | "sendMessageDailyAuth"
+  | "createConfigurationConversation"
+  | "sendConfigurationMessage"
+  | "retryConfigurationMessage"
+  | "sendConfigurationDailyOwner";
 
 type LimitCode = "RATE_LIMIT_MINUTE" | "RATE_LIMIT_DAILY";
 
@@ -58,8 +69,13 @@ async function enforceLimit(
   name: LimitName,
   key: string,
   code: LimitCode,
+  count?: number,
 ): Promise<void> {
-  const result = await chatRateLimiter.limit(ctx, name, { key, throws: false });
+  const result = await chatRateLimiter.limit(ctx, name, {
+    key,
+    throws: false,
+    ...(count !== undefined ? { count } : {}),
+  });
   if (!result.ok) {
     throw new ConvexError({
       code,
@@ -68,22 +84,36 @@ async function enforceLimit(
   }
 }
 
+export function estimateInputTokenCount(content: string): number {
+  return Math.max(1, Math.ceil(content.length / 4));
+}
+
+function getMaxMessageLength(mode: ChatMode): number {
+  return mode === "configuration"
+    ? MAX_CONFIGURATION_MESSAGE_LENGTH
+    : MAX_MESSAGE_LENGTH;
+}
+
 export const sendMessage = mutation({
   args: {
     profileOwnerId: v.id("users"),
     conversationId: v.optional(v.id("conversations")),
+    mode: v.optional(chatModeValidator),
     content: v.string(),
   },
   returns: v.object({ conversationId: v.id("conversations") }),
   handler: async (ctx, args) => {
+    const mode = args.mode ?? DEFAULT_CHAT_MODE;
+
     // 1. Input validation — must precede any rate-limit work so oversize
     //    messages are rejected without consuming daily budget (FR-02).
     const content = args.content.trim();
     if (content.length === 0) {
       throw new Error("Message cannot be empty");
     }
-    if (content.length > MAX_MESSAGE_LENGTH) {
-      throw new Error(`Message exceeds ${MAX_MESSAGE_LENGTH} character limit`);
+    const maxMessageLength = getMaxMessageLength(mode);
+    if (content.length > maxMessageLength) {
+      throw new Error(`Message exceeds ${maxMessageLength} character limit`);
     }
 
     // 2. Optional auth
@@ -105,6 +135,15 @@ export const sendMessage = mutation({
       throw new Error("Authentication required to chat with this profile");
     }
 
+    if (mode === "configuration") {
+      if (!appUser) {
+        throw new Error("Authentication required to configure this profile");
+      }
+      if (appUser._id !== args.profileOwnerId) {
+        throw new Error("Only the profile owner can configure this profile");
+      }
+    }
+
     // 4. Existing conversation ownership validation
     let conversationId = args.conversationId;
     let existingConversation = null;
@@ -115,6 +154,10 @@ export const sendMessage = mutation({
       }
       if (existingConversation.profileOwnerId !== args.profileOwnerId) {
         throw new Error("Conversation does not belong to this profile");
+      }
+      const existingMode = getConversationMode(existingConversation);
+      if (existingMode !== mode) {
+        throw new Error("Conversation mode mismatch");
       }
       // Viewer must match
       if (appUser) {
@@ -138,27 +181,53 @@ export const sendMessage = mutation({
       }
 
       // 5a. Per-minute burst limit (existing conversation).
-      await enforceLimit(
-        ctx,
-        "sendMessage",
-        appUser ? appUser._id : conversationId,
-        "RATE_LIMIT_MINUTE",
-      );
+      if (mode === "configuration") {
+        await enforceLimit(
+          ctx,
+          "sendConfigurationMessage",
+          appUser!._id,
+          "RATE_LIMIT_MINUTE",
+        );
+      } else {
+        await enforceLimit(
+          ctx,
+          "sendMessage",
+          appUser ? appUser._id : conversationId,
+          "RATE_LIMIT_MINUTE",
+        );
+      }
     } else {
       // 5a. Per-minute burst limit (new conversation path).
-      await enforceLimit(
-        ctx,
-        "createConversation",
-        appUser ? appUser._id : args.profileOwnerId,
-        "RATE_LIMIT_MINUTE",
-      );
+      if (mode === "configuration") {
+        await enforceLimit(
+          ctx,
+          "createConfigurationConversation",
+          appUser!._id,
+          "RATE_LIMIT_MINUTE",
+        );
+      } else {
+        await enforceLimit(
+          ctx,
+          "createConversation",
+          appUser ? appUser._id : args.profileOwnerId,
+          "RATE_LIMIT_MINUTE",
+        );
+      }
     }
 
     // 5b. Daily spend ceiling (FR-03/FR-04/FR-06). Keyed by user (auth) or
     //     profileOwnerId (anon) in BOTH branches so new-conversation churn
     //     cannot bypass the daily cap. MUST run strictly before we patch
     //     streamingInProgress (NFR-03).
-    if (appUser) {
+    if (mode === "configuration") {
+      await enforceLimit(
+        ctx,
+        "sendConfigurationDailyOwner",
+        appUser!._id,
+        "RATE_LIMIT_DAILY",
+        estimateInputTokenCount(content),
+      );
+    } else if (appUser) {
       await enforceLimit(
         ctx,
         "sendMessageDailyAuth",
@@ -182,7 +251,8 @@ export const sendMessage = mutation({
 
       conversationId = await ctx.db.insert("conversations", {
         profileOwnerId: args.profileOwnerId,
-        viewerId: appUser?._id,
+        viewerId: mode === "configuration" ? args.profileOwnerId : appUser?._id,
+        mode,
         threadId,
         status: "active",
         title: content.slice(0, 100),
@@ -229,9 +299,12 @@ export const sendMessage = mutation({
 export const retryMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
+    mode: v.optional(chatModeValidator),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    const requestedMode = args.mode ?? DEFAULT_CHAT_MODE;
+
     // 1. Auth + ownership check
     const authUser = await authComponent.safeGetAuthUser(ctx);
     let appUser = null;
@@ -246,6 +319,10 @@ export const retryMessage = mutation({
     if (!conversation) {
       throw new Error("Conversation not found");
     }
+    const conversationMode = getConversationMode(conversation);
+    if (conversationMode !== requestedMode) {
+      throw new Error("Conversation mode mismatch");
+    }
 
     // Viewer must match
     if (appUser) {
@@ -255,6 +332,12 @@ export const retryMessage = mutation({
     } else {
       if (conversation.viewerId !== undefined) {
         throw new Error("Not authorized to retry in this conversation");
+      }
+    }
+
+    if (conversationMode === "configuration") {
+      if (!appUser || appUser._id !== conversation.profileOwnerId) {
+        throw new Error("Only the profile owner can configure this profile");
       }
     }
 
@@ -272,15 +355,32 @@ export const retryMessage = mutation({
     //     appUser._id (auth) — matching sendMessage — so retries on a
     //     fresh conversation cannot bypass daily caps via key-switching
     //     (FR-05).
-    await enforceLimit(
-      ctx,
-      "retryMessage",
-      appUser ? appUser._id : conversation.profileOwnerId,
-      "RATE_LIMIT_MINUTE",
-    );
+    if (conversationMode === "configuration") {
+      await enforceLimit(
+        ctx,
+        "retryConfigurationMessage",
+        appUser!._id,
+        "RATE_LIMIT_MINUTE",
+      );
+    } else {
+      await enforceLimit(
+        ctx,
+        "retryMessage",
+        appUser ? appUser._id : conversation.profileOwnerId,
+        "RATE_LIMIT_MINUTE",
+      );
+    }
 
     // 2b. Daily spend ceiling (FR-03/FR-04).
-    if (appUser) {
+    if (conversationMode === "configuration") {
+      await enforceLimit(
+        ctx,
+        "sendConfigurationDailyOwner",
+        appUser!._id,
+        "RATE_LIMIT_DAILY",
+        1,
+      );
+    } else if (appUser) {
       await enforceLimit(
         ctx,
         "sendMessageDailyAuth",
@@ -327,10 +427,7 @@ export const clearStreamingLock = internalMutation({
   returns: v.null(),
   handler: async (ctx, { conversationId, expectedStartedAt }) => {
     const conversation = await ctx.db.get(conversationId);
-    if (
-      conversation &&
-      conversation.streamingStartedAt === expectedStartedAt
-    ) {
+    if (conversation && conversation.streamingStartedAt === expectedStartedAt) {
       await ctx.db.patch(conversationId, {
         streamingInProgress: false,
         streamingStartedAt: undefined,

@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  ConfigureProfileButton,
   EditActions,
   EditProfileButton,
   ProfileInfo,
@@ -21,6 +22,9 @@ export function ProfilePanel() {
     setIsSubmitting,
   } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
+  const openConfigurationChat = useCallback(() => {
+    openChat({ mode: "configuration" });
+  }, [openChat]);
 
   const handleEditClose = useCallback(() => {
     setIsEditing(false);
@@ -33,23 +37,24 @@ export function ProfilePanel() {
   // chromes are preserved via Tailwind's md: prefix (>=768px), which mirrors
   // the breakpoint the chrome decision keys off.
   return (
-    <div
-      className="relative h-full pt-[var(--workspace-content-top-pad)] pb-[var(--workspace-content-bottom-pad)] md:z-20 md:flex md:flex-col md:justify-start md:items-center md:px-6"
-    >
+    <div className="relative h-full pt-[var(--workspace-content-top-pad)] pb-[var(--workspace-content-bottom-pad)] md:z-20 md:flex md:flex-col md:justify-start md:items-center md:px-6">
       <div className="absolute top-3 left-3 z-10 flex flex-col gap-3">
         <ProfileLogo />
       </div>
 
       <div className="md:hidden absolute top-3 right-3 z-10 flex items-center gap-1.5">
-        {isOwner && isEditing
-          ? (
-            <EditActions
-              isEditing={isEditing}
-              isSubmitting={isSubmitting}
-              onCancel={handleEditClose}
-            />
-          )
-          : <EditProfileButton onClick={() => setIsEditing(true)} />}
+        {isOwner && isEditing ? (
+          <EditActions
+            isEditing={isEditing}
+            isSubmitting={isSubmitting}
+            onCancel={handleEditClose}
+          />
+        ) : isOwner ? (
+          <>
+            <ConfigureProfileButton onClick={openConfigurationChat} />
+            <EditProfileButton onClick={() => setIsEditing(true)} />
+          </>
+        ) : null}
       </div>
 
       <ProfileInfo

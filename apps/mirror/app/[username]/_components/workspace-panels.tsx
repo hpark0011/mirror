@@ -7,7 +7,11 @@ import {
   type RefCallback,
 } from "react";
 import { ResizablePanel } from "@feel-good/ui/primitives/resizable";
-import { EditActions, EditProfileButton } from "@/features/profile";
+import {
+  ConfigureProfileButton,
+  EditActions,
+  EditProfileButton,
+} from "@/features/profile";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "../_providers/profile-route-data-context";
 
@@ -79,12 +83,15 @@ export function WorkspaceInteractionPanel(props: WorkspacePanelProps) {
   const { children, ...rest } = props;
   const { isOwner, isEditing, isSubmitting, setIsEditing, setIsSubmitting } =
     useProfileRouteData();
-  const { isChatOpen } = useChatSearchParams();
+  const { isChatOpen, openChat } = useChatSearchParams();
 
   const handleEditCancel = useCallback(() => {
     setIsEditing(false);
     setIsSubmitting(false);
   }, [setIsEditing, setIsSubmitting]);
+  const openConfigurationChat = useCallback(() => {
+    openChat({ mode: "configuration" });
+  }, [openChat]);
 
   return (
     <PanelFrame
@@ -97,17 +104,18 @@ export function WorkspaceInteractionPanel(props: WorkspacePanelProps) {
         {children}
         {!isChatOpen && (
           <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5">
-            {isOwner && isEditing
-              ? (
-                <EditActions
-                  isEditing={isEditing}
-                  isSubmitting={isSubmitting}
-                  onCancel={handleEditCancel}
-                />
-              )
-              : isOwner
-              ? <EditProfileButton onClick={() => setIsEditing(true)} />
-              : null}
+            {isOwner && isEditing ? (
+              <EditActions
+                isEditing={isEditing}
+                isSubmitting={isSubmitting}
+                onCancel={handleEditCancel}
+              />
+            ) : isOwner ? (
+              <>
+                <ConfigureProfileButton onClick={openConfigurationChat} />
+                <EditProfileButton onClick={() => setIsEditing(true)} />
+              </>
+            ) : null}
           </div>
         )}
       </div>

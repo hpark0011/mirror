@@ -4,6 +4,11 @@ import { listUIMessages, syncStreams, vStreamArgs } from "@convex-dev/agent";
 import { query, internalQuery } from "../_generated/server";
 import { components } from "../_generated/api";
 import { authComponent } from "../auth/client";
+import {
+  DEFAULT_CHAT_MODE,
+  chatModeValidator,
+  getConversationMode,
+} from "./mode";
 
 export const getConversation = query({
   args: {
@@ -15,6 +20,7 @@ export const getConversation = query({
       _creationTime: v.number(),
       profileOwnerId: v.id("users"),
       viewerId: v.optional(v.id("users")),
+      mode: chatModeValidator,
       threadId: v.string(),
       status: v.union(v.literal("active"), v.literal("archived")),
       title: v.string(),
@@ -40,13 +46,25 @@ export const getConversation = query({
       _creationTime: conversation._creationTime,
       profileOwnerId: conversation.profileOwnerId,
       viewerId: conversation.viewerId,
+      mode: getConversationMode(conversation),
       threadId: conversation.threadId,
       status: conversation.status,
       title: conversation.title,
       streamingInProgress: conversation.streamingInProgress,
     };
 
-    // Owner can see all conversations on their profile
+    const mode = getConversationMode(conversation);
+
+    // Configuration conversations are owner-only.
+    if (mode === "configuration") {
+      return appUser &&
+        appUser._id === conversation.profileOwnerId &&
+        conversation.viewerId === conversation.profileOwnerId
+        ? conversationData
+        : null;
+    }
+
+    // Owner can see all clone conversations on their profile
     if (appUser && appUser._id === conversation.profileOwnerId) {
       return conversationData;
     }
@@ -68,6 +86,7 @@ export const getConversation = query({
 export const getConversations = query({
   args: {
     profileOwnerId: v.id("users"),
+    mode: v.optional(chatModeValidator),
   },
   returns: v.array(
     v.object({
@@ -75,13 +94,14 @@ export const getConversations = query({
       _creationTime: v.number(),
       profileOwnerId: v.id("users"),
       viewerId: v.optional(v.id("users")),
+      mode: chatModeValidator,
       threadId: v.string(),
       status: v.union(v.literal("active"), v.literal("archived")),
       title: v.string(),
       streamingInProgress: v.optional(v.boolean()),
     }),
   ),
-  handler: async (ctx, { profileOwnerId }) => {
+  handler: async (ctx, { profileOwnerId, mode = DEFAULT_CHAT_MODE }) => {
     const authUser = await authComponent.safeGetAuthUser(ctx);
     if (!authUser) return [];
 
@@ -90,6 +110,10 @@ export const getConversations = query({
       .withIndex("by_authId", (q) => q.eq("authId", authUser._id))
       .unique();
     if (!appUser) return [];
+
+    if (mode === "configuration" && appUser._id !== profileOwnerId) {
+      return [];
+    }
 
     let conversations;
 
@@ -113,16 +137,23 @@ export const getConversations = query({
         .collect();
     }
 
-    return conversations.map((c) => ({
-      _id: c._id,
-      _creationTime: c._creationTime,
-      profileOwnerId: c.profileOwnerId,
-      viewerId: c.viewerId,
-      threadId: c.threadId,
-      status: c.status,
-      title: c.title,
-      streamingInProgress: c.streamingInProgress,
-    }));
+    return conversations
+      .filter((c) => {
+        if (getConversationMode(c) !== mode) return false;
+        if (mode !== "configuration") return true;
+        return c.viewerId === c.profileOwnerId;
+      })
+      .map((c) => ({
+        _id: c._id,
+        _creationTime: c._creationTime,
+        profileOwnerId: c.profileOwnerId,
+        viewerId: c.viewerId,
+        mode: getConversationMode(c),
+        threadId: c.threadId,
+        status: c.status,
+        title: c.title,
+        streamingInProgress: c.streamingInProgress,
+      }));
   },
 });
 
@@ -151,6 +182,14 @@ export const listThreadMessages = query({
     const isOwner = appUser && appUser._id === conversation.profileOwnerId;
     const isViewer = appUser && conversation.viewerId === appUser._id;
     const isAnonymousConvo = !appUser && conversation.viewerId === undefined;
+    const mode = getConversationMode(conversation);
+
+    if (
+      mode === "configuration" &&
+      (!isOwner || conversation.viewerId !== conversation.profileOwnerId)
+    ) {
+      return null;
+    }
 
     if (!isOwner && !isViewer && !isAnonymousConvo) {
       return null;
@@ -182,6 +221,7 @@ export const internalGetConversation = internalQuery({
       _creationTime: v.number(),
       profileOwnerId: v.id("users"),
       viewerId: v.optional(v.id("users")),
+      mode: chatModeValidator,
       threadId: v.string(),
       status: v.union(v.literal("active"), v.literal("archived")),
       title: v.string(),
@@ -191,6 +231,19 @@ export const internalGetConversation = internalQuery({
     v.null(),
   ),
   handler: async (ctx, { conversationId }) => {
-    return await ctx.db.get(conversationId);
+    const conversation = await ctx.db.get(conversationId);
+    if (!conversation) return null;
+    return {
+      _id: conversation._id,
+      _creationTime: conversation._creationTime,
+      profileOwnerId: conversation.profileOwnerId,
+      viewerId: conversation.viewerId,
+      mode: getConversationMode(conversation),
+      threadId: conversation.threadId,
+      status: conversation.status,
+      title: conversation.title,
+      streamingInProgress: conversation.streamingInProgress,
+      streamingStartedAt: conversation.streamingStartedAt,
+    };
   },
 });

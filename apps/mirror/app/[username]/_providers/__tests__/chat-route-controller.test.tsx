@@ -21,17 +21,20 @@ import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 let mockIsChatOpen = true;
 let mockRawConversationId: string | undefined = undefined;
+let mockChatMode: "clone" | "configuration" = "clone";
 let mockConversations: Array<{ _id: string; _creationTime: number }> = [];
 
 const setConversationSpy = vi.fn();
 const openChatSpy = vi.fn();
 const closeChatSpy = vi.fn();
+const useConversationsSpy = vi.fn();
 
 // ── Module mocks (must be declared before importing the SUT) ──────────────────
 
 vi.mock("@/hooks/use-chat-search-params", () => ({
   useChatSearchParams: () => ({
     isChatOpen: mockIsChatOpen,
+    chatMode: mockChatMode,
     conversationId: mockRawConversationId,
     setConversation: setConversationSpy,
     openChat: openChatSpy,
@@ -41,10 +44,13 @@ vi.mock("@/hooks/use-chat-search-params", () => ({
 }));
 
 vi.mock("@/features/chat", () => ({
-  useConversations: () => ({
-    conversations: mockConversations,
-    isLoading: false,
-  }),
+  useConversations: (args: unknown) => {
+    useConversationsSpy(args);
+    return {
+      conversations: mockConversations,
+      isLoading: false,
+    };
+  },
 }));
 
 vi.mock("@/features/chat/lib/parse-conversation-id", () => ({
@@ -107,8 +113,10 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     setConversationSpy.mockReset();
     openChatSpy.mockReset();
     closeChatSpy.mockReset();
+    useConversationsSpy.mockReset();
     mockIsChatOpen = true;
     mockRawConversationId = undefined;
+    mockChatMode = "clone";
     mockConversations = [];
   });
 
@@ -193,6 +201,30 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
 
     expect(latest!.routeResolution).toEqual({ status: "new_conversation" });
     expect(openChatSpy).toHaveBeenCalledTimes(1);
+    expect(openChatSpy).toHaveBeenCalledWith({ mode: "clone" });
+  });
+
+  it("passes chatMode into the conversation query and preserves it when starting a new configuration chat", () => {
+    let latest: Captured | null = null;
+    mockChatMode = "configuration";
+
+    render(
+      <Wrapper>
+        <CaptureContext onValue={(v) => (latest = v)} />
+      </Wrapper>,
+    );
+
+    expect(useConversationsSpy).toHaveBeenLastCalledWith({
+      profileOwnerId: "user_alice",
+      mode: "configuration",
+      enabled: true,
+    });
+
+    act(() => {
+      latest!.handleConversationIdChange(null);
+    });
+
+    expect(openChatSpy).toHaveBeenCalledWith({ mode: "configuration" });
   });
 
   it("Auto-select effect does not double-fire while the bridge is active even when conversations populate", () => {

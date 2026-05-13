@@ -18,6 +18,31 @@ void i18n.use(initReactI18next).init({
           categoryPlaceholder: "e.g. Process, Inspiration",
           titlePlaceholder: "Article Title",
         },
+        chat: {
+          conversationList: {
+            title: "Conversations",
+          },
+          empty: {
+            cloneGreeting: {
+              title: "Hi! I'm {{profileName}}'s digital clone.",
+              body: "Ask me anything about work and ideas.",
+            },
+            configurationGreeting: {
+              title: "Hi! I can help configure your profile.",
+              body: "Paste a resume, LinkedIn URL, or profile update.",
+            },
+          },
+          input: {
+            disclaimer: {
+              clone: "Conversations may be visible to {{profileName}}",
+              configuration: "Profile helper chats can update your public profile",
+            },
+            placeholder: {
+              clone: "Message {{profileName}}...",
+              configuration: "Paste a resume, LinkedIn URL, or profile update...",
+            },
+          },
+        },
         editor: {
           categoryLabel: "Category",
           save: "Save",
@@ -29,6 +54,12 @@ void i18n.use(initReactI18next).init({
         postEditor: {
           categoryPlaceholder: "e.g. Notes, Updates",
           titlePlaceholder: "Post Title",
+        },
+        profile: {
+          configureButton: {
+            ariaLabel: "Configure profile",
+            tooltip: "Configure profile",
+          },
         },
         profileTabs: {
           articles: "Articles",

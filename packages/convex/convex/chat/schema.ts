@@ -1,9 +1,13 @@
 import { defineTable } from "convex/server";
 import { v } from "convex/values";
+import { chatModeValidator } from "./mode";
 
 export const conversationsTable = defineTable({
   profileOwnerId: v.id("users"),
   viewerId: v.optional(v.id("users")),
+  // Widened for PLAN_012. Existing rows without a mode are treated as
+  // "clone" by every read path until the backfill narrows this field.
+  mode: v.optional(chatModeValidator),
   threadId: v.string(),
   status: v.union(v.literal("active"), v.literal("archived")),
   title: v.string(),

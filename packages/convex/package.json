@@ -19,6 +19,7 @@
     "./convex/posts/categories": "./convex/posts/categories.ts",
     "./convex/contacts/schema": "./convex/contacts/schema.ts",
     "./convex/contacts/labels": "./convex/contacts/labels.ts",
+    "./convex/chat/mode": "./convex/chat/mode.ts",
     "./convex/*": "./convex/*",
     "./chat/tonePresets": {
       "types": "./convex/chat/tonePresets.ts",
@@ -69,6 +70,9 @@
       "convex/contacts/labels": [
         "./convex/contacts/labels.ts"
       ],
+      "convex/chat/mode": [
+        "./convex/chat/mode.ts"
+      ],
       "chat/tonePresets": [
         "./convex/chat/tonePresets.ts"
       ]
@@ -95,6 +99,7 @@
     "better-auth": "catalog:",
     "convex": "^1.37.0",
     "convex-helpers": "^0.1.115",
+    "undici": "^8.2.0",
     "zod": "catalog:"
   },
   "//": "sharp + thumbhash are script-only — used by scripts/backfill-cover-thumbhash.ts, NOT imported from convex/. They install with the backend devDeps because pnpm has no lighter scope. See scripts/backfill-cover-thumbhash.ts.",
