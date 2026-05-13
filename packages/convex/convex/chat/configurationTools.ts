@@ -2,8 +2,21 @@
 
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
-import { Agent, fetch as undiciFetch } from "undici";
 import { z } from "zod";
+
+// Undici is loaded lazily inside guardedFetchProfileSource. Its module-load
+// path runs `new CacheStorage()` at the top of `undici/index.js`, which calls
+// `util.markAsUncloneable` — a Node 21+ API absent from the sandbox Convex
+// uses to analyze pushed modules at deploy time. Static `import "undici"`
+// here would fail deploy analysis even though the action's runtime has the
+// API at request time. The dynamic import inside the function defers
+// evaluation past the deploy-time analyzer.
+type UndiciModule = typeof import("undici");
+let undiciModulePromise: Promise<UndiciModule> | null = null;
+async function loadUndici(): Promise<UndiciModule> {
+  if (!undiciModulePromise) undiciModulePromise = import("undici");
+  return undiciModulePromise;
+}
 import { createTool } from "@convex-dev/agent";
 import { internal } from "../_generated/api";
 import { type Id } from "../_generated/dataModel";
@@ -51,11 +64,18 @@ export class FetchSourceError extends Error {
 // rather than re-resolving the hostname. The hostname is kept in the URL so TLS
 // SNI and certificate validation still reference the original name.
 // family must be 4 (IPv4) or 6 (IPv6) — isIP() returns those values.
-function pinnedDispatcher(validatedIp: string, family: 4 | 6): Agent {
-  return new Agent({
+function pinnedDispatcher(
+  undici: UndiciModule,
+  validatedIp: string,
+  family: 4 | 6,
+): UndiciModule["Agent"]["prototype"] {
+  return new undici.Agent({
     connect: {
-      lookup: (_hostname: string, _opts: unknown, cb: (err: Error | null, address: string, family: number) => void) =>
-        cb(null, validatedIp, family),
+      lookup: (
+        _hostname: string,
+        _opts: unknown,
+        cb: (err: Error | null, address: string, family: number) => void,
+      ) => cb(null, validatedIp, family),
     },
   });
 }
@@ -326,6 +346,12 @@ export async function guardedFetchProfileSource(url: string) {
     );
   }
 
+  // Lazy-load undici so the deploy-time analyzer (which evaluates module
+  // top-level code in a sandbox lacking Node 21+ APIs like
+  // util.markAsUncloneable) never has to load it. Once at the function
+  // entry, then reused on every redirect hop.
+  const undici = await loadUndici();
+
   const deadline = startedAt + PROFILE_SOURCE_TIMEOUT_MS;
   const controller = new AbortController();
   const timeout = setTimeout(
@@ -351,7 +377,11 @@ export async function guardedFetchProfileSource(url: string) {
       );
       remainingMs(deadline);
 
-      const dispatcher = pinnedDispatcher(validated.address, validated.family);
+      const dispatcher = pinnedDispatcher(
+        undici,
+        validated.address,
+        validated.family,
+      );
       // undici's Response and the global Response are structurally identical
       // at runtime, but their TypeScript types diverge under lib.dom-aware
       // configs (e.g. Next.js's build tsconfig pulls in DOM lib types whose
@@ -360,7 +390,7 @@ export async function guardedFetchProfileSource(url: string) {
       // in lib.dom and accepts a direct `as Response` cast, but Next.js
       // rejects it with TS2352. `as unknown as Response` is the documented
       // escape hatch the compiler itself suggests.
-      const response = (await undiciFetch(current.toString(), {
+      const response = (await undici.fetch(current.toString(), {
         dispatcher,
         redirect: "manual",
         signal: controller.signal,
