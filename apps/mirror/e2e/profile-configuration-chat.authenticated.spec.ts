@@ -1,3 +1,4 @@
+import { test as base } from "@playwright/test";
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
 
 test.describe("Profile configuration helper chat", () => {
@@ -17,4 +18,20 @@ test.describe("Profile configuration helper chat", () => {
       ),
     ).toBeVisible();
   });
+});
+
+// Unauthenticated negative case — the bare Playwright `test` (no stored
+// auth state) confirms that visitors do not see the owner-only "Configure
+// profile" affordance. A regression that drops the isOwner guard in
+// profile-panel.tsx / workspace-panels.tsx would fail this test.
+base.describe("Profile configuration helper chat — visibility", () => {
+  base(
+    "unauthenticated visitor does not see the Configure profile button",
+    async ({ page }) => {
+      await page.goto("/@test-user");
+      await expect(
+        page.getByRole("button", { name: "Configure profile" }),
+      ).toHaveCount(0);
+    },
+  );
 });

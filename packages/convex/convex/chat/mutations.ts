@@ -84,7 +84,7 @@ async function enforceLimit(
   }
 }
 
-function estimateInputTokenCount(content: string): number {
+export function estimateInputTokenCount(content: string): number {
   return Math.max(1, Math.ceil(content.length / 4));
 }
 
@@ -280,13 +280,17 @@ export const sendMessage = mutation({
     });
 
     // 10. Schedule action
-    await ctx.scheduler.runAfter(0, internal.chat.actions.streamResponse, {
-      conversationId,
-      profileOwnerId: args.profileOwnerId,
-      promptMessageId: messageId,
-      lockStartedAt,
-      userMessage: content,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.chat.actions.streamResponse,
+      {
+        conversationId,
+        profileOwnerId: args.profileOwnerId,
+        promptMessageId: messageId,
+        lockStartedAt,
+        userMessage: content,
+      },
+    );
 
     return { conversationId };
   },
@@ -400,12 +404,16 @@ export const retryMessage = mutation({
     });
 
     // 5. Schedule streamResponse with empty promptMessageId (retry signal)
-    await ctx.scheduler.runAfter(0, internal.chat.actions.streamResponse, {
-      conversationId: args.conversationId,
-      profileOwnerId: conversation.profileOwnerId,
-      promptMessageId: "",
-      lockStartedAt,
-    });
+    await ctx.scheduler.runAfter(
+      0,
+      internal.chat.actions.streamResponse,
+      {
+        conversationId: args.conversationId,
+        profileOwnerId: conversation.profileOwnerId,
+        promptMessageId: "",
+        lockStartedAt,
+      },
+    );
 
     return null;
   },

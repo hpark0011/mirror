@@ -1,8 +1,10 @@
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import {
+  type ChatMode,
+  DEFAULT_CHAT_MODE,
+} from "@feel-good/convex/convex/chat/mode";
 
-export const CHAT_MODES = ["clone", "configuration"] as const;
-export type ChatMode = (typeof CHAT_MODES)[number];
-export const DEFAULT_CHAT_MODE: ChatMode = "clone";
+export { type ChatMode, DEFAULT_CHAT_MODE };
 
 export type ChatRouteResolution =
   | { status: "resolving" }
