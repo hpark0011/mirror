@@ -352,10 +352,14 @@ export async function guardedFetchProfileSource(url: string) {
       remainingMs(deadline);
 
       const dispatcher = pinnedDispatcher(validated.address, validated.family);
-      // Cast from undici's Response type to the global Response type.
-      // Structurally identical at runtime; undici's TypeScript types use
-      // stream/web's ReadableStream which diverges from lib.dom at the
-      // generic parameter level only.
+      // undici's Response and the global Response are structurally identical
+      // at runtime, but their TypeScript types diverge under lib.dom-aware
+      // configs (e.g. Next.js's build tsconfig pulls in DOM lib types whose
+      // HeadersIterator carries `[Symbol.dispose]`, which undici's
+      // SpecIterableIterator does not). Convex's own tsconfig does not pull
+      // in lib.dom and accepts a direct `as Response` cast, but Next.js
+      // rejects it with TS2352. `as unknown as Response` is the documented
+      // escape hatch the compiler itself suggests.
       const response = (await undiciFetch(current.toString(), {
         dispatcher,
         redirect: "manual",
@@ -364,7 +368,7 @@ export async function guardedFetchProfileSource(url: string) {
           "User-Agent": PROFILE_SOURCE_USER_AGENT,
           Accept: "text/html,text/plain,application/json",
         },
-      })) as Response;
+      })) as unknown as Response;
 
       if (response.status >= 300 && response.status < 400) {
         response.body?.cancel().catch(() => {});
