@@ -3,7 +3,7 @@ id: FG_204
 title: "Add openProfileSection execute-level test for section='contact'"
 date: 2026-05-12
 type: test
-status: pending
+status: completed
 priority: p1
 description: "The `chat/tools.openProfileSection — execute` describe block covers bio, articles, and posts behaviorally but has no case for `section='contact'`. The new contact dispatch branch (`if (section === 'contact')` → `internal.chat.toolQueries.queryContactPanel`) is asserted only by the `inputSchema invariants` enum check — a rename of `queryContactPanel` or removal of the dispatch branch would silently break clone-agent navigation to the contact panel."
 dependencies: []

@@ -76,7 +76,7 @@ import {
   findRelevantPublishedContent,
   type RelevantContentSearchCtx,
 } from "../relevantContent";
-import { buildBioHref } from "../../content/href";
+import { buildBioHref, buildContactHref } from "../../content/href";
 import {
   CONTENT_SOURCES,
   NAVIGABLE_CONTENT_SOURCES,
@@ -1483,7 +1483,7 @@ describe("chat/tools.openProfileSection — execute", () => {
   // Reach into the AI-SDK Tool wrapper. `createTool` is mocked at the top
   // of this file to be the identity (returns its def), so `execute` is
   // directly callable with a synthetic ctx.
-  type ProfileSection = "bio" | "articles" | "posts";
+  type ProfileSection = "bio" | "contact" | "articles" | "posts";
   function buildCtx(t: ReturnType<typeof makeT>) {
     return {
       runQuery: (
@@ -1646,6 +1646,73 @@ describe("chat/tools.openProfileSection — execute", () => {
     const toolsForB = buildCloneTools(userB);
     const bResult = await toolsForB.openProfileSection.execute(buildCtx(t), {
       section: "posts",
+    });
+    expect(bResult.hasEntries).toBe(true);
+  });
+
+  it("section=contact with contact entries → hasEntries true and canonical href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_contact");
+    await t.run(async (ctx) =>
+      ctx.db.insert("contactEntries", {
+        userId: owner,
+        kind: "email",
+        value: "owner@example.com",
+      }),
+    );
+
+    const tools = buildCloneTools(owner, { viewerId: owner });
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
+    });
+
+    expect(result.kind).toBe("contact");
+    expect(result.hasEntries).toBe(true);
+    expect(result.href).toBe(buildContactHref("owner_section_contact"));
+  });
+
+  it("section=contact with no entries → hasEntries false but href still resolves", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_contact_empty");
+
+    const tools = buildCloneTools(owner, { viewerId: owner });
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
+    });
+
+    expect(result.kind).toBe("contact");
+    expect(result.hasEntries).toBe(false);
+    expect(result.href).toBe(buildContactHref("owner_section_contact_empty"));
+  });
+
+  it("SECURITY: a contactEntries row owned by a different user does NOT make hasEntries true for the queried owner", async () => {
+    // Cross-user isolation regression — the closure-bound `profileOwnerId`
+    // is the only userId reachable by the tool. A contact row written by
+    // user B must not show up in user A's openProfileSection result.
+    const t = makeT();
+    const userA = await insertOwner(t, "contact_user_a");
+    const userB = await insertOwner(t, "contact_user_b");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("contactEntries", {
+        userId: userB,
+        kind: "linkedin",
+        value: "https://www.linkedin.com/in/b",
+      }),
+    );
+
+    const toolsForA = buildCloneTools(userA, { viewerId: userA });
+    const aResult = await toolsForA.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
+    });
+    expect(aResult.kind).toBe("contact");
+    expect(aResult.hasEntries).toBe(false);
+    expect(aResult.href).toBe(buildContactHref("contact_user_a"));
+
+    // Positive control — user B's own tools should see the contact row.
+    const toolsForB = buildCloneTools(userB);
+    const bResult = await toolsForB.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
     });
     expect(bResult.hasEntries).toBe(true);
   });

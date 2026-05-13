@@ -3,7 +3,7 @@ id: FG_203
 title: "Remove dead hrefFor from contact presentation record (URL kinds)"
 date: 2026-05-12
 type: refactor
-status: pending
+status: completed
 priority: p1
 description: "`CONTACT_KIND_PRESENTATION` defines `hrefFor` on every kind, but `contact-entry-card.tsx` only calls it for `email`. The five URL-kind `hrefFor` implementations (`value.trim()`) are dead code. The presentation record currently lies about being the single source of truth for href construction — a future caller reading the record may use `hrefFor` and skip the `safeHttpsUrl` https sanitizer, rendering an un-validated URL into `<a href>`."
 dependencies: []

@@ -28,9 +28,7 @@ export function ContactEntryCard({
   // becoming an anchor target. If the value cannot be sanitized we fall back
   // to plain text — better than rendering a potentially malformed link.
   const href =
-    entry.kind === "email"
-      ? presentation.hrefFor(trimmed)
-      : safeHttpsUrl(trimmed);
+    entry.kind === "email" ? `mailto:${trimmed}` : safeHttpsUrl(trimmed);
 
   return (
     <article
