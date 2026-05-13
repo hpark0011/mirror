@@ -3,38 +3,21 @@ import { type Doc, type Id } from "../_generated/dataModel";
 import { type MutationCtx } from "../_generated/server";
 import { isOwnedByUser } from "../content/helpers";
 import { CONTACT_KIND_LABEL } from "./labels";
+import {
+  CONTACT_HOSTNAME_ALLOWLIST,
+  isAllowedContactHost,
+  validateValue,
+  type NonEmailContactKind,
+} from "./hostnameAllowlist";
 
-const MAX_VALUE_LENGTH = 2000;
+export {
+  CONTACT_HOSTNAME_ALLOWLIST,
+  isAllowedContactHost,
+  validateValue,
+};
+export type { NonEmailContactKind };
 
 export type ContactEntryKind = Doc<"contactEntries">["kind"];
-
-export function validateValue(kind: ContactEntryKind, value: string): void {
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    throw new Error("value is required");
-  }
-  if (trimmed.length > MAX_VALUE_LENGTH) {
-    throw new Error(
-      `value exceeds maximum length of ${MAX_VALUE_LENGTH} (got ${trimmed.length})`,
-    );
-  }
-  if (kind === "email") {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      throw new Error("email must be a valid email address");
-    }
-    return;
-  }
-
-  let url: URL;
-  try {
-    url = new URL(trimmed);
-  } catch {
-    throw new Error("value must be a valid URL");
-  }
-  if (url.protocol !== "https:") {
-    throw new Error("URL must use https://");
-  }
-}
 
 export async function createContactEntryForUser(
   ctx: MutationCtx,
