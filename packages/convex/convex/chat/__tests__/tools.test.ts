@@ -1553,10 +1553,20 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
         ],
       }),
     ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.fetchProfileSource.execute(blockedCtx, {
+        url: "https://example.com/owner-profile",
+      }),
+    ).rejects.toThrow("Only the profile owner");
 
     const anonymousTools = buildConfigurationTools(owner, { conversationId });
     await expect(
       anonymousTools.getProfileConfiguration.execute(blockedCtx, {}),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      anonymousTools.fetchProfileSource.execute(blockedCtx, {
+        url: "https://example.com/owner-profile",
+      }),
     ).rejects.toThrow("Only the profile owner");
 
     expect(runQuery).not.toHaveBeenCalled();

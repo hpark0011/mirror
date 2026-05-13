@@ -817,6 +817,48 @@ describe("chat configuration mode invariants", () => {
     expect(visitorConfigurationRows).toEqual([]);
   });
 
+  it("read paths treat a legacy conversation row without mode as clone", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_legacy_mode_owner",
+      email: "legacy-mode-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_legacy_mode_owner" };
+    const legacyConversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: profileOwnerId,
+      threadId: "thread_legacy_no_mode",
+      // Intentionally omit `mode` to simulate a pre-backfill row written
+      // before PLAN_012 added the field. Every read path must default this
+      // to "clone" until the narrow phase removes the optionality.
+    });
+
+    const raw = await t.run(async (ctx) => ctx.db.get(legacyConversationId));
+    expect(raw?.mode).toBeUndefined();
+
+    const fromGetConversation = await t.query(
+      api.chat.queries.getConversation,
+      { conversationId: legacyConversationId },
+    );
+    expect(fromGetConversation?.mode).toBe("clone");
+
+    const cloneList = await t.query(api.chat.queries.getConversations, {
+      profileOwnerId,
+      mode: "clone",
+    });
+    expect(cloneList.map((row) => row._id)).toContain(legacyConversationId);
+    for (const row of cloneList) {
+      expect(row.mode).toBe("clone");
+    }
+
+    const configurationList = await t.query(
+      api.chat.queries.getConversations,
+      { profileOwnerId, mode: "configuration" },
+    );
+    expect(configurationList.map((row) => row._id)).not.toContain(
+      legacyConversationId,
+    );
+  });
+
   it("configuration retry streaming uses the configuration prompt and tools", async () => {
     const t = makeT();
     const profileOwnerId = await insertOwner(t, {

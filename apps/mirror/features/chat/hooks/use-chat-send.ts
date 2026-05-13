@@ -134,12 +134,19 @@ export function useChatSend({
 
   const retryMessage = useCallback(async () => {
     if (!conversationId) return;
+    // Reuse the send-in-flight ref so a double-click on Retry cannot drain
+    // the per-minute retryMessage / retryConfigurationMessage rate-limit
+    // bucket before the server's stream-lock check rejects the second call.
+    if (isSendingRef.current) return;
+    isSendingRef.current = true;
     setSendError(null);
 
     try {
       await retryMessageMutation({ conversationId, mode });
     } catch (err) {
       setSendError(classifyRetryError(err));
+    } finally {
+      isSendingRef.current = false;
     }
   }, [retryMessageMutation, conversationId, mode]);
 

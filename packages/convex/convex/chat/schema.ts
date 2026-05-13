@@ -20,10 +20,5 @@ export const conversationsTable = defineTable({
   lastMessageRole: v.optional(v.string()),
 })
   .index("by_profileOwnerId_and_viewerId", ["profileOwnerId", "viewerId"])
-  .index("by_profileOwnerId_and_viewerId_and_mode", [
-    "profileOwnerId",
-    "viewerId",
-    "mode",
-  ])
   .index("by_viewerId", ["viewerId"])
   .index("by_threadId", ["threadId"]);

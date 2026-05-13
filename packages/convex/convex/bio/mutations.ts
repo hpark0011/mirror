@@ -6,10 +6,7 @@ import {
   createBioEntryForUser,
   removeBioEntryForUser,
   updateBioEntryForUser,
-  MAX_BIO_ENTRIES_PER_USER,
 } from "./writeHelpers";
-
-export { MAX_BIO_ENTRIES_PER_USER };
 
 export const create = authMutation({
   args: {

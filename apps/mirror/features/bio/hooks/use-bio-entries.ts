@@ -7,8 +7,9 @@ import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { useBioWorkspace } from "../context/bio-workspace-context";
 import { type BioEntry } from "../types";
 
-// Mirrors the server-side cap at packages/convex/convex/bio/mutations.ts:17
-// and the public query slice at packages/convex/convex/bio/queries.ts:6.
+// Mirrors the server-side cap at packages/convex/convex/bio/writeHelpers.ts
+// (`MAX_BIO_ENTRIES_PER_USER`) and the public query slice at
+// packages/convex/convex/bio/queries.ts:6.
 // Used both as the optimistic-update sort cap AND as the source of the
 // `canCreateEntry` precondition exposed below — see
 // .claude/rules/optimistic-updates.md "Preconditions" section.

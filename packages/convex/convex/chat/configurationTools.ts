@@ -295,9 +295,21 @@ async function guardedFetchProfileSource(url: string) {
       };
     }
   } catch (error) {
+    // AbortController firing mid-stream surfaces as a generic "operation
+    // aborted" error from the fetch/body reader. Normalize to the deadline
+    // message so the LLM's "ask the owner to paste" recovery path triggers
+    // instead of treating it as an unknown failure to retry.
+    const isAbort =
+      error instanceof Error &&
+      (error.name === "AbortError" || /abort/i.test(error.message));
+    const reason = isAbort
+      ? "Profile source fetch timed out"
+      : error instanceof Error
+        ? error.message
+        : String(error);
     return {
       status: "unavailable" as const,
-      reason: error instanceof Error ? error.message : String(error),
+      reason,
       finalUrl: current.toString(),
       detectedKind: detectContactKind(current.toString()),
     };
@@ -305,12 +317,13 @@ async function guardedFetchProfileSource(url: string) {
     clearTimeout(timeout);
   }
 
-  return {
-    status: "unavailable" as const,
-    reason: "Unable to fetch source",
-    finalUrl: current.toString(),
-    detectedKind: detectContactKind(current.toString()),
-  };
+  // Unreachable: every loop iteration either returns or throws, and the catch
+  // converts every throw to a return. The throw documents intent so a future
+  // refactor that adds a fall-through `continue` surfaces as a clear failure
+  // rather than a silent generic "Unable to fetch source" response.
+  throw new Error(
+    "guardedFetchProfileSource exited the redirect loop without returning",
+  );
 }
 
 async function enforceFetchLimit(

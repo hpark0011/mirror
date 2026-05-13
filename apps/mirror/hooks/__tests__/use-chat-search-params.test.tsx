@@ -46,4 +46,20 @@ describe("useChatSearchParams", () => {
     result.current.openChat({ mode: "clone" });
     expect(pushSpy).toHaveBeenLastCalledWith("/@alice?chat=1");
   });
+
+  it("closeChat clears chat, conversation, and chatMode from the URL", () => {
+    mockSearchParams = new URLSearchParams(
+      "chat=1&chatMode=configuration&conversation=conv_123",
+    );
+    const { result } = renderHook(() => useChatSearchParams());
+
+    result.current.closeChat();
+
+    expect(pushSpy).toHaveBeenCalledTimes(1);
+    const pushedUrl = pushSpy.mock.calls[0]?.[0] as string;
+    expect(pushedUrl).toBe("/@alice");
+    expect(pushedUrl).not.toContain("chat=");
+    expect(pushedUrl).not.toContain("chatMode=");
+    expect(pushedUrl).not.toContain("conversation=");
+  });
 });
