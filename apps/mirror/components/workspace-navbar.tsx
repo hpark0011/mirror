@@ -96,7 +96,7 @@ export function WorkspaceNavbar({ className }: WorkspaceNavbarProps) {
             <Button
               variant="wrapper"
               size="wrapper-xs"
-              className="gap-1.5 text-muted-foreground/80"
+              className="group/sidebar-trigger gap-1.5 text-muted-foreground/80"
               onClick={chrome.toggleContentPanel}
               aria-controls={CONTENT_PANEL_ID}
               aria-expanded={!chrome.isContentPanelCollapsed}
