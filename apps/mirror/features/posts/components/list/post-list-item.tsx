@@ -164,7 +164,7 @@ export function PostListItem({ post, username }: PostListItemProps) {
               content={post.body}
               className={cn(
                 "max-w-xl text-[17px] leading-[1.3] font-regular space-y-2 [&_img]:my-3 mt-0 tracking-[-0.04em]",
-                shouldAlignWithMetadata && "[&>p:first-child]:mt-0",
+                shouldAlignWithMetadata && "[&>*:first-child]:mt-0",
               )}
             />
           </div>
