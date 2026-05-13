@@ -5,6 +5,8 @@ import {
 } from "../_generated/server";
 import { v } from "convex/values";
 import { type Id } from "../_generated/dataModel";
+import { contactEntryKindValidator } from "../contacts/schema";
+import { validateValue as validateContactValue } from "../contacts/mutations";
 import {
   buildReferencedStorageSet,
   collectReferencedFromCandidates,
@@ -914,14 +916,7 @@ export const ensureTestContactFixtures = internalMutation({
     email: v.string(),
     entries: v.array(
       v.object({
-        kind: v.union(
-          v.literal("email"),
-          v.literal("linkedin"),
-          v.literal("instagram"),
-          v.literal("x"),
-          v.literal("tiktok"),
-          v.literal("youtube"),
-        ),
+        kind: contactEntryKindValidator,
         value: v.string(),
       }),
     ),
@@ -955,10 +950,15 @@ export const ensureTestContactFixtures = internalMutation({
     }
 
     for (const entry of args.entries) {
+      // Run fixtures through the same trust-boundary validator the public
+      // create mutation uses so a test-mode actor cannot plant arbitrary
+      // strings (e.g. prompt-injection payloads) that would flow through
+      // the embedding pipeline into the RAG store.
+      validateContactValue(entry.kind, entry.value);
       await ctx.db.insert("contactEntries", {
         userId,
         kind: entry.kind,
-        value: entry.value,
+        value: entry.value.trim(),
       });
     }
 

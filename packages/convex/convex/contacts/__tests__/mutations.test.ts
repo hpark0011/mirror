@@ -230,6 +230,32 @@ describe("contacts.mutations.create", () => {
     ).rejects.toThrow(/value must be a valid URL/);
   });
 
+  it("rejects a value that is empty after trim", async () => {
+    const t = makeT();
+    await signInAs(t, "auth_empty_trim", "user_empty_trim");
+    await expect(
+      t.mutation(api.contacts.mutations.create, {
+        kind: "email",
+        value: "   ",
+      }),
+    ).rejects.toThrow(/value is required/);
+  });
+
+  it("rejects a value that exceeds the 2000-char length cap", async () => {
+    const t = makeT();
+    await signInAs(t, "auth_too_long", "user_too_long");
+    // 2001 https-prefix-friendly chars so the URL validator never gets a
+    // chance to short-circuit the length check.
+    const oversized = `https://example.com/${"a".repeat(2001 - "https://example.com/".length)}`;
+    expect(oversized.length).toBe(2001);
+    await expect(
+      t.mutation(api.contacts.mutations.create, {
+        kind: "linkedin",
+        value: oversized,
+      }),
+    ).rejects.toThrow(/exceeds maximum length of 2000/);
+  });
+
   it("create's args validator does NOT include userId", async () => {
     const t = makeT();
     await signInAs(t, "auth_no_user_arg", "user_no_user_arg");
@@ -253,7 +279,7 @@ describe("contacts.mutations.update", () => {
     authState.currentAuthUser = null;
   });
 
-  it("updates the entry value for the owner", async () => {
+  it("updates the entry value for the owner and leaves the kind untouched", async () => {
     const t = makeT();
     await signInAs(t, "auth_upd", "user_upd");
     const id = await t.mutation(api.contacts.mutations.create, {
@@ -268,6 +294,9 @@ describe("contacts.mutations.update", () => {
 
     const row = await t.run(async (ctx) => ctx.db.get(id));
     expect(row!.value).toBe("new@example.com");
+    // The kind-lock invariant: update is value-only. A future refactor that
+    // accepts `kind` on update would silently break this assertion.
+    expect(row!.kind).toBe("email");
   });
 
   it("rejects an update from a different signed-in user", async () => {

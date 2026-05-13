@@ -17,6 +17,8 @@
     "./convex/content/safeFetch": "./convex/content/safeFetch.ts",
     "./convex/content/markdownImport": "./convex/content/markdownImport.ts",
     "./convex/posts/categories": "./convex/posts/categories.ts",
+    "./convex/contacts/schema": "./convex/contacts/schema.ts",
+    "./convex/contacts/labels": "./convex/contacts/labels.ts",
     "./convex/*": "./convex/*",
     "./chat/tonePresets": {
       "types": "./convex/chat/tonePresets.ts",
@@ -60,6 +62,12 @@
       ],
       "convex/posts/categories": [
         "./convex/posts/categories.ts"
+      ],
+      "convex/contacts/schema": [
+        "./convex/contacts/schema.ts"
+      ],
+      "convex/contacts/labels": [
+        "./convex/contacts/labels.ts"
       ],
       "chat/tonePresets": [
         "./convex/chat/tonePresets.ts"

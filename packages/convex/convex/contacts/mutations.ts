@@ -3,6 +3,7 @@ import { internal } from "../_generated/api";
 import { authMutation } from "../lib/auth";
 import { isOwnedByUser } from "../content/helpers";
 import { getAppUser } from "../users/helpers";
+import { CONTACT_KIND_LABEL } from "./labels";
 import { contactEntryKindValidator } from "./schema";
 
 const MAX_VALUE_LENGTH = 2000;
@@ -10,7 +11,10 @@ const MAX_VALUE_LENGTH = 2000;
 // Per-kind validation at the mutation boundary. The Zod form schema in
 // apps/mirror/features/contact/lib/schemas/contact-entry.schema.ts already
 // enforces these client-side; this is the server-side trust boundary.
-function validateValue(
+// Exported so test-fixture seeders (`auth/testHelpers.ts`) cannot bypass
+// validation and plant malformed values (including prompt-injection
+// payloads) that would then flow through the embedding pipeline.
+export function validateValue(
   kind: "email" | "linkedin" | "instagram" | "x" | "tiktok" | "youtube",
   value: string,
 ): void {
@@ -44,18 +48,6 @@ function validateValue(
   }
 }
 
-const KIND_DISPLAY_LABEL: Record<
-  "email" | "linkedin" | "instagram" | "x" | "tiktok" | "youtube",
-  string
-> = {
-  email: "Email",
-  linkedin: "LinkedIn",
-  instagram: "Instagram",
-  x: "X",
-  tiktok: "TikTok",
-  youtube: "YouTube",
-};
-
 export const create = authMutation({
   args: {
     kind: contactEntryKindValidator,
@@ -78,7 +70,7 @@ export const create = authMutation({
       .unique();
     if (existing) {
       throw new Error(
-        `${KIND_DISPLAY_LABEL[args.kind]} contact already exists. Delete the existing entry first.`,
+        `${CONTACT_KIND_LABEL[args.kind]} contact already exists. Delete the existing entry first.`,
       );
     }
 

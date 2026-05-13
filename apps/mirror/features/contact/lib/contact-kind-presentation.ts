@@ -1,4 +1,5 @@
 import { type IconName } from "@feel-good/ui/components/icon";
+import { CONTACT_KIND_LABEL } from "@feel-good/convex/convex/contacts/labels";
 import { type ContactEntryKind } from "../types";
 
 /**
@@ -32,37 +33,37 @@ type Presentation = {
 
 export const CONTACT_KIND_PRESENTATION: Record<ContactEntryKind, Presentation> = {
   email: {
-    label: "Email",
+    label: CONTACT_KIND_LABEL.email,
     iconName: "EnvelopeFillIcon",
     placeholder: "you@example.com",
     hrefFor: (value) => `mailto:${value.trim()}`,
   },
   linkedin: {
-    label: "LinkedIn",
+    label: CONTACT_KIND_LABEL.linkedin,
     iconName: "LinkIcon",
     placeholder: "https://www.linkedin.com/in/your-handle",
     hrefFor: (value) => value.trim(),
   },
   instagram: {
-    label: "Instagram",
+    label: CONTACT_KIND_LABEL.instagram,
     iconName: "LinkIcon",
     placeholder: "https://www.instagram.com/your-handle",
     hrefFor: (value) => value.trim(),
   },
   x: {
-    label: "X",
+    label: CONTACT_KIND_LABEL.x,
     iconName: "XIcon",
     placeholder: "https://x.com/your-handle",
     hrefFor: (value) => value.trim(),
   },
   tiktok: {
-    label: "TikTok",
+    label: CONTACT_KIND_LABEL.tiktok,
     iconName: "LinkIcon",
     placeholder: "https://www.tiktok.com/@your-handle",
     hrefFor: (value) => value.trim(),
   },
   youtube: {
-    label: "YouTube",
+    label: CONTACT_KIND_LABEL.youtube,
     iconName: "VideoFillIcon",
     placeholder: "https://www.youtube.com/@your-channel",
     hrefFor: (value) => value.trim(),

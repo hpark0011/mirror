@@ -7,10 +7,6 @@ import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { useContactEntries } from "./use-contact-entries";
 import { type ContactEntry } from "../types";
 import { type ContactEntryFormValues } from "../lib/schemas/contact-entry.schema";
-import {
-  toCreateMutationArgs,
-  toUpdateMutationArgs,
-} from "../utils/mutation-helpers";
 
 export type ContactDialogState =
   | { open: false }
@@ -89,9 +85,9 @@ export function useContactPanelHandlers() {
 
       try {
         if (editId !== null) {
-          await updateEntry({ id: editId, ...toUpdateMutationArgs(values) });
+          await updateEntry({ id: editId, value: values.value.trim() });
         } else {
-          await createEntry(toCreateMutationArgs(values));
+          await createEntry({ kind: values.kind, value: values.value.trim() });
         }
       } catch (err) {
         showToast({ type: "error", title: getMutationErrorMessage(err) });

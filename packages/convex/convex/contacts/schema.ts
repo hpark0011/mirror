@@ -13,7 +13,22 @@
  * boundary) and the Zod schema in `apps/mirror/features/contact/lib/schemas/`.
  */
 import { defineTable } from "convex/server";
-import { v } from "convex/values";
+import { v, type Infer } from "convex/values";
+
+// Source-of-truth tuple for the supported contact platforms. Server-side
+// callers (mutations, queries) derive `MAX_CONTACT_ENTRIES` from
+// `.length`, and the client derives the same constant from
+// `CONTACT_ENTRY_KINDS` in `apps/mirror/features/contact/types.ts`. The
+// two lists are kept in lockstep by `contactEntryKindValidator`'s `Infer`
+// type at every type-checked boundary.
+export const CONTACT_ENTRY_KIND_VALUES = [
+  "email",
+  "linkedin",
+  "instagram",
+  "x",
+  "tiktok",
+  "youtube",
+] as const;
 
 export const contactEntryKindValidator = v.union(
   v.literal("email"),
@@ -23,6 +38,19 @@ export const contactEntryKindValidator = v.union(
   v.literal("tiktok"),
   v.literal("youtube"),
 );
+
+// Drift guard: the tuple of platform literals and the validator's union
+// must be identical. Adding a 7th platform to one without the other is a
+// compile-time error on the assignment below.
+type _Equal<A, B> =
+  (<T>() => T extends A ? 1 : 2) extends <T>() => T extends B ? 1 : 2
+    ? true
+    : false;
+const _contactEntryKindDriftCheck: _Equal<
+  (typeof CONTACT_ENTRY_KIND_VALUES)[number],
+  Infer<typeof contactEntryKindValidator>
+> = true;
+void _contactEntryKindDriftCheck;
 
 export const contactEntryFields = {
   userId: v.id("users"),

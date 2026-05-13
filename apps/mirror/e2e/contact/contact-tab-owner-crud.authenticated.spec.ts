@@ -1,5 +1,4 @@
-import { type Page } from "@playwright/test";
-import { test, expect } from "../fixtures/auth";
+import { test, expect, waitForAuthReady } from "../fixtures/auth";
 
 /**
  * Contact tab — authenticated owner CRUD spec.
@@ -33,17 +32,6 @@ type SeedEntry = {
   kind: ContactKind;
   value: string;
 };
-
-/**
- * Wait for Convex's auth handshake to complete on the client. Same pattern as
- * bio's owner-CRUD spec — mutations fired immediately after the cards render
- * race the ConvexBetterAuthProvider's auth-token plumbing and surface as
- * server-side "Unauthenticated" errors despite a valid session.
- */
-async function waitForAuthReady(page: Page): Promise<void> {
-  // eslint-disable-next-line no-restricted-syntax -- pending auth-ready signal
-  await page.waitForTimeout(1500);
-}
 
 async function ensureContactFixtures(
   entries: ReadonlyArray<SeedEntry>,
@@ -255,5 +243,11 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
       .locator("[data-sonner-toast]")
       .filter({ hasText: /LinkedIn contact already exists/i });
     await expect(toast).toBeVisible({ timeout: 5_000 });
+
+    // List must roll back to the seeded LinkedIn row only — a stuck
+    // optimistic insert would surface as count=2 here.
+    await expect(page.getByTestId("contact-entry-card")).toHaveCount(1, {
+      timeout: 5_000,
+    });
   });
 });

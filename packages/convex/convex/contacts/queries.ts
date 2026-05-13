@@ -1,10 +1,15 @@
 import { v } from "convex/values";
 import { type Doc } from "../_generated/dataModel";
 import { internalQuery, query } from "../_generated/server";
-import { contactEntryKindValidator } from "./schema";
+import {
+  CONTACT_ENTRY_KIND_VALUES,
+  contactEntryKindValidator,
+} from "./schema";
 
-// Hard cap matches the six platforms supported. One per platform.
-const MAX_CONTACT_ENTRIES = 6;
+// Derived from the validator's source-of-truth tuple so adding a 7th platform
+// widens the cap automatically. The matching client constant lives at
+// `apps/mirror/features/contact/types.ts`'s `CONTACT_ENTRY_KINDS.length`.
+const MAX_CONTACT_ENTRIES = CONTACT_ENTRY_KIND_VALUES.length;
 
 const contactEntryReturnValidator = v.object({
   _id: v.id("contactEntries"),

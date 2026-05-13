@@ -40,6 +40,7 @@ import type * as chat_tonePresets from "../chat/tonePresets.js";
 import type * as chat_toolMutations from "../chat/toolMutations.js";
 import type * as chat_toolQueries from "../chat/toolQueries.js";
 import type * as chat_tools from "../chat/tools.js";
+import type * as contacts_labels from "../contacts/labels.js";
 import type * as contacts_mutations from "../contacts/mutations.js";
 import type * as contacts_queries from "../contacts/queries.js";
 import type * as contacts_serializeForEmbedding from "../contacts/serializeForEmbedding.js";
@@ -125,6 +126,7 @@ declare const fullApi: ApiFromModules<{
   "chat/toolMutations": typeof chat_toolMutations;
   "chat/toolQueries": typeof chat_toolQueries;
   "chat/tools": typeof chat_tools;
+  "contacts/labels": typeof contacts_labels;
   "contacts/mutations": typeof contacts_mutations;
   "contacts/queries": typeof contacts_queries;
   "contacts/serializeForEmbedding": typeof contacts_serializeForEmbedding;
