@@ -1,5 +1,9 @@
 import { CONTACT_ENTRY_KIND_VALUES, contactEntryKindValidator } from "./schema";
 import { type Infer } from "convex/values";
+import {
+  CONTACT_HOSTNAME_ALLOWLIST,
+  type NonEmailContactKind,
+} from "./hostnameAllowlist";
 
 export type DetectedContactKind = Infer<typeof contactEntryKindValidator>;
 
@@ -10,6 +14,11 @@ export function isContactEntryKind(
 ): value is DetectedContactKind {
   return CONTACT_KIND_SET.has(value);
 }
+
+// Non-email kinds in the order they appear in CONTACT_ENTRY_KIND_VALUES.
+const NON_EMAIL_KINDS = CONTACT_ENTRY_KIND_VALUES.filter(
+  (k): k is NonEmailContactKind => k !== "email",
+);
 
 export function detectContactKind(value: string): DetectedContactKind | null {
   const trimmed = value.trim();
@@ -26,11 +35,13 @@ export function detectContactKind(value: string): DetectedContactKind | null {
 
   const host = url.hostname.toLowerCase().replace(/^www\./, "");
 
-  if (host === "linkedin.com") return "linkedin";
-  if (host === "instagram.com") return "instagram";
-  if (host === "x.com" || host === "twitter.com") return "x";
-  if (host === "tiktok.com") return "tiktok";
-  if (host === "youtube.com" || host === "youtu.be") return "youtube";
+  for (const kind of NON_EMAIL_KINDS) {
+    if (
+      (CONTACT_HOSTNAME_ALLOWLIST[kind] as ReadonlyArray<string>).includes(host)
+    ) {
+      return kind;
+    }
+  }
 
   return null;
 }
