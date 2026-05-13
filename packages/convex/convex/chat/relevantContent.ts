@@ -10,6 +10,7 @@ import { buildEmbeddingUserSourceKey } from "../embeddings/schema";
 import {
   getNavigableContentSource,
   getNavigableContentSourceByTable,
+  NAVIGABLE_CONTENT_SOURCES,
   type ContentSourceTable,
   type NavigableContentKind,
 } from "../content/sourceRegistry";
@@ -60,6 +61,14 @@ export async function findRelevantPublishedContent(
     },
   });
 
+  // Scope the no-kind branch to navigable userSourceKeys at the vector layer
+  // (FG_205). Without this, high-scoring non-navigable chunks (bio, contact)
+  // fill the RELEVANT_CONTENT_VECTOR_LIMIT budget and starve published
+  // articles/posts that score just below them — the post-filter at the chunk
+  // resolution step would drop the non-navigable rows but cannot recover the
+  // crowded-out navigable rows. The vector index `userSourceKey` filterField
+  // supports `or` (see `embeddings/schema.ts` docstring), so we compose one
+  // `eq` per navigable source. The post-filter stays as defense-in-depth.
   const primaryVectorResults = await ctx.vectorSearch(
     "contentEmbeddings",
     "by_embedding",
@@ -75,13 +84,26 @@ export async function findRelevantPublishedContent(
                 getNavigableContentSource(args.kind).sourceTable,
               ),
             )
-          : q.eq("userId", args.profileOwnerId),
+          : q.or(
+              ...NAVIGABLE_CONTENT_SOURCES.map((source) =>
+                q.eq(
+                  "userSourceKey",
+                  buildEmbeddingUserSourceKey(
+                    args.profileOwnerId,
+                    source.sourceTable,
+                  ),
+                ),
+              ),
+            ),
     },
   );
   const legacyVectorResults =
     // Rows embedded before `userSourceKey` existed cannot match the composite
-    // filter. Keep them reachable until the next backfill/regeneration pass.
-    args.kind && primaryVectorResults.length < RELEVANT_CONTENT_VECTOR_LIMIT
+    // filter on EITHER branch (kind-restricted matches one key; unrestricted
+    // matches the navigable set). Keep them reachable via owner-only fallback
+    // until the next backfill/regeneration pass. The chunk-resolution post-
+    // filter still drops non-navigable rows surfaced by this fallback.
+    primaryVectorResults.length < RELEVANT_CONTENT_VECTOR_LIMIT
       ? await ctx.vectorSearch("contentEmbeddings", "by_embedding", {
           vector: embedding,
           limit: RELEVANT_CONTENT_LEGACY_VECTOR_LIMIT,

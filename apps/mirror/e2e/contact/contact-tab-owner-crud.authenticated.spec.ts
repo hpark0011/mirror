@@ -17,8 +17,16 @@ import { test, expect, waitForAuthReady } from "../fixtures/auth";
 const username = "test-user";
 const testEmail = "playwright-test@mirror.test";
 
-const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL!;
-const testSecret = process.env.PLAYWRIGHT_TEST_SECRET!;
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} must be set to run contact Playwright specs`);
+  }
+  return value;
+}
+
+const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
+const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
 
 type ContactKind =
   | "email"
@@ -63,7 +71,7 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
     authenticatedPage: page,
   }) => {
     await ensureContactFixtures([
-      { kind: "email", value: "hpark0011@gmail.com" },
+      { kind: "email", value: "contact-user@example.com" },
     ]);
 
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -109,7 +117,7 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
     // real value and submit.
     await dialog
       .getByTestId("contact-value-input")
-      .fill("hpark0011@gmail.com");
+      .fill("contact-user@example.com");
     await dialog.getByRole("button", { name: /^add$/i }).click();
 
     // Dialog closes synchronously on submit.
@@ -119,7 +127,7 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
       '[data-testid="contact-entry-card"][data-kind="email"]',
     );
     await expect(card).toBeVisible({ timeout: 5_000 });
-    await expect(card).toContainText("hpark0011@gmail.com");
+    await expect(card).toContainText("contact-user@example.com");
   });
 
   test("Edit updates the value in place via Convex live query", async ({
@@ -150,19 +158,19 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
     await expect(dialog).toBeVisible({ timeout: 5_000 });
 
     const valueInput = dialog.getByTestId("contact-value-input");
-    await valueInput.fill("https://www.linkedin.com/in/hyunsolpark/");
+    await valueInput.fill("https://www.linkedin.com/in/test-user/");
     await dialog.getByRole("button", { name: /^save$/i }).click();
 
     await expect(dialog).not.toBeVisible({ timeout: 5_000 });
-    await expect(card).toContainText("hyunsolpark", { timeout: 5_000 });
+    await expect(card).toContainText("test-user", { timeout: 5_000 });
   });
 
   test("Delete removes the row; refresh confirms persistence", async ({
     authenticatedPage: page,
   }) => {
     await ensureContactFixtures([
-      { kind: "x", value: "https://x.com/hpark0011" },
-      { kind: "email", value: "hpark0011@gmail.com" },
+      { kind: "x", value: "https://x.com/test-user" },
+      { kind: "email", value: "contact-user@example.com" },
     ]);
 
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -227,7 +235,7 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
     await page.getByRole("option", { name: "LinkedIn" }).click();
     await dialog
       .getByTestId("contact-value-input")
-      .fill("https://www.linkedin.com/in/hyunsolpark/");
+      .fill("https://www.linkedin.com/in/test-user/");
 
     // Seed another LinkedIn server-side before the user clicks Add — server
     // will reject the duplicate insert.

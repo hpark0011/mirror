@@ -134,7 +134,7 @@ describe("contacts.mutations.create", () => {
 
     const id = await t.mutation(api.contacts.mutations.create, {
       kind: "email",
-      value: "hpark0011@gmail.com",
+      value: "contact_user@example.com",
     });
     expect(id).toBeDefined();
 
@@ -142,7 +142,7 @@ describe("contacts.mutations.create", () => {
     expect(row).not.toBeNull();
     expect(row!.userId).toBe(ownerId);
     expect(row!.kind).toBe("email");
-    expect(row!.value).toBe("hpark0011@gmail.com");
+    expect(row!.value).toBe("contact_user@example.com");
   });
 
   it("trims surrounding whitespace from value before persisting", async () => {

@@ -14,8 +14,16 @@ import { test, expect, type Page } from "@playwright/test";
  * parallel workers can't race fixture writes.
  */
 
-const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL!;
-const testSecret = process.env.PLAYWRIGHT_TEST_SECRET!;
+function requireEnv(name: string): string {
+  const value = process.env[name];
+  if (!value) {
+    throw new Error(`${name} must be set to run contact Playwright specs`);
+  }
+  return value;
+}
+
+const convexSiteUrl = requireEnv("NEXT_PUBLIC_CONVEX_SITE_URL");
+const testSecret = requireEnv("PLAYWRIGHT_TEST_SECRET");
 
 type ContactKind =
   | "email"
@@ -34,16 +42,6 @@ async function ensureContactFixtures(
   email: string,
   entries: ReadonlyArray<SeedEntry>,
 ): Promise<void> {
-  if (!convexSiteUrl) {
-    throw new Error(
-      "NEXT_PUBLIC_CONVEX_SITE_URL must be set to run contact Playwright specs",
-    );
-  }
-  if (!testSecret) {
-    throw new Error(
-      "PLAYWRIGHT_TEST_SECRET must be set to run contact Playwright specs",
-    );
-  }
   const res = await fetch(`${convexSiteUrl}/test/ensure-contact-fixtures`, {
     method: "POST",
     headers: {
@@ -98,7 +96,7 @@ test.describe("Contact tab — signed-out visitor", () => {
   }) => {
     const { username, email } = await setupScenarioUser("render");
     await ensureContactFixtures(email, [
-      { kind: "email", value: "hpark0011@gmail.com" },
+      { kind: "email", value: "contact-user@example.com" },
     ]);
 
     await gotoContact(page, username);
@@ -122,10 +120,10 @@ test.describe("Contact tab — signed-out visitor", () => {
   }) => {
     const { username, email } = await setupScenarioUser("anchors");
     await ensureContactFixtures(email, [
-      { kind: "email", value: "hpark0011@gmail.com" },
-      { kind: "linkedin", value: "https://www.linkedin.com/in/hyunsolpark/" },
-      { kind: "instagram", value: "https://www.instagram.com/hyunsolpark/" },
-      { kind: "x", value: "https://x.com/hpark0011" },
+      { kind: "email", value: "contact-user@example.com" },
+      { kind: "linkedin", value: "https://www.linkedin.com/in/test-user/" },
+      { kind: "instagram", value: "https://www.instagram.com/test-user/" },
+      { kind: "x", value: "https://x.com/test-user" },
     ]);
 
     await gotoContact(page, username);
@@ -140,11 +138,11 @@ test.describe("Contact tab — signed-out visitor", () => {
       '[data-testid="contact-entry-card"][data-kind="email"]',
     );
     await expect(emailCard).toContainText("Email");
-    await expect(emailCard).toContainText("hpark0011@gmail.com");
+    await expect(emailCard).toContainText("contact-user@example.com");
     const emailLink = emailCard.getByTestId("contact-entry-link");
     await expect(emailLink).toHaveAttribute(
       "href",
-      "mailto:hpark0011@gmail.com",
+      "mailto:contact-user@example.com",
     );
 
     const liCard = page.locator(
@@ -154,7 +152,7 @@ test.describe("Contact tab — signed-out visitor", () => {
     const liLink = liCard.getByTestId("contact-entry-link");
     await expect(liLink).toHaveAttribute(
       "href",
-      "https://www.linkedin.com/in/hyunsolpark/",
+      "https://www.linkedin.com/in/test-user/",
     );
     await expect(liLink).toHaveAttribute("target", "_blank");
     await expect(liLink).toHaveAttribute("rel", "noopener noreferrer");
@@ -164,7 +162,7 @@ test.describe("Contact tab — signed-out visitor", () => {
     );
     await expect(xCard).toContainText("X");
     const xLink = xCard.getByTestId("contact-entry-link");
-    await expect(xLink).toHaveAttribute("href", "https://x.com/hpark0011");
+    await expect(xLink).toHaveAttribute("href", "https://x.com/test-user");
     await expect(xLink).toHaveAttribute("target", "_blank");
     await expect(xLink).toHaveAttribute("rel", "noopener noreferrer");
 

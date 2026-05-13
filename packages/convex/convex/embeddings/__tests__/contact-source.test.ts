@@ -117,7 +117,7 @@ describe("embeddings: contact source", () => {
       ctx.db.insert("contactEntries", {
         userId: ownerId,
         kind: "email",
-        value: "hpark0011@gmail.com",
+        value: "contact_user@example.com",
       }),
     );
 
@@ -128,7 +128,7 @@ describe("embeddings: contact source", () => {
     expect(content).not.toBeNull();
     expect(content!.kind).toBe("contact");
     if (content!.kind !== "contact") throw new Error("type-narrow");
-    expect(content.body).toBe("Email address: hpark0011@gmail.com.");
+    expect(content.body).toBe("Email address: contact_user@example.com.");
     expect(content.userId).toBe(ownerId);
   });
 
@@ -140,7 +140,7 @@ describe("embeddings: contact source", () => {
       ctx.db.insert("contactEntries", {
         userId: ownerId,
         kind: "linkedin",
-        value: "https://www.linkedin.com/in/hyunsolpark/",
+        value: "https://www.linkedin.com/in/test-user/",
       }),
     );
 
@@ -167,12 +167,12 @@ describe("embeddings: contact source", () => {
     );
     // The chunk's text is the serialized prose.
     expect(row.chunkText).toBe(
-      "LinkedIn profile: https://www.linkedin.com/in/hyunsolpark/.",
+      "LinkedIn profile: https://www.linkedin.com/in/test-user/.",
     );
     // embedMany was invoked exactly once with one chunk.
     expect(embeddingsState.embedManyCalls).toBe(1);
     expect(embeddingsState.lastValues).toEqual([
-      "LinkedIn profile: https://www.linkedin.com/in/hyunsolpark/.",
+      "LinkedIn profile: https://www.linkedin.com/in/test-user/.",
     ]);
   });
 
@@ -185,7 +185,7 @@ describe("embeddings: contact source", () => {
       ctx.db.insert("contactEntries", {
         userId: ownerId,
         kind: "instagram",
-        value: "https://www.instagram.com/hyunsolpark/",
+        value: "https://www.instagram.com/test-user/",
       }),
     );
 

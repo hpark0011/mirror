@@ -949,7 +949,18 @@ export const ensureTestContactFixtures = internalMutation({
       await ctx.db.delete(row._id);
     }
 
+    // Reject duplicate `kind` values up-front so fixture payloads honor the
+    // public one-per-platform invariant. Without this guard, two entries
+    // with the same kind would reach the DB and surface as confusing
+    // by_userId_and_kind index races rather than a clear setup error.
+    const seenKinds = new Set<string>();
     for (const entry of args.entries) {
+      if (seenKinds.has(entry.kind)) {
+        throw new Error(
+          `Duplicate contact kind in fixture payload: ${entry.kind}`,
+        );
+      }
+      seenKinds.add(entry.kind);
       // Run fixtures through the same trust-boundary validator the public
       // create mutation uses so a test-mode actor cannot plant arbitrary
       // strings (e.g. prompt-injection payloads) that would flow through

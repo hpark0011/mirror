@@ -460,10 +460,10 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
     expect(rows.length).toBe(0);
   });
 
-  // Issue I5: scheduling generateEmbedding with each of the three source
-  // tables must not throw a validator error — catches a missed update at
-  // any of the six call sites that adopted `embeddingSourceTableValidator`.
-  it.each(["articles", "posts", "bioEntries"] as const)(
+  // Issue I5: scheduling generateEmbedding with each indexable source table
+  // must not throw a validator error — catches a missed update at any of
+  // the call sites that adopted `embeddingSourceTableValidator`.
+  it.each(["articles", "posts", "bioEntries", "contactEntries"] as const)(
     "Issue I5: generateEmbedding accepts sourceTable=%s without validator rejection",
     async (sourceTable) => {
       const t = makeT();
@@ -482,6 +482,14 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
             title: "i5-bio",
             startDate: utcMonth(2020, 1),
             endDate: null,
+          }),
+        );
+      } else if (sourceTable === "contactEntries") {
+        sourceId = await t.run(async (ctx) =>
+          ctx.db.insert("contactEntries", {
+            userId: ownerId,
+            kind: "email",
+            value: `i5-${ownerId}@example.com`,
           }),
         );
       } else if (sourceTable === "articles") {

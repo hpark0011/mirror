@@ -1,5 +1,6 @@
 "use client";
 
+import { type ReactNode } from "react";
 import { Icon } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
 import {
@@ -12,7 +13,7 @@ type ContactAddEntryButtonProps = {
   onClick: () => void;
   disabled?: boolean;
   disabledReason?: string;
-  children?: React.ReactNode;
+  children?: ReactNode;
 };
 
 export function ContactAddEntryButton({
