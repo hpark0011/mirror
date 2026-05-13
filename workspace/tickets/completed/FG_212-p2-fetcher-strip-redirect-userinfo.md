@@ -3,7 +3,7 @@ id: FG_212
 title: "guardedFetchProfileSource strips userinfo from initial URL and redirect Location"
 date: 2026-05-13
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "new URL(location, current) in the redirect loop preserves any user:password@ injected by an attacker-controlled intermediate hop. fetch then transmits HTTP Basic Authorization to the next target. The initial owner-supplied URL is similarly accepted with credentials because Zod .url() does not reject userinfo. Strip credentials before every fetch."
 dependencies: []

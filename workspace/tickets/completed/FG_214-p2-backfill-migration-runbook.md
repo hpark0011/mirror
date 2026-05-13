@@ -3,7 +3,7 @@ id: FG_214
 title: "Document backfillConversationMode invocation sequence and completion gate"
 date: 2026-05-13
 type: docs
-status: to-do
+status: completed
 priority: p2
 description: "backfillConversationMode has no documented runbook. The only reference to it in the codebase is the migration file itself. Without a documented invocation sequence and completion criterion, the narrow-phase PR (that removes v.optional from mode) can land prematurely and break Convex schema validation on un-backfilled rows."
 dependencies:

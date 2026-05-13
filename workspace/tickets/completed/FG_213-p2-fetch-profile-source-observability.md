@@ -3,7 +3,7 @@ id: FG_213
 title: "fetchProfileSource emits structured logs and Sentry breadcrumbs"
 date: 2026-05-13
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "guardedFetchProfileSource is a brand-new external I/O boundary with no instrumentation. The try/catch silently converts every failure to status: unavailable with no log or Sentry trace. A misconfigured blocklist that false-positives or false-negatives is invisible until a user files a support ticket."
 dependencies: []

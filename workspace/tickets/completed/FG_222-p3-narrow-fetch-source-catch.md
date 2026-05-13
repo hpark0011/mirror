@@ -3,7 +3,7 @@ id: FG_222
 title: "guardedFetchProfileSource catch narrows to expected fetch failures only"
 date: 2026-05-13
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "The outer catch in guardedFetchProfileSource silently converts every thrown error — including future programming bugs (TypeError, null deref, unexpected response shape) — to a status: unavailable response. Programming bugs are masked as graceful 'unavailable' results the LLM sees, with no signal to logs or on-call."
 dependencies:

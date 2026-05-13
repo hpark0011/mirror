@@ -3,7 +3,7 @@ id: FG_221
 title: "New chat and profile components route user-facing strings through react-i18next"
 date: 2026-05-13
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "PR #93 adds new user-facing strings in chat-conversation-list-sheet.tsx, chat-input.tsx, chat-message-list.tsx, and configure-profile-button.tsx as bare string literals. The repo actively uses react-i18next in settings, posts, and articles features (per apps/mirror/AGENTS.md tech stack table). CodeRabbit raised four threads on this; none addressed."
 dependencies: []

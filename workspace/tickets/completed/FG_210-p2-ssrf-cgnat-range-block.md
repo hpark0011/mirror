@@ -3,7 +3,7 @@ id: FG_210
 title: "isBlockedIp blocks RFC 6598 CGNAT range 100.64.0.0/10"
 date: 2026-05-13
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The IPv4 portion of isBlockedIp in configurationTools.ts misses RFC 6598 Shared Address Space (100.64.0.0/10, second octet 64-127). Confirmed false negative: isBlockedIp('100.64.0.1') returns false. Low practical risk on current Convex infra but breaks the completeness invariant set by the PR's own retro lesson on URL-fetcher threat modeling."
 dependencies: []

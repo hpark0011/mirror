@@ -3,7 +3,7 @@ id: FG_220
 title: "sendConfigurationDailyOwner bucket exhaustion + token-charge formula are tested"
 date: 2026-05-13
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "The new sendConfigurationDailyOwner token bucket (capacity 15,000; rate 60,000/day; keyed by owner) and the Math.ceil(content.length/4) token-charge heuristic in mutations.ts:88 are uncovered by tests. A change to the formula or a misconfigured bucket capacity would not be caught."
 dependencies: []

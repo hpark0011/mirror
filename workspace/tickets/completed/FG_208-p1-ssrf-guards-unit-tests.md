@@ -3,7 +3,7 @@ id: FG_208
 title: "Unit tests cover every SSRF guard branch in guardedFetchProfileSource"
 date: 2026-05-13
 type: chore
-status: to-do
+status: completed
 priority: p1
 description: "guardedFetchProfileSource (configurationTools.ts) is the PR's highest-risk novel security surface but has zero unit-test coverage of any guard branch — private IP block, redirect cap, body cap, content-type allowlist, https-only, timeout, fixed user agent, no-cookies. Flipping any predicate would pass the test suite today."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_216
 title: "Revert unrelated whitespace churn bundled into the configuration-mode PR"
 date: 2026-05-13
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "PR #93 includes cosmetic reformatting unrelated to the configuration-mode feature — cn() call collapse in chat-input.tsx and scheduler.runAfter() reformatting in chat/mutations.ts. These changes pollute git blame, hide on a feature commit, and violate the project's PR-hygiene lesson from 2026-05-06."
 dependencies: []

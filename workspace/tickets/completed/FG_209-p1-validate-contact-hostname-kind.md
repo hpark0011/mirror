@@ -3,7 +3,7 @@ id: FG_209
 title: "validateValue enforces contact URL hostname matches declared kind"
 date: 2026-05-13
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "contacts/writeHelpers.validateValue accepts any https URL for non-email kinds, so a contact entry with kind='linkedin' can store value='https://tiktok.com/...'. The configuration agent or a stale-client form submission can therefore persist mislabeled data, break the one-per-platform invariant, and cause the wrong icon/label to render."
 dependencies: []

@@ -3,7 +3,7 @@ id: FG_217
 title: "collectAllKeys walks discriminated-union variants inside arrays"
 date: 2026-05-13
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "The collectAllKeys helper in tools.test.ts pins the no-userId-in-inputSchema invariant by recursing into .shape. It does not recurse into z.discriminatedUnion variants or z.array element schemas, so a future userId added inside a bioOperationSchema variant would pass the test silently."
 dependencies: []

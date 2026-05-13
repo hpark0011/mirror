@@ -3,7 +3,7 @@ id: FG_218
 title: "applyContactEntryPatch has an all-or-nothing atomicity test"
 date: 2026-05-13
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "applyBioEntryPatch has a mid-batch-failure test that proves Convex transaction rollback covers partial batches. The symmetric applyContactEntryPatch has only a happy-path test. A regression that commits partial contact-patch batches would not be caught by the suite."
 dependencies: []

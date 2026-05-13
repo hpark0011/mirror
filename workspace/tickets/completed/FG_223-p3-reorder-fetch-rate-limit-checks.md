@@ -3,7 +3,7 @@ id: FG_223
 title: "enforceFetchLimit checks the daily bucket before consuming a minute token"
 date: 2026-05-13
 type: fix
-status: to-do
+status: completed
 priority: p3
 description: "enforceFetchLimit consumes the per-minute fetchProfileSource token before checking the daily fetchProfileSourceDailyOwner bucket. When the daily check rejects, the minute token has already been decremented for a fetch that never happened — exhausting the conversation's minute bucket without producing a single successful fetch."
 dependencies: []

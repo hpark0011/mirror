@@ -3,7 +3,7 @@ id: FG_206
 title: "Close DNS-rebind SSRF window in fetchProfileSource"
 date: 2026-05-13
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "The configuration agent's fetchProfileSource tool validates the resolved IP via node:dns/promises.lookup() and then calls fetch(current.toString()), which re-resolves the hostname independently. A short-TTL attacker DNS record can return a public IP for the safety check and a private/loopback/metadata IP for the actual fetch."
 dependencies: []

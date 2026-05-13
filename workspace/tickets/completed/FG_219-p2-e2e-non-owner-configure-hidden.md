@@ -3,7 +3,7 @@ id: FG_219
 title: "E2E asserts non-owners do not see the Configure profile button"
 date: 2026-05-13
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "The new e2e spec covers only the owner happy path — owner clicks Configure profile, URL gains chatMode=configuration. There is no negative case asserting an unauthenticated visitor (or a logged-in non-owner) does NOT see the Configure profile button. A regression that exposes the owner-only affordance to non-owners would not be caught."
 dependencies: []

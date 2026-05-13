@@ -3,7 +3,7 @@ id: FG_207
 title: "backfillConversationMode resumes via cursor and signals completion"
 date: 2026-05-13
 type: refactor
-status: to-do
+status: completed
 priority: p1
 description: "The chat-mode backfill migration restarts at offset 0 on every invocation and breaks at scanned >= limit, so deployments with more than `limit` conversations leave a tail of rows with mode=undefined. The narrow phase that removes v.optional from the mode validator will then fail Convex schema validation on those un-backfilled rows."
 dependencies: []

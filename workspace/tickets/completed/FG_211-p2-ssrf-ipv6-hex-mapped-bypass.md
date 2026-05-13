@@ -3,7 +3,7 @@ id: FG_211
 title: "isBlockedIp rejects hex-form IPv4-mapped IPv6 (::ffff:7f00:0001)"
 date: 2026-05-13
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The ::ffff: handler in isBlockedIp only catches dotted-decimal IPv4-mapped IPv6 (::ffff:127.0.0.1). The hex-group form ::ffff:7f00:0001 (also equivalent to 127.0.0.1) falls through both the IPv4 branch (isIP returns 0 for '7f00:0001') and the IPv6 branch (the prefix doesn't match any blocked literal). Confirmed false negative."
 dependencies: []

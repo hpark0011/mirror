@@ -3,7 +3,7 @@ id: FG_215
 title: "ChatMode and DEFAULT_CHAT_MODE share a single source of truth"
 date: 2026-05-13
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "ChatMode, DEFAULT_CHAT_MODE, and the enum tuple (CHAT_MODES vs CHAT_MODE_VALUES) are defined twice — once in apps/mirror/features/chat/types.ts and once in packages/convex/convex/chat/mode.ts — with no enforced linkage. A future addition (a third mode) silently diverges between frontend and backend."
 dependencies: []
