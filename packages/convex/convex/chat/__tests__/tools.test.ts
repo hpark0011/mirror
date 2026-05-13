@@ -1169,15 +1169,32 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
   // boundary; schema keys are.
 
   // Walk a Zod object shape recursively and collect all field keys.
-  // Catches user-identifier leaks at any nesting depth (e.g. a future
-  // z.discriminatedUnion whose variant contains `userId`).
+  // Catches user-identifier leaks at any nesting depth, including discriminated
+  // unions and arrays — a future bioOperationSchema variant adding `userId`
+  // must trip the inputSchema-invariants test.
+  function collectAllKeysOfSchema(schema: unknown): string[] {
+    if (!schema || typeof schema !== "object") return [];
+    const keys: string[] = [];
+    const s = schema as {
+      shape?: Record<string, unknown>;
+      options?: unknown[]; // z.discriminatedUnion / z.union variants
+      element?: unknown; // z.array element
+    };
+    if (s.shape) keys.push(...collectAllKeys(s.shape));
+    if (Array.isArray(s.options)) {
+      for (const variant of s.options) {
+        keys.push(...collectAllKeysOfSchema(variant));
+      }
+    }
+    if (s.element) keys.push(...collectAllKeysOfSchema(s.element));
+    return keys;
+  }
+
   function collectAllKeys(shape: Record<string, unknown>): string[] {
     const keys: string[] = [];
     for (const [k, v] of Object.entries(shape)) {
       keys.push(k);
-      // If v is a Zod object, recurse into its shape.
-      const nestedShape = (v as { shape?: Record<string, unknown> })?.shape;
-      if (nestedShape) keys.push(...collectAllKeys(nestedShape));
+      keys.push(...collectAllKeysOfSchema(v));
     }
     return keys;
   }
@@ -2407,6 +2424,38 @@ describe("chat/profile configuration tool primitives", () => {
     const rows = await t.run(async (ctx) =>
       ctx.db
         .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("applyContactEntryPatch is all-or-nothing when a later operation fails validation", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_contact_patch_atomic");
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContactEntryPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "set",
+            kind: "linkedin",
+            value: "https://www.linkedin.com/in/owner-contact-patch-atomic",
+          },
+          {
+            // Second op fails validation: empty string trips validateValue.
+            action: "set",
+            kind: "instagram",
+            value: "",
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("contactEntries")
         .withIndex("by_userId", (q) => q.eq("userId", owner))
         .collect(),
     );

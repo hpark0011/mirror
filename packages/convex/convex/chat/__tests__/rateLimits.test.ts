@@ -908,6 +908,105 @@ describe("chat configuration mode invariants", () => {
       "getProfileConfiguration",
     ]);
   });
+
+  // -- estimateInputTokenCount formula pin ----------------------------------
+
+  it("estimateInputTokenCount formula: returns Math.ceil(length/4) clamped to 1", async () => {
+    // Import the exported helper directly. This test pins the Math.ceil/4
+    // heuristic so that a change to the formula (e.g. returning a constant 1)
+    // is caught before the exhaustion test would even run.
+    const { estimateInputTokenCount } = await import("../mutations");
+    expect(estimateInputTokenCount("")).toBe(1);
+    expect(estimateInputTokenCount("a")).toBe(1);
+    expect(estimateInputTokenCount("a".repeat(4))).toBe(1);
+    expect(estimateInputTokenCount("a".repeat(4001))).toBe(1001);
+    // 12,000 chars → 3,000 tokens (the exhaustion test payload size)
+    expect(estimateInputTokenCount("a".repeat(12_000))).toBe(3_000);
+  });
+
+  // -- sendConfigurationDailyOwner bucket exhaustion -----------------------
+  //
+  // Bucket: capacity 15,000 tokens; rate 60,000/day (token bucket, refills
+  // continuously). A 12,000-char message charges exactly 3,000 tokens. Five
+  // such messages exhaust the 15,000-token capacity; the 6th must be rejected.
+  //
+  // We advance fake time 70s between sends (> 1 minute) to keep the per-minute
+  // `sendConfigurationMessage` / `createConfigurationConversation` fixed-window
+  // buckets from firing. The daily token bucket refills at 60,000 tokens/day,
+  // so in 5 × 70s = 350s it refills ≈ 60,000 × 350/86,400 ≈ 243 tokens — far
+  // below the 15,000 capacity, so the bucket still exhausts.
+
+  it("sendConfigurationDailyOwner bucket: 5 × 12k-char messages exhaust capacity, 6th throws RATE_LIMIT_DAILY and leaves streamingInProgress false", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_daily_owner",
+      email: "config-daily-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_daily_owner" };
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-04-15T00:00:00Z"));
+
+    const payload = "x".repeat(12_000); // 12,000 chars → 3,000 tokens each
+
+    // Send 5 messages; each one should pass and consume 3,000 tokens from the
+    // 15,000-capacity bucket. Each call creates a new conversation (no
+    // conversationId supplied) so we avoid the streaming-lock concurrency
+    // guard and the per-minute `sendConfigurationMessage` (existing-conv) bucket.
+    // The new-conversation path hits `createConfigurationConversation` (rate 2/min)
+    // — we advance 70s between sends so the fixed window resets each time.
+    let lastConversationId: Awaited<ReturnType<typeof insertConversation>>;
+    for (let i = 0; i < 5; i++) {
+      vi.advanceTimersByTime(70_000);
+      const result = await t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: payload,
+      });
+      lastConversationId = result.conversationId;
+    }
+
+    // Verify the 5th conversation's lock is false before the doomed call so
+    // we can attribute any post-call change to the rate-limit rejection path.
+    const beforeDoc = await t.run(async (ctx) => ctx.db.get(lastConversationId!));
+    expect(beforeDoc?.streamingInProgress).toBeTruthy(); // set by sendMessage
+
+    // Clear the lock to isolate the rate-limit from the concurrency guard.
+    await clearLock(t, lastConversationId!);
+    const clearedDoc = await t.run(async (ctx) => ctx.db.get(lastConversationId!));
+    expect(clearedDoc?.streamingInProgress).toBeFalsy();
+
+    // 6th call — daily bucket is exhausted (~3,000 tokens remaining would be
+    // exactly 0 after 5 × 3,000, so the 6th charge of 3,000 must be rejected).
+    vi.advanceTimersByTime(70_000);
+    let caught: unknown;
+    try {
+      await t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: payload,
+      });
+    } catch (e) {
+      caught = e;
+    }
+
+    expect(caught).toBeInstanceOf(ConvexError);
+    const data = getErrorData(caught);
+    expect(data.code).toBe("RATE_LIMIT_DAILY");
+    expect(data.retryAfterMs).toBeGreaterThan(0);
+
+    // NFR-03: the rejected send must NOT have advanced streamingInProgress.
+    // The last conversation that was created is `lastConversationId` — the
+    // doomed call creates a NEW conversation only if it passes rate-limiting;
+    // since it was rejected before the DB insert, no new row exists. Confirm
+    // by checking all conversation rows: none should have streamingInProgress true.
+    const allConversations = await t.run(async (ctx) =>
+      ctx.db.query("conversations").collect(),
+    );
+    for (const conv of allConversations) {
+      expect(conv.streamingInProgress).toBeFalsy();
+    }
+  }, 30_000);
 });
 
 // --------------------------------------------------------------------------

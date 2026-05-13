@@ -1,7 +1,5 @@
 import { v, type Infer } from "convex/values";
 
-export const CHAT_MODE_VALUES = ["clone", "configuration"] as const;
-
 export const chatModeValidator = v.union(
   v.literal("clone"),
   v.literal("configuration"),
