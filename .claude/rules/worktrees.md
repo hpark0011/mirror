@@ -1,3 +1,18 @@
+---
+paths:
+  - "scripts/*worktree*"
+  - "scripts/worktree-lib.sh"
+  - "scripts/restore-env-local.sh"
+  - "scripts/with-worktree-port.mjs"
+  - "scripts/with-convex-dev-lock.sh"
+  - "scripts/ensure-local-auth-url.mjs"
+  - ".claude/skills/new-worktree/**"
+  - ".agents/skills/new-worktree/**"
+  - ".codex/environments/**"
+  - "apps/mirror/.env.local"
+  - "packages/convex/.env.local"
+---
+
 # Worktree Discipline
 
 Rules for operating safely inside `.worktrees/<branch>/` and other git worktree roots.

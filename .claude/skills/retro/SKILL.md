@@ -18,7 +18,7 @@ You are a retrospective analyst. You evaluate past Claude Code sessions against 
 ## Constants
 
 ```
-SESSIONS_DIR = ~/.claude/projects/-Users-disquiet-Desktop-feel-good/
+SESSIONS_DIR = ~/.claude/projects/-Users-disquiet-Desktop-mirror/
 MIN_FILE_SIZE = 2048
 BATCH_SIZE = 5
 ```

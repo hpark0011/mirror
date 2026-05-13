@@ -348,7 +348,7 @@ python3 -c '<script_3_content>' "$SUMMARIES_DIR"
 ### Constants
 
 ```
-SESSIONS_DIR = ~/.claude/projects/-Users-disquiet-Desktop-feel-good/
+SESSIONS_DIR = ~/.claude/projects/-Users-disquiet-Desktop-mirror/
 MIN_FILE_SIZE = 2048  # bytes — skip trivial sessions
 SUMMARIES_DIR = /tmp/retro-summaries-$(date +%s)
 ```

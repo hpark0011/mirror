@@ -1,8 +1,19 @@
+---
+paths:
+  - "packages/convex/convex/embeddings/**"
+  - "packages/convex/convex/articles/mutations.ts"
+  - "packages/convex/convex/bio/mutations.ts"
+  - "packages/convex/convex/contacts/mutations.ts"
+  - "packages/convex/convex/posts/mutations.ts"
+  - "packages/convex/convex/chat/**"
+  - "packages/convex/convex/schema.ts"
+---
+
 # Embeddings & RAG Rules
 
-> Auto-loads under `packages/convex/convex/embeddings/**` and any new
-> ingestion source mutations that schedule
-> `internal.embeddings.actions.generateEmbedding`.
+> Auto-loads under the paths above — any consumer of `contentEmbeddings`
+> (the chat RAG retrieval at `chat/actions.ts`) or any ingestion source
+> that schedules `internal.embeddings.actions.generateEmbedding`.
 
 ## Cross-user isolation invariant
 
