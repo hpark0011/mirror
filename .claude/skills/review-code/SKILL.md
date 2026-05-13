@@ -27,9 +27,10 @@ Pause and surface instead of pressing on when:
 - [ ] 4. Review    — spawn selected reviewers AND run build+lint in parallel
 - [ ] 5. Normalize — validate, confidence-gate (0.60 / P0@0.50), fingerprint dedup, agreement boost, disagreement preservation, pre-existing partition
 - [ ] 6. Compose   — group by priority tier; render tables with Route column; pre-existing in its own section; format-verification self-check
-- [ ] 7. Tickets   — file blockers/should-fix via generate-issue-tickets
-- [ ] 8. Offer fixes — only `safe_auto → review-fixer` items qualify for in-skill auto-apply; do not exit until build + lint are green on the patched diff
+- [ ] 7. Hand off  — render the handoff line that points the user at `/generate-issue-tickets` and `/resolve-issue-tickets`; the report IS the terminal output, do not apply fixes
 ```
+
+**The skill terminates at the report.** The orchestrator does not file tickets, apply fixes, or run build/lint cycles after the report renders. Those belong to downstream skills (`/generate-issue-tickets`, `/resolve-issue-tickets`). Keeping the orchestrator out of the fix loop is the whole point of this skill's shape — otherwise the parallel-reviewer outputs plus an inline fix loop blow past context-compaction in a single session.
 
 ### Phase 1 — Ingest
 
@@ -124,13 +125,14 @@ requires_verification: boolean — true means a fix is incomplete without a targ
 pre_existing:          boolean — true means the diff did not introduce this; the change touched the area but the smell predates it
 ```
 
-`priority` answers **urgency** (must-fix-before-merge, should-fix, nit). `autofix_class` + `owner` answer **who acts next** and **whether this skill may mutate the checkout**. The two axes are independent — a `P3` finding can still be `safe_auto` (a trivial mechanical fix) and a `P0` finding is almost always `manual` (security, concurrency, schema decisions need a human).
+`priority` answers **urgency** (must-fix-before-merge, should-fix, nit). `autofix_class` + `owner` answer **what shape of fix the finding allows** — metadata for the downstream skill (`/resolve-issue-tickets`) that picks up the report, not a license for this skill to apply anything. The two axes are independent — a `P3` finding can still be `safe_auto` (a trivial mechanical fix) and a `P0` finding is almost always `manual` (security, concurrency, schema decisions need a human).
 
 Routing rules enforced in Phase 5:
 - Most-conservative route wins on disagreement. A merged finding may move from `safe_auto` to `gated_auto` or `manual`, but never the other way without new evidence.
-- Only `safe_auto → review-fixer` enters an in-skill fixer queue automatically.
 - `requires_verification: true` means a fix is not complete without a targeted test, a focused re-review, or operational validation.
 - `pre_existing: true` findings inform but do not block; they go in their own report section and do not count toward the verdict.
+
+Every finding — regardless of `autofix_class` — is handed off to the user via Phase 7. This skill never applies fixes itself.
 
 A finding with no `risk` is dropped at validation (Phase 5). Nits can skip `suggestedFix` but still need `risk`.
 
@@ -203,22 +205,19 @@ Compose the report (template below). Rules:
 
 **Format verification self-check** (mandatory before delivering): re-read the report and confirm findings rendered as pipe-delimited table rows (`| # | File | Issue | ... |`), not as freeform prose blocks separated by horizontal rules. If you catch yourself using prose, stop and reformat into tables.
 
-### Phase 7 — Tickets
+### Phase 7 — Hand off
 
-Invoke [`generate-issue-tickets`](../generate-issue-tickets/SKILL.md) for every blocker and should-fix finding. One ticket per finding. Preserve the `file:line` anchor and the `risk` sentence in the ticket body. Do this **before** offering fixes so tickets exist even if the user defers the work.
+The report from Phase 6 is the terminal output. Do **not** file tickets, apply fixes, run additional verification commands, or re-spawn agents from this point. The skill's job is the prioritized findings list — acting on those findings is a separate cycle that uses different primitives.
 
-### Phase 8 — Offer fixes
+Append a single handoff line after the report's `Recommended next step`. Pick the wording that matches the findings:
 
-Build the action sets from the merged finding list:
+- Any P0/P1 findings → _"To act on this: paste the P0/P1 rows into `/generate-issue-tickets` (one row per ticket), then run `/resolve-issue-tickets` to work through them in parallel waves."_
+- Only P2/P3 (or `safe_auto`-style mechanical nits) → _"To act on this: hand the report to me with a specific finding number (e.g., 'fix #3') and I'll do that single edit, or run `/generate-issue-tickets` for anything you want to track."_
+- Clean diff (zero findings) → _"Ready to merge."_ (no handoff line needed)
 
-- **Fixer queue** — findings with `autofix_class: safe_auto` and `owner: review-fixer`. These are mechanical, behavior-preserving, scoped enough to apply without owner judgment.
-- **Gated queue** — findings with `autofix_class: gated_auto`. Concrete fix exists but it changes behavior, contracts, or permissions; needs user approval before applying.
-- **Manual queue** — `autofix_class: manual` findings handed off via Phase 7 tickets. Don't try to auto-resolve.
-- **Advisory** — `autofix_class: advisory` findings (e.g. `previous-comments` audit). Stay in the report; don't auto-act.
+**Why this shape.** Inline fix loops in the orchestrator stack the parallel-reviewer outputs, the merged findings, the per-fix Read/edit/test cycles, and the build/lint output into one session — context-compaction territory. The handoff splits the work: parallel agents produce the report cheaply; downstream skills (each with their own orchestrator) act on it without dragging the review context along.
 
-End with: _"Want me to apply the safe fixes (N)? The gated fixes (M) need your approval per item."_ — wording adapted to whatever queues are non-empty. Do not fix preemptively. If the user agrees, apply only the safe queue (and any approved gated items), then re-run build + lint.
-
-**Exit gate.** The skill does not exit until `pnpm build && pnpm lint` (or the repo's equivalent) are green on the patched diff. If a finding has `requires_verification: true`, the round is incomplete until the targeted regression test runs and the report is updated.
+`/resolve-issue-tickets` already runs executor + verifier sub-agents per ticket in waves; it is the correct downstream primitive for any non-trivial fix slate. For a single one-line fix the user can just say "fix #N" and the conversation handles it without skill machinery.
 
 ## Report format
 
@@ -274,7 +273,7 @@ These predate this diff. They do not count toward the verdict but are surfaced f
 
 <one sentence: what to do first — e.g., "Fix P0 #1 before merge, then address P1 items." or "Clean diff — ready to merge.">
 
-Want me to apply fixes for the P0/P1 items?
+<optional handoff line per Phase 7 — include ONLY when findings exist; for clean diffs end at "Ready to merge." above. When present, picks the variant matching the finding tiers (P0/P1 → /generate-issue-tickets + /resolve-issue-tickets; P2/P3 only → "fix #N" or /generate-issue-tickets). Never offers in-skill auto-fixing.>
 ```
 
 ## Example
@@ -313,5 +312,5 @@ Want me to apply fixes for the P0/P1 items?
 
 Move the lock release into a `finally` block before merge.
 
-Want me to apply fixes for the P0 item?
+To act on this: paste the P0 row into `/generate-issue-tickets`, then run `/resolve-issue-tickets` to work it through executor + verifier agents.
 ```

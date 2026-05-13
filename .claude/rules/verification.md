@@ -80,6 +80,12 @@ await expect(page.getByRole("img", { name: "Cover" })).toBeVisible();
 
 **Escape hatch:** if you genuinely need a fixed wall-clock delay (animation throttle, third-party clock dependency), add `// eslint-disable-next-line no-restricted-syntax -- <one-line reason>` on the same line. Anything not explainable in one line is the rule firing correctly — go add the data-attribute.
 
+### Reading test failures
+
+When a Playwright run fails it prints a path like `test-results/<hash>/error-context.md`. Read that path directly — never `cat <path> | head -N`. Read takes `limit`/`offset` and skips the Bash overhead.
+
+Same pattern for sub-agent results at `/private/tmp/claude-501/<project>/<session>/tasks/<id>.output`: Read the path the harness returns; don't pipe `cat` through `tail`.
+
 ## Tool Boundaries
 
 | Task | Tool |
