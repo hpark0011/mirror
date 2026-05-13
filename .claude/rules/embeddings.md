@@ -7,6 +7,8 @@ paths:
   - "packages/convex/convex/posts/mutations.ts"
   - "packages/convex/convex/chat/**"
   - "packages/convex/convex/schema.ts"
+  - "packages/convex/convex/http.ts"
+  - "packages/convex/convex/auth/testHelpers.ts"
 ---
 
 # Embeddings & RAG Rules

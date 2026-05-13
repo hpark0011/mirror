@@ -125,13 +125,14 @@ requires_verification: boolean — true means a fix is incomplete without a targ
 pre_existing:          boolean — true means the diff did not introduce this; the change touched the area but the smell predates it
 ```
 
-`priority` answers **urgency** (must-fix-before-merge, should-fix, nit). `autofix_class` + `owner` answer **who acts next** and **whether this skill may mutate the checkout**. The two axes are independent — a `P3` finding can still be `safe_auto` (a trivial mechanical fix) and a `P0` finding is almost always `manual` (security, concurrency, schema decisions need a human).
+`priority` answers **urgency** (must-fix-before-merge, should-fix, nit). `autofix_class` + `owner` answer **what shape of fix the finding allows** — metadata for the downstream skill (`/resolve-issue-tickets`) that picks up the report, not a license for this skill to apply anything. The two axes are independent — a `P3` finding can still be `safe_auto` (a trivial mechanical fix) and a `P0` finding is almost always `manual` (security, concurrency, schema decisions need a human).
 
 Routing rules enforced in Phase 5:
 - Most-conservative route wins on disagreement. A merged finding may move from `safe_auto` to `gated_auto` or `manual`, but never the other way without new evidence.
-- Only `safe_auto → review-fixer` enters an in-skill fixer queue automatically.
 - `requires_verification: true` means a fix is not complete without a targeted test, a focused re-review, or operational validation.
 - `pre_existing: true` findings inform but do not block; they go in their own report section and do not count toward the verdict.
+
+Every finding — regardless of `autofix_class` — is handed off to the user via Phase 7. This skill never applies fixes itself.
 
 A finding with no `risk` is dropped at validation (Phase 5). Nits can skip `suggestedFix` but still need `risk`.
 
@@ -272,7 +273,7 @@ These predate this diff. They do not count toward the verdict but are surfaced f
 
 <one sentence: what to do first — e.g., "Fix P0 #1 before merge, then address P1 items." or "Clean diff — ready to merge.">
 
-<handoff line per Phase 7 — points at `/generate-issue-tickets` + `/resolve-issue-tickets`, or a one-shot "fix #N", or "Ready to merge."; never offers in-skill auto-fixing>
+<optional handoff line per Phase 7 — include ONLY when findings exist; for clean diffs end at "Ready to merge." above. When present, picks the variant matching the finding tiers (P0/P1 → /generate-issue-tickets + /resolve-issue-tickets; P2/P3 only → "fix #N" or /generate-issue-tickets). Never offers in-skill auto-fixing.>
 ```
 
 ## Example
