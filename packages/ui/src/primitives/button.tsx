@@ -41,7 +41,7 @@ const buttonVariants = cva(
           "bg-ghost hover:bg-accent/80 text-ghost-foreground hover:text-accent-foreground dark:hover:bg-accent/50 [&_svg]:text-icon",
         link: "text-primary underline-offset-4 hover:underline",
         wrapper:
-          "font-normal [&_svg]:text-icon text-muted-foreground hover:text-foreground",
+          "font-normal [&_svg]:text-icon text-muted-foreground/70 hover:text-foreground",
       },
       size: {
         // Default button size
