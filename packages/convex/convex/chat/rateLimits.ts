@@ -17,6 +17,31 @@ export const chatRateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 5,
     period: MINUTE,
   },
+  createConfigurationConversation: {
+    kind: "fixed window",
+    rate: 2,
+    period: MINUTE,
+  },
+  sendConfigurationMessage: {
+    kind: "fixed window",
+    rate: 4,
+    period: MINUTE,
+  },
+  retryConfigurationMessage: {
+    kind: "fixed window",
+    rate: 3,
+    period: MINUTE,
+  },
+  fetchProfileSource: {
+    kind: "fixed window",
+    rate: 3,
+    period: MINUTE,
+  },
+  fetchProfileSourceDailyOwner: {
+    kind: "fixed window",
+    rate: 25,
+    period: DAY,
+  },
   // Daily output-spend ceiling for anonymous visitors. Token bucket so that
   // burst is bounded by `capacity` (50) while sustained throughput is capped
   // by `rate` (200 tokens per 24h). Keyed by `profileOwnerId` so that
@@ -42,5 +67,11 @@ export const chatRateLimiter = new RateLimiter(components.rateLimiter, {
     rate: 500,
     period: DAY,
     capacity: 100,
+  },
+  sendConfigurationDailyOwner: {
+    kind: "token bucket",
+    rate: 60_000,
+    period: DAY,
+    capacity: 15_000,
   },
 });

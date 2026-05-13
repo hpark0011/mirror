@@ -11,9 +11,11 @@ import {
   InputGroupButton,
   InputGroupTextarea,
 } from "@feel-good/ui/primitives/input-group";
+import { type ChatMode } from "../types";
 
 type ChatInputProps = {
   profileName: string;
+  mode: ChatMode;
   isResponding: boolean;
   onSend: (message: string) => void;
   sendError?: string | null;
@@ -22,6 +24,7 @@ type ChatInputProps = {
 
 export function ChatInput({
   profileName,
+  mode,
   isResponding,
   onSend,
   sendError,
@@ -29,6 +32,7 @@ export function ChatInput({
 }: ChatInputProps) {
   const [message, setMessage] = useState("");
   const { ref: textareaRef, resize, reset } = useAutoResizeTextarea();
+  const isConfigurationMode = mode === "configuration";
 
   const handleSend = useCallback(() => {
     const trimmed = message.trim();
@@ -77,7 +81,11 @@ export function ChatInput({
           value={message}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          placeholder={`Message ${profileName}...`}
+          placeholder={
+            isConfigurationMode
+              ? "Paste a resume, LinkedIn URL, or profile update..."
+              : `Message ${profileName}...`
+          }
           disabled={isResponding}
           className={cn(
             "min-h-[40px] max-h-[120px]",
@@ -90,11 +98,7 @@ export function ChatInput({
 
         <InputGroupAddon
           align="block-end"
-          className={cn(
-            "justify-end",
-            "[&>kbd]:rounded-full",
-            "px-2.5 pb-2.5",
-          )}
+          className={cn("justify-end", "[&>kbd]:rounded-full", "px-2.5 pb-2.5")}
         >
           <InputGroupButton
             type="button"
@@ -119,7 +123,9 @@ export function ChatInput({
       )}
 
       <p className="text-[13px] text-muted-foreground text-center mt-2 px-2">
-        Conversations may be visible to {profileName}
+        {isConfigurationMode
+          ? "Profile helper chats can update your public profile"
+          : `Conversations may be visible to ${profileName}`}
       </p>
     </div>
   );

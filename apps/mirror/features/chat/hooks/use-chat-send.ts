@@ -6,6 +6,7 @@ import { ConvexError } from "convex/values";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
+import { type ChatMode } from "../types";
 
 type RateLimitErrorData = {
   code: "RATE_LIMIT_MINUTE" | "RATE_LIMIT_DAILY";
@@ -67,6 +68,7 @@ function classifyRetryError(err: unknown): string {
 
 type UseChatSendOptions = {
   profileOwnerId: Id<"users">;
+  mode: ChatMode;
   conversationId: Id<"conversations"> | null;
   onConversationCreated?: (id: Id<"conversations">) => void;
   beginOptimistic: (content: string) => void;
@@ -76,6 +78,7 @@ type UseChatSendOptions = {
 
 export function useChatSend({
   profileOwnerId,
+  mode,
   conversationId,
   onConversationCreated,
   beginOptimistic,
@@ -98,6 +101,7 @@ export function useChatSend({
       try {
         const result = await sendMessageMutation({
           profileOwnerId,
+          mode,
           conversationId: conversationId ?? undefined,
           content,
         });
@@ -119,6 +123,7 @@ export function useChatSend({
     [
       sendMessageMutation,
       profileOwnerId,
+      mode,
       conversationId,
       onConversationCreated,
       beginOptimistic,
@@ -132,11 +137,11 @@ export function useChatSend({
     setSendError(null);
 
     try {
-      await retryMessageMutation({ conversationId });
+      await retryMessageMutation({ conversationId, mode });
     } catch (err) {
       setSendError(classifyRetryError(err));
     }
-  }, [retryMessageMutation, conversationId]);
+  }, [retryMessageMutation, conversationId, mode]);
 
   const clearSendError = useCallback(() => {
     setSendError(null);

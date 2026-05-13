@@ -7,6 +7,7 @@ import { internalAction } from "../_generated/server";
 import { internal } from "../_generated/api";
 import { cloneAgent } from "./agent";
 import { buildCloneTools } from "./tools";
+import { buildConfigurationTools } from "./configurationTools";
 import { EMBEDDING_MODEL, EMBEDDING_DIMENSIONS } from "../embeddings/config";
 import {
   getNavigableContentSourceByTable,
@@ -21,6 +22,7 @@ export const RAG_CONTEXT_MAX_CHARS = 4000;
 // first-send paths can't drift.
 const CHAT_MAX_OUTPUT_TOKENS = 1024;
 const CHAT_MAX_TOOL_STEPS = 3;
+const CONFIGURATION_MAX_TOOL_STEPS = 5;
 
 // Generalized header — bio entries are not "writing" and future structured
 // sources (events, projects, …) won't be either. One header string that
@@ -114,64 +116,66 @@ export const streamResponse = internalAction({
     },
   ) => {
     try {
-      const { threadId, systemPrompt, viewerId } = await ctx.runQuery(
+      const { threadId, systemPrompt, mode, viewerId } = await ctx.runQuery(
         internal.chat.helpers.loadStreamingContext,
         { conversationId, profileOwnerId },
       );
 
       // RAG: embed user message and retrieve relevant content
       // For retries, fetch the last user message from the thread
-      const ragQuery =
-        userMessage ??
-        (await ctx.runQuery(internal.chat.helpers.getLastUserMessage, {
-          threadId,
-        }));
-
       let ragContext = "";
-      if (ragQuery) {
-        try {
-          const { embedding } = await embed({
-            model: google.textEmbeddingModel(EMBEDDING_MODEL),
-            value: ragQuery,
-            providerOptions: {
-              google: { outputDimensionality: EMBEDDING_DIMENSIONS },
-            },
-          });
+      if (mode === "clone") {
+        const ragQuery =
+          userMessage ??
+          (await ctx.runQuery(internal.chat.helpers.getLastUserMessage, {
+            threadId,
+          }));
 
-          const vectorResults = await ctx.vectorSearch(
-            "contentEmbeddings",
-            "by_embedding",
-            {
-              vector: embedding,
-              limit: RAG_RESULT_LIMIT,
-              filter: (q) => q.eq("userId", profileOwnerId),
-            },
-          );
+        if (ragQuery) {
+          try {
+            const { embedding } = await embed({
+              model: google.textEmbeddingModel(EMBEDDING_MODEL),
+              value: ragQuery,
+              providerOptions: {
+                google: { outputDimensionality: EMBEDDING_DIMENSIONS },
+              },
+            });
 
-          // Filter by score threshold to avoid injecting irrelevant content
-          const relevantResults = vectorResults.filter(
-            (r) => r._score >= RAG_SCORE_THRESHOLD,
-          );
-
-          if (relevantResults.length > 0) {
-            const chunks = await ctx.runQuery(
-              internal.embeddings.queries.fetchChunksByIds,
-              { ids: relevantResults.map((r) => r._id) },
+            const vectorResults = await ctx.vectorSearch(
+              "contentEmbeddings",
+              "by_embedding",
+              {
+                vector: embedding,
+                limit: RAG_RESULT_LIMIT,
+                filter: (q) => q.eq("userId", profileOwnerId),
+              },
             );
 
-            if (chunks.length > 0) {
-              // `chunks` carries source metadata from `fetchChunksByIds`, so
-              // article/post snippets expose enough hidden context for the
-              // model to pair a relevant chunk with the navigation tool's
-              // required `kind` and `slug`. Bio chunks remain linkless.
-              ragContext = buildRagContext(chunks);
+            // Filter by score threshold to avoid injecting irrelevant content
+            const relevantResults = vectorResults.filter(
+              (r) => r._score >= RAG_SCORE_THRESHOLD,
+            );
+
+            if (relevantResults.length > 0) {
+              const chunks = await ctx.runQuery(
+                internal.embeddings.queries.fetchChunksByIds,
+                { ids: relevantResults.map((r) => r._id) },
+              );
+
+              if (chunks.length > 0) {
+                // `chunks` carries source metadata from `fetchChunksByIds`, so
+                // article/post snippets expose enough hidden context for the
+                // model to pair a relevant chunk with the navigation tool's
+                // required `kind` and `slug`. Bio chunks remain linkless.
+                ragContext = buildRagContext(chunks);
+              }
             }
+          } catch (error) {
+            console.error(
+              "RAG retrieval failed, continuing without context:",
+              error,
+            );
           }
-        } catch (error) {
-          console.error(
-            "RAG retrieval failed, continuing without context:",
-            error,
-          );
         }
       }
 
@@ -188,8 +192,18 @@ export const streamResponse = internalAction({
       const streamArgs = {
         system: fullSystemPrompt,
         maxOutputTokens: CHAT_MAX_OUTPUT_TOKENS,
-        stopWhen: stepCountIs(CHAT_MAX_TOOL_STEPS),
-        tools: buildCloneTools(profileOwnerId, { viewerId }),
+        stopWhen: stepCountIs(
+          mode === "configuration"
+            ? CONFIGURATION_MAX_TOOL_STEPS
+            : CHAT_MAX_TOOL_STEPS,
+        ),
+        tools:
+          mode === "configuration"
+            ? buildConfigurationTools(profileOwnerId, {
+                viewerId,
+                conversationId,
+              })
+            : buildCloneTools(profileOwnerId, { viewerId }),
         ...(promptMessageId ? { promptMessageId } : {}),
       };
 

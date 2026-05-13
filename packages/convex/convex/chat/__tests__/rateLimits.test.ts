@@ -47,8 +47,10 @@ const authState = {
 
 // -- Module mocks ----------------------------------------------------------
 
-vi.mock("@convex-dev/agent", () => {
+vi.mock("@convex-dev/agent", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@convex-dev/agent")>();
   return {
+    ...actual,
     createThread: vi.fn(async () => {
       agentState.createThreadCalls += 1;
       return `thread_${agentState.createThreadCalls}`;
@@ -221,6 +223,7 @@ async function insertConversation(
   profileOwnerId: Awaited<ReturnType<typeof insertOwner>>,
   overrides: {
     viewerId?: Awaited<ReturnType<typeof insertOwner>>;
+    mode?: "clone" | "configuration";
     threadId?: string;
     title?: string;
   } = {},
@@ -229,6 +232,7 @@ async function insertConversation(
     ctx.db.insert("conversations", {
       profileOwnerId,
       viewerId: overrides.viewerId,
+      mode: overrides.mode,
       threadId: overrides.threadId ?? `thread_${Date.now()}`,
       status: "active",
       title: overrides.title ?? "seed",
@@ -607,6 +611,264 @@ describe("chat rate limits (Wave 1)", () => {
 });
 
 // --------------------------------------------------------------------------
+// Configuration-mode conversation invariants
+// --------------------------------------------------------------------------
+
+describe("chat configuration mode invariants", () => {
+  beforeEach(() => {
+    agentState.createThreadCalls = 0;
+    agentState.saveMessageCalls = 0;
+    agentState.streamTextCalls = [];
+    authState.currentAuthUser = null;
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("rejects anonymous callers before creating a configuration conversation row", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_anon_owner",
+      email: "config-anon-owner@example.com",
+    });
+
+    await expect(
+      t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: "Please update my profile from this resume",
+      }),
+    ).rejects.toThrow(/Authentication required to configure this profile/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db.query("conversations").collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("rejects non-owner callers before creating a configuration conversation row", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_owner_only",
+      email: "config-owner-only@example.com",
+    });
+    await insertAppUserAndSignIn(
+      t,
+      "auth_config_non_owner",
+      "config-non-owner@example.com",
+    );
+
+    await expect(
+      t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        mode: "configuration",
+        content: "Add my LinkedIn",
+      }),
+    ).rejects.toThrow(/Only the profile owner can configure this profile/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db.query("conversations").collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("creates configuration conversations with viewerId pinned to profileOwnerId and immutable mode", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_owner_insert",
+      email: "config-owner-insert@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_owner_insert" };
+
+    const { conversationId } = await t.mutation(
+      api.chat.mutations.sendMessage,
+      {
+        profileOwnerId,
+        mode: "configuration",
+        content: "Add https://www.linkedin.com/in/profile-owner to my contacts",
+      },
+    );
+
+    const row = await t.run(async (ctx) => ctx.db.get(conversationId));
+    expect(row).toMatchObject({
+      profileOwnerId,
+      viewerId: profileOwnerId,
+      mode: "configuration",
+      status: "active",
+    });
+  });
+
+  it("rejects cross-mode sendMessage when a clone conversation id is sent with configuration mode", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_mode_owner",
+      email: "config-mode-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_mode_owner" };
+    const cloneConversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: profileOwnerId,
+      threadId: "thread_clone_mode_mismatch",
+    });
+
+    await expect(
+      t.mutation(api.chat.mutations.sendMessage, {
+        profileOwnerId,
+        conversationId: cloneConversationId,
+        mode: "configuration",
+        content: "Switch this existing clone thread into config mode",
+      }),
+    ).rejects.toThrow(/Conversation mode mismatch/);
+  });
+
+  it("rejects retryMessage when the requested mode does not match the conversation row", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_retry_owner",
+      email: "config-retry-owner@example.com",
+    });
+    authState.currentAuthUser = { _id: "auth_config_retry_owner" };
+    const configurationConversationId = await insertConversation(
+      t,
+      profileOwnerId,
+      {
+        viewerId: profileOwnerId,
+        mode: "configuration",
+        threadId: "thread_config_retry_mismatch",
+      },
+    );
+
+    await expect(
+      t.mutation(api.chat.mutations.retryMessage, {
+        conversationId: configurationConversationId,
+        mode: "clone",
+      }),
+    ).rejects.toThrow(/Conversation mode mismatch/);
+  });
+
+  it("conversation list queries are mode-scoped and configuration rows are owner-only", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_list_owner",
+      email: "config-list-owner@example.com",
+    });
+    const visitorId = await insertAppUserAndSignIn(
+      t,
+      "auth_config_list_visitor",
+      "config-list-visitor@example.com",
+    );
+    const cloneConversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: visitorId,
+      threadId: "thread_config_list_clone",
+      title: "clone row",
+    });
+    const configurationConversationId = await insertConversation(
+      t,
+      profileOwnerId,
+      {
+        viewerId: profileOwnerId,
+        mode: "configuration",
+        threadId: "thread_config_list_configuration",
+        title: "configuration row",
+      },
+    );
+    const malformedConfigurationConversationId = await insertConversation(
+      t,
+      profileOwnerId,
+      {
+        viewerId: visitorId,
+        mode: "configuration",
+        threadId: "thread_config_list_malformed",
+        title: "malformed configuration row",
+      },
+    );
+
+    authState.currentAuthUser = { _id: "auth_config_list_owner" };
+    const cloneRows = await t.query(api.chat.queries.getConversations, {
+      profileOwnerId,
+      mode: "clone",
+    });
+    const configurationRows = await t.query(api.chat.queries.getConversations, {
+      profileOwnerId,
+      mode: "configuration",
+    });
+
+    expect(cloneRows.map((row) => row._id)).toContain(cloneConversationId);
+    expect(cloneRows.map((row) => row._id)).not.toContain(
+      configurationConversationId,
+    );
+    expect(configurationRows.map((row) => row._id)).toEqual([
+      configurationConversationId,
+    ]);
+    await expect(
+      t.query(api.chat.queries.getConversation, {
+        conversationId: malformedConfigurationConversationId,
+      }),
+    ).resolves.toBeNull();
+
+    authState.currentAuthUser = { _id: "auth_config_list_visitor" };
+    const visitorConfigurationRows = await t.query(
+      api.chat.queries.getConversations,
+      {
+        profileOwnerId,
+        mode: "configuration",
+      },
+    );
+    expect(visitorConfigurationRows).toEqual([]);
+  });
+
+  it("configuration retry streaming uses the configuration prompt and tools", async () => {
+    const t = makeT();
+    const profileOwnerId = await insertOwner(t, {
+      authId: "auth_config_stream_owner",
+      email: "config-stream-owner@example.com",
+    });
+    await t.run(async (ctx) =>
+      ctx.db.patch(profileOwnerId, {
+        username: "config_stream_owner",
+        personaPrompt: "SECRET CLONE PERSONA SHOULD NOT LEAK",
+        tagline: "Secret clone tagline",
+      }),
+    );
+    const conversationId = await insertConversation(t, profileOwnerId, {
+      viewerId: profileOwnerId,
+      mode: "configuration",
+      threadId: "thread_config_retry_stream",
+    });
+
+    const startIdx = agentState.streamTextCalls.length;
+    await t.action(internal.chat.actions.streamResponse, {
+      conversationId,
+      profileOwnerId,
+      promptMessageId: "",
+      lockStartedAt: Date.now(),
+    });
+
+    const firstArg = agentState.streamTextCalls[startIdx]?.firstArg as Record<
+      string,
+      unknown
+    >;
+    expect(firstArg).toBeDefined();
+    expect(firstArg.promptMessageId).toBeUndefined();
+    expect(firstArg.system).toEqual(
+      expect.stringContaining("profile configuration helper"),
+    );
+    expect(firstArg.system).not.toEqual(
+      expect.stringContaining("SECRET CLONE PERSONA SHOULD NOT LEAK"),
+    );
+    expect(firstArg.system).not.toEqual(expect.stringContaining("Tagline:"));
+
+    const tools = firstArg.tools as Record<string, unknown>;
+    expect(Object.keys(tools).sort()).toEqual([
+      "applyBioEntryPatch",
+      "applyContactEntryPatch",
+      "fetchProfileSource",
+      "getProfileConfiguration",
+    ]);
+  });
+});
+
+// --------------------------------------------------------------------------
 // FR-01: `thread.streamText` is invoked with `maxOutputTokens: 1024`
 //
 // Behavioral (not source-string) verification: we mock `./agent` so that
@@ -680,7 +942,10 @@ describe("FR-01: streamResponse passes maxOutputTokens: 1024 to thread.streamTex
       const fa = c.firstArg as Record<string, unknown> | null;
       return fa && fa.promptMessageId === "msg_seed";
     });
-    expect(ourCall, `ourCalls=${JSON.stringify(ourCalls.map((c) => c.firstArg))}`).toBeDefined();
+    expect(
+      ourCall,
+      `ourCalls=${JSON.stringify(ourCalls.map((c) => c.firstArg))}`,
+    ).toBeDefined();
     const firstArg = ourCall!.firstArg as Record<string, unknown>;
     expect(firstArg).toMatchObject({
       maxOutputTokens: 1024,

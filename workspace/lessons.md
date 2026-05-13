@@ -1,5 +1,39 @@
 # Lessons Learned
 
+## 2026-05-13
+
+### Agent modes need immutable conversation boundaries
+
+- When a chat feature introduces multiple agent modes, store the mode on the
+  conversation at creation time and treat it as immutable. A single agent
+  thread must not mix system prompts or tool surfaces across modes, so
+  send/retry paths should reject any request where the existing conversation's
+  mode differs from the incoming mode.
+
+### Owner-only agent tools need send-boundary authorization too
+
+- Tool-level `viewerId === profileOwnerId` checks are necessary but not
+  sufficient for owner-only agent modes. Creation of the owner-only
+  conversation itself must require an authenticated app user matching the
+  profile owner and should insert `viewerId: profileOwnerId`; otherwise
+  unauthorized rows can exist even if later tool calls fail.
+
+### LLM-callable URL fetchers need a full network threat model
+
+- Any URL-fetching tool exposed to an agent should specify DNS/IP blocklists,
+  redirect re-resolution, redirect/body/time/content-type caps, no ambient
+  credentials, a fixed user agent, and per-conversation rate limits before
+  implementation starts. "SSRF guards" is too vague for a tool the model can
+  call with arbitrary URLs.
+
+### Fresh worktree E2E needs Convex functions pushed first
+
+- After provisioning a worktree-local Convex deployment, `pnpm --filter=@feel-good/convex generate`
+  is not enough for authenticated Playwright. Push functions with
+  `pnpm --filter=@feel-good/convex exec convex dev --once --run seed:seedRickRubinDemo`
+  before running e2e specs; otherwise `/api/test/session` can hit an old
+  deployment shape and fail at the Better Auth OTP route.
+
 ## 2026-05-12
 
 ### Worktree rules should delegate enforced invariants to scripts

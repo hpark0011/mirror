@@ -8,6 +8,8 @@ import {
   type NavigableContentSourceTable,
 } from "../content/sourceRegistry";
 import { navigableContentKindValidator } from "../content/sourceValidators";
+import { bioEntryKindValidator } from "../bio/schema";
+import { contactEntryKindValidator } from "../contacts/schema";
 import {
   buildBioHref,
   buildContactHref,
@@ -76,6 +78,30 @@ const resolveOwnedContentBySlugReturnValidator = v.union(
 );
 
 const contentKindValidator = navigableContentKindValidator;
+
+const profileConfigurationReturnValidator = v.object({
+  username: v.string(),
+  bioHref: v.string(),
+  contactHref: v.string(),
+  bioEntries: v.array(
+    v.object({
+      _id: v.id("bioEntries"),
+      kind: bioEntryKindValidator,
+      title: v.string(),
+      startDate: v.number(),
+      endDate: v.union(v.number(), v.null()),
+      description: v.optional(v.string()),
+      link: v.optional(v.string()),
+    }),
+  ),
+  contactEntries: v.array(
+    v.object({
+      _id: v.id("contactEntries"),
+      kind: contactEntryKindValidator,
+      value: v.string(),
+    }),
+  ),
+});
 
 const relevantContentCandidateValidator = v.object({
   kind: contentKindValidator,
@@ -335,6 +361,52 @@ export const queryBioPanel = internalQuery({
       username: owner.username,
       href: buildBioHref(owner.username),
       hasEntries: firstEntry.length > 0,
+    };
+  },
+});
+
+export const queryProfileConfiguration = internalQuery({
+  args: { userId: v.id("users") },
+  returns: v.union(profileConfigurationReturnValidator, v.null()),
+  handler: async (ctx, { userId }) => {
+    const user = await ctx.db.get(userId);
+    if (!user?.username) return null;
+
+    const [bioEntries, contactEntries] = await Promise.all([
+      ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .take(50),
+      ctx.db
+        .query("contactEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .take(10),
+    ]);
+
+    bioEntries.sort((a, b) => {
+      if (a.startDate !== b.startDate) return b.startDate - a.startDate;
+      return b._creationTime - a._creationTime;
+    });
+    contactEntries.sort((a, b) => b._creationTime - a._creationTime);
+
+    return {
+      username: user.username,
+      bioHref: buildBioHref(user.username),
+      contactHref: buildContactHref(user.username),
+      bioEntries: bioEntries.map((entry) => ({
+        _id: entry._id,
+        kind: entry.kind,
+        title: entry.title,
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+        description: entry.description,
+        link: entry.link,
+      })),
+      contactEntries: contactEntries.map((entry) => ({
+        _id: entry._id,
+        kind: entry.kind,
+        value: entry.value,
+      })),
     };
   },
 });

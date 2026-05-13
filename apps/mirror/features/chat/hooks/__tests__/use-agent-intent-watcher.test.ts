@@ -31,16 +31,19 @@ vi.mock("@/app/[username]/_providers/clone-actions-context", () => ({
 }));
 
 // Import after the mock so the hook picks up the mocked provider.
-const { useAgentIntentWatcher, handledByConversation } = await import(
-  "@/features/chat/hooks/use-agent-intent-watcher"
-);
+const { useAgentIntentWatcher, handledByConversation } =
+  await import("@/features/chat/hooks/use-agent-intent-watcher");
 
 const CONV_ID = "conv_test_1";
 const CONV_ID_2 = "conv_test_2";
 
 type ToolPart = {
   type: string;
-  state: "input-streaming" | "input-available" | "output-available" | "output-error";
+  state:
+    | "input-streaming"
+    | "input-available"
+    | "output-available"
+    | "output-error";
   toolCallId: string;
   output?: unknown;
 };
@@ -82,13 +85,10 @@ describe("useAgentIntentWatcher", () => {
   });
 
   it("(a) dispatches once when the same messages re-render within a single mount", () => {
-    const messages = [
-      makeAssistantMessage([makeNavigateOutputPart("call_a")]),
-    ];
+    const messages = [makeAssistantMessage([makeNavigateOutputPart("call_a")])];
 
     const { rerender } = renderHook(
-      ({ msgs }: { msgs: UIMessage[] }) =>
-        useAgentIntentWatcher(msgs, CONV_ID),
+      ({ msgs }: { msgs: UIMessage[] }) => useAgentIntentWatcher(msgs, CONV_ID),
       { initialProps: { msgs: messages } },
     );
 
@@ -109,9 +109,7 @@ describe("useAgentIntentWatcher", () => {
   });
 
   it("(b) dispatches zero additional times after unmount + remount with the same persisted messages", () => {
-    const messages = [
-      makeAssistantMessage([makeNavigateOutputPart("call_b")]),
-    ];
+    const messages = [makeAssistantMessage([makeNavigateOutputPart("call_b")])];
 
     const first = renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
     expect(navigateToContentMock).toHaveBeenCalledTimes(1);
@@ -228,9 +226,7 @@ describe("useAgentIntentWatcher", () => {
         ]),
       ];
 
-      renderHook(() =>
-        useAgentIntentWatcher(messages, `conv_open_${section}`),
-      );
+      renderHook(() => useAgentIntentWatcher(messages, `conv_open_${section}`));
 
       expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
       expect(navigateToProfileSectionMock).toHaveBeenCalledWith({
@@ -309,11 +305,89 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() =>
-      useAgentIntentWatcher(messages, "conv_section_malformed"),
-    );
+    renderHook(() => useAgentIntentWatcher(messages, "conv_section_malformed"));
 
     expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+  });
+
+  it("dispatches existing profile-section navigation after configuration Bio and Contact patch tools", () => {
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyBioEntryPatch",
+          state: "output-available",
+          toolCallId: "call_apply_bio",
+          output: {
+            section: "bio",
+            href: "/@rick-rubin/bio",
+            applied: { created: 1, updated: 0, deleted: 0 },
+          },
+        },
+        {
+          type: "tool-applyContactEntryPatch",
+          state: "output-available",
+          toolCallId: "call_apply_contact",
+          output: {
+            section: "contact",
+            href: "/@rick-rubin/contact",
+            applied: { upserted: 1, deleted: 0 },
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, "conv_config_patch"));
+
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(2);
+    expect(navigateToProfileSectionMock).toHaveBeenNthCalledWith(1, {
+      section: "bio",
+      href: "/@rick-rubin/bio",
+    });
+    expect(navigateToProfileSectionMock).toHaveBeenNthCalledWith(2, {
+      section: "contact",
+      href: "/@rick-rubin/contact",
+    });
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch read-only configuration tools or malformed patch outputs", () => {
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-getProfileConfiguration",
+          state: "output-available",
+          toolCallId: "call_read_config",
+          output: {
+            bioHref: "/@rick-rubin/bio",
+            contactHref: "/@rick-rubin/contact",
+          },
+        },
+        {
+          type: "tool-fetchProfileSource",
+          state: "output-available",
+          toolCallId: "call_fetch_source",
+          output: {
+            status: "available",
+            text: "resume text",
+          },
+        },
+        {
+          type: "tool-applyBioEntryPatch",
+          state: "output-available",
+          toolCallId: "call_bad_patch",
+          output: {
+            section: "bio",
+            href: "/@rick-rubin/bio",
+            applied: { created: "one" },
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, "conv_config_readonly"));
+
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+    expect(navigateToContentMock).not.toHaveBeenCalled();
   });
 
   it("isolates handled toolCallIds per conversationId", () => {

@@ -71,6 +71,7 @@ vi.mock("../../auth/client", () => {
 
 import { internal } from "../../_generated/api";
 import { buildCloneTools } from "../tools";
+import { buildConfigurationTools } from "../configurationTools";
 import { buildContentHref } from "../toolQueries";
 import {
   findRelevantPublishedContent,
@@ -909,15 +910,19 @@ describe("chat/relevantContent.findRelevantPublishedContent", () => {
       | { type: "eq"; field: string; value: unknown }
       | { type: "or"; clauses: Expr[] };
     const fakeQ = {
-      eq: vi.fn((field: string, value: unknown): Expr => ({
-        type: "eq",
-        field,
-        value,
-      })),
+      eq: vi.fn(
+        (field: string, value: unknown): Expr => ({
+          type: "eq",
+          field,
+          value,
+        }),
+      ),
       or: vi.fn((...clauses: Expr[]): Expr => ({ type: "or", clauses })),
     };
     const expr = primaryQuery!.filter?.(
-      fakeQ as unknown as Parameters<NonNullable<typeof primaryQuery.filter>>[0],
+      fakeQ as unknown as Parameters<
+        NonNullable<typeof primaryQuery.filter>
+      >[0],
     ) as Expr;
 
     // Top-level expression is an `or` over one eq per navigable source.
@@ -945,9 +950,7 @@ describe("chat/relevantContent.findRelevantPublishedContent", () => {
     // leak its userSourceKey into this filter.
     const nonNavigableKeys = CONTENT_SOURCES.filter(
       (source) => !source.navigation.navigable && source.embedding.indexable,
-    ).map((source) =>
-      buildEmbeddingUserSourceKey(owner, source.sourceTable),
-    );
+    ).map((source) => buildEmbeddingUserSourceKey(owner, source.sourceTable));
     expect(nonNavigableKeys.length).toBeGreaterThan(0);
     for (const key of nonNavigableKeys) {
       expect(seenKeys.has(key)).toBe(false);
@@ -1019,10 +1022,7 @@ describe("chat/relevantContent.findRelevantPublishedContent", () => {
     type Expr =
       | { type: "eq"; field: string; value: unknown }
       | { type: "or"; clauses: Expr[] };
-    const evalExpr = (
-      expr: Expr,
-      row: Record<string, unknown>,
-    ): boolean => {
+    const evalExpr = (expr: Expr, row: Record<string, unknown>): boolean => {
       if (expr.type === "eq") return row[expr.field] === expr.value;
       if (expr.type === "or") return expr.clauses.some((c) => evalExpr(c, row));
       return false;
@@ -1064,7 +1064,14 @@ describe("chat/relevantContent.findRelevantPublishedContent", () => {
     const runQuery = vi.fn(async (_ref: unknown, args: unknown) => {
       const a = args as
         | { ids?: Id<"contentEmbeddings">[] }
-        | { candidates?: Array<{ slug: string; kind: string; excerpt: string; score: number }> };
+        | {
+            candidates?: Array<{
+              slug: string;
+              kind: string;
+              excerpt: string;
+              score: number;
+            }>;
+          };
       if ("ids" in a && a.ids) {
         return candidatePool
           .filter((row) => a.ids!.includes(row._id))
@@ -1233,9 +1240,7 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
 
     const allKeys = collectAllKeys(schema!.shape!);
     expect(
-      allKeys.every(
-        (k) => !/^(userId|user_id|ownerId|username)$/i.test(k),
-      ),
+      allKeys.every((k) => !/^(userId|user_id|ownerId|username)$/i.test(k)),
     ).toBe(true);
   });
 
@@ -1428,12 +1433,7 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       : rawEntries
         ? Object.values(rawEntries as Record<string, string>)
         : [];
-    expect([...values].sort()).toEqual([
-      "articles",
-      "bio",
-      "contact",
-      "posts",
-    ]);
+    expect([...values].sort()).toEqual(["articles", "bio", "contact", "posts"]);
   });
 
   it("owner-write tools reject anonymous and non-owner viewers before reads or writes", async () => {
@@ -1471,6 +1471,92 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     const anonymousTools = buildCloneTools(owner);
     await expect(
       anonymousTools.publishPost.execute(blockedCtx, { slug: "draft" }),
+    ).rejects.toThrow("Only the profile owner");
+
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(runMutation).not.toHaveBeenCalled();
+  });
+
+  it("configuration tools expose no user identifier in their LLM-visible schema", () => {
+    const fakeConversation =
+      "conversations_fake_id" as unknown as Id<"conversations">;
+    const tools = buildConfigurationTools(fakeOwner, {
+      viewerId: fakeOwner,
+      conversationId: fakeConversation,
+    });
+
+    const expectedShapes: Record<keyof typeof tools, string[]> = {
+      getProfileConfiguration: [],
+      fetchProfileSource: ["url"],
+      applyBioEntryPatch: ["operations"],
+      applyContactEntryPatch: ["operations"],
+    };
+
+    for (const [toolName, expectedKeys] of Object.entries(expectedShapes)) {
+      const schema = tools[toolName as keyof typeof tools].inputSchema as {
+        shape: Record<string, unknown>;
+      };
+      expect(Object.keys(schema.shape).sort()).toEqual(expectedKeys);
+      const allKeys = collectAllKeys(schema.shape);
+      expect(
+        allKeys.every(
+          (k) => !/^(userId|user_id|ownerId|profileOwnerId)$/i.test(k),
+        ),
+      ).toBe(true);
+    }
+  });
+
+  it("configuration write tools reject anonymous and non-owner viewers before reads or writes", async () => {
+    const owner = "users_config_owner" as unknown as Id<"users">;
+    const visitor = "users_config_visitor" as unknown as Id<"users">;
+    const conversationId =
+      "conversations_config" as unknown as Id<"conversations">;
+    const runMutation = vi.fn();
+    const runQuery = vi.fn();
+    const blockedCtx = {
+      runMutation,
+      runQuery,
+    } as unknown as Parameters<
+      ReturnType<
+        typeof buildConfigurationTools
+      >["applyBioEntryPatch"]["execute"]
+    >[0];
+
+    const nonOwnerTools = buildConfigurationTools(owner, {
+      viewerId: visitor,
+      conversationId,
+    });
+    await expect(
+      nonOwnerTools.getProfileConfiguration.execute(blockedCtx, {}),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.applyBioEntryPatch.execute(blockedCtx, {
+        operations: [
+          {
+            action: "create",
+            kind: "work",
+            title: "Engineer",
+            startDate: { year: 2020 },
+            endDate: null,
+          },
+        ],
+      }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.applyContactEntryPatch.execute(blockedCtx, {
+        operations: [
+          {
+            action: "set",
+            kind: "linkedin",
+            value: "https://www.linkedin.com/in/example",
+          },
+        ],
+      }),
+    ).rejects.toThrow("Only the profile owner");
+
+    const anonymousTools = buildConfigurationTools(owner, { conversationId });
+    await expect(
+      anonymousTools.getProfileConfiguration.execute(blockedCtx, {}),
     ).rejects.toThrow("Only the profile owner");
 
     expect(runQuery).not.toHaveBeenCalled();
@@ -2194,6 +2280,184 @@ describe("chat/toolQueries.queryBioPanel", () => {
     expect(aResult!.hasEntries).toBe(false);
     expect(bResult).not.toBeNull();
     expect(bResult!.hasEntries).toBe(true);
+  });
+});
+
+describe("chat/profile configuration tool primitives", () => {
+  it("queryProfileConfiguration returns canonical hrefs and current Bio/Contact rows", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_profile_config");
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("bioEntries", {
+        userId: owner,
+        kind: "work",
+        title: "Principal Designer at Acme",
+        startDate: Date.UTC(2021, 0, 1),
+        endDate: null,
+      });
+      await ctx.db.insert("contactEntries", {
+        userId: owner,
+        kind: "linkedin",
+        value: "https://www.linkedin.com/in/owner-profile-config",
+      });
+    });
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryProfileConfiguration,
+      { userId: owner },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.username).toBe("owner_profile_config");
+    expect(result!.bioHref).toBe(buildBioHref("owner_profile_config"));
+    expect(result!.contactHref).toBe(buildContactHref("owner_profile_config"));
+    expect(result!.bioEntries).toMatchObject([
+      {
+        kind: "work",
+        title: "Principal Designer at Acme",
+        endDate: null,
+      },
+    ]);
+    expect(result!.contactEntries).toMatchObject([
+      {
+        kind: "linkedin",
+        value: "https://www.linkedin.com/in/owner-profile-config",
+      },
+    ]);
+  });
+
+  it("applyBioEntryPatch returns the pinned shape and supports ongoing endDate: null", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_bio_patch");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyBioEntryPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "work",
+            title: "Staff Engineer at Acme",
+            startDate: { year: 2020, month: 4 },
+            endDate: null,
+            description: "Built profile configuration tools",
+          },
+        ],
+      },
+    );
+
+    expect(result).toEqual({
+      section: "bio",
+      href: buildBioHref("owner_bio_patch"),
+      applied: { created: 1, updated: 0, deleted: 0 },
+    });
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      title: "Staff Engineer at Acme",
+      startDate: Date.UTC(2020, 3, 1),
+      endDate: null,
+    });
+  });
+
+  it("applyBioEntryPatch is all-or-nothing when a later operation fails validation", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_bio_patch_atomic");
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyBioEntryPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "work",
+            title: "Should Roll Back",
+            startDate: { year: 2020 },
+            endDate: null,
+          },
+          {
+            action: "create",
+            kind: "work",
+            title: "",
+            startDate: { year: 2021 },
+            endDate: null,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/title is required/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("bioEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("applyContactEntryPatch returns the pinned shape for upsert and delete", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_contact_patch");
+
+    const upsertResult = await t.mutation(
+      internal.chat.toolMutations.applyContactEntryPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "set",
+            kind: "linkedin",
+            value: " https://www.linkedin.com/in/owner-contact-patch ",
+          },
+          {
+            action: "set",
+            kind: "x",
+            value: "https://x.com/owner_contact_patch",
+          },
+        ],
+      },
+    );
+
+    expect(upsertResult).toEqual({
+      section: "contact",
+      href: buildContactHref("owner_contact_patch"),
+      applied: { upserted: 2, deleted: 0 },
+    });
+
+    const deleteResult = await t.mutation(
+      internal.chat.toolMutations.applyContactEntryPatch,
+      {
+        userId: owner,
+        operations: [{ action: "delete", kind: "x" }],
+      },
+    );
+
+    expect(deleteResult).toEqual({
+      section: "contact",
+      href: buildContactHref("owner_contact_patch"),
+      applied: { upserted: 0, deleted: 1 },
+    });
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("contactEntries")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toMatchObject([
+      {
+        kind: "linkedin",
+        value: "https://www.linkedin.com/in/owner-contact-patch",
+      },
+    ]);
   });
 });
 
