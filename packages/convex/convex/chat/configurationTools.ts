@@ -2,6 +2,7 @@
 
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { Agent, fetch as undiciFetch } from "undici";
 import { z } from "zod";
 import { createTool } from "@convex-dev/agent";
 import { internal } from "../_generated/api";
@@ -19,6 +20,45 @@ const PROFILE_SOURCE_MAX_TEXT_CHARS = 12000;
 const PROFILE_SOURCE_TIMEOUT_MS = 5000;
 const PROFILE_SOURCE_USER_AGENT =
   "MirrorProfileConfigurationHelper/1.0 (+https://mirror.feel-good.local)";
+
+// Expected failure modes of the fetcher. The catch in
+// guardedFetchProfileSource only converts FetchSourceError to an
+// `unavailable` result; any other thrown error (e.g. a programming bug
+// introduced by a future refactor) propagates and surfaces in logs / Sentry
+// rather than masquerading as a graceful "unavailable" response.
+export type ProfileSourceFailureCategory =
+  | "non_https"
+  | "non_https_redirect"
+  | "blocked_hostname"
+  | "dns_unresolvable"
+  | "blocked_ip"
+  | "timeout"
+  | "redirect_cap"
+  | "redirect_missing_location"
+  | "body_size"
+  | "content_type";
+
+export class FetchSourceError extends Error {
+  readonly category: ProfileSourceFailureCategory;
+  constructor(message: string, category: ProfileSourceFailureCategory) {
+    super(message);
+    this.name = "FetchSourceError";
+    this.category = category;
+  }
+}
+
+// Build an Undici Agent whose connect callback always dials the pre-validated IP
+// rather than re-resolving the hostname. The hostname is kept in the URL so TLS
+// SNI and certificate validation still reference the original name.
+// family must be 4 (IPv4) or 6 (IPv6) — isIP() returns those values.
+function pinnedDispatcher(validatedIp: string, family: 4 | 6): Agent {
+  return new Agent({
+    connect: {
+      lookup: (_hostname: string, _opts: unknown, cb: (err: Error | null, address: string, family: number) => void) =>
+        cb(null, validatedIp, family),
+    },
+  });
+}
 
 const CONTACT_KIND_ENUM_VALUES = CONTACT_ENTRY_KIND_VALUES as unknown as [
   DetectedContactKind,
@@ -83,12 +123,22 @@ function assertOwnerWriteAllowed(
   }
 }
 
-function isBlockedHostname(hostname: string): boolean {
+// URL-embedded userinfo (`https://user:pass@host`) is serialized as an
+// `Authorization: Basic ...` header by fetch(). Strip credentials before every
+// fetch call so an attacker-controlled redirect Location header cannot inject
+// credentials into a follow-up request to a different target.
+function stripUrlUserinfo(url: URL): URL {
+  url.username = "";
+  url.password = "";
+  return url;
+}
+
+export function isBlockedHostname(hostname: string): boolean {
   const lowered = hostname.toLowerCase();
   return lowered === "localhost" || lowered.endsWith(".localhost");
 }
 
-function isBlockedIp(address: string): boolean {
+export function isBlockedIp(address: string): boolean {
   const family = isIP(address);
   if (family === 4) {
     const parts = address.split(".").map((part) => Number.parseInt(part, 10));
@@ -99,6 +149,8 @@ function isBlockedIp(address: string): boolean {
       (a === 172 && b >= 16 && b <= 31) ||
       (a === 192 && b === 168) ||
       (a === 169 && b === 254) ||
+      // RFC 6598 Shared Address Space (CGNAT): 100.64.0.0/10
+      (a === 100 && b >= 64 && b <= 127) ||
       a === 0 ||
       a >= 224
     );
@@ -108,8 +160,19 @@ function isBlockedIp(address: string): boolean {
     const normalized = address.toLowerCase();
     if (normalized.startsWith("::ffff:")) {
       const mapped = normalized.slice("::ffff:".length);
+      // RFC 4291 §2.5.5.2 dotted-decimal form: ::ffff:127.0.0.1
       if (isIP(mapped) === 4) {
         return isBlockedIp(mapped);
+      }
+      // RFC 4291 §2.5.5.2 hex-group form: ::ffff:7f00:0001 (== 127.0.0.1)
+      const hexGroups = mapped.match(/^([0-9a-f]{1,4}):([0-9a-f]{1,4})$/);
+      if (hexGroups) {
+        const high = Number.parseInt(hexGroups[1], 16);
+        const low = Number.parseInt(hexGroups[2], 16);
+        const dotted = `${(high >> 8) & 0xff}.${high & 0xff}.${(low >> 8) & 0xff}.${low & 0xff}`;
+        if (isIP(dotted) === 4) {
+          return isBlockedIp(dotted);
+        }
       }
     }
     return (
@@ -131,7 +194,7 @@ function isBlockedIp(address: string): boolean {
 function remainingMs(deadline: number): number {
   const remaining = deadline - Date.now();
   if (remaining <= 0) {
-    throw new Error("Profile source fetch timed out");
+    throw new FetchSourceError("Profile source fetch timed out", "timeout");
   }
   return remaining;
 }
@@ -146,7 +209,13 @@ async function withDeadline<T>(
       promise,
       new Promise<T>((_, reject) => {
         timeout = setTimeout(
-          () => reject(new Error("Profile source fetch timed out")),
+          () =>
+            reject(
+              new FetchSourceError(
+                "Profile source fetch timed out",
+                "timeout",
+              ),
+            ),
           remainingMs(deadline),
         );
       }),
@@ -156,12 +225,20 @@ async function withDeadline<T>(
   }
 }
 
+// Returns the first resolved IP address so the caller can pin the TCP
+// connection to that exact IP, closing the DNS-rebind SSRF window.
+// The returned address is guaranteed to pass isBlockedIp at this point in
+// time; the caller MUST use it immediately as the connect target and MUST
+// re-call this function on every redirect hop.
 async function assertPublicHostnameBeforeDeadline(
   hostname: string,
   deadline: number,
-): Promise<void> {
+): Promise<{ address: string; family: 4 | 6 }> {
   if (isBlockedHostname(hostname)) {
-    throw new Error("Host is not publicly fetchable");
+    throw new FetchSourceError(
+      "Host is not publicly fetchable",
+      "blocked_hostname",
+    );
   }
 
   const records = await withDeadline(
@@ -169,11 +246,19 @@ async function assertPublicHostnameBeforeDeadline(
     deadline,
   );
   if (records.length === 0) {
-    throw new Error("Host could not be resolved");
+    throw new FetchSourceError("Host could not be resolved", "dns_unresolvable");
   }
   if (records.some((record) => isBlockedIp(record.address))) {
-    throw new Error("Host resolves to a blocked network address");
+    throw new FetchSourceError(
+      "Host resolves to a blocked network address",
+      "blocked_ip",
+    );
   }
+  // Return the first record. All records passed the blocklist check above.
+  // Pinning to the first record is sufficient — the dispatcher uses it for
+  // every connection attempt, so no second resolution ever occurs.
+  const first = records[0];
+  return { address: first.address, family: first.family as 4 | 6 };
 }
 
 async function readLimitedText(response: Response): Promise<string> {
@@ -190,7 +275,7 @@ async function readLimitedText(response: Response): Promise<string> {
     received += value.byteLength;
     if (received > PROFILE_SOURCE_MAX_BYTES) {
       await reader.cancel();
-      throw new Error("Response body is too large");
+      throw new FetchSourceError("Response body is too large", "body_size");
     }
     chunks.push(value);
   }
@@ -219,13 +304,29 @@ function extractText(raw: string, contentType: string): string {
     .slice(0, PROFILE_SOURCE_MAX_TEXT_CHARS);
 }
 
-async function guardedFetchProfileSource(url: string) {
-  let current = new URL(url);
+export async function guardedFetchProfileSource(url: string) {
+  let current = stripUrlUserinfo(new URL(url));
+  const startedAt = Date.now();
+  const hostname = current.hostname;
+
+  console.log({ event: "fetchProfileSource:start", hostname });
+
   if (current.protocol !== "https:") {
-    throw new Error("Only https:// URLs can be fetched");
+    const latencyMs = Date.now() - startedAt;
+    console.log({
+      event: "fetchProfileSource:complete",
+      hostname,
+      status: "unavailable",
+      failureCategory: "non_https",
+      latencyMs,
+    });
+    throw new FetchSourceError(
+      "Only https:// URLs can be fetched",
+      "non_https",
+    );
   }
 
-  const deadline = Date.now() + PROFILE_SOURCE_TIMEOUT_MS;
+  const deadline = startedAt + PROFILE_SOURCE_TIMEOUT_MS;
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
@@ -235,35 +336,63 @@ async function guardedFetchProfileSource(url: string) {
   try {
     for (let hop = 0; hop <= PROFILE_SOURCE_MAX_REDIRECTS; hop++) {
       if (current.protocol !== "https:") {
-        throw new Error("Redirected to a non-HTTPS URL");
+        throw new FetchSourceError(
+          "Redirected to a non-HTTPS URL",
+          "non_https_redirect",
+        );
       }
-      await assertPublicHostnameBeforeDeadline(current.hostname, deadline);
+      // Re-validate on every hop and pin the connection to the validated IP.
+      // Using the validated IP in the Undici dispatcher's connect callback
+      // means no second DNS resolution can occur between the safety check
+      // and the actual TCP connection, closing the DNS-rebind SSRF window.
+      const validated = await assertPublicHostnameBeforeDeadline(
+        current.hostname,
+        deadline,
+      );
       remainingMs(deadline);
 
-      const response = await fetch(current.toString(), {
+      const dispatcher = pinnedDispatcher(validated.address, validated.family);
+      // Cast from undici's Response type to the global Response type.
+      // Structurally identical at runtime; undici's TypeScript types use
+      // stream/web's ReadableStream which diverges from lib.dom at the
+      // generic parameter level only.
+      const response = (await undiciFetch(current.toString(), {
+        dispatcher,
         redirect: "manual",
         signal: controller.signal,
         headers: {
           "User-Agent": PROFILE_SOURCE_USER_AGENT,
           Accept: "text/html,text/plain,application/json",
         },
-      });
+      })) as Response;
 
       if (response.status >= 300 && response.status < 400) {
         response.body?.cancel().catch(() => {});
         if (hop === PROFILE_SOURCE_MAX_REDIRECTS) {
-          throw new Error("Too many redirects");
+          throw new FetchSourceError("Too many redirects", "redirect_cap");
         }
         const location = response.headers.get("location");
         if (!location) {
-          throw new Error("Redirect missing location");
+          throw new FetchSourceError(
+            "Redirect missing location",
+            "redirect_missing_location",
+          );
         }
-        current = new URL(location, current);
+        current = stripUrlUserinfo(new URL(location, current));
         continue;
       }
 
       if (!response.ok) {
         response.body?.cancel().catch(() => {});
+        const latencyMs = Date.now() - startedAt;
+        console.log({
+          event: "fetchProfileSource:complete",
+          hostname,
+          status: "unavailable",
+          httpStatus: response.status,
+          contentType: null,
+          latencyMs,
+        });
         return {
           status: "unavailable" as const,
           reason: `HTTP ${response.status}`,
@@ -282,10 +411,22 @@ async function guardedFetchProfileSource(url: string) {
         contentType !== "application/json"
       ) {
         response.body?.cancel().catch(() => {});
-        throw new Error("Unsupported content type");
+        throw new FetchSourceError(
+          "Unsupported content type",
+          "content_type",
+        );
       }
 
       const raw = await readLimitedText(response);
+      const latencyMs = Date.now() - startedAt;
+      console.log({
+        event: "fetchProfileSource:complete",
+        hostname,
+        status: "available",
+        httpStatus: response.status,
+        contentType,
+        latencyMs,
+      });
       return {
         status: "available" as const,
         finalUrl: current.toString(),
@@ -295,21 +436,45 @@ async function guardedFetchProfileSource(url: string) {
       };
     }
   } catch (error) {
-    // AbortController firing mid-stream surfaces as a generic "operation
-    // aborted" error from the fetch/body reader. Normalize to the deadline
-    // message so the LLM's "ask the owner to paste" recovery path triggers
-    // instead of treating it as an unknown failure to retry.
-    const isAbort =
-      error instanceof Error &&
-      (error.name === "AbortError" || /abort/i.test(error.message));
-    const reason = isAbort
-      ? "Profile source fetch timed out"
-      : error instanceof Error
-        ? error.message
-        : String(error);
+    // FetchSourceError is an EXPECTED failure mode the LLM is prompted to
+    // handle (it asks the owner to paste text). Anything else — a TypeError,
+    // a null deref from a refactor, a Convex runtime fault — must propagate
+    // so on-call sees it in logs/Sentry rather than the LLM silently
+    // swallowing the bug as a graceful "unavailable" response.
+    if (!(error instanceof FetchSourceError)) {
+      // AbortController firing mid-stream surfaces as a generic abort error
+      // from the fetch/body reader rather than as a FetchSourceError("timeout").
+      // Normalize that single case so the LLM's recovery path still triggers.
+      const isAbort =
+        error instanceof Error &&
+        (error.name === "AbortError" || /abort/i.test(error.message));
+      if (!isAbort) throw error;
+      const latencyMs = Date.now() - startedAt;
+      console.log({
+        event: "fetchProfileSource:complete",
+        hostname,
+        status: "unavailable",
+        failureCategory: "abort",
+        latencyMs,
+      });
+      return {
+        status: "unavailable" as const,
+        reason: "Profile source fetch timed out",
+        finalUrl: current.toString(),
+        detectedKind: detectContactKind(current.toString()),
+      };
+    }
+    const latencyMs = Date.now() - startedAt;
+    console.log({
+      event: "fetchProfileSource:complete",
+      hostname,
+      status: "unavailable",
+      failureCategory: error.category,
+      latencyMs,
+    });
     return {
       status: "unavailable" as const,
-      reason,
+      reason: error.message,
       finalUrl: current.toString(),
       detectedKind: detectContactKind(current.toString()),
     };
@@ -318,9 +483,10 @@ async function guardedFetchProfileSource(url: string) {
   }
 
   // Unreachable: every loop iteration either returns or throws, and the catch
-  // converts every throw to a return. The throw documents intent so a future
-  // refactor that adds a fall-through `continue` surfaces as a clear failure
-  // rather than a silent generic "Unable to fetch source" response.
+  // converts every FetchSourceError throw to a return. The throw documents
+  // intent so a future refactor that adds a fall-through `continue` surfaces
+  // as a clear failure rather than a silent generic "Unable to fetch source"
+  // response.
   throw new Error(
     "guardedFetchProfileSource exited the redirect loop without returning",
   );
@@ -331,14 +497,11 @@ async function enforceFetchLimit(
   profileOwnerId: Id<"users">,
   conversationId: Id<"conversations">,
 ) {
-  const minute = await chatRateLimiter.limit(ctx, "fetchProfileSource", {
-    key: conversationId,
-    throws: false,
-  });
-  if (!minute.ok) {
-    throw new Error("Profile source fetch limit reached. Try again shortly.");
-  }
-
+  // Check the daily owner cap FIRST. Each chatRateLimiter.limit call is a
+  // separate cross-call mutation in an action context, so a successful
+  // minute-check consumes a token even when the subsequent daily-check
+  // rejects. Inverting the order means a rejected fetch counts against
+  // neither budget.
   const daily = await chatRateLimiter.limit(
     ctx,
     "fetchProfileSourceDailyOwner",
@@ -349,6 +512,14 @@ async function enforceFetchLimit(
   );
   if (!daily.ok) {
     throw new Error("Daily profile source fetch limit reached.");
+  }
+
+  const minute = await chatRateLimiter.limit(ctx, "fetchProfileSource", {
+    key: conversationId,
+    throws: false,
+  });
+  if (!minute.ok) {
+    throw new Error("Profile source fetch limit reached. Try again shortly.");
   }
 }
 
