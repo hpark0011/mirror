@@ -82,6 +82,7 @@ test.describe("Contact tab — authenticated owner CRUD", () => {
     await expect(page.getByTestId("contact-panel")).toBeVisible({
       timeout: 10_000,
     });
+    await waitForAuthReady(page);
 
     await expect(
       page.getByTestId("contact-add-entry-button").first(),
