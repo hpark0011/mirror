@@ -17,6 +17,8 @@ paths:
 | `/@username/posts/new` | `[username]/@content/posts/new/page.tsx` | Owner (server-component check; redirect on miss) | New-post editor |
 | `/@username/posts/:slug` | `[username]/posts/[slug]/page.tsx` | Public | Post detail |
 | `/@username/posts/:slug/edit` | `[username]/@content/posts/[slug]/edit/page.tsx` | Owner (server-component check; redirect on miss) | Post inline editor |
+| `/@username/bio` | `[username]/bio/page.tsx` + `[username]/@content/bio/page.tsx` | Public (read-only); Owner-only mutation UI | Structured work history + education entries |
+| `/@username/contact` | `[username]/contact/page.tsx` + `[username]/@content/contact/page.tsx` | Public (read-only); Owner-only mutation UI | Email + social profile links (linkedin, instagram, x, tiktok, youtube) |
 | `/@username/chat` | `[username]/chat/page.tsx` | Public | Chat with clone |
 | `/@username/chat/:conversationId` | `[username]/chat/[conversationId]/page.tsx` | Public | Specific conversation |
 | `/@username/clone-settings` | `[username]/clone-settings/page.tsx` | Owner | Clone persona config |

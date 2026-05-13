@@ -102,7 +102,7 @@ type OpenProfileSectionOutput = {
   // The agent's `openProfileSection` enum is the visitor-visible subset of
   // `ProfileTabKind` — `clone-settings` is owner-only and is never returned
   // by the tool.
-  kind: "bio" | "articles" | "posts";
+  kind: "bio" | "contact" | "articles" | "posts";
   href: string;
   // Emitted by the `openProfileSection` tool so a future caller (a richer
   // dispatcher or a connector reading the dispatched intent) can phrase
@@ -120,6 +120,7 @@ function isOpenProfileSectionOutput(
   const o = output as Record<string, unknown>;
   if (
     o.kind !== "bio" &&
+    o.kind !== "contact" &&
     o.kind !== "articles" &&
     o.kind !== "posts"
   ) {

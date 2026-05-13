@@ -73,6 +73,16 @@ export const generateEmbedding = internalAction({
         userId = content.userId;
         slug = undefined;
       } else if (
+        source.embedding.serializer === "contact" &&
+        content.kind === "contact"
+      ) {
+        // Contact entries are a single short label-value line; bypass the
+        // chunker (same path bio takes) and store one row with no slug.
+        chunks = [content.body];
+        title = content.title;
+        userId = content.userId;
+        slug = undefined;
+      } else if (
         source.embedding.serializer === "document" &&
         content.kind === "doc"
       ) {

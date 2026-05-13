@@ -5,6 +5,8 @@ import {
 } from "../_generated/server";
 import { v } from "convex/values";
 import { type Id } from "../_generated/dataModel";
+import { contactEntryKindValidator } from "../contacts/schema";
+import { validateValue as validateContactValue } from "../contacts/mutations";
 import {
   buildReferencedStorageSet,
   collectReferencedFromCandidates,
@@ -891,6 +893,83 @@ export const ensureTestBioFixtures = internalMutation({
         endDate: entry.endDate,
         description: entry.description,
         link: entry.link,
+      });
+    }
+
+    return {
+      userId,
+      insertedCount: args.entries.length,
+    };
+  },
+});
+
+/**
+ * Replaces the test user's contactEntries with `args.entries`. Mirrors
+ * `ensureTestBioFixtures` — wipes existing rows for this user, then
+ * re-inserts the supplied list. Used by Playwright e2e tests under
+ * `apps/mirror/e2e/contact/*`.
+ *
+ * WARNING: Only call from test infrastructure. Never expose as public API.
+ */
+export const ensureTestContactFixtures = internalMutation({
+  args: {
+    email: v.string(),
+    entries: v.array(
+      v.object({
+        kind: contactEntryKindValidator,
+        value: v.string(),
+      }),
+    ),
+  },
+  returns: v.object({
+    userId: v.id("users"),
+    insertedCount: v.number(),
+  }),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (!user) {
+      throw new Error(
+        `Test user with email ${args.email} not found. Call ensureTestUser first.`,
+      );
+    }
+
+    const userId = user._id;
+
+    const existing = await ctx.db
+      .query("contactEntries")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+
+    // Reject duplicate `kind` values up-front so fixture payloads honor the
+    // public one-per-platform invariant. Without this guard, two entries
+    // with the same kind would reach the DB and surface as confusing
+    // by_userId_and_kind index races rather than a clear setup error.
+    const seenKinds = new Set<string>();
+    for (const entry of args.entries) {
+      if (seenKinds.has(entry.kind)) {
+        throw new Error(
+          `Duplicate contact kind in fixture payload: ${entry.kind}`,
+        );
+      }
+      seenKinds.add(entry.kind);
+      // Run fixtures through the same trust-boundary validator the public
+      // create mutation uses so a test-mode actor cannot plant arbitrary
+      // strings (e.g. prompt-injection payloads) that would flow through
+      // the embedding pipeline into the RAG store.
+      validateContactValue(entry.kind, entry.value);
+      await ctx.db.insert("contactEntries", {
+        userId,
+        kind: entry.kind,
+        value: entry.value.trim(),
       });
     }
 

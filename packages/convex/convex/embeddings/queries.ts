@@ -7,6 +7,7 @@ import {
 } from "../content/sourceRegistry";
 import { embeddingSourceTableValidator } from "./schema";
 import { serializeBioEntryForEmbedding } from "../bio/serializeForEmbedding";
+import { serializeContactEntryForEmbedding } from "../contacts/serializeForEmbedding";
 
 type DocWithStatus = Doc<"articles"> | Doc<"posts">;
 type DocumentEmbeddingContent = {
@@ -23,7 +24,16 @@ type BioEmbeddingContent = {
   body: string;
   userId: Id<"users">;
 };
-type EmbeddingContent = DocumentEmbeddingContent | BioEmbeddingContent;
+type ContactEmbeddingContent = {
+  kind: "contact";
+  title: string;
+  body: string;
+  userId: Id<"users">;
+};
+type EmbeddingContent =
+  | DocumentEmbeddingContent
+  | BioEmbeddingContent
+  | ContactEmbeddingContent;
 type EmbeddingContentReader = (
   ctx: QueryCtx,
   sourceId: string,
@@ -66,6 +76,20 @@ const embeddingContentReaders = {
       userId: entry.userId,
     };
   },
+  contactEntries: async (ctx, sourceId) => {
+    const entry = await ctx.db.get(sourceId as Id<"contactEntries">);
+    if (!entry) return null;
+    const prose = serializeContactEntryForEmbedding(entry);
+    return {
+      kind: "contact",
+      // Title is the chunk's section heading in `buildRagContext`; the
+      // serializer already produces a self-describing body, so the kind
+      // doubles as a stable per-row title (e.g. "linkedin").
+      title: entry.kind,
+      body: prose,
+      userId: entry.userId,
+    };
+  },
 } satisfies Record<IndexableContentSourceTable, EmbeddingContentReader>;
 
 const embeddingSourceIdListers = {
@@ -85,6 +109,11 @@ const embeddingSourceIdListers = {
     // Bio entries have no draft/published lifecycle — every row is
     // "published" by definition.
     const docs = await ctx.db.query("bioEntries").collect();
+    return docs.map((d) => d._id as string);
+  },
+  contactEntries: async (ctx) => {
+    // Contact entries have no draft/published lifecycle either.
+    const docs = await ctx.db.query("contactEntries").collect();
     return docs.map((d) => d._id as string);
   },
 } satisfies Record<IndexableContentSourceTable, EmbeddingSourceIdLister>;
@@ -136,6 +165,12 @@ export const getContentForEmbedding = internalQuery({
     }),
     v.object({
       kind: v.literal("bio"),
+      title: v.string(),
+      body: v.string(),
+      userId: v.id("users"),
+    }),
+    v.object({
+      kind: v.literal("contact"),
       title: v.string(),
       body: v.string(),
       userId: v.id("users"),

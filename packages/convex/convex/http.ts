@@ -250,6 +250,47 @@ if (isPlaywrightTestMode()) {
   });
 
   http.route({
+    path: "/test/ensure-contact-fixtures",
+    method: "POST",
+    handler: httpAction(async (ctx, req) => {
+      const deny = authorizeTestRequest(req);
+      if (deny) return deny;
+      const { email, entries } = (await req.json()) as {
+        email: string;
+        entries: Array<{
+          kind:
+            | "email"
+            | "linkedin"
+            | "instagram"
+            | "x"
+            | "tiktok"
+            | "youtube";
+          value: string;
+        }>;
+      };
+      if (!email || !Array.isArray(entries)) {
+        return new Response("Bad Request: email and entries array required", {
+          status: 400,
+        });
+      }
+      if (!email.endsWith(TEST_EMAIL_SUFFIX)) {
+        return new Response(
+          `Bad Request: email must end in ${TEST_EMAIL_SUFFIX}`,
+          { status: 400 },
+        );
+      }
+      const result = await ctx.runMutation(
+        internal.auth.testHelpers.ensureTestContactFixtures,
+        { email, entries },
+      );
+      return new Response(JSON.stringify(result), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }),
+  });
+
+  http.route({
     path: "/test/exhaust-chat-daily",
     method: "POST",
     handler: httpAction(async (ctx, req) => {

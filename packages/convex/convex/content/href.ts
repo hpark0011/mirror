@@ -32,6 +32,7 @@ export {
 
 export const DEFAULT_PROFILE_SECTION_VALUES = [
   "bio",
+  "contact",
   "posts",
   "articles",
 ] as const;
@@ -51,10 +52,11 @@ export function buildContentHref(
 
 // Profile section identifier — covers every ProfileTab the user-UI dispatcher
 // can navigate to. The agent's `openProfileSection` tool pins to a strict
-// subset (`bio | articles | posts`); owner-only sections are not part of the
-// agent's verb space (see `chat/tools.ts`).
+// subset (`bio | contact | articles | posts`); owner-only sections are not
+// part of the agent's verb space (see `chat/tools.ts`).
 export type ProfileSection =
   | "bio"
+  | "contact"
   | ContentKind
   | "clone-settings"
   | "settings";
@@ -78,4 +80,11 @@ export function buildProfileSectionHref(
 // need to migrate, and the URL template lives in exactly one place.
 export function buildBioHref(username: string): string {
   return buildProfileSectionHref(username, "bio");
+}
+
+// Contact panel href. Parallel of `buildBioHref` for the contact section so
+// `chat/toolQueries.ts:queryContactPanel` and any future call site share a
+// single URL template.
+export function buildContactHref(username: string): string {
+  return buildProfileSectionHref(username, "contact");
 }

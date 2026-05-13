@@ -10,6 +10,7 @@ import {
 import { navigableContentKindValidator } from "../content/sourceValidators";
 import {
   buildBioHref,
+  buildContactHref,
   buildContentHref,
   buildProfileSectionHref,
 } from "../content/href";
@@ -333,6 +334,48 @@ export const queryBioPanel = internalQuery({
     return {
       username: owner.username,
       href: buildBioHref(owner.username),
+      hasEntries: firstEntry.length > 0,
+    };
+  },
+});
+
+const contactPanelReturnValidator = v.union(
+  v.null(),
+  v.object({
+    username: v.string(),
+    href: v.string(),
+    hasEntries: v.boolean(),
+  }),
+);
+
+/**
+ * Resolve the contact panel for the profile owner. Mirrors `queryBioPanel`:
+ *  - `null` when the owner has no `username` (cannot build a profile href).
+ *  - `{ username, href, hasEntries }` otherwise.
+ *
+ * `hasEntries` is a presence check on the `contactEntries` table — the agent
+ * uses it to acknowledge an empty panel before opening it (parallels the
+ * empty-bio branch). Cross-user isolation is enforced by the closure-bound
+ * `profileOwnerId` in `chat/tools.ts:openProfileSection`.
+ */
+export const queryContactPanel = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: contactPanelReturnValidator,
+  handler: async (ctx, { userId }) => {
+    const owner = await ctx.db.get(userId);
+    if (!owner) return null;
+    if (!owner.username) return null;
+
+    const firstEntry = await ctx.db
+      .query("contactEntries")
+      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
+      .take(1);
+
+    return {
+      username: owner.username,
+      href: buildContactHref(owner.username),
       hasEntries: firstEntry.length > 0,
     };
   },

@@ -76,7 +76,7 @@ import {
   findRelevantPublishedContent,
   type RelevantContentSearchCtx,
 } from "../relevantContent";
-import { buildBioHref } from "../../content/href";
+import { buildBioHref, buildContactHref } from "../../content/href";
 import {
   CONTENT_SOURCES,
   NAVIGABLE_CONTENT_SOURCES,
@@ -886,7 +886,13 @@ describe("chat/relevantContent.findRelevantPublishedContent", () => {
     expect(eq).toHaveBeenCalledTimes(1);
   });
 
-  it("keeps the owner-only filter for unrestricted relevant-content search", async () => {
+  it("FG_205: unrestricted relevant-content search scopes the vector filter to navigable userSourceKeys only", async () => {
+    // Without this filter the primary 16-slot vector window can fill with
+    // high-scoring non-navigable chunks (bio, contact) and starve published
+    // articles/posts that score just below them. The post-filter at chunk
+    // resolution would drop the non-navigable rows but cannot recover the
+    // crowded-out navigable rows. The fix narrows the filter to
+    // `or(eq(userSourceKey, articlesKey), eq(userSourceKey, postsKey))`.
     const owner = "users_owner_general_filter" as Id<"users">;
     const { ctx, getCapturedQueries } = makeRelevantContentCtx();
 
@@ -895,19 +901,216 @@ describe("chat/relevantContent.findRelevantPublishedContent", () => {
       query: "greyboard ai",
     });
 
-    const [query] = getCapturedQueries();
-    expect(query).toBeDefined();
-    expect(getCapturedQueries()).toHaveLength(1);
+    const [primaryQuery] = getCapturedQueries();
+    expect(primaryQuery).toBeDefined();
+    expect(primaryQuery!.limit).toBe(16);
 
-    const eq = vi.fn((fieldName: string, value: unknown) => ({
-      fieldName,
-      value,
+    type Expr =
+      | { type: "eq"; field: string; value: unknown }
+      | { type: "or"; clauses: Expr[] };
+    const fakeQ = {
+      eq: vi.fn((field: string, value: unknown): Expr => ({
+        type: "eq",
+        field,
+        value,
+      })),
+      or: vi.fn((...clauses: Expr[]): Expr => ({ type: "or", clauses })),
+    };
+    const expr = primaryQuery!.filter?.(
+      fakeQ as unknown as Parameters<NonNullable<typeof primaryQuery.filter>>[0],
+    ) as Expr;
+
+    // Top-level expression is an `or` over one eq per navigable source.
+    expect(expr.type).toBe("or");
+    if (expr.type !== "or") throw new Error("type-narrow");
+
+    const expectedKeys = new Set(
+      NAVIGABLE_CONTENT_SOURCES.map((source) =>
+        buildEmbeddingUserSourceKey(owner, source.sourceTable),
+      ),
+    );
+    expect(expr.clauses).toHaveLength(expectedKeys.size);
+    const seenKeys = new Set<unknown>();
+    for (const clause of expr.clauses) {
+      expect(clause.type).toBe("eq");
+      if (clause.type !== "eq") throw new Error("type-narrow");
+      expect(clause.field).toBe("userSourceKey");
+      seenKeys.add(clause.value);
+    }
+    expect(seenKeys).toEqual(expectedKeys);
+
+    // Negative checks: non-navigable userSourceKeys must NOT appear in the
+    // filter, even though they share the same owner. This is the regression
+    // boundary — adding a new non-navigable source to the registry must not
+    // leak its userSourceKey into this filter.
+    const nonNavigableKeys = CONTENT_SOURCES.filter(
+      (source) => !source.navigation.navigable && source.embedding.indexable,
+    ).map((source) =>
+      buildEmbeddingUserSourceKey(owner, source.sourceTable),
+    );
+    expect(nonNavigableKeys.length).toBeGreaterThan(0);
+    for (const key of nonNavigableKeys) {
+      expect(seenKeys.has(key)).toBe(false);
+    }
+  });
+
+  it("FG_205 regression: high-scoring non-navigable chunks do not starve published content in unrestricted search", async () => {
+    // End-to-end behavioral assertion. Seeds a candidate pool where
+    // non-navigable chunks (bio, contact) outscore a published article, then
+    // calls findRelevantPublishedContent with no `kind`. The fix's filter
+    // shape must keep the article reachable; the pre-fix filter would let the
+    // 16-slot window fill with bio/contact and drop the article entirely.
+    //
+    // Self-falsification: reverting the production fix at
+    // `chat/relevantContent.ts` back to `q.eq("userId", args.profileOwnerId)`
+    // makes this test fail because the smart mock below applies the captured
+    // filter to a realistic candidate pool and only returns rows that match.
+    const owner = "users_owner_fg205" as Id<"users">;
+
+    type CandidateRow = {
+      _id: Id<"contentEmbeddings">;
+      _score: number;
+      userId: Id<"users">;
+      userSourceKey: string;
+      sourceTable: "bioEntries" | "contactEntries" | "articles";
+      sourceId: string;
+      title: string;
+      slug?: string;
+      chunkText: string;
+    };
+
+    const articleRow: CandidateRow = {
+      _id: "ce_article_fg205" as Id<"contentEmbeddings">,
+      _score: 0.85,
+      userId: owner,
+      userSourceKey: buildEmbeddingUserSourceKey(owner, "articles"),
+      sourceTable: "articles",
+      sourceId: "art_fg205",
+      title: "How I built X",
+      slug: "how-i-built-x",
+      chunkText: "Article content about building X.",
+    };
+    const bioRows: CandidateRow[] = Array.from({ length: 20 }, (_, i) => ({
+      _id: `ce_bio_fg205_${i}` as Id<"contentEmbeddings">,
+      _score: 1.0,
+      userId: owner,
+      userSourceKey: buildEmbeddingUserSourceKey(owner, "bioEntries"),
+      sourceTable: "bioEntries",
+      sourceId: `bio_${i}`,
+      title: `Bio entry ${i}`,
+      chunkText: `High-similarity bio content ${i}`,
     }));
-    expect(query!.filter?.({ eq })).toEqual({
-      fieldName: "userId",
-      value: owner,
+    const contactRows: CandidateRow[] = Array.from({ length: 5 }, (_, i) => ({
+      _id: `ce_contact_fg205_${i}` as Id<"contentEmbeddings">,
+      _score: 1.0,
+      userId: owner,
+      userSourceKey: buildEmbeddingUserSourceKey(owner, "contactEntries"),
+      sourceTable: "contactEntries",
+      sourceId: `contact_${i}`,
+      title: `Contact entry ${i}`,
+      chunkText: `High-similarity contact content ${i}`,
+    }));
+    const candidatePool: CandidateRow[] = [
+      ...bioRows,
+      ...contactRows,
+      articleRow,
+    ];
+
+    type Expr =
+      | { type: "eq"; field: string; value: unknown }
+      | { type: "or"; clauses: Expr[] };
+    const evalExpr = (
+      expr: Expr,
+      row: Record<string, unknown>,
+    ): boolean => {
+      if (expr.type === "eq") return row[expr.field] === expr.value;
+      if (expr.type === "or") return expr.clauses.some((c) => evalExpr(c, row));
+      return false;
+    };
+    const filterQ = {
+      eq: (field: string, value: unknown): Expr => ({
+        type: "eq",
+        field,
+        value,
+      }),
+      or: (...clauses: Expr[]): Expr => ({ type: "or", clauses }),
+    };
+
+    const vectorSearch = vi.fn(
+      async (
+        _tableName: string,
+        _indexName: string,
+        searchQuery: {
+          limit?: number;
+          filter?: (q: unknown) => unknown;
+        },
+      ) => {
+        const expr = searchQuery.filter?.(filterQ) as Expr;
+        const accepted = candidatePool.filter((row) =>
+          evalExpr(expr, row as unknown as Record<string, unknown>),
+        );
+        const limit = searchQuery.limit ?? candidatePool.length;
+        return accepted
+          .sort((a, b) => b._score - a._score)
+          .slice(0, limit)
+          .map((row) => ({ _id: row._id, _score: row._score }));
+      },
+    );
+
+    // runQuery is invoked twice: fetchChunksByIds (the chunk hydration step)
+    // and resolvePublishedContentCandidates (the final candidate hydration).
+    // We discriminate by the args shape — chunk hydration passes `{ ids }`;
+    // candidate hydration passes `{ userId, candidates }`.
+    const runQuery = vi.fn(async (_ref: unknown, args: unknown) => {
+      const a = args as
+        | { ids?: Id<"contentEmbeddings">[] }
+        | { candidates?: Array<{ slug: string; kind: string; excerpt: string; score: number }> };
+      if ("ids" in a && a.ids) {
+        return candidatePool
+          .filter((row) => a.ids!.includes(row._id))
+          .map((row) => ({
+            id: row._id,
+            sourceTable: row.sourceTable,
+            sourceId: row.sourceId,
+            title: row.title,
+            slug: row.slug,
+            chunkText: row.chunkText,
+          }));
+      }
+      if ("candidates" in a && a.candidates) {
+        return a.candidates.map((c) => ({
+          kind: c.kind,
+          slug: c.slug,
+          title: candidatePool.find((r) => r.slug === c.slug)?.title ?? "",
+          href: `/@test/${c.kind}/${c.slug}`,
+          excerpt: c.excerpt,
+          score: c.score,
+        }));
+      }
+      return [];
     });
-    expect(eq).toHaveBeenCalledTimes(1);
+
+    const ctx = {
+      runQuery,
+      vectorSearch,
+    } as unknown as RelevantContentSearchCtx;
+
+    const result = await findRelevantPublishedContent(ctx, {
+      profileOwnerId: owner,
+      query: "How I built X",
+    });
+
+    // Positive check: the article reaches the final result even though 25
+    // non-navigable rows score higher.
+    expect(result.map((r) => r.slug)).toContain("how-i-built-x");
+
+    // Negative check: no bio or contact slug/sourceId appears in the result.
+    const resultSlugs = new Set(result.map((r) => r.slug));
+    for (const row of [...bioRows, ...contactRows]) {
+      if (row.slug !== undefined) {
+        expect(resultSlugs.has(row.slug)).toBe(false);
+      }
+    }
   });
 
   it("excludes every non-navigable registry source from relevant-content navigation candidates", async () => {
@@ -1198,10 +1401,11 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
 
   it("openProfileSection.inputSchema exposes only `section`, bounded to the visitor-visible subset", () => {
     // Pins both the shape (one key, `section`) and the enum range
-    // (`bio | articles | posts` only — `clone-settings` is owner-only and
-    // not in the agent's verb space). A future edit that widens the enum
-    // to `clone-settings` would let the agent navigate visitors into a
-    // page they cannot render; this test catches that drift.
+    // (`bio | contact | articles | posts` only — `clone-settings` is
+    // owner-only and not in the agent's verb space). A future edit that
+    // widens the enum to `clone-settings` would let the agent navigate
+    // visitors into a page they cannot render; this test catches that
+    // drift.
     const tools = buildCloneTools(fakeOwner);
     const schema = tools.openProfileSection.inputSchema as {
       shape: Record<string, unknown>;
@@ -1224,7 +1428,12 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       : rawEntries
         ? Object.values(rawEntries as Record<string, string>)
         : [];
-    expect([...values].sort()).toEqual(["articles", "bio", "posts"]);
+    expect([...values].sort()).toEqual([
+      "articles",
+      "bio",
+      "contact",
+      "posts",
+    ]);
   });
 
   it("owner-write tools reject anonymous and non-owner viewers before reads or writes", async () => {
@@ -1477,7 +1686,7 @@ describe("chat/tools.openProfileSection — execute", () => {
   // Reach into the AI-SDK Tool wrapper. `createTool` is mocked at the top
   // of this file to be the identity (returns its def), so `execute` is
   // directly callable with a synthetic ctx.
-  type ProfileSection = "bio" | "articles" | "posts";
+  type ProfileSection = "bio" | "contact" | "articles" | "posts";
   function buildCtx(t: ReturnType<typeof makeT>) {
     return {
       runQuery: (
@@ -1640,6 +1849,73 @@ describe("chat/tools.openProfileSection — execute", () => {
     const toolsForB = buildCloneTools(userB);
     const bResult = await toolsForB.openProfileSection.execute(buildCtx(t), {
       section: "posts",
+    });
+    expect(bResult.hasEntries).toBe(true);
+  });
+
+  it("section=contact with contact entries → hasEntries true and canonical href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_contact");
+    await t.run(async (ctx) =>
+      ctx.db.insert("contactEntries", {
+        userId: owner,
+        kind: "email",
+        value: "owner@example.com",
+      }),
+    );
+
+    const tools = buildCloneTools(owner, { viewerId: owner });
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
+    });
+
+    expect(result.kind).toBe("contact");
+    expect(result.hasEntries).toBe(true);
+    expect(result.href).toBe(buildContactHref("owner_section_contact"));
+  });
+
+  it("section=contact with no entries → hasEntries false but href still resolves", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_contact_empty");
+
+    const tools = buildCloneTools(owner, { viewerId: owner });
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
+    });
+
+    expect(result.kind).toBe("contact");
+    expect(result.hasEntries).toBe(false);
+    expect(result.href).toBe(buildContactHref("owner_section_contact_empty"));
+  });
+
+  it("SECURITY: a contactEntries row owned by a different user does NOT make hasEntries true for the queried owner", async () => {
+    // Cross-user isolation regression — the closure-bound `profileOwnerId`
+    // is the only userId reachable by the tool. A contact row written by
+    // user B must not show up in user A's openProfileSection result.
+    const t = makeT();
+    const userA = await insertOwner(t, "contact_user_a");
+    const userB = await insertOwner(t, "contact_user_b");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("contactEntries", {
+        userId: userB,
+        kind: "linkedin",
+        value: "https://www.linkedin.com/in/b",
+      }),
+    );
+
+    const toolsForA = buildCloneTools(userA, { viewerId: userA });
+    const aResult = await toolsForA.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
+    });
+    expect(aResult.kind).toBe("contact");
+    expect(aResult.hasEntries).toBe(false);
+    expect(aResult.href).toBe(buildContactHref("contact_user_a"));
+
+    // Positive control — user B's own tools should see the contact row.
+    const toolsForB = buildCloneTools(userB);
+    const bResult = await toolsForB.openProfileSection.execute(buildCtx(t), {
+      section: "contact",
     });
     expect(bResult.hasEntries).toBe(true);
   });

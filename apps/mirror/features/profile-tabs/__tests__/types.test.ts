@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildBioHref,
+  buildContactHref,
   buildProfileSectionHref,
 } from "@feel-good/convex/convex/content/href";
 import {
@@ -12,19 +13,20 @@ import {
 } from "../types";
 
 describe("PROFILE_TAB_KINDS", () => {
-  it("contains exactly five kinds", () => {
-    expect(PROFILE_TAB_KINDS.length).toBe(5);
+  it("contains exactly six kinds", () => {
+    expect(PROFILE_TAB_KINDS.length).toBe(6);
   });
 
   it("includes bio at index 2 to preserve the position-independent default", () => {
     expect(PROFILE_TAB_KINDS[2]).toBe("bio");
   });
 
-  it("includes the canonical five kinds", () => {
+  it("includes the canonical six kinds", () => {
     expect(PROFILE_TAB_KINDS).toEqual([
       "posts",
       "articles",
       "bio",
+      "contact",
       "clone-settings",
       "settings",
     ]);
@@ -47,10 +49,11 @@ describe("isProfileTabKind", () => {
     }
   });
 
-  it("returns true specifically for posts, articles, bio, clone-settings, settings", () => {
+  it("returns true specifically for posts, articles, bio, contact, clone-settings, settings", () => {
     expect(isProfileTabKind("posts")).toBe(true);
     expect(isProfileTabKind("articles")).toBe(true);
     expect(isProfileTabKind("bio")).toBe(true);
+    expect(isProfileTabKind("contact")).toBe(true);
     expect(isProfileTabKind("clone-settings")).toBe(true);
     expect(isProfileTabKind("settings")).toBe(true);
   });
@@ -72,6 +75,7 @@ describe("getProfileTabHref", () => {
     expect(getProfileTabHref("alice", "posts")).toBe("/@alice/posts");
     expect(getProfileTabHref("alice", "articles")).toBe("/@alice/articles");
     expect(getProfileTabHref("alice", "bio")).toBe("/@alice/bio");
+    expect(getProfileTabHref("alice", "contact")).toBe("/@alice/contact");
     expect(getProfileTabHref("alice", "clone-settings")).toBe(
       "/@alice/clone-settings",
     );
@@ -89,6 +93,16 @@ describe("getProfileTabHref", () => {
     expect(getProfileTabHref("alice", "bio")).toBe(buildBioHref("alice"));
     expect(getProfileTabHref("rick-rubin", "bio")).toBe(
       buildBioHref("rick-rubin"),
+    );
+  });
+
+  it("agrees with buildContactHref for the 'contact' kind — href-parity invariant", () => {
+    // Parallel of the bio assertion above for the contact panel.
+    expect(getProfileTabHref("alice", "contact")).toBe(
+      buildContactHref("alice"),
+    );
+    expect(getProfileTabHref("rick-rubin", "contact")).toBe(
+      buildContactHref("rick-rubin"),
     );
   });
 
