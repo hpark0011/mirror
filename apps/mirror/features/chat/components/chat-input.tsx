@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 import { useAutoResizeTextarea } from "@/hooks/use-auto-resize-textarea";
 import { Icon } from "@feel-good/ui/components/icon";
@@ -30,6 +31,7 @@ export function ChatInput({
   sendError,
   onClearError,
 }: ChatInputProps) {
+  const { t } = useTranslation();
   const [message, setMessage] = useState("");
   const { ref: textareaRef, resize, reset } = useAutoResizeTextarea();
   const isConfigurationMode = mode === "configuration";
@@ -83,8 +85,8 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={
             isConfigurationMode
-              ? "Paste a resume, LinkedIn URL, or profile update..."
-              : `Message ${profileName}...`
+              ? t("chat.input.placeholder.configuration", { defaultValue: "Paste a resume, LinkedIn URL, or profile update..." })
+              : t("chat.input.placeholder.clone", { profileName, defaultValue: `Message ${profileName}...` })
           }
           disabled={isResponding}
           className={cn(
@@ -98,7 +100,11 @@ export function ChatInput({
 
         <InputGroupAddon
           align="block-end"
-          className={cn("justify-end", "[&>kbd]:rounded-full", "px-2.5 pb-2.5")}
+          className={cn(
+            "justify-end",
+            "[&>kbd]:rounded-full",
+            "px-2.5 pb-2.5",
+          )}
         >
           <InputGroupButton
             type="button"
@@ -124,8 +130,8 @@ export function ChatInput({
 
       <p className="text-[13px] text-muted-foreground text-center mt-2 px-2">
         {isConfigurationMode
-          ? "Profile helper chats can update your public profile"
-          : `Conversations may be visible to ${profileName}`}
+          ? t("chat.input.disclaimer.configuration", { defaultValue: "Profile helper chats can update your public profile" })
+          : t("chat.input.disclaimer.clone", { profileName, defaultValue: `Conversations may be visible to ${profileName}` })}
       </p>
     </div>
   );

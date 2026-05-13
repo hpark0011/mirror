@@ -5,6 +5,7 @@ import { ArrowDownIcon } from "@feel-good/icons";
 import { Button } from "@feel-good/ui/primitives/button";
 import { cn } from "@feel-good/utils/cn";
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { ArcSphere } from "../../../components/animated-geometries/arc-sphere";
 import { WireframeSphere } from "../../../components/animated-geometries/wireframe-sphere";
 import { ChatMessageItem } from "./chat-message-item";
@@ -47,6 +48,7 @@ function ChatMessageEmptyState({
   profileName: string;
   mode: "clone" | "configuration";
 }) {
+  const { t } = useTranslation();
   const isConfigurationMode = mode === "configuration";
 
   return (
@@ -63,13 +65,13 @@ function ChatMessageEmptyState({
         <div className="text-center leading-[1.2] pb-20 text-lg">
           {isConfigurationMode ? (
             <>
-              <p>Hi! I can help configure your profile.</p>
-              <p>Paste a resume, LinkedIn URL, or profile update.</p>
+              <p>{t("chat.empty.configurationGreeting.title", { defaultValue: "Hi! I can help configure your profile." })}</p>
+              <p>{t("chat.empty.configurationGreeting.body", { defaultValue: "Paste a resume, LinkedIn URL, or profile update." })}</p>
             </>
           ) : (
             <>
-              <p>Hi! I&apos;m {profileName}&apos;s digital clone.</p>
-              <p>Ask me anything about work and ideas.</p>
+              <p>{t("chat.empty.cloneGreeting.title", { profileName, defaultValue: `Hi! I'm ${profileName}'s digital clone.` })}</p>
+              <p>{t("chat.empty.cloneGreeting.body", { defaultValue: "Ask me anything about work and ideas." })}</p>
             </>
           )}
         </div>
