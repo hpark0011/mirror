@@ -9,6 +9,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { ContentBody } from "@feel-good/features/editor/components";
+import { cn } from "@feel-good/utils/cn";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentHref } from "@/features/content";
@@ -74,6 +75,10 @@ export function PostListItem({ post, username }: PostListItemProps) {
   // onClick below routes "normal" left-clicks through the same dispatcher
   // the agent uses (`useCloneActions().navigateToContent`).
   const href = buildChatAwareHref(getContentHref(username, "posts", post.slug));
+  const shouldAlignWithMetadata =
+    !post.coverVideoUrl &&
+    !post.coverImageUrl &&
+    post.title.trim() === "";
 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -100,7 +105,12 @@ export function PostListItem({ post, username }: PostListItemProps) {
           <PostMetadata post={post} capitalizeCategory />
         </div>
         <div className="flex flex-col items-center w-full">
-          <div className="max-w-lg flex flex-col gap-2 w-full">
+          <div
+            className={cn(
+              "max-w-lg flex flex-col w-full",
+              shouldAlignWithMetadata ? "gap-0" : "gap-2",
+            )}
+          >
             {post.coverVideoUrl ? (
               <Link
                 href={href}
@@ -152,7 +162,10 @@ export function PostListItem({ post, username }: PostListItemProps) {
 
             <ContentBody
               content={post.body}
-              className="max-w-xl text-[17px] leading-[1.3] font-regular space-y-2 [&_img]:my-3 mt-0 tracking-[-0.04em]"
+              className={cn(
+                "max-w-xl text-[17px] leading-[1.3] font-regular space-y-2 [&_img]:my-3 mt-0 tracking-[-0.04em]",
+                shouldAlignWithMetadata && "[&>*:first-child]:mt-0",
+              )}
             />
           </div>
         </div>
