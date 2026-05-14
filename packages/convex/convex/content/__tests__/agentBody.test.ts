@@ -5,6 +5,7 @@ import {
   analyzeAgentBodyProjection,
   assertAgentSafeBody,
   tiptapDocToAgentBlocks,
+  tiptapDocToAgentRepresentation,
   tiptapDocToPlainText,
   type AgentContentBlock,
 } from "../agentBody";
@@ -242,6 +243,115 @@ describe("tiptapDocToPlainText", () => {
   it("returns empty string for empty doc", () => {
     expect(tiptapDocToPlainText({ type: "doc", content: [] })).toBe("");
     expect(tiptapDocToPlainText(null)).toBe("");
+  });
+});
+
+describe("tiptapDocToAgentRepresentation", () => {
+  it("walks the tree once and returns matching text and blocks from individual functions", () => {
+    const doc = {
+      type: "doc" as const,
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 2 },
+          content: [{ type: "text", text: "Hello" }],
+        },
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Body text" }],
+        },
+        {
+          type: "bulletList",
+          content: [
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "one" }],
+                },
+              ],
+            },
+            {
+              type: "listItem",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "two" }],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+
+    // Combined emitter result
+    const combined = tiptapDocToAgentRepresentation(doc);
+
+    // Individual function results
+    const expectedText = tiptapDocToPlainText(doc);
+    const expectedBlocks = tiptapDocToAgentBlocks(doc);
+
+    expect(combined.text).toBe(expectedText);
+    expect(combined.blocks).toEqual(expectedBlocks);
+  });
+
+  it("handles null and empty documents", () => {
+    expect(tiptapDocToAgentRepresentation(null)).toEqual({
+      text: "",
+      blocks: [],
+    });
+    expect(tiptapDocToAgentRepresentation(undefined)).toEqual({
+      text: "",
+      blocks: [],
+    });
+    expect(tiptapDocToAgentRepresentation({ type: "doc", content: [] })).toEqual({
+      text: "",
+      blocks: [],
+    });
+  });
+
+  it("flattens unsupported heading levels and mixed node types consistently", () => {
+    const doc = {
+      type: "doc" as const,
+      content: [
+        {
+          type: "heading",
+          attrs: { level: 1 },
+          content: [{ type: "text", text: "Top level" }],
+        },
+        {
+          type: "codeBlock",
+          content: [{ type: "text", text: "code snippet" }],
+        },
+      ],
+    };
+
+    const combined = tiptapDocToAgentRepresentation(doc);
+    const expectedText = tiptapDocToPlainText(doc);
+    const expectedBlocks = tiptapDocToAgentBlocks(doc);
+
+    expect(combined.text).toBe(expectedText);
+    expect(combined.blocks).toEqual(expectedBlocks);
+  });
+
+  it("respects maxChars parameter", () => {
+    const doc = {
+      type: "doc" as const,
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "x".repeat(100) }],
+        },
+      ],
+    };
+
+    const combined = tiptapDocToAgentRepresentation(doc, 50);
+    const expectedText = tiptapDocToPlainText(doc, 50);
+
+    expect(combined.text).toBe(expectedText);
+    expect(combined.text.length).toBeLessThanOrEqual(50);
   });
 });
 

@@ -239,6 +239,71 @@ export function tiptapDocToPlainText(
 }
 
 /**
+ * Combined emitter that walks a Tiptap document once to produce both
+ * a plain-text representation and agent-block projection. Used by
+ * `queryOwnedContentForEdit` to avoid two sequential tree walks.
+ *
+ * Returns an object with `text` (plain text joined by blank lines) and
+ * `blocks` (agent-safe block projection). Both values match the individual
+ * `tiptapDocToPlainText` and `tiptapDocToAgentBlocks` functions.
+ */
+export function tiptapDocToAgentRepresentation(
+  body: JSONContent | null | undefined,
+  maxChars = 8000,
+): { text: string; blocks: AgentContentBlock[] } {
+  if (!body || !Array.isArray(body.content)) {
+    return { text: "", blocks: [] };
+  }
+
+  const textParts: string[] = [];
+  const blocks: AgentContentBlock[] = [];
+
+  for (const node of body.content) {
+    if (!node || typeof node !== "object") continue;
+
+    const text = collectTextFromNode(node).trim();
+
+    if (node.type === "bulletList") {
+      // Plain text: bullet list items prefixed with "- "
+      const items = (node.content ?? [])
+        .map((item) => collectTextFromNode(item).trim())
+        .filter(Boolean);
+      if (items.length > 0) {
+        textParts.push(items.map((i) => `- ${i}`).join("\n"));
+        blocks.push({ type: "bulletList", items });
+      }
+      continue;
+    }
+
+    if (!text) continue;
+
+    if (node.type === "heading") {
+      const level = Number(node.attrs?.level);
+      if (level === 2 || level === 3) {
+        // Valid heading level: emit to both text and blocks
+        const prefix = level === 2 ? "## " : "### ";
+        textParts.push(`${prefix}${text}`);
+        blocks.push({ type: "heading", level, text });
+        continue;
+      }
+      // Other heading levels: flatten to paragraph
+      textParts.push(text);
+      blocks.push({ type: "paragraph", text });
+      continue;
+    }
+
+    // paragraph + everything else collapses to a paragraph
+    textParts.push(text);
+    blocks.push({ type: "paragraph", text });
+  }
+
+  const joined = textParts.join("\n\n");
+  const textResult = joined.length > maxChars ? joined.slice(0, maxChars) : joined;
+
+  return { text: textResult, blocks };
+}
+
+/**
  * Boundary guard for any caller that constructs a Tiptap document by hand.
  * Rejects bodies containing image nodes or unknown block shapes.
  * The agent schema is text-only for v1, so any unsupported block type

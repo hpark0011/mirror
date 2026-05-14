@@ -3,7 +3,7 @@ id: FG_226
 title: "Watcher applyContentPatch no-op output path is covered by a test"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p3
 description: "The watcher's `APPLY_CONTENT_PATCH_TYPE` handler has three branches: navigate-to-content, navigate-to-section, and an implicit no-op when both `lastTouched` and `lastDeleted` are `null`. The existing 'malformed' test exercises a structurally invalid output; no test exercises a structurally valid output where neither field is populated."
 dependencies: []

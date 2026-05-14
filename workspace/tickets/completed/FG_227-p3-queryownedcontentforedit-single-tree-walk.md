@@ -3,7 +3,7 @@ id: FG_227
 title: "queryOwnedContentForEdit walks the body tree once for text and blocks"
 date: 2026-05-14
 type: perf
-status: to-do
+status: completed
 priority: p3
 description: "`queryOwnedContentForEdit` calls `tiptapDocToPlainText(row.body)` and `tiptapDocToAgentBlocks(row.body)` back-to-back, each independently walking the body tree. At `MAX_BLOCKS_PER_BODY = 200` this is microseconds and the tool is called at most once per agent reasoning step — advisory only."
 dependencies: []

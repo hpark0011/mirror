@@ -3,7 +3,7 @@ id: FG_212
 title: "applyContentPatch update from published to draft cleans embeddings"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p1
 description: "The update test in `applyContentPatch` starts with a draft post and updates without flipping status. No test seeds a published row and then calls `applyContentPatch` with `status: 'draft'` to assert that `internal.embeddings.mutations.deleteBySource` is scheduled. The `else if (args.status === 'draft')` cleanup branch in `updatePostRow`/`updateArticleRow` could regress, leaving stale embeddings in clone-agent RAG retrieval for content the owner has unpublished."
 dependencies: []

@@ -19,8 +19,7 @@ import {
 } from "../content/href";
 import {
   analyzeAgentBodyProjection,
-  tiptapDocToAgentBlocks,
-  tiptapDocToPlainText,
+  tiptapDocToAgentRepresentation,
 } from "../content/agentBody";
 
 // Re-exported so existing test imports
@@ -729,6 +728,7 @@ export const queryOwnedContentForEdit = internalQuery({
     if (!row) return { found: false as const, kind, slug };
 
     const projection = analyzeAgentBodyProjection(row.body);
+    const { text: bodyText, blocks: bodyBlocks } = tiptapDocToAgentRepresentation(row.body);
     return {
       found: true as const,
       kind,
@@ -741,8 +741,8 @@ export const queryOwnedContentForEdit = internalQuery({
       username: owner.username,
       href: buildContentHref(owner.username, kind, row.slug),
       editHref: buildContentEditHref(owner.username, kind, row.slug),
-      bodyText: tiptapDocToPlainText(row.body),
-      bodyBlocks: tiptapDocToAgentBlocks(row.body),
+      bodyText,
+      bodyBlocks,
       projectionLossy: projection.lossy,
       unsupportedNodeTypes: projection.unsupportedNodeTypes,
     };

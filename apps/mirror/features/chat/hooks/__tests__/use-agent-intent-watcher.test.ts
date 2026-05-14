@@ -586,6 +586,36 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
   });
 
+  it("leaves the user in place when applyContentPatch reports no rows touched", () => {
+    // The watcher's routing: if lastTouched exists, navigate to the row.
+    // If lastDeleted exists, navigate to the section list. Otherwise, no-op.
+    // This test pins the no-op path: a valid output shape where both
+    // lastTouched and lastDeleted are null (e.g., a delete-only patch
+    // where all slugs already vanished).
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyContentPatch",
+          state: "output-available",
+          toolCallId: "call_content_noop",
+          output: {
+            results: [],
+            applied: { created: 0, updated: 0, deleted: 0 },
+            lastTouched: null,
+            lastDeleted: null,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_content_noop"),
+    );
+
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+  });
+
   it("(g) bounded-walk: dispatch count does not grow when pre-existing messages re-render without new tool calls", () => {
     // Seeds 10 assistant messages that each carry one already-handled
     // navigateToContent part, then adds one new message with a fresh

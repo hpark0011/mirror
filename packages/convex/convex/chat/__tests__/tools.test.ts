@@ -3482,4 +3482,109 @@ describe("chat/toolMutations.applyContentPatch", () => {
       (embeddingJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
     ).toBe("articles");
   });
+
+  it("schedules deleteBySource when a published post flips to draft", async () => {
+    // Seeds a published post and calls applyContentPatch with status:"draft".
+    // The `else if (args.status === "draft")` branch in updatePostRow must
+    // schedule internal.embeddings.mutations.deleteBySource for that post.
+    // Removing that branch causes this test to find zero scheduled jobs and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_unpublish_post");
+
+    const postId = await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "published-post",
+        title: "Published Post",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "posts",
+            slug: "published-post",
+            status: "draft",
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.updated).toBe(1);
+
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const cleanupJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("deleteBySource") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === postId,
+    );
+    expect(cleanupJobs).toHaveLength(1);
+    expect(
+      (cleanupJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("posts");
+  });
+
+  it("schedules deleteBySource when a published article flips to draft", async () => {
+    // Mirror of the post test above for the articles path.
+    // Removing the `else if (args.status === "draft")` branch in updateArticleRow
+    // causes this test to find zero scheduled jobs and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_unpublish_article");
+
+    const articleId = await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "published-article",
+        title: "Published Article",
+        category: "Essays",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "articles",
+            slug: "published-article",
+            status: "draft",
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.updated).toBe(1);
+
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const cleanupJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("deleteBySource") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === articleId,
+    );
+    expect(cleanupJobs).toHaveLength(1);
+    expect(
+      (cleanupJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("articles");
+  });
 });
