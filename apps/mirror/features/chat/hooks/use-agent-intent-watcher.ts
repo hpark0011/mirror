@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { isContentKind, type ContentKind } from "@/features/content";
@@ -322,15 +322,38 @@ export function useAgentIntentWatcher(
 ) {
   const { navigateToContent, navigateToProfileSection } = useCloneActions();
 
+  /**
+   * Per-mount perf optimization: track the highest message index already
+   * scanned for each conversationId so each effect run only walks new
+   * messages. This is layered on top of `handledByConversation`, which
+   * remains the cross-mount idempotency authority.
+   *
+   * Key: conversationId ?? "__null__" (mirrors `getHandledSet`'s key scheme).
+   * Value: the `messages.length` at the end of the last scan for that id.
+   *
+   * Reset condition: if `messages.length` is less than the stored index, the
+   * array shrank (remount / new conversation on same key) — fall back to a
+   * full scan from index 0 and update the stored index afterwards.
+   */
+  const lastScannedIndexRef = useRef<Map<string, number>>(new Map());
+
   useEffect(() => {
     if (messages.length === 0) return;
 
     const handled = getHandledSet(conversationId);
+    const idxKey = conversationId ?? "__null__";
+    const storedIndex = lastScannedIndexRef.current.get(idxKey) ?? 0;
+
+    // Guard: if messages shrank (unlikely but possible on remount / id reuse),
+    // treat as a reset and scan from the beginning.
+    const startIndex =
+      messages.length < storedIndex ? 0 : storedIndex;
 
     // Walk the assistant messages in order; tool calls can land in any
     // assistant message and the order is preserved by `combineUIMessages`.
     // We skip user messages — only assistant messages carry tool parts.
-    for (const message of messages) {
+    for (let i = startIndex; i < messages.length; i++) {
+      const message = messages[i];
       if (message.role !== "assistant") continue;
       for (const part of message.parts) {
         if (
@@ -486,5 +509,8 @@ export function useAgentIntentWatcher(
         }
       }
     }
+
+    // Update the last-scanned index so the next effect run starts from here.
+    lastScannedIndexRef.current.set(idxKey, messages.length);
   }, [messages, navigateToContent, navigateToProfileSection, conversationId]);
 }

@@ -584,36 +584,36 @@ export const queryProfileContentLibrary = internalQuery({
       PROFILE_CONTENT_LIBRARY_MAX_LIMIT,
     );
 
+    const collectedArrays = await Promise.all(
+      requestedKinds.map(async (k) => {
+        const source = getNavigableContentSource(k);
+        const rows = status
+          ? await ctx.db
+              .query(source.sourceTable)
+              .withIndex("by_userId_and_status", (q) =>
+                q.eq("userId", userId as Id<"users">).eq("status", status),
+              )
+              .order("desc")
+              .take(effectiveLimit)
+          : await ctx.db
+              .query(source.sourceTable)
+              .withIndex("by_userId", (q) =>
+                q.eq("userId", userId as Id<"users">),
+              )
+              .order("desc")
+              .take(effectiveLimit);
+
+        return rows.map((row) => ({
+          kind: k,
+          row,
+        }));
+      }),
+    );
+
     const collected: Array<{
       kind: NavigableContentKind;
       row: Doc<"posts"> | Doc<"articles">;
-    }> = [];
-
-    for (const k of requestedKinds) {
-      const source = getNavigableContentSource(k);
-      const rows = status
-        ? await ctx.db
-            .query(source.sourceTable)
-            .withIndex("by_userId_and_status", (q) =>
-              q.eq("userId", userId as Id<"users">).eq("status", status),
-            )
-            .order("desc")
-            .take(effectiveLimit)
-        : await ctx.db
-            .query(source.sourceTable)
-            .withIndex("by_userId", (q) =>
-              q.eq("userId", userId as Id<"users">),
-            )
-            .order("desc")
-            .take(effectiveLimit);
-
-      for (const row of rows) {
-        collected.push({
-          kind: k,
-          row,
-        });
-      }
-    }
+    }> = collectedArrays.flat();
 
     collected.sort((a, b) => b.row._creationTime - a.row._creationTime);
 

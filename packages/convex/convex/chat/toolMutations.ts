@@ -759,11 +759,13 @@ export const applyContentPatch = internalMutation({
         href: sectionHref,
       };
       if (deleteResult.deleted) deleted += 1;
-      lastDeleted = {
-        kind: op.kind,
-        slug: deleteResult.slug,
-        href: sectionHref,
-      };
+      if (deleteResult.deleted) {
+        lastDeleted = {
+          kind: op.kind,
+          slug: deleteResult.slug,
+          href: sectionHref,
+        };
+      }
     }
 
     return {

@@ -3,7 +3,7 @@ id: FG_223
 title: "queryProfileContentLibrary loads posts and articles in parallel"
 date: 2026-05-14
 type: perf
-status: to-do
+status: completed
 priority: p2
 description: "When the agent calls `getProfileContentLibrary` without a `kind` filter, the handler awaits the posts `.take()` then the articles `.take()` sequentially, adding one extra Convex DB round-trip per call. The sibling function `queryProfileConfiguration` in the same file already uses `Promise.all` for an analogous two-table read; diverging here leaves an easy parallelization on the table and confuses future readers."
 dependencies: []

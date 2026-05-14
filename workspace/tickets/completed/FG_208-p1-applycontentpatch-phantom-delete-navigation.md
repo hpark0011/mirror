@@ -3,7 +3,7 @@ id: FG_208
 title: "applyContentPatch stops navigating on missed-slug deletes"
 date: 2026-05-14
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "`applyContentPatch` sets `lastDeleted` on every delete operation regardless of whether a row was actually removed, so the watcher dispatches `navigateToProfileSection` even when the agent asked to delete a slug that does not exist. The in-code comment in the watcher claims 'no rows touched → no-op' but that branch is never reached because `lastDeleted` is always non-null after a delete op."
 dependencies: []

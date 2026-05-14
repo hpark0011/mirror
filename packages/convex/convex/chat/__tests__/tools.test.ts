@@ -3156,6 +3156,29 @@ describe("chat/toolMutations.applyContentPatch", () => {
     ]);
   });
 
+  it("delete-only patch where every op misses leaves lastDeleted === null", async () => {
+    // Regression guard for the phantom-navigation bug: if all delete operations
+    // return deleted:false (stale slugs), applyContentPatch must not set
+    // lastDeleted — the watcher's "no rows touched → no-op" branch is the
+    // correct path and must be reachable.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_delete_all_miss");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          { action: "delete", kind: "posts", slug: "ghost-slug-1" },
+          { action: "delete", kind: "posts", slug: "ghost-slug-2" },
+        ],
+      },
+    );
+
+    expect(result.lastDeleted).toBeNull();
+    expect(result.applied).toEqual({ created: 0, updated: 0, deleted: 0 });
+  });
+
   it("is all-or-nothing when a later operation throws", async () => {
     const t = makeT();
     const owner = await insertOwner(t, "owner_atomic_content");

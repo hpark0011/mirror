@@ -586,6 +586,48 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
   });
 
+  it("(g) bounded-walk: dispatch count does not grow when pre-existing messages re-render without new tool calls", () => {
+    // Seeds 10 assistant messages that each carry one already-handled
+    // navigateToContent part, then adds one new message with a fresh
+    // tool call. On the first render all 10 fire; on a subsequent
+    // re-render with the same 10 messages (different array ref to
+    // force a new effect run), the scan must start at index 10 and
+    // dispatch exactly 0 additional times — i.e., the bounded walk
+    // skips the already-scanned history.
+    const history: UIMessage[] = Array.from({ length: 10 }, (_, idx) =>
+      makeAssistantMessage([makeNavigateOutputPart(`call_hist_${idx}`, `slug-${idx}`)]),
+    );
+
+    const { rerender } = renderHook(
+      ({ msgs }: { msgs: UIMessage[] }) => useAgentIntentWatcher(msgs, CONV_ID),
+      { initialProps: { msgs: history } },
+    );
+
+    // First render: all 10 historical tool calls fire.
+    expect(navigateToContentMock).toHaveBeenCalledTimes(10);
+
+    // Re-render with a new array reference but the same 10 messages.
+    // The bounded-walk must not re-enter any of them.
+    const sameLengthNewRef = [...history];
+    rerender({ msgs: sameLengthNewRef });
+    expect(navigateToContentMock).toHaveBeenCalledTimes(10);
+
+    // Now append a new message with a fresh tool call.
+    const withNewMsg = [
+      ...history,
+      makeAssistantMessage([makeNavigateOutputPart("call_hist_new", "slug-new")]),
+    ];
+    rerender({ msgs: withNewMsg });
+
+    // Only the single new tool call should have fired.
+    expect(navigateToContentMock).toHaveBeenCalledTimes(11);
+    expect(navigateToContentMock).toHaveBeenLastCalledWith({
+      kind: "articles",
+      slug: "slug-new",
+      href: "/@rick-rubin/articles/slug-new",
+    });
+  });
+
   it("isolates handled toolCallIds per conversationId", () => {
     // Belt-and-suspenders: a regression here would mean the Map's
     // conversationId key has fallen back to a global bucket and the

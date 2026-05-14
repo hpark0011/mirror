@@ -3,7 +3,7 @@ id: FG_229
 title: "useAgentIntentWatcher only walks new messages on each effect run"
 date: 2026-05-14
 type: perf
-status: to-do
+status: completed
 priority: p2
 description: "[Pre-existing — not introduced by PLAN_013] `useAgentIntentWatcher`'s effect re-walks every assistant message × parts whenever the `messages` array reference changes (i.e., on every streaming chunk). At 50 messages × 10 parts = 500 iterations per ~50–100 ms tick. The `handled` Set short-circuits dispatch but not the scan. This PR adds one filter constant but does not change scaling. Tracking the last-scanned index would bound re-work to only new messages."
 dependencies: []
