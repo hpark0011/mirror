@@ -3,7 +3,7 @@ id: FG_228
 title: "generateEmbedding atomically replaces existing embedding rows per source"
 date: 2026-05-14
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "[Pre-existing — not introduced by PLAN_013] `generateEmbedding` deletes then inserts via two separate `ctx.runMutation` calls. Two concurrent jobs for the same `sourceId` can interleave (A.delete, B.delete, A.insert, B.insert) and leave duplicate `contentEmbeddings` rows that inflate RAG vector-search scores. The agent's new 5-op batch raises the probability by fanning out N jobs with delay 0, but the underlying race predates this PR."
 dependencies: []

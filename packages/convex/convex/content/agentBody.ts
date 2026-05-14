@@ -239,17 +239,16 @@ export function tiptapDocToPlainText(
 }
 
 /**
- * Reject bodies that contain image nodes or unknown block shapes coming
- * from the agent write path. The agent schema is text-only for v1 (see
- * Constraints in the plan), so any block the converter doesn't produce is
- * a sign the caller bypassed `agentBlocksToTiptapDoc` and is trying to
- * write a raw Tiptap document.
+ * Boundary guard for any caller that constructs a Tiptap document by hand.
+ * Rejects bodies containing image nodes or unknown block shapes.
+ * The agent schema is text-only for v1, so any unsupported block type
+ * is a sign the caller is writing a raw Tiptap document rather than
+ * using the structured `agentBlocksToTiptapDoc` converter.
  *
- * This is defense-in-depth: `agentBlocksToTiptapDoc` already throws on
- * unsupported block types, but the configuration tool also schedules a
- * full validation pass before calling the underlying create/update
- * helper so storage references and surprise node types can never reach
- * the editor JSON.
+ * Note: `agentBlocksToTiptapDoc` outputs are already constrained by the
+ * converter's closed enum of supported block types (paragraph, heading, bulletList),
+ * so this assertion is not applied after that converter. It exists as a guard
+ * for future raw-body callers at storage boundaries.
  */
 export function assertAgentSafeBody(body: JSONContent): void {
   if (!body || body.type !== "doc" || !Array.isArray(body.content)) {

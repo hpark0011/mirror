@@ -3,7 +3,7 @@ id: FG_211
 title: "applyContentPatch schedules embedding generation on published create"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p1
 description: "The `applyContentPatch` test suite has eight cases but every create uses `status: 'draft'` (the implicit default). The `if (args.status === 'published')` branch in `createPostForUser`/`createArticleForUser` that schedules `internal.embeddings.actions.generateEmbedding` is therefore unprotected — it could be removed and all tests still pass. Agent-authored published content would silently never reach the clone-agent RAG retrieval."
 dependencies: []

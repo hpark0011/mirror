@@ -3,7 +3,7 @@ id: FG_221
 title: "getProfileContentForEdit tool result shape is captured in a single source of truth"
 date: 2026-05-14
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The `getProfileContentForEdit` tool wraps the internal query result by adding a `found: boolean` field — `{ ...row, found: true }` on hit, `{ kind, slug, found: false }` on miss. The `found` field is not part of the underlying query's `returns` validator (`ownedContentForEditReturnValidator`), so the LLM sees a shape neither validator fully describes. A future change to the query return shape will not catch that `found` is missing."
 dependencies: []

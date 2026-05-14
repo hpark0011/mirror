@@ -3,7 +3,7 @@ id: FG_218
 title: "Remove unreachable assertAgentSafeBody calls after agentBlocksToTiptapDoc"
 date: 2026-05-14
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "`assertAgentSafeBody` is called immediately after `agentBlocksToTiptapDoc` in both branches of `applyContentPatch`. `agentBlocksToTiptapDoc` is the only producer of bodies on the agent path and already rejects every input shape `assertAgentSafeBody` checks — the assertion validates a state that cannot occur. The dead defense misleads future readers who may think the pattern is 'already handled' and skip the assertion when adding a new (genuine) bypass path."
 dependencies: []

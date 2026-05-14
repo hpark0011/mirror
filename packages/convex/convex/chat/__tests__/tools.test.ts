@@ -2908,7 +2908,11 @@ describe("chat/toolQueries.queryOwnedContentForEdit", () => {
     );
   });
 
-  it("returns null when slug does not exist for the owner", async () => {
+  it("returns found: false when slug does not exist for the owner", async () => {
+    // FG_221: queryOwnedContentForEdit now returns a discriminated union
+    // (`{ found: false, kind, slug }` on miss, `{ found: true, ... }` on
+    // hit) so the tool layer can pass the query result through without a
+    // wrap step. The previous null-on-miss shape is gone.
     const t = makeT();
     const owner = await insertOwner(t, "owner_edit_miss");
 
@@ -2917,7 +2921,7 @@ describe("chat/toolQueries.queryOwnedContentForEdit", () => {
       { userId: owner, kind: "posts", slug: "missing" },
     );
 
-    expect(result).toBeNull();
+    expect(result).toEqual({ found: false, kind: "posts", slug: "missing" });
   });
 });
 
@@ -3377,5 +3381,105 @@ describe("chat/toolMutations.applyContentPatch", () => {
         operations: ops,
       }),
     ).rejects.toThrow(/at most 5 operations/);
+  });
+
+  it("schedules generateEmbedding for a published post create", async () => {
+    // applyContentPatch with status:"published" must queue
+    // internal.embeddings.actions.generateEmbedding for the new post.
+    // If the `if (args.status === "published")` branch were removed from
+    // createPostForUser, this test would find zero scheduled functions and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_embed_post_published");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            status: "published",
+            title: "Embedding Test Post",
+            category: "Notes",
+            bodyBlocks: [{ type: "paragraph", text: "body" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.created).toBe(1);
+    const postId = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .unique();
+      return row!._id;
+    });
+
+    // convex-test stores scheduled jobs in the _scheduled_functions system
+    // table, accessible via ctx.db.system.query. Assert that exactly one
+    // generateEmbedding job was queued for the newly created post.
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const embeddingJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("generateEmbedding") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === postId,
+    );
+    expect(embeddingJobs).toHaveLength(1);
+    expect(
+      (embeddingJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("posts");
+  });
+
+  it("schedules generateEmbedding for a published article create", async () => {
+    // Mirror of the post test above for the articles path.
+    // If the `if (args.status === "published")` branch were removed from
+    // createArticleForUser, this test would find zero scheduled functions and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_embed_article_published");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "articles",
+            status: "published",
+            title: "Embedding Test Article",
+            category: "Essays",
+            bodyBlocks: [{ type: "paragraph", text: "body" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.created).toBe(1);
+    const articleId = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("articles")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .unique();
+      return row!._id;
+    });
+
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const embeddingJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("generateEmbedding") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === articleId,
+    );
+    expect(embeddingJobs).toHaveLength(1);
+    expect(
+      (embeddingJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("articles");
   });
 });

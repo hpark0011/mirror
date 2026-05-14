@@ -26,7 +26,6 @@ import { navigableContentKindValidator } from "../content/sourceValidators";
 import { type NavigableContentKind } from "../content/sourceRegistry";
 import {
   agentBlocksToTiptapDoc,
-  assertAgentSafeBody,
   type AgentContentBlock,
 } from "../content/agentBody";
 import {
@@ -642,7 +641,6 @@ export const applyContentPatch = internalMutation({
 
       if (op.action === "create") {
         const body = agentBlocksToTiptapDoc(op.bodyBlocks);
-        assertAgentSafeBody(body);
         const status = op.status ?? "draft";
 
         // Destructure the persisted slug directly from the writeHelper return —
@@ -690,11 +688,7 @@ export const applyContentPatch = internalMutation({
       // op.action === "update"
       const body =
         op.bodyBlocks !== undefined
-          ? (() => {
-              const doc = agentBlocksToTiptapDoc(op.bodyBlocks);
-              assertAgentSafeBody(doc);
-              return doc;
-            })()
+          ? agentBlocksToTiptapDoc(op.bodyBlocks)
           : undefined;
 
       const updateResult =

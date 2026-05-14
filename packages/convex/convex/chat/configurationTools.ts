@@ -746,18 +746,14 @@ export function buildConfigurationTools(
       }),
       execute: async (ctx, args) => {
         assertOwner();
-        const row = await ctx.runQuery(
+        // The query returns a discriminated union { found: false, kind, slug }
+        // or { found: true, ...rest } — pass it through unchanged. `found` is
+        // now part of the query validator (approach a), so the LLM-visible
+        // shape has a single structural source of truth.
+        return await ctx.runQuery(
           internal.chat.toolQueries.queryOwnedContentForEdit,
           { userId: profileOwnerId, ...args },
         );
-        if (!row) {
-          return {
-            kind: args.kind,
-            slug: args.slug,
-            found: false,
-          };
-        }
-        return { ...row, found: true };
       },
     }),
 

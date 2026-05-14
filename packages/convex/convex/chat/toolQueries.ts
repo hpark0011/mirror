@@ -641,9 +641,17 @@ export const queryProfileContentLibrary = internalQuery({
   },
 });
 
+// Approach (a): `found` lives in the query validator so the LLM-visible
+// shape has a single structural source of truth. The tool handler returns
+// the query result unchanged — no `{ ...row, found: true }` rewrap.
 const ownedContentForEditReturnValidator = v.union(
-  v.null(),
   v.object({
+    found: v.literal(false),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+  }),
+  v.object({
+    found: v.literal(true),
     kind: navigableContentKindValidator,
     slug: v.string(),
     title: v.string(),
@@ -708,8 +716,8 @@ export const queryOwnedContentForEdit = internalQuery({
   returns: ownedContentForEditReturnValidator,
   handler: async (ctx, { userId, kind, slug }) => {
     const owner = await ctx.db.get(userId);
-    if (!owner) return null;
-    if (!owner.username) return null;
+    if (!owner || !owner.username)
+      return { found: false as const, kind, slug };
 
     const source = getNavigableContentSource(kind);
     const row = await ctx.db
@@ -718,10 +726,11 @@ export const queryOwnedContentForEdit = internalQuery({
         q.eq("userId", userId as Id<"users">).eq("slug", slug),
       )
       .unique();
-    if (!row) return null;
+    if (!row) return { found: false as const, kind, slug };
 
     const projection = analyzeAgentBodyProjection(row.body);
     return {
+      found: true as const,
       kind,
       slug: row.slug,
       title: row.title,
