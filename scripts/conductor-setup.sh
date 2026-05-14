@@ -67,10 +67,37 @@ else
 fi
 
 CONVEX_ENV="$GIT_ROOT/packages/convex/.env.local"
-if [[ -f "$CONVEX_ENV" ]] && grep -q '^CONVEX_DEPLOYMENT=' "$CONVEX_ENV"; then
-  log "3/4 provision-worktree-convex.sh (skipped — $CONVEX_ENV already has CONVEX_DEPLOYMENT)"
+# Only skip provisioning when the existing env is provably safe — a real
+# file (not a symlink to main), a `dev:` deployment, and distinct from
+# main's. Anything else falls through to provision-worktree-convex.sh,
+# which has the canonical guards (symlink removal, non-dev refusal,
+# shared/malformed env replacement).
+CONVEX_SKIP_REASON=""
+if [[ -L "$CONVEX_ENV" ]]; then
+  CONVEX_SKIP_REASON="symlink — provision will replace"
+elif [[ ! -f "$CONVEX_ENV" ]]; then
+  CONVEX_SKIP_REASON="missing"
 else
-  log "3/4 provision-worktree-convex.sh"
+  THIS_DEP=$(worktree_read_convex_deployment "$CONVEX_ENV")
+  if [[ -z "$THIS_DEP" ]]; then
+    CONVEX_SKIP_REASON="no CONVEX_DEPLOYMENT line"
+  elif [[ "$THIS_DEP" != dev:* ]]; then
+    CONVEX_SKIP_REASON="non-dev deployment ($THIS_DEP) — provision will refuse"
+  else
+    MAIN_ROOT_FOR_CONVEX="$(worktree_find_main_root || true)"
+    if [[ -n "$MAIN_ROOT_FOR_CONVEX" ]]; then
+      MAIN_DEP=$(worktree_read_convex_deployment "$MAIN_ROOT_FOR_CONVEX/packages/convex/.env.local")
+      if [[ -n "$MAIN_DEP" && "$THIS_DEP" == "$MAIN_DEP" ]]; then
+        CONVEX_SKIP_REASON="shared with main ($MAIN_DEP)"
+      fi
+    fi
+  fi
+fi
+
+if [[ -z "$CONVEX_SKIP_REASON" ]]; then
+  log "3/4 provision-worktree-convex.sh (skipped — $CONVEX_ENV already has worktree dev deployment)"
+else
+  log "3/4 provision-worktree-convex.sh ($CONVEX_SKIP_REASON)"
   ./scripts/provision-worktree-convex.sh
 fi
 
