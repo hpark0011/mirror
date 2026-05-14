@@ -276,10 +276,8 @@ function isContentPatchOutput(output: unknown): output is ContentPatchOutput {
   ) {
     return false;
   }
-  if (o.lastTouched !== null && (!o.lastTouched || typeof o.lastTouched !== "object")) {
-    return false;
-  }
   if (o.lastTouched !== null) {
+    if (!o.lastTouched || typeof o.lastTouched !== "object") return false;
     const lt = o.lastTouched as Record<string, unknown>;
     if (
       !isContentKind(typeof lt.kind === "string" ? lt.kind : undefined) ||
@@ -295,10 +293,8 @@ function isContentPatchOutput(output: unknown): output is ContentPatchOutput {
       return false;
     }
   }
-  if (o.lastDeleted !== null && (!o.lastDeleted || typeof o.lastDeleted !== "object")) {
-    return false;
-  }
   if (o.lastDeleted !== null) {
+    if (!o.lastDeleted || typeof o.lastDeleted !== "object") return false;
     const ld = o.lastDeleted as Record<string, unknown>;
     if (
       !isContentKind(typeof ld.kind === "string" ? ld.kind : undefined) ||

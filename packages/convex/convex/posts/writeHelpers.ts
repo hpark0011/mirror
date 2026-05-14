@@ -59,7 +59,7 @@ export async function createPostForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   args: CreatePostArgs,
-): Promise<Id<"posts">> {
+): Promise<{ id: Id<"posts">; slug: string }> {
   const title = args.title?.trim() ?? "";
 
   validateContentStringLength(title, "Title", MAX_TITLE_LENGTH);
@@ -170,7 +170,7 @@ export async function createPostForUser(
     );
   }
 
-  return postId;
+  return { id: postId, slug };
 }
 
 export type UpdatePostArgs = {

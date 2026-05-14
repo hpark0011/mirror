@@ -40,7 +40,7 @@ export const create = authMutation({
   returns: v.id("articles"),
   handler: async (ctx, args) => {
     const appUser = await getAppUser(ctx, ctx.user._id);
-    return await createArticleForUser(ctx, appUser._id, args);
+    return (await createArticleForUser(ctx, appUser._id, args)).id;
   },
 });
 

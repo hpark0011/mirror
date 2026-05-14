@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
-import { type Id } from "../_generated/dataModel";
+import { type Doc, type Id } from "../_generated/dataModel";
 import { contentStatusValidator } from "../content/schema";
 import {
   getNavigableContentSource,
@@ -584,17 +584,9 @@ export const queryProfileContentLibrary = internalQuery({
       PROFILE_CONTENT_LIBRARY_MAX_LIMIT,
     );
 
-    const items: Array<{
+    const collected: Array<{
       kind: NavigableContentKind;
-      slug: string;
-      title: string;
-      category: string;
-      status: "draft" | "published";
-      createdAt: number;
-      publishedAt?: number;
-      href: string;
-      editHref: string;
-      _creationTime: number;
+      row: Doc<"posts"> | Doc<"articles">;
     }> = [];
 
     for (const k of requestedKinds) {
@@ -616,35 +608,34 @@ export const queryProfileContentLibrary = internalQuery({
             .take(effectiveLimit);
 
       for (const row of rows) {
-        items.push({
+        collected.push({
           kind: k,
+          row,
+        });
+      }
+    }
+
+    collected.sort((a, b) => b.row._creationTime - a.row._creationTime);
+
+    const username = owner.username;
+    return {
+      username,
+      listHrefs: {
+        posts: buildContentHref(username, "posts"),
+        articles: buildContentHref(username, "articles"),
+      },
+      items: collected.slice(0, effectiveLimit * requestedKinds.length).map(
+        ({ kind, row }) => ({
+          kind,
           slug: row.slug,
           title: row.title,
           category: row.category,
           status: row.status,
           createdAt: row.createdAt,
           publishedAt: row.publishedAt,
-          href: buildContentHref(owner.username, k, row.slug),
-          editHref: buildContentEditHref(owner.username, k, row.slug),
-          _creationTime: row._creationTime,
-        });
-      }
-    }
-
-    items.sort((a, b) => b._creationTime - a._creationTime);
-
-    return {
-      username: owner.username,
-      listHrefs: {
-        posts: buildContentHref(owner.username, "posts"),
-        articles: buildContentHref(owner.username, "articles"),
-      },
-      items: items.slice(0, effectiveLimit * requestedKinds.length).map(
-        // Strip the internal `_creationTime` field — only used for sorting.
-        ({ _creationTime, ...rest }) => {
-          void _creationTime;
-          return rest;
-        },
+          href: buildContentHref(username, kind, row.slug),
+          editHref: buildContentEditHref(username, kind, row.slug),
+        }),
       ),
     };
   },

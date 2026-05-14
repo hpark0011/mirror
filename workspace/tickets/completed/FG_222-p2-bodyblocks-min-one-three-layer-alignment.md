@@ -3,7 +3,7 @@ id: FG_222
 title: "bodyBlocks minimum length is consistent across Zod, Convex, and adapter layers"
 date: 2026-05-14
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "The Zod schema in `configurationTools.ts` requires `bodyBlocks.min(1)` for create operations, but the Convex validator in `toolMutations.ts` accepts empty arrays and `agentBlocksToTiptapDoc` explicitly returns a single-empty-paragraph doc on `blocks.length === 0`. The three layers disagree on whether zero-block bodies are valid. The Zod constraint fires at the LLM boundary, but a direct internal caller can pass `[]` and the create path will succeed with an empty body."
 dependencies: []

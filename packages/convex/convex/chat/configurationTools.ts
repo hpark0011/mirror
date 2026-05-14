@@ -167,7 +167,7 @@ const contentOperationSchema = z.discriminatedUnion("action", [
     slug: z.string().min(1).optional(),
     category: z.string().min(1),
     status: z.enum(["draft", "published"]).optional(),
-    bodyBlocks: z.array(agentContentBlockSchema).min(1),
+    bodyBlocks: z.array(agentContentBlockSchema),
   }),
   z.object({
     action: z.literal("update"),

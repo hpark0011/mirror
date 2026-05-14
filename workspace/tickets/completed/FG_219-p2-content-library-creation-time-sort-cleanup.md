@@ -3,7 +3,7 @@ id: FG_219
 title: "queryProfileContentLibrary drops the synthetic _creationTime sort field"
 date: 2026-05-14
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "The intermediate `items` array in `queryProfileContentLibrary` carries an extra `_creationTime: number` field used only for sort, then strips it via a destructuring map with a `void _creationTime` discard before return. The workaround widens the intermediate type, requires destructuring at return, and produces TypeScript noise — three moving parts for one sort key."
 dependencies: []

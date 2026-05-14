@@ -77,7 +77,7 @@ export async function createArticleForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   args: CreateArticleArgs,
-): Promise<Id<"articles">> {
+): Promise<{ id: Id<"articles">; slug: string }> {
   validateContentStringLength(args.title, "Title", MAX_TITLE_LENGTH);
   validateContentStringLength(args.category, "Category", MAX_CATEGORY_LENGTH);
   if (args.coverImageThumbhash !== undefined) {
@@ -179,7 +179,7 @@ export async function createArticleForUser(
     );
   }
 
-  return articleId;
+  return { id: articleId, slug };
 }
 
 export type UpdateArticleArgs = {

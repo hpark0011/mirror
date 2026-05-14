@@ -3,7 +3,7 @@ id: FG_224
 title: "isContentPatchOutput narrowing reads as two explicit branches"
 date: 2026-05-14
 type: refactor
-status: to-do
+status: completed
 priority: p3
 description: "`isContentPatchOutput` uses a double-guard pattern `o.lastTouched !== null && (!o.lastTouched || typeof o.lastTouched !== 'object')` that is correct today but reads counter-intuitively because `undefined` and `null` both produce truthy intermediate evaluations. A simpler two-branch shape (`if (o.lastTouched === null) ... else if (...) return false; else ...`) makes intent obvious."
 dependencies: []

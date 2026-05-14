@@ -41,7 +41,7 @@ export const create = authMutation({
   returns: v.id("posts"),
   handler: async (ctx, args) => {
     const appUser = await getAppUser(ctx, ctx.user._id);
-    return await createPostForUser(ctx, appUser._id, args);
+    return (await createPostForUser(ctx, appUser._id, args)).id;
   },
 });
 

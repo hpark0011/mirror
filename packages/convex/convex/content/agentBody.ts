@@ -71,6 +71,11 @@ export function agentBlocksToTiptapDoc(
     );
   }
 
+  // Empty blocks ([]) are valid and represent the editor's empty state.
+  // The policy: allow empty bodies on create. The Zod schema enforces
+  // this at the LLM boundary (configurationTools.ts), and the Convex
+  // validator (toolMutations.ts) allows it internally. The empty-paragraph
+  // doc matches what the editor would persist for an empty post.
   if (blocks.length === 0) {
     return { type: "doc", content: [{ type: "paragraph" }] };
   }

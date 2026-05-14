@@ -2996,6 +2996,42 @@ describe("chat/toolMutations.applyContentPatch", () => {
     expect(result.lastTouched!.slug).toBe("on-rest-and-rhythm");
   });
 
+  it("returns the DB-persisted slug when post title has leading/trailing whitespace", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_apply_whitespace_slug");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            title: "  Hello World  ",
+            category: "Notes",
+            bodyBlocks: [{ type: "paragraph", text: "Body text" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.created).toBe(1);
+    // The writeHelper trims the title before slugifying, so the persisted slug
+    // must be "hello-world" — not a derivation of the raw padded title.
+    expect(result.lastTouched!.slug).toBe("hello-world");
+
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .unique(),
+    );
+    expect(row).not.toBeNull();
+    // The result slug and the DB row's slug field must match — single source of truth.
+    expect(result.lastTouched!.slug).toBe(row!.slug);
+  });
+
   it("updates title, category, and body without touching omitted fields", async () => {
     const t = makeT();
     const owner = await insertOwner(t, "owner_apply_update");

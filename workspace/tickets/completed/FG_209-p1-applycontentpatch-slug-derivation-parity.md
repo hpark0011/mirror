@@ -3,7 +3,7 @@ id: FG_209
 title: "applyContentPatch returns the slug actually persisted by writeHelpers"
 date: 2026-05-14
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "`applyContentPatch` re-derives the post/article slug client-side via `generateSlug(op.slug?.trim() ? op.slug : op.title)` after the writeHelper has already inserted the row. For posts the writeHelper trims the title before slugifying; the re-derivation passes raw `op.title`. Today this is rescued only by `generateSlug`'s own strip step, so the bug is latent: any future change to `generateSlug`'s whitespace handling silently routes the owner to a 404 editor URL after creating content."
 dependencies: []

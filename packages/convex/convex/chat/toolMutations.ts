@@ -24,7 +24,6 @@ import {
 } from "../content/href";
 import { navigableContentKindValidator } from "../content/sourceValidators";
 import { type NavigableContentKind } from "../content/sourceRegistry";
-import { generateSlug } from "../content/slug";
 import {
   agentBlocksToTiptapDoc,
   assertAgentSafeBody,
@@ -646,28 +645,25 @@ export const applyContentPatch = internalMutation({
         assertAgentSafeBody(body);
         const status = op.status ?? "draft";
 
-        if (op.kind === "posts") {
-          await createPostForUser(ctx, args.userId, {
-            title: op.title,
-            slug: op.slug,
-            category: op.category,
-            body,
-            status,
-          });
-        } else {
-          await createArticleForUser(ctx, args.userId, {
-            title: op.title,
-            slug: op.slug,
-            category: op.category,
-            body,
-            status,
-          });
-        }
-
-        // `generateSlug` is idempotent and the writeHelpers run it with the
-        // exact same `op.slug ?? op.title` source, so calling it here yields
-        // the slug actually persisted — without a follow-up DB lookup.
-        const slug = generateSlug(op.slug?.trim() ? op.slug : op.title);
+        // Destructure the persisted slug directly from the writeHelper return —
+        // do NOT re-derive it here. The writeHelper is the single normalization
+        // boundary (.claude/rules/identifiers.md rule 1).
+        const { slug } =
+          op.kind === "posts"
+            ? await createPostForUser(ctx, args.userId, {
+                title: op.title,
+                slug: op.slug,
+                category: op.category,
+                body,
+                status,
+              })
+            : await createArticleForUser(ctx, args.userId, {
+                title: op.title,
+                slug: op.slug,
+                category: op.category,
+                body,
+                status,
+              });
 
         const href = buildContentHref(username, op.kind, slug);
         const editHref = buildContentEditHref(username, op.kind, slug);
