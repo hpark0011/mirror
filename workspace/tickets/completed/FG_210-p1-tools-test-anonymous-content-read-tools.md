@@ -3,7 +3,7 @@ id: FG_210
 title: "Anonymous viewer is rejected by the two new content read tools"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p1
 description: "`tools.test.ts` extends the `inputSchema invariants` block to assert that `applyContentPatch` rejects an anonymous viewer, but the matching anonymous-viewer assertions for `getProfileContentLibrary` and `getProfileContentForEdit` were never added. The `assertOwner` guard on those two read tools is currently untested for the null-viewerId path, violating the `.claude/rules/agent-parity.md` requirement to pin every new tool's owner-check before the PR lands."
 dependencies: []

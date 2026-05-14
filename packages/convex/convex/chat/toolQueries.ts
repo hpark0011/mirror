@@ -83,7 +83,6 @@ const resolveOwnedContentBySlugReturnValidator = v.union(
   }),
 );
 
-const contentKindValidator = navigableContentKindValidator;
 
 const profileConfigurationReturnValidator = v.object({
   username: v.string(),
@@ -110,7 +109,7 @@ const profileConfigurationReturnValidator = v.object({
 });
 
 const relevantContentCandidateValidator = v.object({
-  kind: contentKindValidator,
+  kind: navigableContentKindValidator,
   sourceId: v.string(),
   slug: v.string(),
   score: v.number(),
@@ -119,7 +118,7 @@ const relevantContentCandidateValidator = v.object({
 
 const resolvePublishedContentCandidatesReturnValidator = v.array(
   v.object({
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     slug: v.string(),
     title: v.string(),
     publishedAt: v.optional(v.number()),
@@ -137,7 +136,7 @@ const resolvePublishedContentCandidatesReturnValidator = v.array(
 export const queryLatestPublished = internalQuery({
   args: {
     userId: v.id("users"),
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
   },
   returns: latestPublishedReturnValidator,
   handler: async (ctx, { userId, kind }) => {
@@ -180,7 +179,7 @@ export const queryLatestPublished = internalQuery({
 export const resolveBySlug = internalQuery({
   args: {
     userId: v.id("users"),
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     slug: v.string(),
   },
   returns: resolveBySlugReturnValidator,
@@ -286,7 +285,7 @@ export const resolvePublishedContentCandidates = internalQuery({
 export const resolveOwnedContentBySlug = internalQuery({
   args: {
     userId: v.id("users"),
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     slug: v.string(),
   },
   returns: resolveOwnedContentBySlugReturnValidator,
@@ -462,7 +461,7 @@ export const queryContactPanel = internalQuery({
 const profileSectionListReturnValidator = v.union(
   v.null(),
   v.object({
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     username: v.string(),
     href: v.string(),
     hasEntries: v.boolean(),
@@ -488,7 +487,7 @@ const profileSectionListReturnValidator = v.union(
 export const queryProfileSectionList = internalQuery({
   args: {
     userId: v.id("users"),
-    section: contentKindValidator,
+    section: navigableContentKindValidator,
   },
   returns: profileSectionListReturnValidator,
   handler: async (ctx, { userId, section }) => {

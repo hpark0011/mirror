@@ -3,7 +3,7 @@ id: FG_217
 title: "Public clone tools surface excludes the new content authoring tools"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The `inputSchema invariants` describe block pins the public `buildCloneTools` tool list shape but does not assert what is absent. If a future refactor accidentally imports `applyContentPatch`, `getProfileContentLibrary`, or `getProfileContentForEdit` into `buildCloneTools`, public visitor sessions could call content-mutating operations against the profile owner's content and the test suite would not catch it."
 dependencies: []

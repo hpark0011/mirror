@@ -3,7 +3,7 @@ id: FG_220
 title: "Behavioral policy lives only in configurationPrompt vocabulary"
 date: 2026-05-14
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "The `applyContentPatch` tool description embeds behavioral guidance (`Confirm with the owner before publishing immediately or replacing a non-empty body`) that is already present in `CONFIGURATION_TOOLS_VOCABULARY` in `configurationPrompt.ts`. Two sources of truth for the same policy means an editor updating only one creates a behavioral divergence the LLM will resolve arbitrarily."
 dependencies: []

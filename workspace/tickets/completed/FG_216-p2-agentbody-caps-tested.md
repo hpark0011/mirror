@@ -3,7 +3,7 @@ id: FG_216
 title: "agentBody size caps are enforced by tests"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "`agentBody.ts` defines three numeric caps (`MAX_BLOCKS_PER_BODY = 200`, `MAX_TEXT_LENGTH_PER_BLOCK = 4000`, `MAX_BULLET_ITEMS = 50`) and throws `AgentBodyError` on overflow, but `agentBody.test.ts` has no test that crosses any threshold. All three guards could be silently removed and the agent could supply an unbounded body."
 dependencies: []

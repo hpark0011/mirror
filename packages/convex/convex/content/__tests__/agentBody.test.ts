@@ -101,6 +101,30 @@ describe("agentBlocksToTiptapDoc", () => {
       agentBlocksToTiptapDoc([{ type: "image", url: "x" }]),
     ).toThrow(AgentBodyError);
   });
+
+  it("rejects more than MAX_BLOCKS_PER_BODY paragraph blocks", () => {
+    // The cap protects the DB write path from unbounded agent input. The
+    // exact threshold is hard-coded here so a future tightening surfaces
+    // as a test failure to revisit, not as a silent regression.
+    const blocks: AgentContentBlock[] = Array.from({ length: 201 }, (_, i) => ({
+      type: "paragraph",
+      text: `paragraph ${i}`,
+    }));
+    expect(() => agentBlocksToTiptapDoc(blocks)).toThrow(AgentBodyError);
+  });
+
+  it("rejects paragraph text exceeding MAX_TEXT_LENGTH_PER_BLOCK", () => {
+    expect(() =>
+      agentBlocksToTiptapDoc([{ type: "paragraph", text: "x".repeat(4001) }]),
+    ).toThrow(AgentBodyError);
+  });
+
+  it("rejects bulletList items exceeding MAX_BULLET_ITEMS", () => {
+    const items = Array.from({ length: 51 }, (_, i) => `item ${i}`);
+    expect(() =>
+      agentBlocksToTiptapDoc([{ type: "bulletList", items }]),
+    ).toThrow(AgentBodyError);
+  });
 });
 
 describe("tiptapDocToAgentBlocks", () => {

@@ -1453,6 +1453,19 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     expect([...values].sort()).toEqual(["articles", "bio", "contact", "posts"]);
   });
 
+  it("buildCloneTools does not expose configuration content authoring tools to visitors", () => {
+    // PLAN_013 introduced `applyContentPatch`, `getProfileContentLibrary`,
+    // and `getProfileContentForEdit` on the configuration-mode tool surface
+    // only. Pin the negative direction here: a future refactor that
+    // accidentally imports any of these into the public clone surface would
+    // let visitors mutate the profile owner's content.
+    const tools = buildCloneTools(fakeOwner);
+    const keys = Object.keys(tools);
+    expect(keys).not.toContain("applyContentPatch");
+    expect(keys).not.toContain("getProfileContentLibrary");
+    expect(keys).not.toContain("getProfileContentForEdit");
+  });
+
   it("owner-write tools reject anonymous and non-owner viewers before reads or writes", async () => {
     const owner = "users_owner" as unknown as Id<"users">;
     const visitor = "users_visitor" as unknown as Id<"users">;
@@ -1619,6 +1632,15 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
             slug: "x",
           },
         ],
+      }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      anonymousTools.getProfileContentLibrary.execute(blockedCtx, {}),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      anonymousTools.getProfileContentForEdit.execute(blockedCtx, {
+        kind: "posts",
+        slug: "some-slug",
       }),
     ).rejects.toThrow("Only the profile owner");
 

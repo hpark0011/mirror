@@ -3,7 +3,7 @@ id: FG_225
 title: "Remove the contentKindValidator alias in toolQueries"
 date: 2026-05-14
 type: refactor
-status: to-do
+status: completed
 priority: p3
 description: "`const contentKindValidator = navigableContentKindValidator;` in `chat/toolQueries.ts:85` is a no-op alias used 7 times in the same file. It adds a hop for future readers and offers no signal about why two names exist for the same validator."
 dependencies: []

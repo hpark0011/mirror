@@ -763,7 +763,7 @@ export function buildConfigurationTools(
 
     applyContentPatch: createTool({
       description:
-        "Apply an all-or-nothing batch of post/article changes for the profile owner. Use create for a brand-new draft (prefer drafts unless the owner explicitly asks to publish), update with the current slug to edit fields or replace the body via bodyBlocks, and delete to remove an owned row. Confirm with the owner before publishing immediately or replacing a non-empty body. Max 5 operations per call.",
+        "Apply an all-or-nothing batch of post/article changes for the profile owner. Use create for a brand-new draft (prefer drafts unless the owner explicitly asks to publish), update with the current slug to edit fields or replace the body via bodyBlocks, and delete to remove an owned row. Max 5 operations per call.",
       inputSchema: z.object({
         operations: z.array(contentOperationSchema).min(1).max(5),
       }),

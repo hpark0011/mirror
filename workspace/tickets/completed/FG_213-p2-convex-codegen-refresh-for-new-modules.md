@@ -3,7 +3,7 @@ id: FG_213
 title: "Convex codegen lists the new content authoring helper modules"
 date: 2026-05-14
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "PLAN_013 added `articles/writeHelpers.ts`, `posts/writeHelpers.ts`, and `content/agentBody.ts` but the committed `_generated/api.d.ts` was not regenerated — sibling helper files like `bio/writeHelpers` and `contacts/writeHelpers` are present in the module map. Runtime function registration for `applyContentPatch` still works because it lives in `chat/toolMutations.ts` which is registered, but the codegen-commit convention is broken and a future codegen run will produce unrelated diff churn."
 dependencies: []
