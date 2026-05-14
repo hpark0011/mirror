@@ -3,7 +3,7 @@ id: FG_214
 title: "applyContentPatch update preserves body when bodyBlocks is omitted"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The update branch of `applyContentPatch` only computes a body when `op.bodyBlocks !== undefined`, leaving the persisted body untouched otherwise. No test pins this behavior — the conditional guard could regress to always-convert and silently overwrite content bodies with a single empty paragraph."
 dependencies: []

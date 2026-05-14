@@ -3,7 +3,7 @@ id: FG_215
 title: "applyContentPatch newSlug rename + collision is tested"
 date: 2026-05-14
 type: improvement
-status: to-do
+status: completed
 priority: p2
 description: "The `newSlug` field on the update operation is part of the agent's tool schema but has zero test coverage. The writeHelper's slug-collision guard for renames at `updatePostRow`/`updateArticleRow` could regress, allowing the agent to create duplicate slug rows or routing the owner to a stale slug after a successful rename."
 dependencies: []

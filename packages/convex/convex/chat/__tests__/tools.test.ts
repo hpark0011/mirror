@@ -3084,6 +3084,159 @@ describe("chat/toolMutations.applyContentPatch", () => {
     expect(row!.status).toBe("draft");
   });
 
+  it("leaves body untouched when bodyBlocks is omitted on update", async () => {
+    // FG_214: the update branch only computes a body when `op.bodyBlocks
+    // !== undefined`. Without this test, a regression that flips that
+    // conditional could silently clear the persisted body with an empty
+    // paragraph doc.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_body_untouched");
+    const originalBody = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Untouched" }],
+        },
+      ],
+    };
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "body-untouched-post",
+        title: "Old title",
+        category: "Notes",
+        body: originalBody,
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    await t.mutation(internal.chat.toolMutations.applyContentPatch, {
+      userId: owner,
+      operations: [
+        {
+          action: "update",
+          kind: "posts",
+          slug: "body-untouched-post",
+          title: "New title",
+        },
+      ],
+    });
+
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId_and_slug", (q) =>
+          q.eq("userId", owner).eq("slug", "body-untouched-post"),
+        )
+        .unique(),
+    );
+    expect(row).not.toBeNull();
+    expect(row!.title).toBe("New title");
+    expect(row!.body).toEqual(originalBody);
+  });
+
+  it("renames a post via newSlug and reports the persisted slug", async () => {
+    // FG_215: the `newSlug` field on the update operation flows through to
+    // the writeHelper's `args.slug` parameter. This pins both halves of
+    // the contract — the slug is normalized and the result reports the
+    // persisted slug.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_rename");
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "original-slug",
+        title: "Original",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "posts",
+            slug: "original-slug",
+            newSlug: "Renamed Slug",
+          },
+        ],
+      },
+    );
+
+    expect(result.lastTouched).not.toBeNull();
+    expect(result.lastTouched!.slug).toBe("renamed-slug");
+
+    const renamed = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId_and_slug", (q) =>
+          q.eq("userId", owner).eq("slug", "renamed-slug"),
+        )
+        .unique(),
+    );
+    expect(renamed).not.toBeNull();
+    expect(renamed!.slug).toBe("renamed-slug");
+  });
+
+  it("rejects newSlug collisions against existing rows", async () => {
+    // FG_215: collision check covers the rename path too. If the
+    // collision guard in `updatePostRow` ever regresses, the agent could
+    // create duplicate slug rows.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_rename_collide");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "first",
+        title: "First",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      });
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "second",
+        title: "Second",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1100,
+      });
+    });
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContentPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "posts",
+            slug: "first",
+            newSlug: "second",
+          },
+        ],
+      }),
+    ).rejects.toThrow(/already exists/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.slug).sort()).toEqual(["first", "second"]);
+  });
+
   it("rejects slug collisions on create", async () => {
     const t = makeT();
     const owner = await insertOwner(t, "owner_collide");
