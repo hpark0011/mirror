@@ -209,9 +209,11 @@ Compose the report (template below). Rules:
 
 The report from Phase 6 is the terminal output. Do **not** file tickets, apply fixes, run additional verification commands, or re-spawn agents from this point. The skill's job is the prioritized findings list — acting on those findings is a separate cycle that uses different primitives.
 
+**Tickets are filed only through `/generate-issue-tickets`.** If the user asks this skill (or any orchestrator that called it) to "create tickets from these findings," the response is to invoke the slash command — never write to `workspace/tickets/to-do/` via raw `Write`. Bypassing the skill skips its preflight (ID scan, scope rubric, frontmatter contract, validator hook) and has silently produced under-scoped tickets in past sessions. The slash command is the only sanctioned path.
+
 Append a single handoff line after the report's `Recommended next step`. Pick the wording that matches the findings:
 
-- Any P0/P1 findings → _"To act on this: paste the P0/P1 rows into `/generate-issue-tickets` (one row per ticket), then run `/resolve-issue-tickets` to work through them in parallel waves."_
+- Any P0/P1 findings → _"To act on this: run `/generate-issue-tickets` with the P0/P1 rows from this report (one ticket per row), then run `/resolve-issue-tickets` to work through them in parallel waves."_
 - Only P2/P3 (or `safe_auto`-style mechanical nits) → _"To act on this: hand the report to me with a specific finding number (e.g., 'fix #3') and I'll do that single edit, or run `/generate-issue-tickets` for anything you want to track."_
 - Clean diff (zero findings) → _"Ready to merge."_ (no handoff line needed)
 
@@ -312,5 +314,5 @@ These predate this diff. They do not count toward the verdict but are surfaced f
 
 Move the lock release into a `finally` block before merge.
 
-To act on this: paste the P0 row into `/generate-issue-tickets`, then run `/resolve-issue-tickets` to work it through executor + verifier agents.
+To act on this: run `/generate-issue-tickets` with the P0 row from this report, then run `/resolve-issue-tickets` to work it through executor + verifier agents.
 ```

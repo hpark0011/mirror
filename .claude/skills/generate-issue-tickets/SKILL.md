@@ -51,20 +51,15 @@ Every ticket must conform to this contract. All required fields must be present 
 | `priority`            | enum           | yes      | One of: p0, p1, p2, p3                                         |
 | `description`         | string         | yes      | Min 10 words                                                   |
 | `dependencies`        | list\<string\> | yes      | List of `FG_NNN` IDs (can be empty `[]`)                       |
-| `parent_plan_id`      | string         | no       | Path to plan file if ticket was derived from a plan            |
 | `acceptance_criteria` | list\<string\> | yes      | 2-7 deterministic/verifiable criteria (see below)              |
-| `owner_agent`         | string         | yes      | Descriptive title for the agent best suited to execute         |
+| `parent_plan_id`      | string         | no       | Add only when the ticket was derived from a plan file          |
 
 ## Workflow
 
-1. **Understand the request.** Ask clarifying questions only if genuinely ambiguous.
-2. **Investigate the codebase.** Read relevant files. Do not guess file paths — verify them.
-3. **Determine the next issue ID.** Scan all subdirectories of `workspace/tickets/` for the highest `FG_NNN` and increment by 1.
-4. **Determine priority.** Use the priority rubric below. Default to p2 if unclear.
-5. **Check scoping rules.** One outcome per ticket. If too broad, decompose (see Rules).
-6. **Generate the ticket.** Follow [template.md](template.md) exactly. Write to `workspace/tickets/to-do/FG_{NNN}-{priority}-{slug}.md`.
-7. **Validate.** The hook runs automatically. Fix errors and re-save. Read back for a final check.
-8. **Report back.** Show the filename and a one-line summary.
+1. **Scope + investigate.** Understand the request, read relevant files (verify paths — don't guess), and scan `workspace/tickets/` for the highest `FG_NNN` to determine the next ID. Default priority to p2 if unclear.
+2. **Generate.** Write to `workspace/tickets/to-do/FG_{NNN}-{priority}-{slug}.md` using [template.md](template.md). One outcome per ticket; decompose if too broad.
+3. **Validate.** The PostToolUse hook runs the validator automatically. Fix any errors and re-save.
+4. **Report.** Filename + one-line summary.
 
 ## Priority Rubric
 
@@ -108,10 +103,7 @@ If a behavioral check can't be deterministic, note it under `## Manual Verificat
 - **One ticket per issue.** Don't combine unrelated problems.
 - **One outcome per title.** If the goal contains "and" connecting independent outcomes, split into separate tickets.
 - **Titles describe outcomes, not steps.** BAD: "Add auth check." GOOD: "Admin routes reject unauthenticated requests."
-- **2-7 acceptance criteria.** Fewer than 2 = too vague. More than 7 = decompose.
-- **Verify file paths.** Every path in Context must be confirmed via Read/Grep.
-- **Approach needs effort/risk.** Always include effort (Small/Medium/Large) and risk (Low/Medium/High).
-- **Implementation Steps are required.** Ordered list of concrete steps with file paths or commands. Each step should be independently verifiable. 3-8 steps — fewer means the ticket is underspecified, more means decompose.
-- **Out of Scope is required.** Explicitly list what is NOT included.
-- **When generating multiple tickets**, determine all IDs upfront. Scan once, assign sequential IDs, write all, validate all, report summary table.
-- **Validate before reporting success.** Read the file back and check every field.
+- **Verify file paths.** Every path in Context must come from a Read/Grep, not from memory.
+- **Implementation Steps belong in every ticket.** 3-8 ordered, independently-verifiable steps with file paths or commands. Fewer = underspecified; more = decompose.
+- **Optional body sections.** `## Out of Scope`, `## Constraints`, `## Resources`, `## Manual Verification` are opt-in — include them only when there's real content. Empty placeholders are not better than no section. (Past data: those four sections were empty or near-empty in 39–48% of tickets when they were mandatory.)
+- **Batch creation.** When generating multiple tickets, determine all IDs upfront, write all, let the validator hook run on each, then report a single summary table.

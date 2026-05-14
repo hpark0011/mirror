@@ -34,14 +34,14 @@ const VALID_STATUSES = [
 const VALID_PRIORITIES = ["p0", "p1", "p2", "p3"];
 const REQUIRED_SECTIONS = [
   "Context",
-  "Goal",
   "Scope",
-  "Out of Scope",
   "Approach",
   "Implementation Steps",
-  "Constraints",
-  "Resources",
 ];
+// Optional sections (Goal, Out of Scope, Constraints, Resources) used to be
+// required, but >40% of real tickets ended up with empty filler in each of
+// those — Goal in particular was empty/restating the title 96% of the time.
+// They're now opt-in: include them when there's actual content to put there.
 const ID_PATTERN = /^FG_\d{3}$/;
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const FILENAME_PATTERN = /^FG_\d{3}-p[0-3]-[a-z0-9-]+\.md$/;
@@ -201,10 +201,9 @@ function validateFrontmatter(fm, errors, warnings) {
     }
   }
 
-  // owner_agent
-  if (!fm.owner_agent) {
-    errors.push("Missing required field: owner_agent");
-  }
+  // owner_agent was a decorative field — no downstream consumer reads it
+  // (resolve-issue-tickets picks subagent_type from priority + path heuristics).
+  // No validation; the field is allowed but ignored if present.
 }
 
 function validateBody(content, errors, warnings) {
@@ -216,20 +215,6 @@ function validateBody(content, errors, warnings) {
     if (!pattern.test(body)) {
       errors.push(`Missing required body section: ## ${section}`);
     }
-  }
-
-  // Check Approach section contains Effort and Risk
-  const approachMatch = body.match(/(?:^|\n)## Approach[ \t]*\n([\s\S]*?)(?=\n## |$)/);
-  if (approachMatch) {
-    const approachContent = approachMatch[1];
-    if (!/\*\*Effort:\*\*/.test(approachContent)) {
-      errors.push("Approach section missing **Effort:** annotation");
-    }
-    if (!/\*\*Risk:\*\*/.test(approachContent)) {
-      errors.push("Approach section missing **Risk:** annotation");
-    }
-  } else {
-    warnings.push("Could not parse Approach section content for Effort/Risk check");
   }
 }
 
