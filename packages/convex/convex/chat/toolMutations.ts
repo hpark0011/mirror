@@ -4,12 +4,6 @@ import { internalMutation, type MutationCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
 import { isOwnedByUser } from "../content/helpers";
 import { contentStatusValidator } from "../content/schema";
-import { extractInlineImageStorageIds } from "../content/bodyWalk";
-import {
-  filterCallerOwnedInlineIds,
-  filterUnreferencedStorageIds,
-} from "../content/inlineImageOwnership";
-import { MAX_INLINE_DELETES_PER_INVOCATION } from "../content/storagePolicy";
 import { bioEntryKindValidator } from "../bio/schema";
 import {
   createBioEntryForUser,
@@ -21,7 +15,31 @@ import {
   removeContactEntryByKindForUser,
   upsertContactEntryForUser,
 } from "../contacts/writeHelpers";
-import { buildBioHref, buildContactHref } from "../content/href";
+import {
+  buildBioHref,
+  buildContactHref,
+  buildContentEditHref,
+  buildContentHref,
+  buildProfileSectionHref,
+} from "../content/href";
+import { navigableContentKindValidator } from "../content/sourceValidators";
+import { type NavigableContentKind } from "../content/sourceRegistry";
+import { generateSlug } from "../content/slug";
+import {
+  agentBlocksToTiptapDoc,
+  assertAgentSafeBody,
+  type AgentContentBlock,
+} from "../content/agentBody";
+import {
+  createArticleForUser,
+  deleteArticleForUserBySlug,
+  updateArticleForUserBySlug,
+} from "../articles/writeHelpers";
+import {
+  createPostForUser,
+  deletePostForUserBySlug,
+  updatePostForUserBySlug,
+} from "../posts/writeHelpers";
 
 type ContentStatus = "draft" | "published";
 
@@ -267,43 +285,6 @@ async function setStatusForArticle(
   };
 }
 
-async function safeDeleteStorage(
-  ctx: MutationCtx,
-  storageId: Id<"_storage"> | undefined,
-): Promise<boolean> {
-  if (!storageId) return false;
-  try {
-    await ctx.storage.delete(storageId);
-    return true;
-  } catch (err) {
-    console.error("[chat.toolMutations] ctx.storage.delete failed", err);
-    return false;
-  }
-}
-
-async function deleteCoverBlobOwnership(
-  ctx: MutationCtx,
-  storageId: Id<"_storage"> | undefined,
-): Promise<void> {
-  if (!storageId) return;
-  const row = await ctx.db
-    .query("coverImageOwnership")
-    .withIndex("by_storageId", (q) => q.eq("storageId", storageId))
-    .unique();
-  if (row) {
-    await ctx.db.delete(row._id);
-  }
-}
-
-async function deleteCoverBlobAndOwnership(
-  ctx: MutationCtx,
-  storageId: Id<"_storage"> | undefined,
-): Promise<void> {
-  if (await safeDeleteStorage(ctx, storageId)) {
-    await deleteCoverBlobOwnership(ctx, storageId);
-  }
-}
-
 export const setPostStatusByUserAndSlug = internalMutation({
   args: {
     userId: v.id("users"),
@@ -335,51 +316,7 @@ export const deleteArticleByUserAndSlug = internalMutation({
   },
   returns: deleteArticleReturnValidator,
   handler: async (ctx, args) => {
-    const article = await ctx.db
-      .query("articles")
-      .withIndex("by_userId_and_slug", (q) =>
-        q.eq("userId", args.userId).eq("slug", args.slug),
-      )
-      .unique();
-
-    if (!article || !isOwnedByUser(article, args.userId)) {
-      return { deleted: false as const, slug: args.slug };
-    }
-
-    const inlineIds = Array.from(
-      new Set(extractInlineImageStorageIds(article.body)),
-    ) as Id<"_storage">[];
-
-    await ctx.db.delete(article._id);
-
-    await deleteCoverBlobAndOwnership(ctx, article.coverImageStorageId);
-    await deleteCoverBlobAndOwnership(ctx, article.coverVideoStorageId);
-    await deleteCoverBlobAndOwnership(ctx, article.coverVideoPosterStorageId);
-
-    const callerOwned = await filterCallerOwnedInlineIds(
-      ctx,
-      inlineIds,
-      args.userId,
-    );
-    const inlineToDelete = await filterUnreferencedStorageIds(
-      ctx,
-      callerOwned.slice(0, MAX_INLINE_DELETES_PER_INVOCATION),
-    );
-    for (const id of inlineToDelete) {
-      await safeDeleteStorage(ctx, id);
-    }
-
-    await ctx.scheduler.runAfter(
-      0,
-      internal.embeddings.mutations.deleteBySource,
-      { sourceTable: "articles" as const, sourceId: article._id },
-    );
-
-    return {
-      deleted: true as const,
-      title: article.title,
-      slug: article.slug,
-    };
+    return await deleteArticleForUserBySlug(ctx, args.userId, args.slug);
   },
 });
 
@@ -485,6 +422,359 @@ export const applyContactEntryPatch = internalMutation({
       section: "contact" as const,
       href: buildContactHref(owner.username),
       applied: { upserted, deleted },
+    };
+  },
+});
+
+// PLAN_013: configuration agent content-authoring mutation.
+//
+// All operations apply in one Convex mutation transaction — Convex
+// auto-rolls back the entire write set if any single operation throws,
+// so a multi-op patch is all-or-nothing for slug collisions, body
+// validation, and ownership errors. Missing rows on delete return
+// `{ deleted: false }` instead of throwing; the agent surfaces that
+// to the owner in text.
+//
+// Two-phase execution (creates/updates first, deletes last):
+// `deletePost/ArticleForUserBySlug` invokes `ctx.storage.delete()` for
+// cover blobs and inline images. `ctx.db.*` writes participate in the
+// Convex transaction, but `ctx.storage.delete()` does NOT — once a
+// blob is removed it stays removed even if the mutation later throws
+// and rolls back the DB. Running all creates/updates first means any
+// validation throw (body, slug collision, length) happens BEFORE any
+// row's storage is destroyed; the rolled-back doc never ends up
+// pointing at missing media. The trade-off: "delete A then create
+// same-slug A" within one call no longer works — agents must rename
+// via the `update` action's `newSlug` or split into two calls.
+//
+// Cross-user isolation: `userId` is the closure-bound `profileOwnerId`
+// from `chat/configurationTools.ts`, never client-supplied. The
+// LLM-visible `inputSchema` carries only `operations` (no user id, no
+// viewer id). See `.claude/rules/agent-parity.md`.
+
+const agentBodyBlockValidator = v.union(
+  v.object({ type: v.literal("paragraph"), text: v.string() }),
+  v.object({
+    type: v.literal("heading"),
+    level: v.union(v.literal(2), v.literal(3)),
+    text: v.string(),
+  }),
+  v.object({
+    type: v.literal("bulletList"),
+    items: v.array(v.string()),
+  }),
+);
+
+const contentPatchOperationValidator = v.union(
+  v.object({
+    action: v.literal("create"),
+    kind: navigableContentKindValidator,
+    title: v.string(),
+    slug: v.optional(v.string()),
+    category: v.string(),
+    status: v.optional(contentStatusValidator),
+    bodyBlocks: v.array(agentBodyBlockValidator),
+  }),
+  v.object({
+    action: v.literal("update"),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+    title: v.optional(v.string()),
+    newSlug: v.optional(v.string()),
+    category: v.optional(v.string()),
+    status: v.optional(contentStatusValidator),
+    bodyBlocks: v.optional(v.array(agentBodyBlockValidator)),
+  }),
+  v.object({
+    action: v.literal("delete"),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+  }),
+);
+
+const contentPatchResultValidator = v.union(
+  v.object({
+    action: v.union(v.literal("create"), v.literal("update")),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+    status: contentStatusValidator,
+    href: v.string(),
+    editHref: v.string(),
+  }),
+  v.object({
+    action: v.literal("delete"),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+    deleted: v.boolean(),
+    href: v.string(),
+  }),
+);
+
+const contentPatchReturnValidator = v.object({
+  results: v.array(contentPatchResultValidator),
+  applied: v.object({
+    created: v.number(),
+    updated: v.number(),
+    deleted: v.number(),
+  }),
+  lastTouched: v.union(
+    v.null(),
+    v.object({
+      kind: navigableContentKindValidator,
+      slug: v.string(),
+      status: contentStatusValidator,
+      href: v.string(),
+      editHref: v.string(),
+      action: v.union(v.literal("create"), v.literal("update")),
+    }),
+  ),
+  lastDeleted: v.union(
+    v.null(),
+    v.object({
+      kind: navigableContentKindValidator,
+      slug: v.string(),
+      href: v.string(),
+    }),
+  ),
+});
+
+type ContentPatchOperation =
+  | {
+      action: "create";
+      kind: NavigableContentKind;
+      title: string;
+      slug?: string;
+      category: string;
+      status?: "draft" | "published";
+      bodyBlocks: AgentContentBlock[];
+    }
+  | {
+      action: "update";
+      kind: NavigableContentKind;
+      slug: string;
+      title?: string;
+      newSlug?: string;
+      category?: string;
+      status?: "draft" | "published";
+      bodyBlocks?: AgentContentBlock[];
+    }
+  | {
+      action: "delete";
+      kind: NavigableContentKind;
+      slug: string;
+    };
+
+const APPLY_CONTENT_PATCH_MAX_OPERATIONS = 5;
+
+export const applyContentPatch = internalMutation({
+  args: {
+    userId: v.id("users"),
+    operations: v.array(contentPatchOperationValidator),
+  },
+  returns: contentPatchReturnValidator,
+  handler: async (ctx, args) => {
+    if (args.operations.length === 0) {
+      throw new Error("applyContentPatch requires at least one operation.");
+    }
+    if (args.operations.length > APPLY_CONTENT_PATCH_MAX_OPERATIONS) {
+      throw new Error(
+        `applyContentPatch supports at most ${APPLY_CONTENT_PATCH_MAX_OPERATIONS} operations per call.`,
+      );
+    }
+
+    const owner = await ctx.db.get(args.userId);
+    if (!owner?.username) {
+      throw new Error("Content is unavailable for this profile.");
+    }
+    const username = owner.username;
+
+    type CreateOrUpdateResult = {
+      action: "create" | "update";
+      kind: NavigableContentKind;
+      slug: string;
+      status: "draft" | "published";
+      href: string;
+      editHref: string;
+    };
+    type DeleteResult = {
+      action: "delete";
+      kind: NavigableContentKind;
+      slug: string;
+      deleted: boolean;
+      href: string;
+    };
+    type OpResult = CreateOrUpdateResult | DeleteResult;
+
+    // Index-aligned so the returned `results` array preserves the caller's
+    // op order even though execution is reordered (deletes run last).
+    const results: Array<OpResult | undefined> = new Array(
+      args.operations.length,
+    );
+
+    let created = 0;
+    let updated = 0;
+    let deleted = 0;
+
+    let lastTouched: {
+      kind: NavigableContentKind;
+      slug: string;
+      status: "draft" | "published";
+      href: string;
+      editHref: string;
+      action: "create" | "update";
+    } | null = null;
+    let lastDeleted: {
+      kind: NavigableContentKind;
+      slug: string;
+      href: string;
+    } | null = null;
+
+    const ops = args.operations as ContentPatchOperation[];
+    const deleteIndexes: number[] = [];
+
+    // Pass 1 — creates and updates. Every throwable validation (body,
+    // slug collision, ownership) runs here, before any storage cleanup.
+    for (let i = 0; i < ops.length; i++) {
+      const op = ops[i];
+      if (op.action === "delete") {
+        deleteIndexes.push(i);
+        continue;
+      }
+
+      if (op.action === "create") {
+        const body = agentBlocksToTiptapDoc(op.bodyBlocks);
+        assertAgentSafeBody(body);
+        const status = op.status ?? "draft";
+
+        if (op.kind === "posts") {
+          await createPostForUser(ctx, args.userId, {
+            title: op.title,
+            slug: op.slug,
+            category: op.category,
+            body,
+            status,
+          });
+        } else {
+          await createArticleForUser(ctx, args.userId, {
+            title: op.title,
+            slug: op.slug,
+            category: op.category,
+            body,
+            status,
+          });
+        }
+
+        // `generateSlug` is idempotent and the writeHelpers run it with the
+        // exact same `op.slug ?? op.title` source, so calling it here yields
+        // the slug actually persisted — without a follow-up DB lookup.
+        const slug = generateSlug(op.slug?.trim() ? op.slug : op.title);
+
+        const href = buildContentHref(username, op.kind, slug);
+        const editHref = buildContentEditHref(username, op.kind, slug);
+        results[i] = {
+          action: "create",
+          kind: op.kind,
+          slug,
+          status,
+          href,
+          editHref,
+        };
+        created += 1;
+        lastTouched = {
+          kind: op.kind,
+          slug,
+          status,
+          href,
+          editHref,
+          action: "create",
+        };
+        continue;
+      }
+
+      // op.action === "update"
+      const body =
+        op.bodyBlocks !== undefined
+          ? (() => {
+              const doc = agentBlocksToTiptapDoc(op.bodyBlocks);
+              assertAgentSafeBody(doc);
+              return doc;
+            })()
+          : undefined;
+
+      const updateResult =
+        op.kind === "posts"
+          ? await updatePostForUserBySlug(ctx, args.userId, op.slug, {
+              title: op.title,
+              slug: op.newSlug,
+              category: op.category,
+              body,
+              status: op.status,
+            })
+          : await updateArticleForUserBySlug(ctx, args.userId, op.slug, {
+              title: op.title,
+              slug: op.newSlug,
+              category: op.category,
+              body,
+              status: op.status,
+            });
+
+      const href = buildContentHref(username, op.kind, updateResult.slug);
+      const editHref = buildContentEditHref(
+        username,
+        op.kind,
+        updateResult.slug,
+      );
+      results[i] = {
+        action: "update",
+        kind: op.kind,
+        slug: updateResult.slug,
+        status: updateResult.status,
+        href,
+        editHref,
+      };
+      updated += 1;
+      lastTouched = {
+        kind: op.kind,
+        slug: updateResult.slug,
+        status: updateResult.status,
+        href,
+        editHref,
+        action: "update",
+      };
+    }
+
+    // Pass 2 — deletes, after every create/update validation has passed.
+    // These call `ctx.storage.delete()` (non-transactional); deferring
+    // them until now ensures a rolled-back row never points at missing
+    // media.
+    for (const i of deleteIndexes) {
+      const op = ops[i] as Extract<ContentPatchOperation, { action: "delete" }>;
+      const deleteResult =
+        op.kind === "posts"
+          ? await deletePostForUserBySlug(ctx, args.userId, op.slug)
+          : await deleteArticleForUserBySlug(ctx, args.userId, op.slug);
+
+      const sectionHref = buildProfileSectionHref(username, op.kind);
+      results[i] = {
+        action: "delete",
+        kind: op.kind,
+        slug: deleteResult.slug,
+        deleted: deleteResult.deleted,
+        href: sectionHref,
+      };
+      if (deleteResult.deleted) deleted += 1;
+      lastDeleted = {
+        kind: op.kind,
+        slug: deleteResult.slug,
+        href: sectionHref,
+      };
+    }
+
+    return {
+      results: results as OpResult[],
+      applied: { created, updated, deleted },
+      lastTouched,
+      lastDeleted,
     };
   },
 });

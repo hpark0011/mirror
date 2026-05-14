@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import {
   buildBioHref,
   buildContactHref,
+  buildContentEditHref,
+  buildContentHref,
   buildProfileSectionHref,
 } from "@feel-good/convex/convex/content/href";
+import {
+  getContentEditHref,
+  getContentHref,
+} from "@/features/content";
 import {
   getProfileTabHref,
   isProfileTabKind,
@@ -119,6 +125,47 @@ describe("getProfileTabHref", () => {
       );
       expect(getProfileTabHref("rick-rubin", kind)).toBe(
         buildProfileSectionHref("rick-rubin", kind),
+      );
+    }
+  });
+});
+
+describe("buildContentEditHref", () => {
+  // The configuration agent's `applyContentPatch` tool returns a server-built
+  // `editHref` on draft create/update so the watcher can route the owner to
+  // `/@<username>/<kind>/<slug>/edit`. Tests pin the URL template against the
+  // Next.js dynamic edit route at
+  // `apps/mirror/app/[username]/<kind>/[slug]/edit/page.tsx`.
+  it("builds /@<username>/<kind>/<slug>/edit for posts and articles", () => {
+    expect(buildContentEditHref("alice", "posts", "my-post")).toBe(
+      "/@alice/posts/my-post/edit",
+    );
+    expect(buildContentEditHref("alice", "articles", "my-article")).toBe(
+      "/@alice/articles/my-article/edit",
+    );
+  });
+
+  it("agrees with the client-side getContentEditHref re-export — href-parity invariant", () => {
+    // Mirrors the bio↔section parity assertion above: server and client
+    // helpers MUST produce the same string. If either drifts, the
+    // configuration agent's editor handoff would 404 while users browsing
+    // the same edit route directly still work.
+    for (const kind of ["posts", "articles"] as const) {
+      for (const slug of ["my-post", "deeply-nested-slug-2025"]) {
+        expect(getContentEditHref("alice", kind, slug)).toBe(
+          buildContentEditHref("alice", kind, slug),
+        );
+      }
+    }
+  });
+
+  it("appends /edit to buildContentHref so the detail and edit paths stay aligned", () => {
+    for (const kind of ["posts", "articles"] as const) {
+      expect(buildContentEditHref("alice", kind, "x")).toBe(
+        `${buildContentHref("alice", kind, "x")}/edit`,
+      );
+      expect(getContentEditHref("alice", kind, "x")).toBe(
+        `${getContentHref("alice", kind, "x")}/edit`,
       );
     }
   });

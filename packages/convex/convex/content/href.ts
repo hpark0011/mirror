@@ -50,6 +50,21 @@ export function buildContentHref(
   return slug ? `${basePath}/${slug}` : basePath;
 }
 
+// Server-side parallel of the client-side `getContentEditHref` re-export.
+// The Next.js edit route is `/@<username>/<articles|posts>/<slug>/edit` and
+// lives at `apps/mirror/app/[username]/<kind>/[slug]/edit/page.tsx`. Keeping
+// the URL template here means a typo surfaces in the href-parity test
+// (`apps/mirror/features/profile-tabs/__tests__/types.test.ts`) instead of as
+// a silent 404 when the configuration agent's `applyContentPatch` tool routes
+// the owner to the editor for review of a freshly created draft.
+export function buildContentEditHref(
+  username: string,
+  kind: ContentKind,
+  slug: string,
+): string {
+  return `${buildContentHref(username, kind, slug)}/edit`;
+}
+
 // Profile section identifier — covers every ProfileTab the user-UI dispatcher
 // can navigate to. The agent's `openProfileSection` tool pins to a strict
 // subset (`bio | contact | articles | posts`); owner-only sections are not

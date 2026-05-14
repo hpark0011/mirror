@@ -14,6 +14,7 @@
     "./convex/content/sourceRegistry": "./convex/content/sourceRegistry.ts",
     "./convex/content/storagePolicy": "./convex/content/storagePolicy.ts",
     "./convex/content/bodyWalk": "./convex/content/bodyWalk.ts",
+    "./convex/content/agentBody": "./convex/content/agentBody.ts",
     "./convex/content/safeFetch": "./convex/content/safeFetch.ts",
     "./convex/content/markdownImport": "./convex/content/markdownImport.ts",
     "./convex/posts/categories": "./convex/posts/categories.ts",
@@ -54,6 +55,9 @@
       ],
       "convex/content/bodyWalk": [
         "./convex/content/bodyWalk.ts"
+      ],
+      "convex/content/agentBody": [
+        "./convex/content/agentBody.ts"
       ],
       "convex/content/safeFetch": [
         "./convex/content/safeFetch.ts"

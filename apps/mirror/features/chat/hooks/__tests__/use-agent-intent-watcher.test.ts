@@ -390,6 +390,202 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToContentMock).not.toHaveBeenCalled();
   });
 
+  it("routes applyContentPatch with a created draft to the editHref via navigateToContent", () => {
+    // PLAN_013: draft create/update should hand off to the editor route
+    // so the owner can review the agent-generated body before publishing.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyContentPatch",
+          state: "output-available",
+          toolCallId: "call_content_create_draft",
+          output: {
+            results: [
+              {
+                action: "create",
+                kind: "posts",
+                slug: "agent-draft",
+                status: "draft",
+                href: "/@rick-rubin/posts/agent-draft",
+                editHref: "/@rick-rubin/posts/agent-draft/edit",
+              },
+            ],
+            applied: { created: 1, updated: 0, deleted: 0 },
+            lastTouched: {
+              kind: "posts",
+              slug: "agent-draft",
+              status: "draft",
+              href: "/@rick-rubin/posts/agent-draft",
+              editHref: "/@rick-rubin/posts/agent-draft/edit",
+              action: "create",
+            },
+            lastDeleted: null,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, "conv_content_create"));
+
+    expect(navigateToContentMock).toHaveBeenCalledTimes(1);
+    expect(navigateToContentMock).toHaveBeenCalledWith({
+      kind: "posts",
+      slug: "agent-draft",
+      href: "/@rick-rubin/posts/agent-draft/edit",
+    });
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+  });
+
+  it("routes applyContentPatch with a published update to the detail href via navigateToContent", () => {
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyContentPatch",
+          state: "output-available",
+          toolCallId: "call_content_update_published",
+          output: {
+            results: [
+              {
+                action: "update",
+                kind: "articles",
+                slug: "published-piece",
+                status: "published",
+                href: "/@rick-rubin/articles/published-piece",
+                editHref: "/@rick-rubin/articles/published-piece/edit",
+              },
+            ],
+            applied: { created: 0, updated: 1, deleted: 0 },
+            lastTouched: {
+              kind: "articles",
+              slug: "published-piece",
+              status: "published",
+              href: "/@rick-rubin/articles/published-piece",
+              editHref: "/@rick-rubin/articles/published-piece/edit",
+              action: "update",
+            },
+            lastDeleted: null,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, "conv_content_update"));
+
+    expect(navigateToContentMock).toHaveBeenCalledWith({
+      kind: "articles",
+      slug: "published-piece",
+      href: "/@rick-rubin/articles/published-piece",
+    });
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+  });
+
+  it("routes applyContentPatch delete-only to navigateToProfileSection", () => {
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyContentPatch",
+          state: "output-available",
+          toolCallId: "call_content_delete",
+          output: {
+            results: [
+              {
+                action: "delete",
+                kind: "posts",
+                slug: "removed-post",
+                deleted: true,
+                href: "/@rick-rubin/posts",
+              },
+            ],
+            applied: { created: 0, updated: 0, deleted: 1 },
+            lastTouched: null,
+            lastDeleted: {
+              kind: "posts",
+              slug: "removed-post",
+              href: "/@rick-rubin/posts",
+            },
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() => useAgentIntentWatcher(messages, "conv_content_delete"));
+
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
+    expect(navigateToProfileSectionMock).toHaveBeenCalledWith({
+      section: "posts",
+      href: "/@rick-rubin/posts",
+    });
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch for read-only content tools (getProfileContentLibrary / getProfileContentForEdit)", () => {
+    // Read-only tools must not trigger navigation — the agent uses them
+    // to gather state before deciding whether to call `applyContentPatch`.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-getProfileContentLibrary",
+          state: "output-available",
+          toolCallId: "call_content_library",
+          output: {
+            username: "rick-rubin",
+            listHrefs: {
+              posts: "/@rick-rubin/posts",
+              articles: "/@rick-rubin/articles",
+            },
+            items: [],
+          },
+        },
+        {
+          type: "tool-getProfileContentForEdit",
+          state: "output-available",
+          toolCallId: "call_content_for_edit",
+          output: {
+            found: true,
+            kind: "posts",
+            slug: "some-post",
+            title: "Some post",
+            bodyText: "Body",
+            bodyBlocks: [],
+            href: "/@rick-rubin/posts/some-post",
+            editHref: "/@rick-rubin/posts/some-post/edit",
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_content_readonly"),
+    );
+
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+  });
+
+  it("does not dispatch when applyContentPatch output is malformed", () => {
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyContentPatch",
+          state: "output-available",
+          toolCallId: "call_content_malformed",
+          output: {
+            applied: { created: "one" },
+            lastTouched: null,
+            lastDeleted: null,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_content_malformed"),
+    );
+
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+  });
+
   it("isolates handled toolCallIds per conversationId", () => {
     // Belt-and-suspenders: a regression here would mean the Map's
     // conversationId key has fallen back to a global bucket and the

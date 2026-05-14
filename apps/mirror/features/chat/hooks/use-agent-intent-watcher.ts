@@ -47,6 +47,7 @@ const PUBLISH_ARTICLE_TYPE = "tool-publishArticle";
 const UNPUBLISH_ARTICLE_TYPE = "tool-unpublishArticle";
 const APPLY_BIO_ENTRY_PATCH_TYPE = "tool-applyBioEntryPatch";
 const APPLY_CONTACT_ENTRY_PATCH_TYPE = "tool-applyContactEntryPatch";
+const APPLY_CONTENT_PATCH_TYPE = "tool-applyContentPatch";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -240,6 +241,77 @@ function isConfigurationPatchOutput(
   );
 }
 
+// PLAN_013: result shape returned by the configuration agent's
+// `applyContentPatch` tool. `lastTouched` is the most recent create/update —
+// the watcher uses it to route the owner to the editor (drafts) or detail
+// page (published) for review. `lastDeleted` is the most recent delete —
+// the watcher uses it to route to the section list when no create/update
+// happened in the same patch.
+type ContentPatchOutput = {
+  applied: { created: number; updated: number; deleted: number };
+  lastTouched: {
+    kind: ContentKind;
+    slug: string;
+    status: "draft" | "published";
+    href: string;
+    editHref: string;
+    action: "create" | "update";
+  } | null;
+  lastDeleted: {
+    kind: ContentKind;
+    slug: string;
+    href: string;
+  } | null;
+};
+
+function isContentPatchOutput(output: unknown): output is ContentPatchOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  if (!o.applied || typeof o.applied !== "object") return false;
+  const applied = o.applied as Record<string, unknown>;
+  if (
+    typeof applied.created !== "number" ||
+    typeof applied.updated !== "number" ||
+    typeof applied.deleted !== "number"
+  ) {
+    return false;
+  }
+  if (o.lastTouched !== null && (!o.lastTouched || typeof o.lastTouched !== "object")) {
+    return false;
+  }
+  if (o.lastTouched !== null) {
+    const lt = o.lastTouched as Record<string, unknown>;
+    if (
+      !isContentKind(typeof lt.kind === "string" ? lt.kind : undefined) ||
+      typeof lt.slug !== "string" ||
+      lt.slug.length === 0 ||
+      (lt.status !== "draft" && lt.status !== "published") ||
+      typeof lt.href !== "string" ||
+      lt.href.length === 0 ||
+      typeof lt.editHref !== "string" ||
+      lt.editHref.length === 0 ||
+      (lt.action !== "create" && lt.action !== "update")
+    ) {
+      return false;
+    }
+  }
+  if (o.lastDeleted !== null && (!o.lastDeleted || typeof o.lastDeleted !== "object")) {
+    return false;
+  }
+  if (o.lastDeleted !== null) {
+    const ld = o.lastDeleted as Record<string, unknown>;
+    if (
+      !isContentKind(typeof ld.kind === "string" ? ld.kind : undefined) ||
+      typeof ld.slug !== "string" ||
+      typeof ld.href !== "string" ||
+      ld.href.length === 0
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function isPublishToolType(type: string): boolean {
   return type === PUBLISH_POST_TYPE || type === PUBLISH_ARTICLE_TYPE;
 }
@@ -275,7 +347,8 @@ export function useAgentIntentWatcher(
           part.type !== PUBLISH_ARTICLE_TYPE &&
           part.type !== UNPUBLISH_ARTICLE_TYPE &&
           part.type !== APPLY_BIO_ENTRY_PATCH_TYPE &&
-          part.type !== APPLY_CONTACT_ENTRY_PATCH_TYPE
+          part.type !== APPLY_CONTACT_ENTRY_PATCH_TYPE &&
+          part.type !== APPLY_CONTENT_PATCH_TYPE
         ) {
           continue;
         }
@@ -379,6 +452,40 @@ export function useAgentIntentWatcher(
             section: toolPart.output.section,
             href: toolPart.output.href,
           });
+          continue;
+        }
+
+        if (toolPart.type === APPLY_CONTENT_PATCH_TYPE) {
+          if (!isContentPatchOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+
+          // Routing rules for the configuration agent's content patch:
+          //   - If the patch created/updated a row, route to that row.
+          //     Drafts land on the edit route so the owner can review the
+          //     generated content before publishing; published rows land
+          //     on the public detail page.
+          //   - Otherwise, if the patch deleted a row, route to the section
+          //     list so the owner doesn't sit on a now-404 detail page.
+          //   - Otherwise (no rows touched — shouldn't happen, but the
+          //     server returns success on missing-slug deletes), no-op.
+          const { lastTouched, lastDeleted } = toolPart.output;
+          if (lastTouched) {
+            navigateToContent({
+              kind: lastTouched.kind,
+              slug: lastTouched.slug,
+              href:
+                lastTouched.status === "draft"
+                  ? lastTouched.editHref
+                  : lastTouched.href,
+            });
+            continue;
+          }
+          if (lastDeleted) {
+            navigateToProfileSection({
+              section: lastDeleted.kind,
+              href: lastDeleted.href,
+            });
+          }
           continue;
         }
       }
