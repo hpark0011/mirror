@@ -31,6 +31,8 @@ if [[ -z "$CONVEX_DEPLOYMENT" ]]; then
 fi
 DEPLOY_NAME="${CONVEX_DEPLOYMENT#dev:}"
 DEPLOY_NAME="${DEPLOY_NAME#prod:}"
+# No trailing slash — @convex-dev/better-auth's Next.js adapter does
+# `${siteUrl}${pathname}` and Convex 404s on the resulting `//`-prefixed path.
 CONVEX_URL="https://${DEPLOY_NAME}.convex.cloud"
 CONVEX_SITE="https://${DEPLOY_NAME}.convex.site"
 
