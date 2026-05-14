@@ -95,7 +95,11 @@ export async function createPostForUser(
     );
   }
 
-  const slugSource = args.slug?.trim() ? args.slug : title;
+  // Empty-string slug is treated as "not supplied" (F5 — see
+  // posts/__tests__/mutations.test.ts). Map "" → undefined so the canonical
+  // `??` form below picks the title fallback.
+  const providedSlug = args.slug?.trim() ? args.slug : undefined;
+  const slugSource = providedSlug ?? title;
   if (!slugSource.trim()) {
     throw new Error("Slug is required when title is empty");
   }

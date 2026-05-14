@@ -107,8 +107,11 @@ export async function createArticleForUser(
     );
   }
 
-  const slugSource = args.slug?.trim() ? args.slug : args.title;
-  const slug = generateSlug(slugSource);
+  // Empty-string slug is treated as "not supplied" (F5 — see
+  // articles/__tests__/mutations.test.ts). Map "" → undefined so the
+  // canonical `??` form below picks the title fallback.
+  const providedSlug = args.slug?.trim() ? args.slug : undefined;
+  const slug = generateSlug(providedSlug ?? args.title);
   validateContentStringLength(slug, "Slug", MAX_SLUG_LENGTH);
   assertValidSlug(slug);
 

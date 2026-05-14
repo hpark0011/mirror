@@ -326,6 +326,14 @@ export function assertAgentSafeBody(body: JSONContent): void {
     }
     if (node.type === "paragraph" || node.type === "heading") {
       // ok — text-only descendants validated below
+      if (node.type === "heading") {
+        const level = Number(node.attrs?.level);
+        if (level !== 2 && level !== 3) {
+          throw new AgentBodyError(
+            `body contains unsupported heading level: ${String(node.attrs?.level)}`,
+          );
+        }
+      }
     } else if (node.type === "bulletList") {
       // ok — same
     } else {
@@ -405,10 +413,12 @@ export function analyzeAgentBodyProjection(
     }
 
     // Bullet list items collapse to a single string per item; nested lists,
-    // multi-paragraph items, or non-paragraph children are dropped.
-    if (parentType === "listItem") {
-      const childCount = node.content?.length ?? 0;
-      if (node.type !== "paragraph" || childCount > 1) {
+    // multi-paragraph items, or non-paragraph children are dropped. Check on
+    // the `listItem` itself (not its child) so that a single paragraph with
+    // multiple inline runs / marks is NOT falsely flagged as nested.
+    if (node.type === "listItem") {
+      const children = node.content ?? [];
+      if (children.length !== 1 || children[0]?.type !== "paragraph") {
         unsupported.add("bulletList-nested");
       }
     }
