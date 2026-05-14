@@ -33,6 +33,12 @@ DEPLOYMENT=$(grep '^CONVEX_DEPLOYMENT=' "$CONVEX_ENV" | head -n1 | cut -d= -f2- 
 URL=$(grep        '^CONVEX_URL='        "$CONVEX_ENV" | head -n1 | cut -d= -f2-)
 SITE_URL=$(grep   '^CONVEX_SITE_URL='   "$CONVEX_ENV" | head -n1 | cut -d= -f2-)
 
+# Strip trailing slashes — @convex-dev/better-auth's Next.js adapter does
+# `${siteUrl}${pathname}`, so `https://x.convex.site/` + `/api/auth/get-session`
+# becomes `//api/auth/get-session` and Convex 404s.
+URL="${URL%/}"
+SITE_URL="${SITE_URL%/}"
+
 [[ -n "$DEPLOYMENT" && -n "$URL" && -n "$SITE_URL" ]] || {
   echo "Error: $CONVEX_ENV missing one of CONVEX_DEPLOYMENT / CONVEX_URL / CONVEX_SITE_URL." >&2
   exit 1
