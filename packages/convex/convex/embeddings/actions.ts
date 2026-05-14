@@ -110,29 +110,31 @@ export const generateEmbedding = internalAction({
         },
       });
 
-      // Delete existing embeddings first
-      await ctx.runMutation(internal.embeddings.mutations.deleteBySource, {
-        sourceTable,
-        sourceId,
-      });
-
-      // Insert new chunks
+      // Atomically replace existing embedding rows in one transaction.
+      // Previously this was two separate ctx.runMutation calls (delete, then
+      // insert), which opened a race window: two concurrent jobs for the same
+      // sourceId could interleave and produce duplicate contentEmbeddings rows.
       const now = Date.now();
-      await ctx.runMutation(internal.embeddings.mutations.insertChunks, {
-        chunks: embeddings.map((embedding, i) => ({
+      await ctx.runMutation(
+        internal.embeddings.mutations.replaceChunksForSource,
+        {
           sourceTable,
           sourceId,
-          userId,
-          userSourceKey: buildEmbeddingUserSourceKey(userId, sourceTable),
-          chunkIndex: i,
-          chunkText: chunks[i]!,
-          title,
-          slug,
-          embedding,
-          embeddingModel: EMBEDDING_MODEL,
-          embeddedAt: now,
-        })),
-      });
+          chunks: embeddings.map((embedding, i) => ({
+            sourceTable,
+            sourceId,
+            userId,
+            userSourceKey: buildEmbeddingUserSourceKey(userId, sourceTable),
+            chunkIndex: i,
+            chunkText: chunks[i]!,
+            title,
+            slug,
+            embedding,
+            embeddingModel: EMBEDDING_MODEL,
+            embeddedAt: now,
+          })),
+        },
+      );
     } catch (error) {
       console.error(
         `Failed to generate embeddings for ${sourceTable}/${sourceId}:`,

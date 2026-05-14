@@ -1453,6 +1453,19 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     expect([...values].sort()).toEqual(["articles", "bio", "contact", "posts"]);
   });
 
+  it("buildCloneTools does not expose configuration content authoring tools to visitors", () => {
+    // PLAN_013 introduced `applyContentPatch`, `getProfileContentLibrary`,
+    // and `getProfileContentForEdit` on the configuration-mode tool surface
+    // only. Pin the negative direction here: a future refactor that
+    // accidentally imports any of these into the public clone surface would
+    // let visitors mutate the profile owner's content.
+    const tools = buildCloneTools(fakeOwner);
+    const keys = Object.keys(tools);
+    expect(keys).not.toContain("applyContentPatch");
+    expect(keys).not.toContain("getProfileContentLibrary");
+    expect(keys).not.toContain("getProfileContentForEdit");
+  });
+
   it("owner-write tools reject anonymous and non-owner viewers before reads or writes", async () => {
     const owner = "users_owner" as unknown as Id<"users">;
     const visitor = "users_visitor" as unknown as Id<"users">;
@@ -1507,6 +1520,9 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       fetchProfileSource: ["url"],
       applyBioEntryPatch: ["operations"],
       applyContactEntryPatch: ["operations"],
+      getProfileContentLibrary: ["kind", "limit", "status"],
+      getProfileContentForEdit: ["kind", "slug"],
+      applyContentPatch: ["operations"],
     };
 
     for (const [toolName, expectedKeys] of Object.entries(expectedShapes)) {
@@ -1575,6 +1591,28 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
         url: "https://example.com/owner-profile",
       }),
     ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.getProfileContentLibrary.execute(blockedCtx, {}),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.getProfileContentForEdit.execute(blockedCtx, {
+        kind: "posts",
+        slug: "some-slug",
+      }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      nonOwnerTools.applyContentPatch.execute(blockedCtx, {
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            title: "Draft",
+            category: "general",
+            bodyBlocks: [{ type: "paragraph", text: "Hi" }],
+          },
+        ],
+      }),
+    ).rejects.toThrow("Only the profile owner");
 
     const anonymousTools = buildConfigurationTools(owner, { conversationId });
     await expect(
@@ -1583,6 +1621,26 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     await expect(
       anonymousTools.fetchProfileSource.execute(blockedCtx, {
         url: "https://example.com/owner-profile",
+      }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      anonymousTools.applyContentPatch.execute(blockedCtx, {
+        operations: [
+          {
+            action: "delete",
+            kind: "posts",
+            slug: "x",
+          },
+        ],
+      }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      anonymousTools.getProfileContentLibrary.execute(blockedCtx, {}),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
+      anonymousTools.getProfileContentForEdit.execute(blockedCtx, {
+        kind: "posts",
+        slug: "some-slug",
       }),
     ).rejects.toThrow("Only the profile owner");
 
@@ -2592,5 +2650,1094 @@ describe("chat/toolQueries.buildContentHref", () => {
     expect(result!.href).toBe(
       buildContentHref("owner_href", "articles", "the-article"),
     );
+  });
+});
+
+describe("chat/toolQueries.queryProfileContentLibrary", () => {
+  // PLAN_013: owner-only library lists drafts + published rows, sorted
+  // newest-first, with server-built list/detail/edit hrefs. Cross-user
+  // isolation: never returns rows belonging to a different user.
+  it("returns owner drafts and published rows across both kinds, newest first", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_lib_all");
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "older-draft-post",
+        title: "Older draft post",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        createdAt: 1000,
+      });
+      await ctx.db.insert("articles", {
+        userId: owner,
+        slug: "older-published-article",
+        title: "Older published article",
+        category: "blog",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1200,
+        createdAt: 1200,
+      });
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "newer-published-post",
+        title: "Newer published post",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1500,
+        createdAt: 1500,
+      });
+    });
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryProfileContentLibrary,
+      { userId: owner },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.username).toBe("owner_lib_all");
+    expect(result!.listHrefs).toEqual({
+      posts: "/@owner_lib_all/posts",
+      articles: "/@owner_lib_all/articles",
+    });
+    expect(result!.items).toHaveLength(3);
+    expect(result!.items[0]).toMatchObject({
+      kind: "posts",
+      slug: "newer-published-post",
+      status: "published",
+      href: "/@owner_lib_all/posts/newer-published-post",
+      editHref: "/@owner_lib_all/posts/newer-published-post/edit",
+    });
+    // Last item is the oldest draft post.
+    expect(result!.items[2]).toMatchObject({
+      kind: "posts",
+      slug: "older-draft-post",
+      status: "draft",
+    });
+  });
+
+  it("filters by status when supplied (drafts only)", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_lib_drafts");
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "draft-1",
+        title: "Draft 1",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        createdAt: 1000,
+      });
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "published-1",
+        title: "Published 1",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "published",
+        publishedAt: 1200,
+        createdAt: 1200,
+      });
+    });
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryProfileContentLibrary,
+      { userId: owner, status: "draft" },
+    );
+
+    expect(result!.items).toHaveLength(1);
+    expect(result!.items[0].slug).toBe("draft-1");
+  });
+
+  it("cross-user isolation: does not surface rows owned by another user", async () => {
+    const t = makeT();
+    const ownerA = await insertOwner(t, "owner_lib_a");
+    const ownerB = await insertOwner(t, "owner_lib_b");
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("posts", {
+        userId: ownerB,
+        slug: "b-post",
+        title: "B Post",
+        category: "general",
+        body: { type: "doc", content: [] },
+        status: "draft",
+        createdAt: 1000,
+      });
+    });
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryProfileContentLibrary,
+      { userId: ownerA },
+    );
+
+    expect(result!.items).toHaveLength(0);
+  });
+
+  it("returns null when the owner has no username", async () => {
+    const t = makeT();
+    const userId = await t.run(async (ctx) =>
+      ctx.db.insert("users", {
+        authId: "auth_no_username_lib",
+        email: "noname-lib@example.com",
+        onboardingComplete: false,
+      }),
+    );
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryProfileContentLibrary,
+      { userId },
+    );
+
+    expect(result).toBeNull();
+  });
+});
+
+describe("chat/toolQueries.queryOwnedContentForEdit", () => {
+  it("returns body text/blocks for an owned post (drafts included)", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_edit_draft");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "draft-post",
+        title: "Draft Post",
+        category: "general",
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [{ type: "text", text: "Hello world" }],
+            },
+            {
+              type: "heading",
+              attrs: { level: 2 },
+              content: [{ type: "text", text: "A heading" }],
+            },
+          ],
+        },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryOwnedContentForEdit,
+      { userId: owner, kind: "posts", slug: "draft-post" },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.title).toBe("Draft Post");
+    expect(result!.bodyText).toContain("Hello world");
+    expect(result!.bodyText).toContain("## A heading");
+    expect(result!.bodyBlocks).toEqual([
+      { type: "paragraph", text: "Hello world" },
+      { type: "heading", level: 2, text: "A heading" },
+    ]);
+    expect(result!.projectionLossy).toBe(false);
+    expect(result!.unsupportedNodeTypes).toEqual([]);
+    expect(result!.href).toBe("/@owner_edit_draft/posts/draft-post");
+    expect(result!.editHref).toBe("/@owner_edit_draft/posts/draft-post/edit");
+  });
+
+  it("flags projectionLossy with unsupported node names for rich bodies", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_edit_lossy");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "rich-post",
+        title: "Rich Post",
+        category: "general",
+        body: {
+          type: "doc",
+          content: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "linked",
+                  marks: [{ type: "link", attrs: { href: "https://x" } }],
+                },
+              ],
+            },
+            {
+              type: "orderedList",
+              content: [
+                {
+                  type: "listItem",
+                  content: [
+                    {
+                      type: "paragraph",
+                      content: [{ type: "text", text: "one" }],
+                    },
+                  ],
+                },
+              ],
+            },
+            {
+              type: "codeBlock",
+              content: [{ type: "text", text: "console.log(1)" }],
+            },
+          ],
+        },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryOwnedContentForEdit,
+      { userId: owner, kind: "posts", slug: "rich-post" },
+    );
+
+    expect(result).not.toBeNull();
+    expect(result!.projectionLossy).toBe(true);
+    expect(result!.unsupportedNodeTypes).toEqual(
+      expect.arrayContaining(["codeBlock", "orderedList", "text-marks"]),
+    );
+  });
+
+  it("returns found: false when slug does not exist for the owner", async () => {
+    // FG_221: queryOwnedContentForEdit now returns a discriminated union
+    // (`{ found: false, kind, slug }` on miss, `{ found: true, ... }` on
+    // hit) so the tool layer can pass the query result through without a
+    // wrap step. The previous null-on-miss shape is gone.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_edit_miss");
+
+    const result = await t.query(
+      internal.chat.toolQueries.queryOwnedContentForEdit,
+      { userId: owner, kind: "posts", slug: "missing" },
+    );
+
+    expect(result).toEqual({ found: false, kind: "posts", slug: "missing" });
+  });
+});
+
+describe("chat/toolMutations.applyContentPatch", () => {
+  it("creates a draft post with normalized slug, category, and body", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_apply_create_post");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            title: "Hello World!",
+            category: "Notes",
+            bodyBlocks: [
+              { type: "paragraph", text: "First paragraph" },
+              { type: "heading", level: 2, text: "Section" },
+              { type: "bulletList", items: ["alpha", "beta"] },
+            ],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied).toEqual({ created: 1, updated: 0, deleted: 0 });
+    expect(result.lastTouched).toMatchObject({
+      kind: "posts",
+      slug: "hello-world",
+      status: "draft",
+      action: "create",
+      href: "/@owner_apply_create_post/posts/hello-world",
+      editHref: "/@owner_apply_create_post/posts/hello-world/edit",
+    });
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      slug: "hello-world",
+      title: "Hello World!",
+      category: "Notes",
+      status: "draft",
+    });
+  });
+
+  it("creates a draft article via the same operation shape", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_apply_create_article");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "articles",
+            title: "On rest and rhythm",
+            category: "Essays",
+            bodyBlocks: [{ type: "paragraph", text: "An essay opener" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.created).toBe(1);
+    expect(result.lastTouched!.kind).toBe("articles");
+    expect(result.lastTouched!.slug).toBe("on-rest-and-rhythm");
+  });
+
+  it("returns the DB-persisted slug when post title has leading/trailing whitespace", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_apply_whitespace_slug");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            title: "  Hello World  ",
+            category: "Notes",
+            bodyBlocks: [{ type: "paragraph", text: "Body text" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.created).toBe(1);
+    // The writeHelper trims the title before slugifying, so the persisted slug
+    // must be "hello-world" — not a derivation of the raw padded title.
+    expect(result.lastTouched!.slug).toBe("hello-world");
+
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .unique(),
+    );
+    expect(row).not.toBeNull();
+    // The result slug and the DB row's slug field must match — single source of truth.
+    expect(result.lastTouched!.slug).toBe(row!.slug);
+  });
+
+  it("updates title, category, and body without touching omitted fields", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_apply_update");
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "existing-post",
+        title: "Old title",
+        category: "Old cat",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "posts",
+            slug: "existing-post",
+            title: "New title",
+            category: "New cat",
+            bodyBlocks: [{ type: "paragraph", text: "Replaced body" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.updated).toBe(1);
+
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId_and_slug", (q) =>
+          q.eq("userId", owner).eq("slug", "existing-post"),
+        )
+        .unique(),
+    );
+    expect(row).not.toBeNull();
+    expect(row!.title).toBe("New title");
+    expect(row!.category).toBe("New cat");
+    expect(row!.status).toBe("draft");
+  });
+
+  it("leaves body untouched when bodyBlocks is omitted on update", async () => {
+    // FG_214: the update branch only computes a body when `op.bodyBlocks
+    // !== undefined`. Without this test, a regression that flips that
+    // conditional could silently clear the persisted body with an empty
+    // paragraph doc.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_body_untouched");
+    const originalBody = {
+      type: "doc",
+      content: [
+        {
+          type: "paragraph",
+          content: [{ type: "text", text: "Untouched" }],
+        },
+      ],
+    };
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "body-untouched-post",
+        title: "Old title",
+        category: "Notes",
+        body: originalBody,
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    await t.mutation(internal.chat.toolMutations.applyContentPatch, {
+      userId: owner,
+      operations: [
+        {
+          action: "update",
+          kind: "posts",
+          slug: "body-untouched-post",
+          title: "New title",
+        },
+      ],
+    });
+
+    const row = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId_and_slug", (q) =>
+          q.eq("userId", owner).eq("slug", "body-untouched-post"),
+        )
+        .unique(),
+    );
+    expect(row).not.toBeNull();
+    expect(row!.title).toBe("New title");
+    expect(row!.body).toEqual(originalBody);
+  });
+
+  it("renames a post via newSlug and reports the persisted slug", async () => {
+    // FG_215: the `newSlug` field on the update operation flows through to
+    // the writeHelper's `args.slug` parameter. This pins both halves of
+    // the contract — the slug is normalized and the result reports the
+    // persisted slug.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_rename");
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "original-slug",
+        title: "Original",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "posts",
+            slug: "original-slug",
+            newSlug: "Renamed Slug",
+          },
+        ],
+      },
+    );
+
+    expect(result.lastTouched).not.toBeNull();
+    expect(result.lastTouched!.slug).toBe("renamed-slug");
+
+    const renamed = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId_and_slug", (q) =>
+          q.eq("userId", owner).eq("slug", "renamed-slug"),
+        )
+        .unique(),
+    );
+    expect(renamed).not.toBeNull();
+    expect(renamed!.slug).toBe("renamed-slug");
+  });
+
+  it("rejects newSlug collisions against existing rows", async () => {
+    // FG_215: collision check covers the rename path too. If the
+    // collision guard in `updatePostRow` ever regresses, the agent could
+    // create duplicate slug rows.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_rename_collide");
+    await t.run(async (ctx) => {
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "first",
+        title: "First",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      });
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "second",
+        title: "Second",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1100,
+      });
+    });
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContentPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "posts",
+            slug: "first",
+            newSlug: "second",
+          },
+        ],
+      }),
+    ).rejects.toThrow(/already exists/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.slug).sort()).toEqual(["first", "second"]);
+  });
+
+  it("rejects slug collisions on create", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_collide");
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "the-same",
+        title: "First",
+        category: "X",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContentPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            title: "The Same",
+            category: "Y",
+            bodyBlocks: [{ type: "paragraph", text: "body" }],
+          },
+        ],
+      }),
+    ).rejects.toThrow(/already exists/);
+  });
+
+  it("delete returns deleted: true for an owned row and false for a miss", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_delete");
+    await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "to-remove",
+        title: "Remove me",
+        category: "X",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          { action: "delete", kind: "posts", slug: "to-remove" },
+          { action: "delete", kind: "posts", slug: "never-existed" },
+        ],
+      },
+    );
+
+    expect(result.applied).toEqual({ created: 0, updated: 0, deleted: 1 });
+    expect(result.results).toEqual([
+      {
+        action: "delete",
+        kind: "posts",
+        slug: "to-remove",
+        deleted: true,
+        href: "/@owner_delete/posts",
+      },
+      {
+        action: "delete",
+        kind: "posts",
+        slug: "never-existed",
+        deleted: false,
+        href: "/@owner_delete/posts",
+      },
+    ]);
+  });
+
+  it("delete-only patch where every op misses leaves lastDeleted === null", async () => {
+    // Regression guard for the phantom-navigation bug: if all delete operations
+    // return deleted:false (stale slugs), applyContentPatch must not set
+    // lastDeleted — the watcher's "no rows touched → no-op" branch is the
+    // correct path and must be reachable.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_delete_all_miss");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          { action: "delete", kind: "posts", slug: "ghost-slug-1" },
+          { action: "delete", kind: "posts", slug: "ghost-slug-2" },
+        ],
+      },
+    );
+
+    expect(result.lastDeleted).toBeNull();
+    expect(result.applied).toEqual({ created: 0, updated: 0, deleted: 0 });
+  });
+
+  it("is all-or-nothing when a later operation throws", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_atomic_content");
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContentPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            title: "Will roll back",
+            category: "X",
+            bodyBlocks: [{ type: "paragraph", text: "first" }],
+          },
+          {
+            action: "create",
+            kind: "posts",
+            title: "Will roll back",
+            category: "X",
+            bodyBlocks: [{ type: "paragraph", text: "second" }],
+          },
+        ],
+      }),
+    ).rejects.toThrow(/already exists/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("results array preserves input order even though deletes execute last", async () => {
+    // Storage-atomicity fix: creates/updates run before deletes so a later
+    // throw cannot leave a row's media destroyed. The agent still sees the
+    // results indexed by its original operation order so the prompt's
+    // "last-touched / last-deleted" reasoning stays coherent.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_order_preserve");
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "alpha",
+        title: "Alpha",
+        category: "X",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      });
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "beta",
+        title: "Beta",
+        category: "X",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1001,
+      });
+    });
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          { action: "delete", kind: "posts", slug: "alpha" },
+          {
+            action: "create",
+            kind: "posts",
+            title: "Gamma",
+            category: "X",
+            bodyBlocks: [{ type: "paragraph", text: "g" }],
+          },
+          {
+            action: "update",
+            kind: "posts",
+            slug: "beta",
+            title: "Beta Updated",
+          },
+        ],
+      },
+    );
+
+    expect(result.applied).toEqual({ created: 1, updated: 1, deleted: 1 });
+    expect(result.results.map((r) => r.action)).toEqual([
+      "delete",
+      "create",
+      "update",
+    ]);
+  });
+
+  it("skips deletes entirely when an earlier create throws (storage-safe ordering)", async () => {
+    // Without the deletes-last reorder, the delete here would have run
+    // first and (in production) destroyed Alpha's cover/inline blobs
+    // before the create's slug-collision throw rolled back the DB row —
+    // leaving the restored Alpha pointing at missing media.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_safe_order");
+
+    await t.run(async (ctx) => {
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "alpha",
+        title: "Alpha",
+        category: "X",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1000,
+      });
+      await ctx.db.insert("posts", {
+        userId: owner,
+        slug: "taken",
+        title: "Taken",
+        category: "X",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "draft",
+        createdAt: 1001,
+      });
+    });
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContentPatch, {
+        userId: owner,
+        operations: [
+          { action: "delete", kind: "posts", slug: "alpha" },
+          {
+            action: "create",
+            kind: "posts",
+            title: "Taken",
+            category: "X",
+            bodyBlocks: [{ type: "paragraph", text: "b" }],
+          },
+        ],
+      }),
+    ).rejects.toThrow(/already exists/);
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows.map((r) => r.slug).sort()).toEqual(["alpha", "taken"]);
+  });
+
+  it("body replacement is text-only: rejects bullet items that are empty strings (validator boundary)", async () => {
+    // The agent schema is intentionally narrow — `bodyBlocks` items must be
+    // non-empty strings. The mutation's `agentBlocksToTiptapDoc` throws on
+    // empty input, which rolls back the transaction.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_body_validation");
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContentPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            title: "Bad bullet",
+            category: "x",
+            bodyBlocks: [{ type: "bulletList", items: ["", "two"] }],
+          },
+        ],
+      }),
+    ).rejects.toThrow();
+
+    const rows = await t.run(async (ctx) =>
+      ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .collect(),
+    );
+    expect(rows).toHaveLength(0);
+  });
+
+  it("rejects more than 5 operations per call", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_ops_cap");
+
+    const ops = Array.from({ length: 6 }, (_, i) => ({
+      action: "create" as const,
+      kind: "posts" as const,
+      title: `Title ${i}`,
+      category: "X",
+      bodyBlocks: [{ type: "paragraph" as const, text: "x" }],
+    }));
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyContentPatch, {
+        userId: owner,
+        operations: ops,
+      }),
+    ).rejects.toThrow(/at most 5 operations/);
+  });
+
+  it("schedules generateEmbedding for a published post create", async () => {
+    // applyContentPatch with status:"published" must queue
+    // internal.embeddings.actions.generateEmbedding for the new post.
+    // If the `if (args.status === "published")` branch were removed from
+    // createPostForUser, this test would find zero scheduled functions and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_embed_post_published");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "posts",
+            status: "published",
+            title: "Embedding Test Post",
+            category: "Notes",
+            bodyBlocks: [{ type: "paragraph", text: "body" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.created).toBe(1);
+    const postId = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("posts")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .unique();
+      return row!._id;
+    });
+
+    // convex-test stores scheduled jobs in the _scheduled_functions system
+    // table, accessible via ctx.db.system.query. Assert that exactly one
+    // generateEmbedding job was queued for the newly created post.
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const embeddingJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("generateEmbedding") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === postId,
+    );
+    expect(embeddingJobs).toHaveLength(1);
+    expect(
+      (embeddingJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("posts");
+  });
+
+  it("schedules generateEmbedding for a published article create", async () => {
+    // Mirror of the post test above for the articles path.
+    // If the `if (args.status === "published")` branch were removed from
+    // createArticleForUser, this test would find zero scheduled functions and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_embed_article_published");
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "create",
+            kind: "articles",
+            status: "published",
+            title: "Embedding Test Article",
+            category: "Essays",
+            bodyBlocks: [{ type: "paragraph", text: "body" }],
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.created).toBe(1);
+    const articleId = await t.run(async (ctx) => {
+      const row = await ctx.db
+        .query("articles")
+        .withIndex("by_userId", (q) => q.eq("userId", owner))
+        .unique();
+      return row!._id;
+    });
+
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const embeddingJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("generateEmbedding") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === articleId,
+    );
+    expect(embeddingJobs).toHaveLength(1);
+    expect(
+      (embeddingJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("articles");
+  });
+
+  it("schedules deleteBySource when a published post flips to draft", async () => {
+    // Seeds a published post and calls applyContentPatch with status:"draft".
+    // The `else if (args.status === "draft")` branch in updatePostRow must
+    // schedule internal.embeddings.mutations.deleteBySource for that post.
+    // Removing that branch causes this test to find zero scheduled jobs and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_unpublish_post");
+
+    const postId = await t.run(async (ctx) =>
+      ctx.db.insert("posts", {
+        userId: owner,
+        slug: "published-post",
+        title: "Published Post",
+        category: "Notes",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "posts",
+            slug: "published-post",
+            status: "draft",
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.updated).toBe(1);
+
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const cleanupJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("deleteBySource") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === postId,
+    );
+    expect(cleanupJobs).toHaveLength(1);
+    expect(
+      (cleanupJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("posts");
+  });
+
+  it("schedules deleteBySource when a published article flips to draft", async () => {
+    // Mirror of the post test above for the articles path.
+    // Removing the `else if (args.status === "draft")` branch in updateArticleRow
+    // causes this test to find zero scheduled jobs and fail.
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_unpublish_article");
+
+    const articleId = await t.run(async (ctx) =>
+      ctx.db.insert("articles", {
+        userId: owner,
+        slug: "published-article",
+        title: "Published Article",
+        category: "Essays",
+        body: { type: "doc", content: [{ type: "paragraph" }] },
+        status: "published",
+        publishedAt: 1000,
+        createdAt: 1000,
+      }),
+    );
+
+    const result = await t.mutation(
+      internal.chat.toolMutations.applyContentPatch,
+      {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            kind: "articles",
+            slug: "published-article",
+            status: "draft",
+          },
+        ],
+      },
+    );
+
+    expect(result.applied.updated).toBe(1);
+
+    const scheduledJobs = await t.run(async (ctx) =>
+      ctx.db.system.query("_scheduled_functions").collect(),
+    );
+    const cleanupJobs = scheduledJobs.filter(
+      (job) =>
+        (job.name as string).includes("deleteBySource") &&
+        (job.args as Array<{ sourceTable: string; sourceId: string }>)[0]
+          ?.sourceId === articleId,
+    );
+    expect(cleanupJobs).toHaveLength(1);
+    expect(
+      (cleanupJobs[0]!.args as Array<{ sourceTable: string; sourceId: string }>)[0]!.sourceTable,
+    ).toBe("articles");
   });
 });

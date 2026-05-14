@@ -587,4 +587,97 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
     expect(rowsA.map((r) => r.title)).toEqual(["A's role"]);
     expect(rowsB.map((r) => r.title)).toEqual(["B's role"]);
   });
+
+  // FG_228 — replaceChunksForSource atomicity
+  //
+  // True concurrent execution cannot be simulated with the convex-test harness:
+  // `convexTest` is single-threaded and mutations are dispatched sequentially,
+  // so interleaving two transactions is not possible in this environment.
+  //
+  // Instead we verify the structural invariant that is the basis of the fix:
+  // calling replaceChunksForSource a second time for the same sourceId yields
+  // exactly the new set of rows — no duplicates, no stale rows — which is the
+  // property that prevents the A.delete→B.delete→A.insert→B.insert
+  // interleave from occurring in production (because each call is one
+  // transaction, making "last writer wins" the worst outcome rather than
+  // "both writers add rows").
+  it("FG_228: replaceChunksForSource on a second call yields exactly the new set (no duplicates, no stale rows)", async () => {
+    const t = makeT();
+    const ownerId = await insertOwner(t, "replace_atomicity");
+
+    const entryId = await t.run(async (ctx) =>
+      ctx.db.insert("bioEntries", {
+        userId: ownerId,
+        kind: "work",
+        title: "Software Engineer",
+        startDate: Date.UTC(2022, 0, 1),
+        endDate: null,
+      }),
+    );
+
+    const makeChunk = (
+      sourceId: string,
+      chunkIndex: number,
+      chunkText: string,
+    ) => ({
+      sourceTable: "bioEntries" as const,
+      sourceId,
+      userId: ownerId,
+      userSourceKey: buildEmbeddingUserSourceKey(ownerId, "bioEntries"),
+      chunkIndex,
+      chunkText,
+      title: "Software Engineer",
+      slug: undefined,
+      embedding: new Array(768).fill(0.01) as number[],
+      embeddingModel: "text-embedding-004",
+      embeddedAt: Date.now(),
+    });
+
+    // First replace — simulates job A completing.
+    await t.mutation(internal.embeddings.mutations.replaceChunksForSource, {
+      sourceTable: "bioEntries",
+      sourceId: entryId,
+      chunks: [makeChunk(entryId, 0, "first-generation chunk")],
+    });
+
+    const afterFirst = await t.run(async (ctx) =>
+      ctx.db
+        .query("contentEmbeddings")
+        .withIndex("by_sourceTable_and_sourceId", (q) =>
+          q.eq("sourceTable", "bioEntries").eq("sourceId", entryId),
+        )
+        .collect(),
+    );
+    expect(afterFirst).toHaveLength(1);
+    expect(afterFirst[0]!.chunkText).toBe("first-generation chunk");
+
+    // Second replace — simulates job B (same sourceId, updated content).
+    await t.mutation(internal.embeddings.mutations.replaceChunksForSource, {
+      sourceTable: "bioEntries",
+      sourceId: entryId,
+      chunks: [
+        makeChunk(entryId, 0, "second-generation chunk 0"),
+        makeChunk(entryId, 1, "second-generation chunk 1"),
+      ],
+    });
+
+    const afterSecond = await t.run(async (ctx) =>
+      ctx.db
+        .query("contentEmbeddings")
+        .withIndex("by_sourceTable_and_sourceId", (q) =>
+          q.eq("sourceTable", "bioEntries").eq("sourceId", entryId),
+        )
+        .collect(),
+    );
+
+    // Exactly 2 rows — old row was deleted before new rows were inserted.
+    // If the old two-mutation approach had been used and interleaved, we would
+    // see 3 rows (1 stale + 2 new) or 2 stale rows with 0 new ones.
+    expect(afterSecond).toHaveLength(2);
+    const texts = afterSecond.map((r) => r.chunkText).sort();
+    expect(texts).toEqual([
+      "second-generation chunk 0",
+      "second-generation chunk 1",
+    ]);
+  });
 });

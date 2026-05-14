@@ -6,6 +6,7 @@
 // `getContentHref` from `@/features/content`. See
 // `.claude/rules/agent-parity.md` § Href-parity invariant.
 import {
+  buildContentEditHref,
   buildContentHref,
   buildProfileSectionHref,
   DEFAULT_PROFILE_SECTION,
@@ -21,6 +22,7 @@ import {
 
 export {
   buildContentHref as getContentHref,
+  buildContentEditHref as getContentEditHref,
   buildProfileSectionHref,
   DEFAULT_PROFILE_SECTION,
   DEFAULT_PROFILE_SECTION_VALUES,

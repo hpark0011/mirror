@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { isContentKind, type ContentKind } from "@/features/content";
@@ -47,6 +47,7 @@ const PUBLISH_ARTICLE_TYPE = "tool-publishArticle";
 const UNPUBLISH_ARTICLE_TYPE = "tool-unpublishArticle";
 const APPLY_BIO_ENTRY_PATCH_TYPE = "tool-applyBioEntryPatch";
 const APPLY_CONTACT_ENTRY_PATCH_TYPE = "tool-applyContactEntryPatch";
+const APPLY_CONTENT_PATCH_TYPE = "tool-applyContentPatch";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -240,6 +241,73 @@ function isConfigurationPatchOutput(
   );
 }
 
+// PLAN_013: result shape returned by the configuration agent's
+// `applyContentPatch` tool. `lastTouched` is the most recent create/update —
+// the watcher uses it to route the owner to the editor (drafts) or detail
+// page (published) for review. `lastDeleted` is the most recent delete —
+// the watcher uses it to route to the section list when no create/update
+// happened in the same patch.
+type ContentPatchOutput = {
+  applied: { created: number; updated: number; deleted: number };
+  lastTouched: {
+    kind: ContentKind;
+    slug: string;
+    status: "draft" | "published";
+    href: string;
+    editHref: string;
+    action: "create" | "update";
+  } | null;
+  lastDeleted: {
+    kind: ContentKind;
+    slug: string;
+    href: string;
+  } | null;
+};
+
+function isContentPatchOutput(output: unknown): output is ContentPatchOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  if (!o.applied || typeof o.applied !== "object") return false;
+  const applied = o.applied as Record<string, unknown>;
+  if (
+    typeof applied.created !== "number" ||
+    typeof applied.updated !== "number" ||
+    typeof applied.deleted !== "number"
+  ) {
+    return false;
+  }
+  if (o.lastTouched !== null) {
+    if (!o.lastTouched || typeof o.lastTouched !== "object") return false;
+    const lt = o.lastTouched as Record<string, unknown>;
+    if (
+      !isContentKind(typeof lt.kind === "string" ? lt.kind : undefined) ||
+      typeof lt.slug !== "string" ||
+      lt.slug.length === 0 ||
+      (lt.status !== "draft" && lt.status !== "published") ||
+      typeof lt.href !== "string" ||
+      lt.href.length === 0 ||
+      typeof lt.editHref !== "string" ||
+      lt.editHref.length === 0 ||
+      (lt.action !== "create" && lt.action !== "update")
+    ) {
+      return false;
+    }
+  }
+  if (o.lastDeleted !== null) {
+    if (!o.lastDeleted || typeof o.lastDeleted !== "object") return false;
+    const ld = o.lastDeleted as Record<string, unknown>;
+    if (
+      !isContentKind(typeof ld.kind === "string" ? ld.kind : undefined) ||
+      typeof ld.slug !== "string" ||
+      typeof ld.href !== "string" ||
+      ld.href.length === 0
+    ) {
+      return false;
+    }
+  }
+  return true;
+}
+
 function isPublishToolType(type: string): boolean {
   return type === PUBLISH_POST_TYPE || type === PUBLISH_ARTICLE_TYPE;
 }
@@ -254,15 +322,38 @@ export function useAgentIntentWatcher(
 ) {
   const { navigateToContent, navigateToProfileSection } = useCloneActions();
 
+  /**
+   * Per-mount perf optimization: track the highest message index already
+   * scanned for each conversationId so each effect run only walks new
+   * messages. This is layered on top of `handledByConversation`, which
+   * remains the cross-mount idempotency authority.
+   *
+   * Key: conversationId ?? "__null__" (mirrors `getHandledSet`'s key scheme).
+   * Value: the `messages.length` at the end of the last scan for that id.
+   *
+   * Reset condition: if `messages.length` is less than the stored index, the
+   * array shrank (remount / new conversation on same key) — fall back to a
+   * full scan from index 0 and update the stored index afterwards.
+   */
+  const lastScannedIndexRef = useRef<Map<string, number>>(new Map());
+
   useEffect(() => {
     if (messages.length === 0) return;
 
     const handled = getHandledSet(conversationId);
+    const idxKey = conversationId ?? "__null__";
+    const storedIndex = lastScannedIndexRef.current.get(idxKey) ?? 0;
+
+    // Guard: if messages shrank (unlikely but possible on remount / id reuse),
+    // treat as a reset and scan from the beginning.
+    const startIndex =
+      messages.length < storedIndex ? 0 : storedIndex;
 
     // Walk the assistant messages in order; tool calls can land in any
     // assistant message and the order is preserved by `combineUIMessages`.
     // We skip user messages — only assistant messages carry tool parts.
-    for (const message of messages) {
+    for (let i = startIndex; i < messages.length; i++) {
+      const message = messages[i];
       if (message.role !== "assistant") continue;
       for (const part of message.parts) {
         if (
@@ -275,7 +366,8 @@ export function useAgentIntentWatcher(
           part.type !== PUBLISH_ARTICLE_TYPE &&
           part.type !== UNPUBLISH_ARTICLE_TYPE &&
           part.type !== APPLY_BIO_ENTRY_PATCH_TYPE &&
-          part.type !== APPLY_CONTACT_ENTRY_PATCH_TYPE
+          part.type !== APPLY_CONTACT_ENTRY_PATCH_TYPE &&
+          part.type !== APPLY_CONTENT_PATCH_TYPE
         ) {
           continue;
         }
@@ -381,7 +473,44 @@ export function useAgentIntentWatcher(
           });
           continue;
         }
+
+        if (toolPart.type === APPLY_CONTENT_PATCH_TYPE) {
+          if (!isContentPatchOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+
+          // Routing rules for the configuration agent's content patch:
+          //   - If the patch created/updated a row, route to that row.
+          //     Drafts land on the edit route so the owner can review the
+          //     generated content before publishing; published rows land
+          //     on the public detail page.
+          //   - Otherwise, if the patch deleted a row, route to the section
+          //     list so the owner doesn't sit on a now-404 detail page.
+          //   - Otherwise (no rows touched — shouldn't happen, but the
+          //     server returns success on missing-slug deletes), no-op.
+          const { lastTouched, lastDeleted } = toolPart.output;
+          if (lastTouched) {
+            navigateToContent({
+              kind: lastTouched.kind,
+              slug: lastTouched.slug,
+              href:
+                lastTouched.status === "draft"
+                  ? lastTouched.editHref
+                  : lastTouched.href,
+            });
+            continue;
+          }
+          if (lastDeleted) {
+            navigateToProfileSection({
+              section: lastDeleted.kind,
+              href: lastDeleted.href,
+            });
+          }
+          continue;
+        }
       }
     }
+
+    // Update the last-scanned index so the next effect run starts from here.
+    lastScannedIndexRef.current.set(idxKey, messages.length);
   }, [messages, navigateToContent, navigateToProfileSection, conversationId]);
 }

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { internalQuery } from "../_generated/server";
-import { type Id } from "../_generated/dataModel";
+import { type Doc, type Id } from "../_generated/dataModel";
 import { contentStatusValidator } from "../content/schema";
 import {
   getNavigableContentSource,
@@ -13,9 +13,14 @@ import { contactEntryKindValidator } from "../contacts/schema";
 import {
   buildBioHref,
   buildContactHref,
+  buildContentEditHref,
   buildContentHref,
   buildProfileSectionHref,
 } from "../content/href";
+import {
+  analyzeAgentBodyProjection,
+  tiptapDocToAgentRepresentation,
+} from "../content/agentBody";
 
 // Re-exported so existing test imports
 // (`packages/convex/convex/chat/__tests__/tools.test.ts`) and any future
@@ -77,7 +82,6 @@ const resolveOwnedContentBySlugReturnValidator = v.union(
   }),
 );
 
-const contentKindValidator = navigableContentKindValidator;
 
 const profileConfigurationReturnValidator = v.object({
   username: v.string(),
@@ -104,7 +108,7 @@ const profileConfigurationReturnValidator = v.object({
 });
 
 const relevantContentCandidateValidator = v.object({
-  kind: contentKindValidator,
+  kind: navigableContentKindValidator,
   sourceId: v.string(),
   slug: v.string(),
   score: v.number(),
@@ -113,7 +117,7 @@ const relevantContentCandidateValidator = v.object({
 
 const resolvePublishedContentCandidatesReturnValidator = v.array(
   v.object({
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     slug: v.string(),
     title: v.string(),
     publishedAt: v.optional(v.number()),
@@ -131,7 +135,7 @@ const resolvePublishedContentCandidatesReturnValidator = v.array(
 export const queryLatestPublished = internalQuery({
   args: {
     userId: v.id("users"),
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
   },
   returns: latestPublishedReturnValidator,
   handler: async (ctx, { userId, kind }) => {
@@ -174,7 +178,7 @@ export const queryLatestPublished = internalQuery({
 export const resolveBySlug = internalQuery({
   args: {
     userId: v.id("users"),
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     slug: v.string(),
   },
   returns: resolveBySlugReturnValidator,
@@ -280,7 +284,7 @@ export const resolvePublishedContentCandidates = internalQuery({
 export const resolveOwnedContentBySlug = internalQuery({
   args: {
     userId: v.id("users"),
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     slug: v.string(),
   },
   returns: resolveOwnedContentBySlugReturnValidator,
@@ -456,7 +460,7 @@ export const queryContactPanel = internalQuery({
 const profileSectionListReturnValidator = v.union(
   v.null(),
   v.object({
-    kind: contentKindValidator,
+    kind: navigableContentKindValidator,
     username: v.string(),
     href: v.string(),
     hasEntries: v.boolean(),
@@ -482,7 +486,7 @@ const profileSectionListReturnValidator = v.union(
 export const queryProfileSectionList = internalQuery({
   args: {
     userId: v.id("users"),
-    section: contentKindValidator,
+    section: navigableContentKindValidator,
   },
   returns: profileSectionListReturnValidator,
   handler: async (ctx, { userId, section }) => {
@@ -503,6 +507,244 @@ export const queryProfileSectionList = internalQuery({
       username: owner.username,
       href: buildProfileSectionHref(owner.username, section),
       hasEntries: firstRow.length > 0,
+    };
+  },
+});
+
+// PLAN_013: owner-only content read tools for the configuration agent.
+//
+// These queries return DRAFTS in addition to published rows because
+// configuration mode is owner-only and the agent's `applyContentPatch`
+// tool needs to address every owned content row by slug, not just the
+// publicly visible ones. Cross-user isolation is enforced via the
+// closure-bound `profileOwnerId` in `chat/configurationTools.ts`; the
+// LLM-visible `inputSchema` carries only `kind`, `status`, `limit`, and
+// `slug` — never any user identifier (see `.claude/rules/agent-parity.md`).
+//
+// `queryOwnedContentForEdit` returns the body projected to agent blocks
+// + plain text via `content/agentBody.ts`; the raw Tiptap JSON is
+// intentionally NOT exposed to the LLM (see plan, Constraints).
+
+const profileContentLibraryItemValidator = v.object({
+  kind: navigableContentKindValidator,
+  slug: v.string(),
+  title: v.string(),
+  category: v.string(),
+  status: contentStatusValidator,
+  createdAt: v.number(),
+  publishedAt: v.optional(v.number()),
+  href: v.string(),
+  editHref: v.string(),
+});
+
+const profileContentLibraryReturnValidator = v.union(
+  v.null(),
+  v.object({
+    username: v.string(),
+    listHrefs: v.object({
+      posts: v.string(),
+      articles: v.string(),
+    }),
+    items: v.array(profileContentLibraryItemValidator),
+  }),
+);
+
+const PROFILE_CONTENT_LIBRARY_DEFAULT_LIMIT = 25;
+const PROFILE_CONTENT_LIBRARY_MAX_LIMIT = 50;
+
+/**
+ * Lists the profile owner's draft + published posts/articles for the
+ * configuration agent. Returns at most `limit` rows per requested kind
+ * (default 25, capped at 50), most recent first by `_creationTime`.
+ *
+ * When `kind` is omitted, both posts and articles are included. When
+ * `status` is omitted, drafts AND published rows are included — owner-only
+ * tool, so drafts are valid context the agent should reason about.
+ */
+export const queryProfileContentLibrary = internalQuery({
+  args: {
+    userId: v.id("users"),
+    kind: v.optional(navigableContentKindValidator),
+    status: v.optional(contentStatusValidator),
+    limit: v.optional(v.number()),
+  },
+  returns: profileContentLibraryReturnValidator,
+  handler: async (ctx, { userId, kind, status, limit }) => {
+    const owner = await ctx.db.get(userId);
+    if (!owner) return null;
+    if (!owner.username) return null;
+
+    const requestedKinds: NavigableContentKind[] = kind
+      ? [kind]
+      : ["posts", "articles"];
+
+    const effectiveLimit = Math.min(
+      Math.max(1, limit ?? PROFILE_CONTENT_LIBRARY_DEFAULT_LIMIT),
+      PROFILE_CONTENT_LIBRARY_MAX_LIMIT,
+    );
+
+    const collectedArrays = await Promise.all(
+      requestedKinds.map(async (k) => {
+        const source = getNavigableContentSource(k);
+        const rows = status
+          ? await ctx.db
+              .query(source.sourceTable)
+              .withIndex("by_userId_and_status", (q) =>
+                q.eq("userId", userId as Id<"users">).eq("status", status),
+              )
+              .order("desc")
+              .take(effectiveLimit)
+          : await ctx.db
+              .query(source.sourceTable)
+              .withIndex("by_userId", (q) =>
+                q.eq("userId", userId as Id<"users">),
+              )
+              .order("desc")
+              .take(effectiveLimit);
+
+        return rows.map((row) => ({
+          kind: k,
+          row,
+        }));
+      }),
+    );
+
+    const collected: Array<{
+      kind: NavigableContentKind;
+      row: Doc<"posts"> | Doc<"articles">;
+    }> = collectedArrays.flat();
+
+    collected.sort((a, b) => b.row._creationTime - a.row._creationTime);
+
+    const username = owner.username;
+    return {
+      username,
+      listHrefs: {
+        posts: buildContentHref(username, "posts"),
+        articles: buildContentHref(username, "articles"),
+      },
+      items: collected.slice(0, effectiveLimit * requestedKinds.length).map(
+        ({ kind, row }) => ({
+          kind,
+          slug: row.slug,
+          title: row.title,
+          category: row.category,
+          status: row.status,
+          createdAt: row.createdAt,
+          publishedAt: row.publishedAt,
+          href: buildContentHref(username, kind, row.slug),
+          editHref: buildContentEditHref(username, kind, row.slug),
+        }),
+      ),
+    };
+  },
+});
+
+// Approach (a): `found` lives in the query validator so the LLM-visible
+// shape has a single structural source of truth. The tool handler returns
+// the query result unchanged — no `{ ...row, found: true }` rewrap.
+const ownedContentForEditReturnValidator = v.union(
+  v.object({
+    found: v.literal(false),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+  }),
+  v.object({
+    found: v.literal(true),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+    title: v.string(),
+    category: v.string(),
+    status: contentStatusValidator,
+    createdAt: v.number(),
+    publishedAt: v.optional(v.number()),
+    username: v.string(),
+    href: v.string(),
+    editHref: v.string(),
+    bodyText: v.string(),
+    bodyBlocks: v.array(
+      v.union(
+        v.object({
+          type: v.literal("paragraph"),
+          text: v.string(),
+        }),
+        v.object({
+          type: v.literal("heading"),
+          level: v.union(v.literal(2), v.literal(3)),
+          text: v.string(),
+        }),
+        v.object({
+          type: v.literal("bulletList"),
+          items: v.array(v.string()),
+        }),
+      ),
+    ),
+    // True when `bodyBlocks` cannot represent the stored body (image
+    // nodes, code blocks, ordered lists, links, formatted text, etc.).
+    // The agent uses this to refuse silent body replacement and ask the
+    // owner to confirm in plain text.
+    projectionLossy: v.boolean(),
+    unsupportedNodeTypes: v.array(v.string()),
+  }),
+);
+
+/**
+ * Resolve a single owned post/article for the configuration agent. Returns
+ * `null` when:
+ *   - the owner has no `username` (cannot build a valid profile href),
+ *   - no row with that slug exists for the owner.
+ *
+ * Drafts ARE returned (owner-only tool); the agent uses this to inspect an
+ * existing body before deciding whether to replace it.
+ *
+ * The response includes both a plain-text body (`bodyText`) and an agent
+ * block projection (`bodyBlocks`) so the LLM can read the body without
+ * ever touching raw Tiptap JSON. `projectionLossy` is the explicit signal
+ * the agent uses to decide whether a body replacement would silently
+ * discard structure (images, code blocks, ordered lists, marks, etc.);
+ * `unsupportedNodeTypes` lists what the projection cannot represent so the
+ * agent can name them when asking the owner to confirm. See
+ * `content/agentBody.ts` for the projection rules.
+ */
+export const queryOwnedContentForEdit = internalQuery({
+  args: {
+    userId: v.id("users"),
+    kind: navigableContentKindValidator,
+    slug: v.string(),
+  },
+  returns: ownedContentForEditReturnValidator,
+  handler: async (ctx, { userId, kind, slug }) => {
+    const owner = await ctx.db.get(userId);
+    if (!owner || !owner.username)
+      return { found: false as const, kind, slug };
+
+    const source = getNavigableContentSource(kind);
+    const row = await ctx.db
+      .query(source.sourceTable)
+      .withIndex("by_userId_and_slug", (q) =>
+        q.eq("userId", userId as Id<"users">).eq("slug", slug),
+      )
+      .unique();
+    if (!row) return { found: false as const, kind, slug };
+
+    const projection = analyzeAgentBodyProjection(row.body);
+    const { text: bodyText, blocks: bodyBlocks } = tiptapDocToAgentRepresentation(row.body);
+    return {
+      found: true as const,
+      kind,
+      slug: row.slug,
+      title: row.title,
+      category: row.category,
+      status: row.status,
+      createdAt: row.createdAt,
+      publishedAt: row.publishedAt,
+      username: owner.username,
+      href: buildContentHref(owner.username, kind, row.slug),
+      editHref: buildContentEditHref(owner.username, kind, row.slug),
+      bodyText,
+      bodyBlocks,
+      projectionLossy: projection.lossy,
+      unsupportedNodeTypes: projection.unsupportedNodeTypes,
     };
   },
 });

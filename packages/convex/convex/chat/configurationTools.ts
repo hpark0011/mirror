@@ -25,6 +25,7 @@ import {
   detectContactKind,
   type DetectedContactKind,
 } from "../contacts/detectContactKind";
+import { NAVIGABLE_CONTENT_KINDS } from "../content/sourceRegistry";
 import { chatRateLimiter } from "./rateLimits";
 
 const PROFILE_SOURCE_MAX_REDIRECTS = 3;
@@ -126,6 +127,62 @@ const contactOperationSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("delete"),
     kind: z.enum(CONTACT_KIND_ENUM_VALUES),
+  }),
+]);
+
+// PLAN_013: agent-visible content schemas.
+//
+// LLM-visible types are intentionally a strict subset of the editor's
+// Tiptap node universe — text-only blocks (paragraph, heading at level
+// 2 or 3, bulletList of strings). Server-side `agentBlocksToTiptapDoc`
+// turns these into editor JSON before the row is written. The agent
+// CANNOT supply raw Tiptap JSON; it CANNOT supply image, embed, cover
+// image, cover video, or any storageId reference. See plan, Constraints.
+const NAVIGABLE_CONTENT_KIND_ENUM_VALUES = NAVIGABLE_CONTENT_KINDS as unknown as [
+  "posts" | "articles",
+  ...Array<"posts" | "articles">,
+];
+
+const agentContentBlockSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("paragraph"),
+    text: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("heading"),
+    level: z.union([z.literal(2), z.literal(3)]),
+    text: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("bulletList"),
+    items: z.array(z.string().min(1)).min(1),
+  }),
+]);
+
+const contentOperationSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("create"),
+    kind: z.enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES),
+    title: z.string().min(1),
+    slug: z.string().min(1).optional(),
+    category: z.string().min(1),
+    status: z.enum(["draft", "published"]).optional(),
+    bodyBlocks: z.array(agentContentBlockSchema),
+  }),
+  z.object({
+    action: z.literal("update"),
+    kind: z.enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES),
+    slug: z.string().min(1),
+    title: z.string().min(1).optional(),
+    newSlug: z.string().min(1).optional(),
+    category: z.string().min(1).optional(),
+    status: z.enum(["draft", "published"]).optional(),
+    bodyBlocks: z.array(agentContentBlockSchema).min(1).optional(),
+  }),
+  z.object({
+    action: z.literal("delete"),
+    kind: z.enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES),
+    slug: z.string().min(1),
   }),
 ]);
 
@@ -638,6 +695,82 @@ export function buildConfigurationTools(
         return await ctx.runMutation(
           internal.chat.toolMutations.applyContactEntryPatch,
           { userId: profileOwnerId, operations },
+        );
+      },
+    }),
+
+    getProfileContentLibrary: createTool({
+      description:
+        "List the profile owner's draft and published posts and articles before deciding what to create, edit, or delete. Returns kind, title, slug, category, status, timestamps, and server-built list/detail/edit hrefs. Filter by kind ('posts' or 'articles') or status ('draft' or 'published') when relevant.",
+      inputSchema: z.object({
+        kind: z
+          .enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES)
+          .optional()
+          .describe("Restrict to a single content kind."),
+        status: z
+          .enum(["draft", "published"])
+          .optional()
+          .describe("Restrict to draft or published rows."),
+        limit: z
+          .number()
+          .int()
+          .min(1)
+          .max(50)
+          .optional()
+          .describe("Max rows to return per kind (default 25, max 50)."),
+      }),
+      execute: async (ctx, args) => {
+        assertOwner();
+        const library = await ctx.runQuery(
+          internal.chat.toolQueries.queryProfileContentLibrary,
+          {
+            userId: profileOwnerId,
+            ...(args.kind !== undefined ? { kind: args.kind } : {}),
+            ...(args.status !== undefined ? { status: args.status } : {}),
+            ...(args.limit !== undefined ? { limit: args.limit } : {}),
+          },
+        );
+        if (!library) {
+          throw new Error("Content library is unavailable for this profile.");
+        }
+        return library;
+      },
+    }),
+
+    getProfileContentForEdit: createTool({
+      description:
+        "Fetch a single owned post or article by kind and slug for editing. Returns metadata plus a plain-text body, an agent-friendly block projection, and a projectionLossy flag with the list of unsupportedNodeTypes that the block projection cannot round-trip. Always call this before replacing a body — it is the only way to inspect what is already there.",
+      inputSchema: z.object({
+        kind: z.enum(NAVIGABLE_CONTENT_KIND_ENUM_VALUES),
+        slug: z.string().min(1),
+      }),
+      execute: async (ctx, args) => {
+        assertOwner();
+        // The query returns a discriminated union { found: false, kind, slug }
+        // or { found: true, ...rest } — pass it through unchanged. `found` is
+        // now part of the query validator (approach a), so the LLM-visible
+        // shape has a single structural source of truth.
+        return await ctx.runQuery(
+          internal.chat.toolQueries.queryOwnedContentForEdit,
+          { userId: profileOwnerId, ...args },
+        );
+      },
+    }),
+
+    applyContentPatch: createTool({
+      description:
+        "Apply an all-or-nothing batch of post/article changes for the profile owner. Use create for a brand-new draft (prefer drafts unless the owner explicitly asks to publish), update with the current slug to edit fields or replace the body via bodyBlocks, and delete to remove an owned row. Max 5 operations per call.",
+      inputSchema: z.object({
+        operations: z.array(contentOperationSchema).min(1).max(5),
+      }),
+      execute: async (ctx, { operations }) => {
+        assertOwner();
+        return await ctx.runMutation(
+          internal.chat.toolMutations.applyContentPatch,
+          {
+            userId: profileOwnerId,
+            operations,
+          },
         );
       },
     }),

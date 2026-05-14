@@ -904,8 +904,11 @@ describe("chat configuration mode invariants", () => {
     expect(Object.keys(tools).sort()).toEqual([
       "applyBioEntryPatch",
       "applyContactEntryPatch",
+      "applyContentPatch",
       "fetchProfileSource",
       "getProfileConfiguration",
+      "getProfileContentForEdit",
+      "getProfileContentLibrary",
     ]);
   });
 

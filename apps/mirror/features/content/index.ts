@@ -2,6 +2,7 @@ export {
   CONTENT_KINDS,
   CONTENT_KIND_LABELS,
   DEFAULT_PROFILE_CONTENT_KIND,
+  getContentEditHref,
   getContentHref,
   getContentRouteState,
   isContentKind,
