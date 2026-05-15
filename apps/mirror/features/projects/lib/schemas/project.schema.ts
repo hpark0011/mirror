@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 const MIN_YEAR = 1900;
 const MONTH_MIN = 1;
@@ -22,13 +23,19 @@ const yearSchema = z
     message: "Year is too far in the future",
   });
 
-const linkSchema = z
+const httpsLinkSchema = z
   .string()
   .url("Link must be a valid URL")
-  .refine((value) => value === "" || value.startsWith("https://"), {
+  .refine((value) => value.startsWith("https://"), {
     message: "Link must use https://",
-  })
-  .or(z.literal(""));
+  });
+
+const linkSchema = z.union([z.literal(""), httpsLinkSchema]);
+
+const coverImageStorageIdSchema = z.custom<Id<"_storage">>(
+  (value) => typeof value === "string" && value.trim().length > 0,
+  { message: "Invalid cover image storage id" },
+);
 
 export const projectSchema = z
   .object({
@@ -45,7 +52,7 @@ export const projectSchema = z
       .string()
       .max(500, "Description must be 500 characters or fewer"),
     link: linkSchema,
-    coverImageStorageId: z.string().nullable(),
+    coverImageStorageId: coverImageStorageIdSchema.nullable(),
     coverImageThumbhash: z.string(),
     coverImageUrl: z.string().nullable(),
     clearCover: z.boolean(),

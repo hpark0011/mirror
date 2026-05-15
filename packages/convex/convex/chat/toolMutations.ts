@@ -40,6 +40,7 @@ import {
   updatePostForUserBySlug,
 } from "../posts/writeHelpers";
 import {
+  cleanupDeferredProjectCoverBlobs,
   createProjectForUser,
   removeProjectForUser,
   updateProjectForUser,
@@ -484,6 +485,7 @@ export const applyProjectPatch = internalMutation({
     let created = 0;
     let updated = 0;
     let deleted = 0;
+    const deferredCoverBlobDeletions: Array<Id<"_storage">> = [];
 
     for (const operation of args.operations) {
       if (operation.action === "create") {
@@ -504,31 +506,40 @@ export const applyProjectPatch = internalMutation({
       }
 
       if (operation.action === "update") {
-        await updateProjectForUser(ctx, args.userId, {
-          id: operation.id,
-          title: operation.title,
-          startDate: operation.startDate
-            ? toMonthTimestamp(operation.startDate)
-            : undefined,
-          endDate:
-            operation.endDate === undefined
-              ? undefined
-              : operation.endDate === null
-                ? null
-                : toMonthTimestamp(operation.endDate),
-          description: operation.description,
-          link: operation.link,
-          coverImageStorageId: operation.coverImageStorageId,
-          coverImageThumbhash: operation.coverImageThumbhash,
-          clearCover: operation.clearCover,
-        });
+        await updateProjectForUser(
+          ctx,
+          args.userId,
+          {
+            id: operation.id,
+            title: operation.title,
+            startDate: operation.startDate
+              ? toMonthTimestamp(operation.startDate)
+              : undefined,
+            endDate:
+              operation.endDate === undefined
+                ? undefined
+                : operation.endDate === null
+                  ? null
+                  : toMonthTimestamp(operation.endDate),
+            description: operation.description,
+            link: operation.link,
+            coverImageStorageId: operation.coverImageStorageId,
+            coverImageThumbhash: operation.coverImageThumbhash,
+            clearCover: operation.clearCover,
+          },
+          { deferCoverBlobDeletion: deferredCoverBlobDeletions },
+        );
         updated += 1;
         continue;
       }
 
-      await removeProjectForUser(ctx, args.userId, operation.id);
+      await removeProjectForUser(ctx, args.userId, operation.id, {
+        deferCoverBlobDeletion: deferredCoverBlobDeletions,
+      });
       deleted += 1;
     }
+
+    await cleanupDeferredProjectCoverBlobs(ctx, deferredCoverBlobDeletions);
 
     return {
       section: "projects" as const,

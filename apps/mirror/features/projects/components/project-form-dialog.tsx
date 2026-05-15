@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "react-i18next";
 import {
   Dialog,
   DialogBody,
@@ -8,10 +9,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@feel-good/ui/primitives/dialog";
-import { type Project } from "../types";
-import { type ProjectFormValues } from "../lib/schemas/project.schema";
-import { epochMsToMonthYear } from "../utils/month-year";
-import { ProjectForm } from "./project-form";
+import { type Project } from "@/features/projects/types";
+import { type ProjectFormValues } from "@/features/projects/lib/schemas/project.schema";
+import { epochMsToMonthYear } from "@/features/projects/utils/month-year";
+import { ProjectForm } from "@/features/projects/components/project-form";
 
 type Mode = "create" | "edit";
 
@@ -49,12 +50,23 @@ export function ProjectFormDialog({
   onOpenChange,
   onSubmit,
 }: ProjectFormDialogProps) {
-  const title = mode === "create" ? "Add project" : "Edit project";
+  const { t } = useTranslation();
+  const title =
+    mode === "create"
+      ? t("projects.form.dialog.createTitle", { defaultValue: "Add project" })
+      : t("projects.form.dialog.editTitle", { defaultValue: "Edit project" });
   const description =
     mode === "create"
-      ? "Add a project you have worked on or are working on."
-      : "Update this project.";
-  const submitLabel = mode === "create" ? "Add" : "Save";
+      ? t("projects.form.dialog.createDescription", {
+          defaultValue: "Add a project you have worked on or are working on.",
+        })
+      : t("projects.form.dialog.editDescription", {
+          defaultValue: "Update this project.",
+        });
+  const submitLabel =
+    mode === "create"
+      ? t("projects.form.dialog.createSubmit", { defaultValue: "Add" })
+      : t("projects.form.dialog.editSubmit", { defaultValue: "Save" });
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

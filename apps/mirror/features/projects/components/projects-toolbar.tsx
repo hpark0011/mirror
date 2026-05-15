@@ -1,7 +1,7 @@
 "use client";
 
 import { ContentToolbarShell } from "@/features/content";
-import { ProjectAddButton } from "./project-add-button";
+import { ProjectAddButton } from "@/features/projects/components/project-add-button";
 
 type ProjectsToolbarProps = {
   isOwner: boolean;

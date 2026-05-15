@@ -364,4 +364,42 @@ describe("projects.mutations", () => {
       ownershipExists: false,
     });
   });
+
+  it("keeps a cover blob when another project still references it", async () => {
+    const t = makeT();
+    const ownerId = await signInAs(t, "auth_project_shared_cover");
+    const sharedCover = await storeBlob(t);
+    await seedCoverOwnership(t, sharedCover, ownerId);
+
+    const [firstProjectId, secondProjectId] = await t.run(async (ctx) => {
+      const first = await ctx.db.insert("projects", {
+        userId: ownerId,
+        title: "First shared cover",
+        startDate: utcMonth(2025, 1),
+        endDate: null,
+        coverImageStorageId: sharedCover,
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
+      const second = await ctx.db.insert("projects", {
+        userId: ownerId,
+        title: "Second shared cover",
+        startDate: utcMonth(2025, 2),
+        endDate: null,
+        coverImageStorageId: sharedCover,
+        createdAt: 1001,
+        updatedAt: 1001,
+      });
+      return [first, second];
+    });
+
+    await t.mutation(api.projects.mutations.remove, { id: firstProjectId });
+
+    const remaining = await t.run(async (ctx) => ctx.db.get(secondProjectId));
+    expect(remaining?.coverImageStorageId).toBe(sharedCover);
+    expect(await readCoverStorageState(t, sharedCover)).toEqual({
+      storageExists: true,
+      ownershipExists: true,
+    });
+  });
 });

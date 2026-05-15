@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "react-i18next";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,8 @@ export function ProjectMonthYearSelect({
   options,
   allowEmpty,
 }: ProjectMonthYearSelectProps) {
+  const { t } = useTranslation();
+
   return (
     <Select
       value={value === null ? EMPTY : String(value)}
@@ -40,7 +43,11 @@ export function ProjectMonthYearSelect({
         <SelectValue placeholder={placeholder} />
       </SelectTrigger>
       <SelectContent>
-        {allowEmpty ? <SelectItem value={EMPTY}>Present</SelectItem> : null}
+        {allowEmpty ? (
+          <SelectItem value={EMPTY}>
+            {t("projects.form.date.present", { defaultValue: "Present" })}
+          </SelectItem>
+        ) : null}
         {options.map((option) => (
           <SelectItem key={option.value} value={String(option.value)}>
             {option.label}

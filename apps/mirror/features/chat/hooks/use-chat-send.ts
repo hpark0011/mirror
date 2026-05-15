@@ -3,6 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { useMutation } from "convex/react";
 import { ConvexError } from "convex/values";
+import { useTranslation } from "react-i18next";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
@@ -88,6 +89,7 @@ export function useChatSend({
   rollbackOptimistic,
   markCreatedConversation,
 }: UseChatSendOptions) {
+  const { t } = useTranslation();
   const sendMessageMutation = useMutation(api.chat.mutations.sendMessage);
   const retryMessageMutation = useMutation(api.chat.mutations.retryMessage);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -103,7 +105,11 @@ export function useChatSend({
       setSendError(null);
 
       const optimisticText =
-        content.trim().length > 0 ? content : "Use the attached image.";
+        content.trim().length > 0
+          ? content
+          : t("chat.input.attachment.optimisticFallback", {
+              defaultValue: "Use the attached image.",
+            });
 
       beginOptimistic(optimisticText, attachments);
 
@@ -152,6 +158,7 @@ export function useChatSend({
       beginOptimistic,
       rollbackOptimistic,
       markCreatedConversation,
+      t,
     ],
   );
 

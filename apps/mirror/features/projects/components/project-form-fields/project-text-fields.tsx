@@ -1,6 +1,7 @@
 "use client";
 
 import { type Control } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import {
   FormControl,
   FormField,
@@ -10,13 +11,15 @@ import {
 } from "@feel-good/ui/primitives/form";
 import { Input } from "@feel-good/ui/primitives/input";
 import { Textarea } from "@feel-good/ui/primitives/textarea";
-import { type ProjectFormValues } from "../../lib/schemas/project.schema";
+import { type ProjectFormValues } from "@/features/projects/lib/schemas/project.schema";
 
 type ProjectTextFieldsProps = {
   control: Control<ProjectFormValues>;
 };
 
 export function ProjectTextFields({ control }: ProjectTextFieldsProps) {
+  const { t } = useTranslation();
+
   return (
     <>
       <FormField
@@ -25,7 +28,7 @@ export function ProjectTextFields({ control }: ProjectTextFieldsProps) {
         render={({ field }) => (
           <FormItem className="flex">
             <FormLabel className="w-40 gap-0.5">
-              Title
+              {t("projects.form.title.label", { defaultValue: "Title" })}
               <span aria-hidden="true" className="text-destructive">
                 *
               </span>
@@ -33,7 +36,9 @@ export function ProjectTextFields({ control }: ProjectTextFieldsProps) {
             <FormControl>
               <Input
                 {...field}
-                placeholder="Realtime analytics dashboard"
+                placeholder={t("projects.form.title.placeholder", {
+                  defaultValue: "Realtime analytics dashboard",
+                })}
                 autoComplete="off"
                 size="sm"
                 className="border-border-subtle dark:border-border px-1 focus-visible:bg-gray-4 focus-visible:rounded-md"
@@ -51,11 +56,18 @@ export function ProjectTextFields({ control }: ProjectTextFieldsProps) {
         name="description"
         render={({ field }) => (
           <FormItem className="flex items-start py-4 pb-2">
-            <FormLabel className="w-40 pt-1.5">Description</FormLabel>
+            <FormLabel className="w-40 pt-1.5">
+              {t("projects.form.description.label", {
+                defaultValue: "Description",
+              })}
+            </FormLabel>
             <FormControl>
               <Textarea
                 {...field}
-                placeholder="Short description of the work, outcome, or current status."
+                placeholder={t("projects.form.description.placeholder", {
+                  defaultValue:
+                    "Short description of the work, outcome, or current status.",
+                })}
                 className="border-border-subtle dark:border-border min-h-[120px] max-h-[120px] rounded-[10px] resize-none"
                 data-testid="project-description-input"
               />
@@ -70,12 +82,16 @@ export function ProjectTextFields({ control }: ProjectTextFieldsProps) {
         name="link"
         render={({ field }) => (
           <FormItem className="flex">
-            <FormLabel className="w-40">Link</FormLabel>
+            <FormLabel className="w-40">
+              {t("projects.form.link.label", { defaultValue: "Link" })}
+            </FormLabel>
             <FormControl>
               <Input
                 {...field}
                 inputMode="url"
-                placeholder="https://example.com"
+                placeholder={t("projects.form.link.placeholder", {
+                  defaultValue: "https://example.com",
+                })}
                 autoComplete="off"
                 className="border-border-subtle dark:border-border px-1 focus-visible:bg-gray-4 focus-visible:rounded-md"
                 size="sm"

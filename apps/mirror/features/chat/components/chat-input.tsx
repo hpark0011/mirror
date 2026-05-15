@@ -43,7 +43,9 @@ export function ChatInput({
 }: ChatInputProps) {
   const { t } = useTranslation();
   const [message, setMessage] = useState("");
-  const [attachment, setAttachment] = useState<ChatImageAttachment | null>(null);
+  const [attachment, setAttachment] = useState<ChatImageAttachment | null>(
+    null,
+  );
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const attachmentInputRef = useRef<HTMLInputElement>(null);
@@ -62,15 +64,22 @@ export function ChatInput({
     setAttachment(null);
   }, [attachment]);
 
-  const validateAttachment = useCallback((file: File): string | null => {
-    if (!ALLOWED_INLINE_IMAGE_TYPES.has(file.type)) {
-      return "Attach a PNG, JPEG, or WebP image.";
-    }
-    if (file.size > MAX_INLINE_IMAGE_BYTES) {
-      return "Image must be 5 MB or smaller.";
-    }
-    return null;
-  }, []);
+  const validateAttachment = useCallback(
+    (file: File): string | null => {
+      if (!ALLOWED_INLINE_IMAGE_TYPES.has(file.type)) {
+        return t("chat.input.attachment.invalidType", {
+          defaultValue: "Attach a PNG, JPEG, or WebP image.",
+        });
+      }
+      if (file.size > MAX_INLINE_IMAGE_BYTES) {
+        return t("chat.input.attachment.tooLarge", {
+          defaultValue: "Image must be 5 MB or smaller.",
+        });
+      }
+      return null;
+    },
+    [t],
+  );
 
   const handleAttachmentFile = useCallback(
     async (file: File) => {
@@ -97,12 +106,16 @@ export function ChatInput({
       } catch (err) {
         URL.revokeObjectURL(previewUrl);
         console.error("[chat-input] image attachment upload failed", err);
-        setAttachmentError("Image upload failed. Try another image.");
+        setAttachmentError(
+          t("chat.input.attachment.uploadFailed", {
+            defaultValue: "Image upload failed. Try another image.",
+          }),
+        );
       } finally {
         setIsUploadingAttachment(false);
       }
     },
-    [clearAttachment, upload, validateAttachment],
+    [clearAttachment, t, upload, validateAttachment],
   );
 
   const handleSend = useCallback(() => {
@@ -159,18 +172,25 @@ export function ChatInput({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={attachment.previewUrl}
-            alt="Attached project cover"
+            alt={t("chat.input.attachment.previewAlt", {
+              defaultValue: "Attached project cover",
+            })}
             className="size-12 rounded-md object-cover"
           />
           <p className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-            {attachment.filename ?? "Project cover"}
+            {attachment.filename ??
+              t("chat.input.attachment.defaultFilename", {
+                defaultValue: "Project cover",
+              })}
           </p>
           <button
             type="button"
             className="inline-flex size-7 items-center justify-center rounded-full hover:bg-muted"
             onClick={clearAttachment}
             disabled={isResponding || isUploadingAttachment}
-            aria-label="Remove attached image"
+            aria-label={t("chat.input.attachment.remove", {
+              defaultValue: "Remove attached image",
+            })}
           >
             <Icon name="XmarkIcon" className="size-3.5" />
           </button>
@@ -199,8 +219,14 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={
             isConfigurationMode
-              ? t("chat.input.placeholder.configuration", { defaultValue: "Paste a resume, LinkedIn URL, or profile update..." })
-              : t("chat.input.placeholder.clone", { profileName, defaultValue: `Message ${profileName}...` })
+              ? t("chat.input.placeholder.configuration", {
+                  defaultValue:
+                    "Paste a resume, LinkedIn URL, or profile update...",
+                })
+              : t("chat.input.placeholder.clone", {
+                  profileName,
+                  defaultValue: `Message ${profileName}...`,
+                })
           }
           disabled={isResponding}
           className={cn(
@@ -214,11 +240,7 @@ export function ChatInput({
 
         <InputGroupAddon
           align="block-end"
-          className={cn(
-            "justify-end",
-            "[&>kbd]:rounded-full",
-            "px-2.5 pb-2.5",
-          )}
+          className={cn("justify-end", "[&>kbd]:rounded-full", "px-2.5 pb-2.5")}
         >
           {isConfigurationMode ? (
             <InputGroupButton
@@ -228,7 +250,9 @@ export function ChatInput({
               className="size-8 shrink-0 rounded-full"
               disabled={isResponding || isUploadingAttachment}
               onClick={() => attachmentInputRef.current?.click()}
-              aria-label="Attach project cover image"
+              aria-label={t("chat.input.attachment.attach", {
+                defaultValue: "Attach project cover image",
+              })}
             >
               <Icon name="PaperClipIcon" className="size-4.5" />
             </InputGroupButton>
@@ -257,8 +281,14 @@ export function ChatInput({
 
       <p className="text-[13px] text-muted-foreground text-center mt-2 px-2">
         {isConfigurationMode
-          ? t("chat.input.disclaimer.configuration", { defaultValue: "Profile helper chats can update your public profile" })
-          : t("chat.input.disclaimer.clone", { profileName, defaultValue: `Conversations may be visible to ${profileName}` })}
+          ? t("chat.input.disclaimer.configuration", {
+              defaultValue:
+                "Profile helper chats can update your public profile",
+            })
+          : t("chat.input.disclaimer.clone", {
+              profileName,
+              defaultValue: `Conversations may be visible to ${profileName}`,
+            })}
       </p>
     </div>
   );

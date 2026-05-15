@@ -398,6 +398,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       // STYLE_RULES forbids **, *, _, backticks, bullets, headers — the
       // inventory sentence must not introduce any of those markers.
       expect(sentence).not.toBeNull();
+      expect(sentence!).toContain("projects");
       expect(sentence!).not.toMatch(/\*\*|\*[^*]|_[^_]|`/);
       expect(sentence!).not.toMatch(/^\s*[-•]/m);
       expect(sentence!).not.toMatch(/^#/m);

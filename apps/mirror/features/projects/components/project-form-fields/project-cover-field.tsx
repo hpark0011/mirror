@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   type FieldPath,
   type FieldPathValue,
@@ -14,25 +15,16 @@ import {
   ALLOWED_INLINE_IMAGE_TYPES_ATTR,
   MAX_INLINE_IMAGE_BYTES,
 } from "@/lib/media-policy";
-import { type ProjectFormValues } from "../../lib/schemas/project.schema";
-import { useProjectCoverImageUpload } from "../../hooks/use-project-cover-image-upload";
+import { type ProjectFormValues } from "@/features/projects/lib/schemas/project.schema";
+import { useProjectCoverImageUpload } from "@/features/projects/hooks/use-project-cover-image-upload";
 
 type ProjectCoverFieldProps = {
   watch: UseFormWatch<ProjectFormValues>;
   setValue: UseFormSetValue<ProjectFormValues>;
 };
 
-function validateCoverFile(file: File): string | null {
-  if (!ALLOWED_INLINE_IMAGE_TYPES.has(file.type)) {
-    return "Cover image must be PNG, JPEG, or WebP.";
-  }
-  if (file.size > MAX_INLINE_IMAGE_BYTES) {
-    return "Cover image must be 5 MB or smaller.";
-  }
-  return null;
-}
-
 export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
+  const { t } = useTranslation();
   const inputRef = useRef<HTMLInputElement>(null);
   const localPreviewUrlRef = useRef<string | null>(null);
   const { upload } = useProjectCoverImageUpload();
@@ -58,7 +50,17 @@ export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
   };
 
   const handleFile = async (file: File) => {
-    const validationError = validateCoverFile(file);
+    let validationError: string | null = null;
+    if (!ALLOWED_INLINE_IMAGE_TYPES.has(file.type)) {
+      validationError = t("projects.form.cover.invalidType", {
+        defaultValue: "Cover image must be PNG, JPEG, or WebP.",
+      });
+    } else if (file.size > MAX_INLINE_IMAGE_BYTES) {
+      validationError = t("projects.form.cover.tooLarge", {
+        defaultValue: "Cover image must be 5 MB or smaller.",
+      });
+    }
+
     if (validationError) {
       setError(validationError);
       return;
@@ -82,7 +84,11 @@ export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
       setProjectField("coverImageUrl", null);
       setProjectField("coverImageStorageId", null);
       setProjectField("coverImageThumbhash", "");
-      setError("Cover upload failed. Try another image.");
+      setError(
+        t("projects.form.cover.uploadFailed", {
+          defaultValue: "Cover upload failed. Try another image.",
+        }),
+      );
     } finally {
       setUploading(false);
     }
@@ -94,7 +100,7 @@ export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
       data-project-cover-uploading={uploading ? "true" : "false"}
     >
       <span className="text-[13px] text-muted-foreground w-40 pt-1 font-medium">
-        Cover
+        {t("projects.form.cover.label", { defaultValue: "Cover" })}
       </span>
       <div className="flex flex-col gap-2 w-full">
         <input
@@ -116,8 +122,10 @@ export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
           <div className="relative w-full overflow-hidden rounded-lg border border-border-subtle bg-muted/30">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={imageUrl!}
-              alt="Project cover"
+              src={imageUrl ?? ""}
+              alt={t("projects.form.cover.previewAlt", {
+                defaultValue: "Project cover",
+              })}
               className="block aspect-[16/9] w-full object-cover"
             />
             <div className="absolute right-2 top-2 flex gap-1">
@@ -128,7 +136,13 @@ export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
                 onClick={() => inputRef.current?.click()}
                 disabled={uploading}
               >
-                {uploading ? "Uploading..." : "Replace"}
+                {uploading
+                  ? t("projects.form.cover.uploading", {
+                      defaultValue: "Uploading...",
+                    })
+                  : t("projects.form.cover.replace", {
+                      defaultValue: "Replace",
+                    })}
               </Button>
               <Button
                 type="button"
@@ -143,7 +157,7 @@ export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
                 }}
                 disabled={uploading}
               >
-                Remove
+                {t("projects.form.cover.remove", { defaultValue: "Remove" })}
               </Button>
             </div>
           </div>
@@ -158,7 +172,11 @@ export function ProjectCoverField({ watch, setValue }: ProjectCoverFieldProps) {
             data-testid="project-cover-add-button"
           >
             <Icon name="PhotoFillIcon" className="size-4" />
-            {uploading ? "Uploading..." : "Add cover"}
+            {uploading
+              ? t("projects.form.cover.uploading", {
+                  defaultValue: "Uploading...",
+                })
+              : t("projects.form.cover.add", { defaultValue: "Add cover" })}
           </Button>
         )}
 

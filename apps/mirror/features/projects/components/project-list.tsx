@@ -2,9 +2,9 @@
 
 import { type ReactNode } from "react";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
-import { type Project } from "../types";
-import { ProjectCard } from "./project-card";
-import { ProjectListEmpty } from "./project-list-empty";
+import { type Project } from "@/features/projects/types";
+import { ProjectCard } from "@/features/projects/components/project-card";
+import { ProjectListEmpty } from "@/features/projects/components/project-list-empty";
 
 type ProjectListProps = {
   projects: ReadonlyArray<Project>;
@@ -25,10 +25,7 @@ export function ProjectList({
 }: ProjectListProps) {
   if (projects.length === 0) {
     return (
-      <ProjectListEmpty
-        isOwner={isOwner}
-        ownerEmptyAction={ownerEmptyAction}
-      />
+      <ProjectListEmpty isOwner={isOwner} ownerEmptyAction={ownerEmptyAction} />
     );
   }
 

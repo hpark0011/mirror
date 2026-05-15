@@ -1,10 +1,11 @@
 "use client";
 
+import { useTranslation } from "react-i18next";
 import { Icon } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
-import { type Project } from "../types";
-import { formatDateRange } from "../lib/format-date-range";
-import { safeHttpUrl } from "../lib/safe-http-url";
+import { type Project } from "@/features/projects/types";
+import { formatDateRange } from "@/features/projects/lib/format-date-range";
+import { safeHttpUrl } from "@/features/projects/lib/safe-http-url";
 
 type ProjectCardProps = {
   project: Project;
@@ -21,6 +22,7 @@ export function ProjectCard({
   onDelete,
   isDeleting = false,
 }: ProjectCardProps) {
+  const { t } = useTranslation();
   const dateRange = formatDateRange(project.startDate, project.endDate);
   const description = project.description?.trim();
   const link = safeHttpUrl(project.link);
@@ -36,7 +38,10 @@ export function ProjectCard({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={project.coverImageUrl}
-              alt={`Cover image for ${project.title}`}
+              alt={t("projects.card.coverAlt", {
+                title: project.title,
+                defaultValue: `Cover image for ${project.title}`,
+              })}
               className="aspect-[16/10] w-full object-cover"
               data-testid="project-cover-image"
             />
@@ -61,7 +66,7 @@ export function ProjectCard({
           </div>
 
           {isOwner ? (
-            <div className="hidden shrink-0 items-center gap-1.5 group-hover:flex group-focus-within:flex h-[16px]">
+            <div className="flex h-[16px] shrink-0 items-center gap-1.5 opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within:opacity-100 sm:group-hover:opacity-100">
               <Button
                 size="sm"
                 variant="link"
@@ -69,7 +74,7 @@ export function ProjectCard({
                 data-testid="project-edit"
                 className="h-fit px-0 underline-offset-2 font-normal"
               >
-                Edit
+                {t("projects.card.edit", { defaultValue: "Edit" })}
               </Button>
               <span className="text-xs pb-0.5">/</span>
               <Button
@@ -80,7 +85,7 @@ export function ProjectCard({
                 data-testid="project-delete"
                 className="h-fit px-0 underline-offset-2 font-normal"
               >
-                Delete
+                {t("projects.card.delete", { defaultValue: "Delete" })}
               </Button>
             </div>
           ) : null}

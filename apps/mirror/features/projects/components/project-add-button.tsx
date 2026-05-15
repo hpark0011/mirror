@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslation } from "react-i18next";
 import { Icon } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
 import {
@@ -21,6 +22,7 @@ export function ProjectAddButton({
   disabledReason,
   children,
 }: ProjectAddButtonProps) {
+  const { t } = useTranslation();
   const button = (
     <Button
       type="button"
@@ -32,7 +34,8 @@ export function ProjectAddButton({
       data-testid="project-add-button"
     >
       <Icon name="PlusIcon" className="size-4 text-icon-light" />
-      {children ?? "Add project"}
+      {children ??
+        t("projects.addButton.label", { defaultValue: "Add project" })}
     </Button>
   );
 

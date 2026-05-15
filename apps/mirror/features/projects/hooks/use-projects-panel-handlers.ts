@@ -6,10 +6,10 @@ import { showToast } from "@feel-good/ui/components/toast";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
-import { type Project } from "../types";
-import { type ProjectFormValues } from "../lib/schemas/project.schema";
-import { toMutationArgs } from "../utils/mutation-helpers";
-import { useProjects } from "./use-projects";
+import { type Project } from "@/features/projects/types";
+import { type ProjectFormValues } from "@/features/projects/lib/schemas/project.schema";
+import { toMutationArgs } from "@/features/projects/utils/mutation-helpers";
+import { useProjects } from "@/features/projects/hooks/use-projects";
 
 export type ProjectDialogState =
   | { open: false }
@@ -48,7 +48,7 @@ export function useProjectsPanelHandlers() {
       if (!values.coverImageStorageId) return;
       try {
         await deleteOrphanCoverImage({
-          storageId: values.coverImageStorageId as Id<"_storage">,
+          storageId: values.coverImageStorageId,
         });
       } catch (err) {
         console.warn("[projects] orphan cover cleanup failed", err);
@@ -90,8 +90,6 @@ export function useProjectsPanelHandlers() {
       const editId =
         dialog.open && dialog.mode === "edit" ? dialog.project._id : null;
 
-      setDialog({ open: false });
-
       try {
         if (editId !== null) {
           await updateProject({ id: editId, ...args });
@@ -112,6 +110,7 @@ export function useProjectsPanelHandlers() {
               : {}),
           });
         }
+        setDialog({ open: false });
       } catch (err) {
         await cleanupUploadedCover(values);
         showToast({ type: "error", title: getMutationErrorMessage(err) });

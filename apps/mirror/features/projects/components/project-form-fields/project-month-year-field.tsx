@@ -2,6 +2,7 @@
 
 import { useMemo } from "react";
 import { type Control } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import {
   FormControl,
   FormField,
@@ -9,8 +10,8 @@ import {
   FormLabel,
   FormMessage,
 } from "@feel-good/ui/primitives/form";
-import { type ProjectFormValues } from "../../lib/schemas/project.schema";
-import { ProjectMonthYearSelect } from "./project-month-year-select";
+import { type ProjectFormValues } from "@/features/projects/lib/schemas/project.schema";
+import { ProjectMonthYearSelect } from "@/features/projects/components/project-form-fields/project-month-year-select";
 
 const MONTHS = [
   { value: 1, label: "Jan" },
@@ -44,6 +45,7 @@ export function ProjectMonthYearField({
   allowEmpty,
   required = false,
 }: ProjectMonthYearFieldProps) {
+  const { t } = useTranslation();
   const yearOptions = useMemo(() => {
     const max = new Date().getUTCFullYear() + 1;
     const options: { value: number; label: string }[] = [];
@@ -73,7 +75,9 @@ export function ProjectMonthYearField({
                 <ProjectMonthYearSelect
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Month"
+                  placeholder={t("projects.form.month.placeholder", {
+                    defaultValue: "Month",
+                  })}
                   options={MONTHS}
                   allowEmpty={allowEmpty}
                 />
@@ -91,7 +95,9 @@ export function ProjectMonthYearField({
                 <ProjectMonthYearSelect
                   value={field.value}
                   onChange={field.onChange}
-                  placeholder="Year"
+                  placeholder={t("projects.form.year.placeholder", {
+                    defaultValue: "Year",
+                  })}
                   options={yearOptions}
                   allowEmpty={allowEmpty}
                 />

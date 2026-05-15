@@ -4,8 +4,8 @@ import { useMemo } from "react";
 import { useMutation, usePreloadedQuery } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
-import { useProjectsWorkspace } from "../context/projects-workspace-context";
-import { type Project } from "../types";
+import { useProjectsWorkspace } from "@/features/projects/context/projects-workspace-context";
+import { type Project } from "@/features/projects/types";
 
 export const MAX_PROJECTS = 50;
 

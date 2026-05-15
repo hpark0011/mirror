@@ -1,6 +1,5 @@
-import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
-import { type ProjectFormValues } from "../lib/schemas/project.schema";
-import { monthYearToEpochMs } from "./month-year";
+import { type ProjectFormValues } from "@/features/projects/lib/schemas/project.schema";
+import { monthYearToEpochMs } from "@/features/projects/utils/month-year";
 
 export function toMutationArgs(values: ProjectFormValues) {
   const endDate =
@@ -16,8 +15,7 @@ export function toMutationArgs(values: ProjectFormValues) {
     link: values.link.trim(),
     ...(values.coverImageStorageId
       ? {
-          coverImageStorageId:
-            values.coverImageStorageId as Id<"_storage">,
+          coverImageStorageId: values.coverImageStorageId,
           ...(values.coverImageThumbhash
             ? { coverImageThumbhash: values.coverImageThumbhash }
             : {}),

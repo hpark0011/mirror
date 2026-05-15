@@ -1,4 +1,7 @@
+"use client";
+
 import { type ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 
 type ProjectListEmptyProps = {
   isOwner: boolean;
@@ -9,6 +12,8 @@ export function ProjectListEmpty({
   isOwner,
   ownerEmptyAction,
 }: ProjectListEmptyProps) {
+  const { t } = useTranslation();
+
   return (
     <div
       data-testid="project-list-empty"
@@ -17,13 +22,15 @@ export function ProjectListEmpty({
       {isOwner ? (
         <div className="flex flex-col items-center justify-center gap-4">
           <h3 className="text-lg text-foreground">
-            Add a project you want readers to see
+            {t("projects.empty.owner", {
+              defaultValue: "Add a project you want readers to see",
+            })}
           </h3>
           {ownerEmptyAction}
         </div>
       ) : (
         <p className="text-[15px] text-muted-foreground text-center w-full">
-          No projects yet.
+          {t("projects.empty.visitor", { defaultValue: "No projects yet." })}
         </p>
       )}
     </div>

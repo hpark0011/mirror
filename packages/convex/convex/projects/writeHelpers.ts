@@ -7,6 +7,7 @@ import {
   deleteCoverBlobAndOwnership,
 } from "../content/coverBlobOwnership";
 import { isOwnedByUser } from "../content/helpers";
+import { collectReferencedFromCandidates } from "../content/storageRegistry";
 
 const MAX_TITLE_LENGTH = 200;
 const MAX_DESCRIPTION_LENGTH = 500;
@@ -16,6 +17,10 @@ export const MAX_PROJECTS_PER_USER = 50;
 type ProjectPatch = Partial<
   Omit<Doc<"projects">, "_id" | "_creationTime" | "userId">
 >;
+
+type ProjectCoverCleanupOptions = {
+  deferCoverBlobDeletion?: Array<Id<"_storage">>;
+};
 
 export type CreateProjectArgs = {
   title: string;
@@ -99,10 +104,50 @@ function validateCoverThumbhash(
   if (coverImageThumbhash === undefined || coverImageThumbhash.trim() === "") {
     return;
   }
-  if (coverImageStorageId === undefined && existingCoverImageStorageId === undefined) {
+  if (
+    coverImageStorageId === undefined &&
+    existingCoverImageStorageId === undefined
+  ) {
     throw new Error("coverImageThumbhash requires a cover image");
   }
   validateThumbhashFormat(coverImageThumbhash);
+}
+
+async function deleteUnreferencedProjectCoverBlobs(
+  ctx: MutationCtx,
+  storageIds: Iterable<Id<"_storage"> | undefined>,
+): Promise<void> {
+  const candidates = Array.from(
+    new Set(Array.from(storageIds).filter((id) => id !== undefined)),
+  );
+  const referenced = await collectReferencedFromCandidates(ctx, candidates);
+
+  for (const storageId of candidates) {
+    if (!referenced.has(storageId)) {
+      await deleteCoverBlobAndOwnership(ctx, storageId);
+    }
+  }
+}
+
+async function cleanupProjectCoverBlob(
+  ctx: MutationCtx,
+  storageId: Id<"_storage"> | undefined,
+  options?: ProjectCoverCleanupOptions,
+): Promise<void> {
+  if (storageId === undefined) return;
+  if (options?.deferCoverBlobDeletion) {
+    options.deferCoverBlobDeletion.push(storageId);
+    return;
+  }
+
+  await deleteUnreferencedProjectCoverBlobs(ctx, [storageId]);
+}
+
+export async function cleanupDeferredProjectCoverBlobs(
+  ctx: MutationCtx,
+  storageIds: Array<Id<"_storage">>,
+): Promise<void> {
+  await deleteUnreferencedProjectCoverBlobs(ctx, storageIds);
 }
 
 export async function createProjectForUser(
@@ -160,6 +205,7 @@ export async function updateProjectForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   args: UpdateProjectArgs,
+  options?: ProjectCoverCleanupOptions,
 ): Promise<void> {
   const project = await ctx.db.get(args.id);
   if (!project) {
@@ -227,7 +273,7 @@ export async function updateProjectForUser(
   );
 
   if (coverToDelete !== undefined) {
-    await deleteCoverBlobAndOwnership(ctx, coverToDelete);
+    await cleanupProjectCoverBlob(ctx, coverToDelete, options);
   }
 }
 
@@ -235,6 +281,7 @@ export async function removeProjectForUser(
   ctx: MutationCtx,
   userId: Id<"users">,
   id: Id<"projects">,
+  options?: ProjectCoverCleanupOptions,
 ): Promise<void> {
   const project = await ctx.db.get(id);
   if (!project) {
@@ -252,5 +299,5 @@ export async function removeProjectForUser(
     { sourceTable: "projects" as const, sourceId: id },
   );
 
-  await deleteCoverBlobAndOwnership(ctx, project.coverImageStorageId);
+  await cleanupProjectCoverBlob(ctx, project.coverImageStorageId, options);
 }

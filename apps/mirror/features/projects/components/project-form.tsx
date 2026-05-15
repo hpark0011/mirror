@@ -1,16 +1,17 @@
 "use client";
 
 import { useForm } from "react-hook-form";
+import { useTranslation } from "react-i18next";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@feel-good/ui/primitives/button";
 import { Form } from "@feel-good/ui/primitives/form";
 import {
   projectSchema,
   type ProjectFormValues,
-} from "../lib/schemas/project.schema";
-import { ProjectCoverField } from "./project-form-fields/project-cover-field";
-import { ProjectMonthYearField } from "./project-form-fields/project-month-year-field";
-import { ProjectTextFields } from "./project-form-fields/project-text-fields";
+} from "@/features/projects/lib/schemas/project.schema";
+import { ProjectCoverField } from "@/features/projects/components/project-form-fields/project-cover-field";
+import { ProjectMonthYearField } from "@/features/projects/components/project-form-fields/project-month-year-field";
+import { ProjectTextFields } from "@/features/projects/components/project-form-fields/project-text-fields";
 
 type ProjectFormProps = {
   defaultValues: ProjectFormValues;
@@ -25,6 +26,7 @@ export function ProjectForm({
   onSubmit,
   onCancel,
 }: ProjectFormProps) {
+  const { t } = useTranslation();
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(projectSchema),
     defaultValues,
@@ -44,7 +46,7 @@ export function ProjectForm({
           control={form.control}
           monthName="startMonth"
           yearName="startYear"
-          label="Start"
+          label={t("projects.form.startDate.label", { defaultValue: "Start" })}
           allowEmpty={false}
           required
         />
@@ -52,7 +54,7 @@ export function ProjectForm({
           control={form.control}
           monthName="endMonth"
           yearName="endYear"
-          label="End"
+          label={t("projects.form.endDate.label", { defaultValue: "End" })}
           allowEmpty
         />
 
@@ -65,7 +67,7 @@ export function ProjectForm({
               className="bg-dialog w-14"
               size="xs"
             >
-              Cancel
+              {t("projects.form.cancel", { defaultValue: "Cancel" })}
             </Button>
           ) : null}
           <Button type="submit" variant="primary" className="w-14" size="xs">
