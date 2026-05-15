@@ -1,6 +1,6 @@
 import { type MutationCtx } from "../_generated/server";
 import { type Id } from "../_generated/dataModel";
-import { components } from "../_generated/api";
+import { components, internal } from "../_generated/api";
 import { createThread, saveMessage } from "@convex-dev/agent";
 import { getPostCategoryForSlug } from "../posts/categories";
 import { RESERVED_USERNAMES } from "../users/helpers";
@@ -10,6 +10,7 @@ import {
   SEED_CONVERSATIONS,
   SEED_OWNER_PROFILE,
   SEED_POSTS,
+  SEED_PROJECTS,
 } from "./data";
 
 const USERNAME_PATTERN = /^[a-z0-9][a-z0-9-]{1,28}[a-z0-9]$/;
@@ -260,5 +261,42 @@ export async function ensureWorktreeOwnerBio(
       endDate: entry.endDate,
       description: entry.description,
     });
+  }
+}
+
+export async function ensureSeedProjects(
+  ctx: MutationCtx,
+  userId: Id<"users">,
+): Promise<void> {
+  const existingProjects = await ctx.db
+    .query("projects")
+    .withIndex("by_userId", (q) => q.eq("userId", userId))
+    .collect();
+  const existingTitles = new Set(
+    existingProjects.map((project) => project.title),
+  );
+
+  const now = Date.now();
+  for (const project of SEED_PROJECTS) {
+    if (existingTitles.has(project.title)) {
+      continue;
+    }
+
+    const projectId = await ctx.db.insert("projects", {
+      userId,
+      title: project.title,
+      description: project.description,
+      link: project.link,
+      startDate: project.startDate,
+      endDate: project.endDate,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await ctx.scheduler.runAfter(
+      0,
+      internal.embeddings.actions.generateEmbedding,
+      { sourceTable: "projects", sourceId: projectId },
+    );
   }
 }

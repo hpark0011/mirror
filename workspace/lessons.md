@@ -10,6 +10,16 @@
   or constructing clients; otherwise a valid deployment URL ending in `/`
   becomes `//...` and can return empty/error responses.
 
+### Agent batch mutations must defer destructive storage cleanup
+
+- If an owner-write agent tool advertises an all-or-nothing batch, every
+  operation that can throw must run before any `ctx.storage.delete(...)`.
+  Queue cover/blob IDs during the batch, then clean them after validation and
+  database writes have succeeded.
+- Uploaded chat images are single-use cover inputs unless deletion is
+  reference-aware. Reject multiple "use uploaded image" operations in one tool
+  call, or prove the cleanup path preserves blobs that remain referenced.
+
 ## 2026-05-13
 
 ### Agent modes need immutable conversation boundaries

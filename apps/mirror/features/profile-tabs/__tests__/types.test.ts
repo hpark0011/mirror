@@ -5,6 +5,7 @@ import {
   buildContentEditHref,
   buildContentHref,
   buildProfileSectionHref,
+  buildProjectsHref,
 } from "@feel-good/convex/convex/content/href";
 import {
   getContentEditHref,
@@ -19,20 +20,21 @@ import {
 } from "../types";
 
 describe("PROFILE_TAB_KINDS", () => {
-  it("contains exactly six kinds", () => {
-    expect(PROFILE_TAB_KINDS.length).toBe(6);
+  it("contains exactly seven kinds", () => {
+    expect(PROFILE_TAB_KINDS.length).toBe(7);
   });
 
   it("includes bio at index 2 to preserve the position-independent default", () => {
     expect(PROFILE_TAB_KINDS[2]).toBe("bio");
   });
 
-  it("includes the canonical six kinds", () => {
+  it("includes the canonical seven kinds", () => {
     expect(PROFILE_TAB_KINDS).toEqual([
       "posts",
       "articles",
       "bio",
       "contact",
+      "projects",
       "clone-settings",
       "settings",
     ]);
@@ -55,11 +57,12 @@ describe("isProfileTabKind", () => {
     }
   });
 
-  it("returns true specifically for posts, articles, bio, contact, clone-settings, settings", () => {
+  it("returns true specifically for posts, articles, bio, contact, projects, clone-settings, settings", () => {
     expect(isProfileTabKind("posts")).toBe(true);
     expect(isProfileTabKind("articles")).toBe(true);
     expect(isProfileTabKind("bio")).toBe(true);
     expect(isProfileTabKind("contact")).toBe(true);
+    expect(isProfileTabKind("projects")).toBe(true);
     expect(isProfileTabKind("clone-settings")).toBe(true);
     expect(isProfileTabKind("settings")).toBe(true);
   });
@@ -82,6 +85,7 @@ describe("getProfileTabHref", () => {
     expect(getProfileTabHref("alice", "articles")).toBe("/@alice/articles");
     expect(getProfileTabHref("alice", "bio")).toBe("/@alice/bio");
     expect(getProfileTabHref("alice", "contact")).toBe("/@alice/contact");
+    expect(getProfileTabHref("alice", "projects")).toBe("/@alice/projects");
     expect(getProfileTabHref("alice", "clone-settings")).toBe(
       "/@alice/clone-settings",
     );
@@ -109,6 +113,15 @@ describe("getProfileTabHref", () => {
     );
     expect(getProfileTabHref("rick-rubin", "contact")).toBe(
       buildContactHref("rick-rubin"),
+    );
+  });
+
+  it("agrees with buildProjectsHref for the 'projects' kind — href-parity invariant", () => {
+    expect(getProfileTabHref("alice", "projects")).toBe(
+      buildProjectsHref("alice"),
+    );
+    expect(getProfileTabHref("rick-rubin", "projects")).toBe(
+      buildProjectsHref("rick-rubin"),
     );
   });
 

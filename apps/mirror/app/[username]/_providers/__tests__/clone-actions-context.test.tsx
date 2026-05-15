@@ -251,7 +251,7 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
   // server-built href; the user-UI path omits it and the dispatcher
   // composes via `getProfileTabHref(username, section)`. The
   // Owner-only cases exercise the dispatcher's wider section enum
-  // (the agent enum is narrower — bio/articles/posts only) since the
+  // (the agent enum is narrower than the owner UI) since the
   // dispatcher is also the user-UI path for owner-only tabs.
   afterEach(() => {
     cleanup();
@@ -263,6 +263,8 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
 
   const sections = [
     "bio",
+    "contact",
+    "projects",
     "articles",
     "posts",
     "clone-settings",
@@ -438,6 +440,8 @@ describe("CloneActionsProvider — panel-bridge integration (PLAN_010)", () => {
 
   const sections = [
     "bio",
+    "contact",
+    "projects",
     "articles",
     "posts",
     "clone-settings",

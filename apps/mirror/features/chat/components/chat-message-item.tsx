@@ -13,6 +13,54 @@ import {
 import { MirrorAvatar } from "@/components/mirror-avatar";
 import { BookFlip } from "@/components/animated-geometries/book-flip";
 
+type MessageFilePart = {
+  type: "file" | "image";
+  mediaType: string;
+  url?: string;
+  image?: string | URL;
+  filename?: string;
+};
+
+function getImageParts(message: UIMessage): MessageFilePart[] {
+  const imageParts: MessageFilePart[] = [];
+  for (const part of message.parts) {
+    if (!part || typeof part !== "object") continue;
+    const candidate = part as Record<string, unknown>;
+    const type = candidate.type === "image" ? "image" : "file";
+    if (candidate.type !== "file" && candidate.type !== "image") continue;
+    if (
+      typeof candidate.mediaType !== "string" ||
+      !candidate.mediaType.startsWith("image/")
+    ) {
+      continue;
+    }
+    if (
+      (typeof candidate.url !== "string" || candidate.url.length === 0) &&
+      typeof candidate.image !== "string" &&
+      !(candidate.image instanceof URL)
+    ) {
+      continue;
+    }
+    imageParts.push({
+      type,
+      mediaType: candidate.mediaType,
+      url: typeof candidate.url === "string" ? candidate.url : undefined,
+      image:
+        typeof candidate.image === "string" || candidate.image instanceof URL
+          ? candidate.image
+          : undefined,
+      filename:
+        typeof candidate.filename === "string" ? candidate.filename : undefined,
+    });
+  }
+  return imageParts;
+}
+
+function getImagePartUrl(part: MessageFilePart): string {
+  if (part.url) return part.url;
+  return String(part.image);
+}
+
 export const ChatMessageItem = memo(function ChatMessageItem({
   message,
   avatarUrl,
@@ -34,6 +82,7 @@ export const ChatMessageItem = memo(function ChatMessageItem({
     startStreaming: isStreaming,
   });
   const displayText = isStreaming ? smoothText : message.text;
+  const imageParts = getImageParts(message);
   const showsEmptyAssistant = !isUser && !displayText;
   const showsPendingAssistant = showsEmptyAssistant &&
     (message.status === "streaming" || message.status === "pending");
@@ -61,6 +110,19 @@ export const ChatMessageItem = memo(function ChatMessageItem({
             ? "animate-message-send origin-bottom-right"
             : undefined}
         >
+          {imageParts.length > 0 ? (
+            <div className="mb-2 grid gap-2">
+              {imageParts.map((part, index) => (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  key={`${getImagePartUrl(part)}-${index}`}
+                  src={getImagePartUrl(part)}
+                  alt={part.filename ?? "Attached image"}
+                  className="max-h-52 rounded-lg object-cover"
+                />
+              ))}
+            </div>
+          ) : null}
           {displayText}
           {isStreaming && !displayText && isUser && <ChatMessageLoading />}
           {showsPendingAssistant && <BookFlip />}

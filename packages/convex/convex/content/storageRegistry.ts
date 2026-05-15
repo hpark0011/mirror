@@ -20,14 +20,18 @@ import { extractInlineImageStorageIds } from "./bodyWalk";
 export type StorageFieldReference =
   | {
       kind: "scalar";
-      table: "articles" | "posts" | "users";
+      table: "articles" | "posts" | "projects" | "users";
       // Schema field name. The schema-introspection regression test in
       // `content/__tests__/orphanSweep.test.ts` builds `<table>.<field>`
       // keys from BOTH the schema source and this list and asserts set
       // equality. Don't free-form rename — `field` is the canonical key.
       field: string;
       accessor: (
-        doc: Doc<"articles"> | Doc<"posts"> | Doc<"users">,
+        doc:
+          | Doc<"articles">
+          | Doc<"posts">
+          | Doc<"projects">
+          | Doc<"users">,
       ) => Id<"_storage"> | undefined;
       description: string;
     }
@@ -86,6 +90,13 @@ export const STORAGE_FIELD_REFERENCES: ReadonlyArray<StorageFieldReference> = [
     field: "coverVideoPosterStorageId",
     accessor: (doc) => (doc as Doc<"posts">).coverVideoPosterStorageId,
     description: "posts.coverVideoPosterStorageId",
+  },
+  {
+    kind: "scalar",
+    table: "projects",
+    field: "coverImageStorageId",
+    accessor: (doc) => (doc as Doc<"projects">).coverImageStorageId,
+    description: "projects.coverImageStorageId",
   },
   {
     kind: "scalar",

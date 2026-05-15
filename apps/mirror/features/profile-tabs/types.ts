@@ -3,6 +3,7 @@ export const PROFILE_TAB_KINDS = [
   "articles",
   "bio",
   "contact",
+  "projects",
   "clone-settings",
   "settings",
 ] as const;
@@ -20,6 +21,7 @@ export const PROFILE_TAB_DEFAULT_KIND: ProfileTabKind = "posts";
 export const PROFILE_TAB_DISPLAY_ORDER: readonly ProfileTabKind[] = [
   "bio",
   "contact",
+  "projects",
   "posts",
   "articles",
   "clone-settings",
@@ -31,6 +33,7 @@ export const PROFILE_TAB_LABELS: Record<ProfileTabKind, string> = {
   articles: "Articles",
   bio: "Bio",
   contact: "Contact",
+  projects: "Projects",
   "clone-settings": "Clone",
   settings: "Settings",
 };

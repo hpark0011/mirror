@@ -6,6 +6,7 @@ import { type DefaultProfileSection } from "../content/href";
 export const defaultProfileSectionValidator = v.union(
   v.literal("bio"),
   v.literal("contact"),
+  v.literal("projects"),
   v.literal("posts"),
   v.literal("articles"),
 );

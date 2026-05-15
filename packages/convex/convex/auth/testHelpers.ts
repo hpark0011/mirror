@@ -1004,3 +1004,75 @@ export const ensureTestContactFixtures = internalMutation({
     };
   },
 });
+
+/**
+ * Replaces the test user's projects with `args.entries`. Mirrors the bio and
+ * contact fixture helpers so Projects e2e tests can seed deterministic rows
+ * without driving the full owner UI first.
+ *
+ * WARNING: Only call from test infrastructure. Never expose as public API.
+ */
+export const ensureTestProjectFixtures = internalMutation({
+  args: {
+    email: v.string(),
+    entries: v.array(
+      v.object({
+        title: v.string(),
+        startDate: v.number(),
+        endDate: v.union(v.number(), v.null()),
+        description: v.optional(v.string()),
+        link: v.optional(v.string()),
+      }),
+    ),
+  },
+  returns: v.object({
+    userId: v.id("users"),
+    insertedCount: v.number(),
+    projectIds: v.array(v.id("projects")),
+  }),
+  handler: async (ctx, args) => {
+    assertTestEmail(args.email);
+
+    const user = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", args.email))
+      .unique();
+
+    if (!user) {
+      throw new Error(
+        `Test user with email ${args.email} not found. Call ensureTestUser first.`,
+      );
+    }
+
+    const userId = user._id;
+    const existing = await ctx.db
+      .query("projects")
+      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .collect();
+    for (const row of existing) {
+      await ctx.db.delete(row._id);
+    }
+
+    const now = Date.now();
+    const projectIds: Id<"projects">[] = [];
+    for (const entry of args.entries) {
+      const id = await ctx.db.insert("projects", {
+        userId,
+        title: entry.title,
+        startDate: entry.startDate,
+        endDate: entry.endDate,
+        description: entry.description,
+        link: entry.link,
+        createdAt: now,
+        updatedAt: now,
+      });
+      projectIds.push(id);
+    }
+
+    return {
+      userId,
+      insertedCount: args.entries.length,
+      projectIds,
+    };
+  },
+});
