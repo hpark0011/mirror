@@ -299,6 +299,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       articles: false,
       posts: false,
       bioEntries: false,
+      projects: false,
     };
 
     it("includes the 'bio entries' phrase when contentInventory.bioEntries is true", () => {
@@ -345,7 +346,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
       const result = composeSystemPrompt({
         name: "Alice",
         personaPrompt: "Custom persona text without article keywords.",
-        contentInventory: { articles: false, posts: true, bioEntries: true },
+        contentInventory: {
+          articles: false,
+          posts: true,
+          bioEntries: true,
+          projects: false,
+        },
       });
 
       // Inventory sentence appears verbatim with the populated kinds joined
@@ -366,7 +372,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
         personaPrompt: "Persona body",
         tonePreset: "friendly",
         topicsToAvoid: "politics",
-        contentInventory: { articles: true, posts: true, bioEntries: true },
+        contentInventory: {
+          articles: true,
+          posts: true,
+          bioEntries: true,
+          projects: true,
+        },
       });
 
       const topicsIdx = result.indexOf("Avoid discussing: politics");
@@ -381,6 +392,7 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
         articles: true,
         posts: true,
         bioEntries: true,
+        projects: true,
       });
 
       // STYLE_RULES forbids **, *, _, backticks, bullets, headers — the
@@ -409,7 +421,12 @@ describe("composeSystemPrompt (mirrors loadStreamingContext logic)", () => {
         personaPrompt: hugePersona,
         tonePreset: "friendly",
         topicsToAvoid: hugeTopics,
-        contentInventory: { articles: true, posts: true, bioEntries: true },
+        contentInventory: {
+          articles: true,
+          posts: true,
+          bioEntries: true,
+          projects: true,
+        },
       });
 
       expect(result.length).toBeLessThanOrEqual(SYSTEM_PROMPT_MAX_CHARS);

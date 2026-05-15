@@ -6,6 +6,14 @@ import {
 
 export { type ChatMode, DEFAULT_CHAT_MODE };
 
+export type ChatImageAttachment = {
+  storageId: Id<"_storage">;
+  mediaType: string;
+  filename?: string;
+  thumbhash?: string;
+  previewUrl: string;
+};
+
 export type ChatRouteResolution =
   | { status: "resolving" }
   | { status: "ready"; conversationId: Id<"conversations"> }

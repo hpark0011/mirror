@@ -6,7 +6,7 @@ import { ConvexError } from "convex/values";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
-import { type ChatMode } from "../types";
+import { type ChatImageAttachment, type ChatMode } from "../types";
 
 type RateLimitErrorData = {
   code: "RATE_LIMIT_MINUTE" | "RATE_LIMIT_DAILY";
@@ -71,7 +71,10 @@ type UseChatSendOptions = {
   mode: ChatMode;
   conversationId: Id<"conversations"> | null;
   onConversationCreated?: (id: Id<"conversations">) => void;
-  beginOptimistic: (content: string) => void;
+  beginOptimistic: (
+    content: string,
+    attachments?: ReadonlyArray<ChatImageAttachment>,
+  ) => void;
   rollbackOptimistic: () => void;
   markCreatedConversation: (id: Id<"conversations">) => void;
 };
@@ -91,12 +94,18 @@ export function useChatSend({
   const isSendingRef = useRef(false);
 
   const sendMessage = useCallback(
-    async (content: string) => {
+    async (
+      content: string,
+      attachments: ReadonlyArray<ChatImageAttachment> = [],
+    ) => {
       if (isSendingRef.current) return;
       isSendingRef.current = true;
       setSendError(null);
 
-      beginOptimistic(content);
+      const optimisticText =
+        content.trim().length > 0 ? content : "Use the attached image.";
+
+      beginOptimistic(optimisticText, attachments);
 
       try {
         const result = await sendMessageMutation({
@@ -104,6 +113,20 @@ export function useChatSend({
           mode,
           conversationId: conversationId ?? undefined,
           content,
+          ...(attachments.length > 0
+            ? {
+                attachments: attachments.map((attachment) => ({
+                  storageId: attachment.storageId,
+                  mediaType: attachment.mediaType,
+                  ...(attachment.filename
+                    ? { filename: attachment.filename }
+                    : {}),
+                  ...(attachment.thumbhash
+                    ? { thumbhash: attachment.thumbhash }
+                    : {}),
+                })),
+              }
+            : {}),
         });
 
         // First message creates a new conversation — notify parent.

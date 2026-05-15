@@ -88,6 +88,7 @@ const nextConfig: NextConfig = {
     { source: "/@:username/settings", destination: "/:username/settings" },
     { source: "/@:username/bio", destination: "/:username/bio" },
     { source: "/@:username/contact", destination: "/:username/contact" },
+    { source: "/@:username/projects", destination: "/:username/projects" },
   ],
 };
 

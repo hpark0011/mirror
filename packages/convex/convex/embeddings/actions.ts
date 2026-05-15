@@ -83,6 +83,14 @@ export const generateEmbedding = internalAction({
         userId = content.userId;
         slug = undefined;
       } else if (
+        source.embedding.serializer === "project" &&
+        content.kind === "project"
+      ) {
+        chunks = [content.body];
+        title = content.title;
+        userId = content.userId;
+        slug = undefined;
+      } else if (
         source.embedding.serializer === "document" &&
         content.kind === "doc"
       ) {

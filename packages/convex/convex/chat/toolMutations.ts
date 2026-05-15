@@ -21,6 +21,7 @@ import {
   buildContentEditHref,
   buildContentHref,
   buildProfileSectionHref,
+  buildProjectsHref,
 } from "../content/href";
 import { navigableContentKindValidator } from "../content/sourceValidators";
 import { type NavigableContentKind } from "../content/sourceRegistry";
@@ -38,6 +39,11 @@ import {
   deletePostForUserBySlug,
   updatePostForUserBySlug,
 } from "../posts/writeHelpers";
+import {
+  createProjectForUser,
+  removeProjectForUser,
+  updateProjectForUser,
+} from "../projects/writeHelpers";
 
 type ContentStatus = "draft" | "published";
 
@@ -132,6 +138,45 @@ const contactEntryPatchReturnValidator = v.object({
   href: v.string(),
   applied: v.object({
     upserted: v.number(),
+    deleted: v.number(),
+  }),
+});
+
+const projectPatchOperationValidator = v.union(
+  v.object({
+    action: v.literal("create"),
+    title: v.string(),
+    startDate: monthDateValidator,
+    endDate: v.union(monthDateValidator, v.null()),
+    description: optionalTextPatchValidator,
+    link: optionalTextPatchValidator,
+    coverImageStorageId: v.optional(v.id("_storage")),
+    coverImageThumbhash: v.optional(v.string()),
+  }),
+  v.object({
+    action: v.literal("update"),
+    id: v.id("projects"),
+    title: v.optional(v.string()),
+    startDate: v.optional(monthDateValidator),
+    endDate: v.optional(v.union(monthDateValidator, v.null())),
+    description: optionalTextPatchValidator,
+    link: optionalTextPatchValidator,
+    coverImageStorageId: v.optional(v.id("_storage")),
+    coverImageThumbhash: v.optional(v.string()),
+    clearCover: v.optional(v.boolean()),
+  }),
+  v.object({
+    action: v.literal("delete"),
+    id: v.id("projects"),
+  }),
+);
+
+const projectPatchReturnValidator = v.object({
+  section: v.literal("projects"),
+  href: v.string(),
+  applied: v.object({
+    created: v.number(),
+    updated: v.number(),
     deleted: v.number(),
   }),
 });
@@ -420,6 +465,75 @@ export const applyContactEntryPatch = internalMutation({
       section: "contact" as const,
       href: buildContactHref(owner.username),
       applied: { upserted, deleted },
+    };
+  },
+});
+
+export const applyProjectPatch = internalMutation({
+  args: {
+    userId: v.id("users"),
+    operations: v.array(projectPatchOperationValidator),
+  },
+  returns: projectPatchReturnValidator,
+  handler: async (ctx, args) => {
+    const owner = await ctx.db.get(args.userId);
+    if (!owner?.username) {
+      throw new Error("Projects panel is unavailable for this profile.");
+    }
+
+    let created = 0;
+    let updated = 0;
+    let deleted = 0;
+
+    for (const operation of args.operations) {
+      if (operation.action === "create") {
+        await createProjectForUser(ctx, args.userId, {
+          title: operation.title,
+          startDate: toMonthTimestamp(operation.startDate),
+          endDate:
+            operation.endDate === null
+              ? null
+              : toMonthTimestamp(operation.endDate),
+          description: operation.description,
+          link: operation.link,
+          coverImageStorageId: operation.coverImageStorageId,
+          coverImageThumbhash: operation.coverImageThumbhash,
+        });
+        created += 1;
+        continue;
+      }
+
+      if (operation.action === "update") {
+        await updateProjectForUser(ctx, args.userId, {
+          id: operation.id,
+          title: operation.title,
+          startDate: operation.startDate
+            ? toMonthTimestamp(operation.startDate)
+            : undefined,
+          endDate:
+            operation.endDate === undefined
+              ? undefined
+              : operation.endDate === null
+                ? null
+                : toMonthTimestamp(operation.endDate),
+          description: operation.description,
+          link: operation.link,
+          coverImageStorageId: operation.coverImageStorageId,
+          coverImageThumbhash: operation.coverImageThumbhash,
+          clearCover: operation.clearCover,
+        });
+        updated += 1;
+        continue;
+      }
+
+      await removeProjectForUser(ctx, args.userId, operation.id);
+      deleted += 1;
+    }
+
+    return {
+      section: "projects" as const,
+      href: buildProjectsHref(owner.username),
+      applied: { created, updated, deleted },
     };
   },
 });

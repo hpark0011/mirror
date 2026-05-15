@@ -18,6 +18,7 @@ export type ContentInventory = {
   posts: boolean;
   bioEntries: boolean;
   contactEntries: boolean;
+  projects: boolean;
 };
 
 // Human-readable label for each kind in the inventory sentence. Phrasing is
@@ -26,6 +27,7 @@ export type ContentInventory = {
 const CONTENT_INVENTORY_LABELS: Record<keyof ContentInventory, string> = {
   bioEntries: "bio entries (work history, education)",
   contactEntries: "contact details (email and social links)",
+  projects: "projects",
   posts: "published posts",
   articles: "published articles",
 };
@@ -38,6 +40,7 @@ const CONTENT_INVENTORY_LABELS: Record<keyof ContentInventory, string> = {
 const CONTENT_INVENTORY_ORDER: ReadonlyArray<keyof ContentInventory> = [
   "bioEntries",
   "contactEntries",
+  "projects",
   "posts",
   "articles",
 ];
@@ -87,7 +90,7 @@ const CONTENT_NAVIGATION_VOCABULARY =
   "You can search relevant published writing by calling findRelevantPublishedContent with the visitor's question, optionally restricted to articles or posts. Use it for topical, project, article, or what-is-this questions before saying there is no matching article or post; if the visitor asks to see, show, open, or read the source, call navigateToContent with the returned kind and slug. For latest-only requests, call getLatestPublished to look up the latest article or post, then call navigateToContent with that kind and slug.";
 
 const PROFILE_SECTION_VOCABULARY =
-  "Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background. Call openProfileSection with section contact when the visitor asks how to reach you, your email, or your social links (LinkedIn, Instagram, X, TikTok, YouTube). Call openProfileSection with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use findRelevantPublishedContent or getLatestPublished and navigateToContent instead).";
+  "Call openProfileSection with section bio when the visitor asks to see your full bio, work history, education, or professional background. Call openProfileSection with section contact when the visitor asks how to reach you, your email, or your social links (LinkedIn, Instagram, X, TikTok, YouTube). Call openProfileSection with section projects when they ask to see your projects, portfolio, project links, or work you have built. Call openProfileSection with section articles or posts when they ask for the list view of your articles or posts (not a specific item — for that use findRelevantPublishedContent or getLatestPublished and navigateToContent instead).";
 
 const POST_OWNER_WRITE_VOCABULARY =
   "Call deletePost with the slug only when the visitor (who must be the profile owner) explicitly asks to remove a post — never delete on your own initiative, and always confirm the slug before calling. Call publishPost with the slug only when the profile owner explicitly asks to publish one of their posts. Call unpublishPost with the slug only when the profile owner explicitly asks to unpublish one of their posts.";
@@ -294,7 +297,7 @@ export const loadStreamingContext = internalQuery({
     // prompt. Bio entries have no draft lifecycle, so any row counts and the
     // simpler `by_userId` index is sufficient. The three reads are
     // independent presence checks so they run concurrently via `Promise.all`.
-    const [articleRow, postRow, bioEntryRow, contactEntryRow] =
+    const [articleRow, postRow, bioEntryRow, contactEntryRow, projectRow] =
       await Promise.all([
         ctx.db
           .query("articles")
@@ -316,6 +319,10 @@ export const loadStreamingContext = internalQuery({
           .query("contactEntries")
           .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
           .take(1),
+        ctx.db
+          .query("projects")
+          .withIndex("by_userId", (q) => q.eq("userId", profileOwnerId))
+          .take(1),
       ]);
 
     const contentInventory: ContentInventory = {
@@ -323,6 +330,7 @@ export const loadStreamingContext = internalQuery({
       posts: postRow.length > 0,
       bioEntries: bioEntryRow.length > 0,
       contactEntries: contactEntryRow.length > 0,
+      projects: projectRow.length > 0,
     };
 
     const canUseOwnerWriteTools = conversation.viewerId === profileOwnerId;

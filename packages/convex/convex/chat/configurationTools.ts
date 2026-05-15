@@ -130,6 +130,38 @@ const contactOperationSchema = z.discriminatedUnion("action", [
   }),
 ]);
 
+const projectCoverOperationSchema = z
+  .enum(["uploaded", "remove"])
+  .describe(
+    "Use 'uploaded' to use the image attached to the current owner message as the cover, or 'remove' to delete the existing cover.",
+  );
+
+const projectOperationSchema = z.discriminatedUnion("action", [
+  z.object({
+    action: z.literal("create"),
+    title: z.string().min(1),
+    startDate: monthDateSchema,
+    endDate: z.union([monthDateSchema, z.null()]),
+    description: z.string().optional(),
+    link: z.string().optional(),
+    coverImage: z.literal("uploaded").optional(),
+  }),
+  z.object({
+    action: z.literal("update"),
+    id: z.string().min(1),
+    title: z.string().min(1).optional(),
+    startDate: monthDateSchema.optional(),
+    endDate: z.union([monthDateSchema, z.null()]).optional(),
+    description: z.string().optional(),
+    link: z.string().optional(),
+    coverImage: projectCoverOperationSchema.optional(),
+  }),
+  z.object({
+    action: z.literal("delete"),
+    id: z.string().min(1),
+  }),
+]);
+
 // PLAN_013: agent-visible content schemas.
 //
 // LLM-visible types are intentionally a strict subset of the editor's
@@ -189,6 +221,10 @@ const contentOperationSchema = z.discriminatedUnion("action", [
 type BuildConfigurationToolsOptions = {
   viewerId?: Id<"users">;
   conversationId: Id<"conversations">;
+  latestImageAttachment?: {
+    storageId: Id<"_storage">;
+    thumbhash?: string;
+  };
 };
 
 function assertOwnerWriteAllowed(
@@ -624,7 +660,7 @@ export function buildConfigurationTools(
   return {
     getProfileConfiguration: createTool({
       description:
-        "Read the profile owner's current Bio and Contact entries before deciding what to add, update, or delete. The profile owner is resolved server-side from the configuration conversation.",
+        "Read the profile owner's current Bio, Contact, and Projects entries before deciding what to add, update, or delete. The profile owner is resolved server-side from the configuration conversation.",
       inputSchema: z.object({}),
       execute: async (ctx) => {
         assertOwner();
@@ -695,6 +731,78 @@ export function buildConfigurationTools(
         return await ctx.runMutation(
           internal.chat.toolMutations.applyContactEntryPatch,
           { userId: profileOwnerId, operations },
+        );
+      },
+    }),
+
+    applyProjectPatch: createTool({
+      description:
+        "Apply an all-or-nothing batch of Project changes for the profile owner. Use create for projects, update with ids from getProfileConfiguration, and delete only after the owner clearly requested it. If the owner attached an image in the current message and wants it as the cover, set coverImage to 'uploaded'; use coverImage 'remove' to delete an existing cover.",
+      inputSchema: z.object({
+        operations: z.array(projectOperationSchema).min(1).max(10),
+      }),
+      execute: async (ctx, { operations }) => {
+        assertOwner();
+        const latestImageAttachment = options.latestImageAttachment;
+
+        return await ctx.runMutation(
+          internal.chat.toolMutations.applyProjectPatch,
+          {
+            userId: profileOwnerId,
+            operations: operations.map((operation) => {
+              if (operation.action === "delete") {
+                return {
+                  action: "delete" as const,
+                  id: operation.id as Id<"projects">,
+                };
+              }
+
+              const coverPatch =
+                operation.coverImage === "uploaded"
+                  ? (() => {
+                      if (!latestImageAttachment) {
+                        throw new Error(
+                          "No uploaded image is available for this project cover.",
+                        );
+                      }
+                      return {
+                        coverImageStorageId: latestImageAttachment.storageId,
+                        ...(latestImageAttachment.thumbhash
+                          ? {
+                              coverImageThumbhash:
+                                latestImageAttachment.thumbhash,
+                            }
+                          : {}),
+                      };
+                    })()
+                  : operation.coverImage === "remove"
+                    ? { clearCover: true }
+                    : {};
+
+              if (operation.action === "create") {
+                return {
+                  action: "create" as const,
+                  title: operation.title,
+                  startDate: operation.startDate,
+                  endDate: operation.endDate,
+                  description: operation.description,
+                  link: operation.link,
+                  ...coverPatch,
+                };
+              }
+
+              return {
+                action: "update" as const,
+                id: operation.id as Id<"projects">,
+                title: operation.title,
+                startDate: operation.startDate,
+                endDate: operation.endDate,
+                description: operation.description,
+                link: operation.link,
+                ...coverPatch,
+              };
+            }),
+          },
         );
       },
     }),

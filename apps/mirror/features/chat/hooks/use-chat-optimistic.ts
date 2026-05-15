@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { type PaginationStatus } from "convex/react";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type ChatImageAttachment } from "../types";
 import {
   countMessagesByRole,
   findFirstNewAssistant,
@@ -196,7 +197,7 @@ export function useChatOptimistic({
   }, [optimisticMessages.length]);
 
   const beginOptimistic = useCallback(
-    (content: string) => {
+    (content: string, attachments: ReadonlyArray<ChatImageAttachment> = []) => {
       // Create optimistic messages immediately so both the user bubble and
       // assistant placeholder render before the backend stream arrives.
       const optimisticTimestamp = Date.now();
@@ -207,7 +208,15 @@ export function useChatOptimistic({
         role: "user" as const,
         text: content,
         status: "pending" as const,
-        parts: [{ type: "text" as const, text: content }],
+        parts: [
+          { type: "text" as const, text: content },
+          ...attachments.map((attachment) => ({
+            type: "file" as const,
+            mediaType: attachment.mediaType,
+            filename: attachment.filename,
+            url: attachment.previewUrl,
+          })),
+        ],
         order: optimisticTimestamp,
         stepOrder: 0,
         _creationTime: optimisticTimestamp,

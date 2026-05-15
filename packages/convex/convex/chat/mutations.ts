@@ -3,6 +3,9 @@ import { createThread, saveMessage } from "@convex-dev/agent";
 import { mutation, internalMutation } from "../_generated/server";
 import { internal, components } from "../_generated/api";
 import { authComponent } from "../auth/client";
+import { validateThumbhashFormat } from "../articles/helpers";
+import { assertCoverBlobOwnership } from "../content/coverBlobOwnership";
+import { ALLOWED_INLINE_IMAGE_TYPES } from "../content/storagePolicy";
 import { chatRateLimiter } from "./rateLimits";
 import {
   DEFAULT_CHAT_MODE,
@@ -21,6 +24,13 @@ const MAX_CONFIGURATION_MESSAGE_LENGTH = 12000;
 // 5-minute cron sweep — recovery now happens lazily at the only place
 // that cares about lock state.
 const STREAMING_LOCK_TTL_MS = 2 * 60 * 1000;
+
+const chatAttachmentValidator = v.object({
+  storageId: v.id("_storage"),
+  mediaType: v.string(),
+  filename: v.optional(v.string()),
+  thumbhash: v.optional(v.string()),
+});
 
 function isStreamingLockHeld(conversation: {
   streamingInProgress?: boolean;
@@ -100,6 +110,7 @@ export const sendMessage = mutation({
     conversationId: v.optional(v.id("conversations")),
     mode: v.optional(chatModeValidator),
     content: v.string(),
+    attachments: v.optional(v.array(chatAttachmentValidator)),
   },
   returns: v.object({ conversationId: v.id("conversations") }),
   handler: async (ctx, args) => {
@@ -107,13 +118,35 @@ export const sendMessage = mutation({
 
     // 1. Input validation — must precede any rate-limit work so oversize
     //    messages are rejected without consuming daily budget (FR-02).
+    const attachments = args.attachments ?? [];
+    if (attachments.length > 1) {
+      throw new Error("Only one image attachment is supported per message");
+    }
+    if (attachments.length > 0 && mode !== "configuration") {
+      throw new Error("Image attachments are only supported in profile helper chats");
+    }
+
     const content = args.content.trim();
-    if (content.length === 0) {
+    const messageText =
+      content.length > 0
+        ? content
+        : attachments.length > 0
+          ? "Use the attached image."
+          : "";
+    if (messageText.length === 0) {
       throw new Error("Message cannot be empty");
     }
     const maxMessageLength = getMaxMessageLength(mode);
-    if (content.length > maxMessageLength) {
+    if (messageText.length > maxMessageLength) {
       throw new Error(`Message exceeds ${maxMessageLength} character limit`);
+    }
+    for (const attachment of attachments) {
+      if (!ALLOWED_INLINE_IMAGE_TYPES.has(attachment.mediaType)) {
+        throw new Error("Image attachment must be PNG, JPEG, or WebP");
+      }
+      if (attachment.thumbhash !== undefined && attachment.thumbhash !== "") {
+        validateThumbhashFormat(attachment.thumbhash);
+      }
     }
 
     // 2. Optional auth
@@ -142,6 +175,15 @@ export const sendMessage = mutation({
       if (appUser._id !== args.profileOwnerId) {
         throw new Error("Only the profile owner can configure this profile");
       }
+    }
+
+    for (const attachment of attachments) {
+      await assertCoverBlobOwnership(
+        ctx,
+        attachment.storageId,
+        appUser!._id,
+        "image",
+      );
     }
 
     // 4. Existing conversation ownership validation
@@ -225,7 +267,7 @@ export const sendMessage = mutation({
         "sendConfigurationDailyOwner",
         appUser!._id,
         "RATE_LIMIT_DAILY",
-        estimateInputTokenCount(content),
+        estimateInputTokenCount(messageText),
       );
     } else if (appUser) {
       await enforceLimit(
@@ -255,7 +297,7 @@ export const sendMessage = mutation({
         mode,
         threadId,
         status: "active",
-        title: content.slice(0, 100),
+        title: messageText.slice(0, 100),
       });
     }
 
@@ -266,9 +308,37 @@ export const sendMessage = mutation({
     }
 
     // 8. Save user message
+    const imageParts = await Promise.all(
+      attachments.map(async (attachment) => {
+        const url = await ctx.storage.getUrl(attachment.storageId);
+        if (!url) {
+          throw new Error("Image attachment is unavailable");
+        }
+        return {
+          type: "image" as const,
+          image: new URL(url),
+          mediaType: attachment.mediaType,
+          providerOptions: {
+            mirror: {
+              storageId: attachment.storageId,
+              ...(attachment.thumbhash
+                ? { thumbhash: attachment.thumbhash }
+                : {}),
+            },
+          },
+        };
+      }),
+    );
+
     const { messageId } = await saveMessage(ctx, components.agent, {
       threadId: conversation.threadId,
-      prompt: content,
+      message: {
+        role: "user",
+        content: [
+          { type: "text", text: messageText },
+          ...imageParts,
+        ],
+      },
       userId: appUser?._id,
     });
 
@@ -288,7 +358,17 @@ export const sendMessage = mutation({
         profileOwnerId: args.profileOwnerId,
         promptMessageId: messageId,
         lockStartedAt,
-        userMessage: content,
+        userMessage: messageText,
+        ...(attachments[0]
+          ? {
+              latestImageAttachment: {
+                storageId: attachments[0].storageId,
+                ...(attachments[0].thumbhash
+                  ? { thumbhash: attachments[0].thumbhash }
+                  : {}),
+              },
+            }
+          : {}),
       },
     );
 
