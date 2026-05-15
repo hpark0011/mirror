@@ -47,6 +47,7 @@ const PUBLISH_ARTICLE_TYPE = "tool-publishArticle";
 const UNPUBLISH_ARTICLE_TYPE = "tool-unpublishArticle";
 const APPLY_BIO_ENTRY_PATCH_TYPE = "tool-applyBioEntryPatch";
 const APPLY_CONTACT_ENTRY_PATCH_TYPE = "tool-applyContactEntryPatch";
+const APPLY_PROJECT_PATCH_TYPE = "tool-applyProjectPatch";
 const APPLY_CONTENT_PATCH_TYPE = "tool-applyContentPatch";
 
 /**
@@ -107,7 +108,7 @@ type OpenProfileSectionOutput = {
   // The agent's `openProfileSection` enum is the visitor-visible subset of
   // `ProfileTabKind` — `clone-settings` is owner-only and is never returned
   // by the tool.
-  kind: "bio" | "contact" | "articles" | "posts";
+  kind: "bio" | "contact" | "projects" | "articles" | "posts";
   href: string;
   // Emitted by the `openProfileSection` tool so a future caller (a richer
   // dispatcher or a connector reading the dispatched intent) can phrase
@@ -126,6 +127,7 @@ function isOpenProfileSectionOutput(
   if (
     o.kind !== "bio" &&
     o.kind !== "contact" &&
+    o.kind !== "projects" &&
     o.kind !== "articles" &&
     o.kind !== "posts"
   ) {
@@ -215,7 +217,7 @@ function isDeleteArticleOutput(output: unknown): output is DeleteArticleOutput {
 }
 
 type ConfigurationPatchOutput = {
-  section: "bio" | "contact";
+  section: "bio" | "contact" | "projects";
   href: string;
   applied: Record<string, number>;
 };
@@ -225,11 +227,17 @@ function isConfigurationPatchOutput(
 ): output is ConfigurationPatchOutput {
   if (!output || typeof output !== "object") return false;
   const o = output as Record<string, unknown>;
-  if (o.section !== "bio" && o.section !== "contact") return false;
+  if (
+    o.section !== "bio" &&
+    o.section !== "contact" &&
+    o.section !== "projects"
+  ) {
+    return false;
+  }
   if (typeof o.href !== "string" || o.href.length === 0) return false;
   if (!o.applied || typeof o.applied !== "object") return false;
   const applied = o.applied as Record<string, unknown>;
-  if (o.section === "bio") {
+  if (o.section === "bio" || o.section === "projects") {
     return (
       typeof applied.created === "number" &&
       typeof applied.updated === "number" &&
@@ -367,6 +375,7 @@ export function useAgentIntentWatcher(
           part.type !== UNPUBLISH_ARTICLE_TYPE &&
           part.type !== APPLY_BIO_ENTRY_PATCH_TYPE &&
           part.type !== APPLY_CONTACT_ENTRY_PATCH_TYPE &&
+          part.type !== APPLY_PROJECT_PATCH_TYPE &&
           part.type !== APPLY_CONTENT_PATCH_TYPE
         ) {
           continue;
@@ -463,7 +472,8 @@ export function useAgentIntentWatcher(
 
         if (
           toolPart.type === APPLY_BIO_ENTRY_PATCH_TYPE ||
-          toolPart.type === APPLY_CONTACT_ENTRY_PATCH_TYPE
+          toolPart.type === APPLY_CONTACT_ENTRY_PATCH_TYPE ||
+          toolPart.type === APPLY_PROJECT_PATCH_TYPE
         ) {
           if (!isConfigurationPatchOutput(toolPart.output)) continue;
           handled.add(toolPart.toolCallId);

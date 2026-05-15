@@ -103,6 +103,12 @@ export const streamResponse = internalAction({
     promptMessageId: v.optional(v.string()),
     lockStartedAt: v.number(),
     userMessage: v.optional(v.string()),
+    latestImageAttachment: v.optional(
+      v.object({
+        storageId: v.id("_storage"),
+        thumbhash: v.optional(v.string()),
+      }),
+    ),
   },
   returns: v.null(),
   handler: async (
@@ -113,6 +119,7 @@ export const streamResponse = internalAction({
       promptMessageId,
       lockStartedAt,
       userMessage,
+      latestImageAttachment,
     },
   ) => {
     try {
@@ -202,6 +209,7 @@ export const streamResponse = internalAction({
             ? buildConfigurationTools(profileOwnerId, {
                 viewerId,
                 conversationId,
+                latestImageAttachment,
               })
             : buildCloneTools(profileOwnerId, { viewerId }),
         ...(promptMessageId ? { promptMessageId } : {}),

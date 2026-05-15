@@ -543,7 +543,7 @@ export function buildCloneTools(
 
     openProfileSection: createTool({
       description:
-        "Open one of the profile owner's tab panels for the visitor. Pass section: 'bio' to open the bio panel — the structured work history, education, and professional background. Pass section: 'contact' to open the contact panel — the profile owner's email and social profile links (LinkedIn, Instagram, X, TikTok, YouTube). Pass section: 'articles' or 'posts' to open the visitor's list view of all published articles or posts (use this for list-level requests like 'show me your articles', not for opening a specific item — for that, call findRelevantPublishedContent or getLatestPublished, then navigateToContent). The owner is resolved server-side from the chat context — do not pass any user identifier. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge that the section is currently empty before opening it.",
+        "Open one of the profile owner's tab panels for the visitor. Pass section: 'bio' to open the bio panel — the structured work history, education, and professional background. Pass section: 'contact' to open the contact panel — the profile owner's email and social profile links (LinkedIn, Instagram, X, TikTok, YouTube). Pass section: 'projects' to open the projects panel — projects the profile owner has worked on or is working on. Pass section: 'articles' or 'posts' to open the visitor's list view of all published articles or posts (use this for list-level requests like 'show me your articles', not for opening a specific item — for that, call findRelevantPublishedContent or getLatestPublished, then navigateToContent). The owner is resolved server-side from the chat context — do not pass any user identifier. The result includes the canonical href (the client uses it to navigate) and a hasEntries boolean — when hasEntries is false, briefly acknowledge that the section is currently empty before opening it.",
       // The LLM-visible surface is `section` only. The owner is the
       // closure-bound `profileOwnerId`, never a tool arg. The
       // `inputSchema invariants` tests in `chat/__tests__/tools.test.ts`
@@ -551,9 +551,9 @@ export function buildCloneTools(
       // owner-only and not a visitor-reachable view.
       inputSchema: z.object({
         section: z
-          .enum(["bio", "contact", "articles", "posts"])
+          .enum(["bio", "contact", "projects", "articles", "posts"])
           .describe(
-            "Which profile section to open — 'bio', 'contact', 'articles' (list view), or 'posts' (list view).",
+            "Which profile section to open — 'bio', 'contact', 'projects', 'articles' (list view), or 'posts' (list view).",
           ),
       }),
       execute: async (ctx, { section }) => {
@@ -594,6 +594,25 @@ export function buildCloneTools(
           }
           return {
             kind: "contact" as const,
+            href: row.href,
+            hasEntries: row.hasEntries,
+          };
+        }
+
+        if (section === "projects") {
+          const row: {
+            username: string;
+            href: string;
+            hasEntries: boolean;
+          } | null = await ctx.runQuery(
+            internal.chat.toolQueries.queryProjectsPanel,
+            { userId: profileOwnerId },
+          );
+          if (!row) {
+            throw new Error("Projects panel is unavailable for this profile.");
+          }
+          return {
+            kind: "projects" as const,
             href: row.href,
             hasEntries: row.hasEntries,
           };

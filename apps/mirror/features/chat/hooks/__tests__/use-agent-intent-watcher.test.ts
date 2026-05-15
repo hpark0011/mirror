@@ -202,7 +202,7 @@ describe("useAgentIntentWatcher", () => {
     });
   });
 
-  for (const section of ["bio", "articles", "posts"] as const) {
+  for (const section of ["bio", "contact", "projects", "articles", "posts"] as const) {
     it(`dispatches navigateToProfileSection when a tool-openProfileSection { section: ${section} } output-available part lands`, () => {
       // Profile-tabs parity: the watcher must recognize
       // `tool-openProfileSection` parts and route them through
@@ -310,7 +310,7 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
   });
 
-  it("dispatches existing profile-section navigation after configuration Bio and Contact patch tools", () => {
+  it("dispatches existing profile-section navigation after configuration Bio, Contact, and Project patch tools", () => {
     const messages = [
       makeAssistantMessage([
         {
@@ -333,12 +333,22 @@ describe("useAgentIntentWatcher", () => {
             applied: { upserted: 1, deleted: 0 },
           },
         },
+        {
+          type: "tool-applyProjectPatch",
+          state: "output-available",
+          toolCallId: "call_apply_project",
+          output: {
+            section: "projects",
+            href: "/@rick-rubin/projects",
+            applied: { created: 1, updated: 0, deleted: 0 },
+          },
+        },
       ]),
     ];
 
     renderHook(() => useAgentIntentWatcher(messages, "conv_config_patch"));
 
-    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(2);
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(3);
     expect(navigateToProfileSectionMock).toHaveBeenNthCalledWith(1, {
       section: "bio",
       href: "/@rick-rubin/bio",
@@ -346,6 +356,10 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToProfileSectionMock).toHaveBeenNthCalledWith(2, {
       section: "contact",
       href: "/@rick-rubin/contact",
+    });
+    expect(navigateToProfileSectionMock).toHaveBeenNthCalledWith(3, {
+      section: "projects",
+      href: "/@rick-rubin/projects",
     });
     expect(navigateToContentMock).not.toHaveBeenCalled();
   });

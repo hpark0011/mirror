@@ -8,6 +8,7 @@ import { contactEntriesTable } from "./contacts/schema";
 import { contentEmbeddingsTable } from "./embeddings/schema";
 import { inlineImageOwnershipTable } from "./content/inlineImageOwnershipSchema";
 import { postsTable } from "./posts/schema";
+import { projectsTable } from "./projects/schema";
 import { usersTable } from "./users/schema";
 import { waitlistRequestsTable } from "./waitlistRequests/schema";
 
@@ -16,6 +17,7 @@ export default defineSchema({
   articles: articlesTable,
   coverImageOwnership: coverImageOwnershipTable,
   posts: postsTable,
+  projects: projectsTable,
   bioEntries: bioEntriesTable,
   contactEntries: contactEntriesTable,
   conversations: conversationsTable,

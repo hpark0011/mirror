@@ -77,7 +77,11 @@ import {
   findRelevantPublishedContent,
   type RelevantContentSearchCtx,
 } from "../relevantContent";
-import { buildBioHref, buildContactHref } from "../../content/href";
+import {
+  buildBioHref,
+  buildContactHref,
+  buildProjectsHref,
+} from "../../content/href";
 import {
   CONTENT_SOURCES,
   NAVIGABLE_CONTENT_SOURCES,
@@ -1423,7 +1427,7 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
 
   it("openProfileSection.inputSchema exposes only `section`, bounded to the visitor-visible subset", () => {
     // Pins both the shape (one key, `section`) and the enum range
-    // (`bio | contact | articles | posts` only — `clone-settings` is
+    // (`bio | contact | projects | articles | posts` only — `clone-settings` is
     // owner-only and not in the agent's verb space). A future edit that
     // widens the enum to `clone-settings` would let the agent navigate
     // visitors into a page they cannot render; this test catches that
@@ -1450,7 +1454,13 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       : rawEntries
         ? Object.values(rawEntries as Record<string, string>)
         : [];
-    expect([...values].sort()).toEqual(["articles", "bio", "contact", "posts"]);
+    expect([...values].sort()).toEqual([
+      "articles",
+      "bio",
+      "contact",
+      "posts",
+      "projects",
+    ]);
   });
 
   it("buildCloneTools does not expose configuration content authoring tools to visitors", () => {
@@ -1520,6 +1530,7 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       fetchProfileSource: ["url"],
       applyBioEntryPatch: ["operations"],
       applyContactEntryPatch: ["operations"],
+      applyProjectPatch: ["operations"],
       getProfileContentLibrary: ["kind", "limit", "status"],
       getProfileContentForEdit: ["kind", "slug"],
       applyContentPatch: ["operations"],
@@ -1587,6 +1598,18 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       }),
     ).rejects.toThrow("Only the profile owner");
     await expect(
+      nonOwnerTools.applyProjectPatch.execute(blockedCtx, {
+        operations: [
+          {
+            action: "create",
+            title: "Blocked Project",
+            startDate: { year: 2025 },
+            endDate: null,
+          },
+        ],
+      }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
       nonOwnerTools.fetchProfileSource.execute(blockedCtx, {
         url: "https://example.com/owner-profile",
       }),
@@ -1635,6 +1658,16 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
       }),
     ).rejects.toThrow("Only the profile owner");
     await expect(
+      anonymousTools.applyProjectPatch.execute(blockedCtx, {
+        operations: [
+          {
+            action: "delete",
+            id: "projects_blocked",
+          },
+        ],
+      }),
+    ).rejects.toThrow("Only the profile owner");
+    await expect(
       anonymousTools.getProfileContentLibrary.execute(blockedCtx, {}),
     ).rejects.toThrow("Only the profile owner");
     await expect(
@@ -1645,6 +1678,50 @@ describe("chat/tools.buildCloneTools — inputSchema invariants", () => {
     ).rejects.toThrow("Only the profile owner");
 
     expect(runQuery).not.toHaveBeenCalled();
+    expect(runMutation).not.toHaveBeenCalled();
+  });
+
+  it("configuration project tool rejects reusing one uploaded cover for multiple projects", async () => {
+    const owner = "users_config_project_owner" as unknown as Id<"users">;
+    const conversationId =
+      "conversations_config_projects" as unknown as Id<"conversations">;
+    const uploadedStorageId =
+      "storage_config_projects" as unknown as Id<"_storage">;
+    const runMutation = vi.fn();
+    const blockedCtx = {
+      runMutation,
+      runQuery: vi.fn(),
+    } as unknown as Parameters<
+      ReturnType<typeof buildConfigurationTools>["applyProjectPatch"]["execute"]
+    >[0];
+
+    const tools = buildConfigurationTools(owner, {
+      viewerId: owner,
+      conversationId,
+      latestImageAttachment: { storageId: uploadedStorageId },
+    });
+
+    await expect(
+      tools.applyProjectPatch.execute(blockedCtx, {
+        operations: [
+          {
+            action: "create",
+            title: "First Project",
+            startDate: { year: 2025 },
+            endDate: null,
+            coverImage: "uploaded",
+          },
+          {
+            action: "create",
+            title: "Second Project",
+            startDate: { year: 2026 },
+            endDate: null,
+            coverImage: "uploaded",
+          },
+        ],
+      }),
+    ).rejects.toThrow(/only one project per message/i);
+
     expect(runMutation).not.toHaveBeenCalled();
   });
 });
@@ -2090,6 +2167,62 @@ describe("chat/tools.openProfileSection — execute", () => {
     });
     expect(bResult.hasEntries).toBe(true);
   });
+
+  it("section=projects with project rows → hasEntries true and canonical href", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_section_projects");
+    await t.run(async (ctx) =>
+      ctx.db.insert("projects", {
+        userId: owner,
+        title: "Mirror Projects",
+        startDate: Date.UTC(2025, 0, 1),
+        endDate: null,
+        link: "https://example.com/mirror-projects",
+        createdAt: 1000,
+        updatedAt: 1000,
+      }),
+    );
+
+    const tools = buildCloneTools(owner, { viewerId: owner });
+    const result = await tools.openProfileSection.execute(buildCtx(t), {
+      section: "projects",
+    });
+
+    expect(result.kind).toBe("projects");
+    expect(result.hasEntries).toBe(true);
+    expect(result.href).toBe(buildProjectsHref("owner_section_projects"));
+  });
+
+  it("SECURITY: a projects row owned by a different user does NOT make hasEntries true for the queried owner", async () => {
+    const t = makeT();
+    const userA = await insertOwner(t, "projects_user_a");
+    const userB = await insertOwner(t, "projects_user_b");
+
+    await t.run(async (ctx) =>
+      ctx.db.insert("projects", {
+        userId: userB,
+        title: "B-only project",
+        startDate: Date.UTC(2025, 0, 1),
+        endDate: null,
+        createdAt: 1000,
+        updatedAt: 1000,
+      }),
+    );
+
+    const toolsForA = buildCloneTools(userA, { viewerId: userA });
+    const aResult = await toolsForA.openProfileSection.execute(buildCtx(t), {
+      section: "projects",
+    });
+    expect(aResult.kind).toBe("projects");
+    expect(aResult.hasEntries).toBe(false);
+    expect(aResult.href).toBe(buildProjectsHref("projects_user_a"));
+
+    const toolsForB = buildCloneTools(userB);
+    const bResult = await toolsForB.openProfileSection.execute(buildCtx(t), {
+      section: "projects",
+    });
+    expect(bResult.hasEntries).toBe(true);
+  });
 });
 
 describe("chat/tools.deletePost — execute", () => {
@@ -2386,6 +2519,16 @@ describe("chat/profile configuration tool primitives", () => {
         kind: "linkedin",
         value: "https://www.linkedin.com/in/owner-profile-config",
       });
+      await ctx.db.insert("projects", {
+        userId: owner,
+        title: "Project Config Fixture",
+        description: "A profile project seeded for configuration tools.",
+        link: "https://example.com/project-config",
+        startDate: Date.UTC(2024, 0, 1),
+        endDate: null,
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
     });
 
     const result = await t.query(
@@ -2397,6 +2540,9 @@ describe("chat/profile configuration tool primitives", () => {
     expect(result!.username).toBe("owner_profile_config");
     expect(result!.bioHref).toBe(buildBioHref("owner_profile_config"));
     expect(result!.contactHref).toBe(buildContactHref("owner_profile_config"));
+    expect(result!.projectsHref).toBe(
+      buildProjectsHref("owner_profile_config"),
+    );
     expect(result!.bioEntries).toMatchObject([
       {
         kind: "work",
@@ -2408,6 +2554,14 @@ describe("chat/profile configuration tool primitives", () => {
       {
         kind: "linkedin",
         value: "https://www.linkedin.com/in/owner-profile-config",
+      },
+    ]);
+    expect(result!.projects).toMatchObject([
+      {
+        title: "Project Config Fixture",
+        description: "A profile project seeded for configuration tools.",
+        link: "https://example.com/project-config",
+        endDate: null,
       },
     ]);
   });
@@ -2575,6 +2729,72 @@ describe("chat/profile configuration tool primitives", () => {
         value: "https://www.linkedin.com/in/owner-contact-patch",
       },
     ]);
+  });
+
+  it("applyProjectPatch defers cover cleanup until the full batch succeeds", async () => {
+    const t = makeT();
+    const owner = await insertOwner(t, "owner_project_patch_atomic_cover");
+
+    const coverImageStorageId = await t.run(async (ctx) =>
+      ctx.storage.store(new Blob(["project cover"])),
+    );
+    const projectId = await t.run(async (ctx) => {
+      await ctx.db.insert("coverImageOwnership", {
+        storageId: coverImageStorageId,
+        userId: owner,
+        createdAt: 1000,
+        kind: "image",
+      });
+      return await ctx.db.insert("projects", {
+        userId: owner,
+        title: "Covered Project",
+        startDate: Date.UTC(2025, 0, 1),
+        endDate: null,
+        coverImageStorageId,
+        createdAt: 1000,
+        updatedAt: 1000,
+      });
+    });
+
+    await expect(
+      t.mutation(internal.chat.toolMutations.applyProjectPatch, {
+        userId: owner,
+        operations: [
+          {
+            action: "update",
+            id: projectId,
+            clearCover: true,
+          },
+          {
+            action: "create",
+            title: "",
+            startDate: { year: 2026 },
+            endDate: null,
+          },
+        ],
+      }),
+    ).rejects.toThrow(/title is required/i);
+
+    const state = await t.run(async (ctx) => {
+      const project = await ctx.db.get(projectId);
+      const ownership = await ctx.db
+        .query("coverImageOwnership")
+        .withIndex("by_storageId", (q) =>
+          q.eq("storageId", coverImageStorageId),
+        )
+        .unique();
+      return {
+        projectCoverImageStorageId: project?.coverImageStorageId,
+        storageExists: (await ctx.db.system.get(coverImageStorageId)) !== null,
+        ownershipExists: ownership !== null,
+      };
+    });
+
+    expect(state).toEqual({
+      projectCoverImageStorageId: coverImageStorageId,
+      storageExists: true,
+      ownershipExists: true,
+    });
   });
 });
 

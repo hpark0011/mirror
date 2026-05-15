@@ -24,6 +24,7 @@ export default defineConfig({
       "convex/content/**/*.test.ts",
       "convex/articles/**/*.test.ts",
       "convex/posts/**/*.test.ts",
+      "convex/projects/**/*.test.ts",
       "convex/seed/**/*.test.ts",
       "convex/users/**/*.vitest.test.ts",
       "convex/migrations/**/*.test.ts",

@@ -8,6 +8,7 @@ import {
 import { embeddingSourceTableValidator } from "./schema";
 import { serializeBioEntryForEmbedding } from "../bio/serializeForEmbedding";
 import { serializeContactEntryForEmbedding } from "../contacts/serializeForEmbedding";
+import { serializeProjectForEmbedding } from "../projects/serializeForEmbedding";
 
 type DocWithStatus = Doc<"articles"> | Doc<"posts">;
 type DocumentEmbeddingContent = {
@@ -30,10 +31,17 @@ type ContactEmbeddingContent = {
   body: string;
   userId: Id<"users">;
 };
+type ProjectEmbeddingContent = {
+  kind: "project";
+  title: string;
+  body: string;
+  userId: Id<"users">;
+};
 type EmbeddingContent =
   | DocumentEmbeddingContent
   | BioEmbeddingContent
-  | ContactEmbeddingContent;
+  | ContactEmbeddingContent
+  | ProjectEmbeddingContent;
 type EmbeddingContentReader = (
   ctx: QueryCtx,
   sourceId: string,
@@ -90,6 +98,17 @@ const embeddingContentReaders = {
       userId: entry.userId,
     };
   },
+  projects: async (ctx, sourceId) => {
+    const project = await ctx.db.get(sourceId as Id<"projects">);
+    if (!project) return null;
+    const prose = serializeProjectForEmbedding(project);
+    return {
+      kind: "project",
+      title: project.title,
+      body: prose,
+      userId: project.userId,
+    };
+  },
 } satisfies Record<IndexableContentSourceTable, EmbeddingContentReader>;
 
 const embeddingSourceIdListers = {
@@ -114,6 +133,10 @@ const embeddingSourceIdListers = {
   contactEntries: async (ctx) => {
     // Contact entries have no draft/published lifecycle either.
     const docs = await ctx.db.query("contactEntries").collect();
+    return docs.map((d) => d._id as string);
+  },
+  projects: async (ctx) => {
+    const docs = await ctx.db.query("projects").collect();
     return docs.map((d) => d._id as string);
   },
 } satisfies Record<IndexableContentSourceTable, EmbeddingSourceIdLister>;
@@ -171,6 +194,12 @@ export const getContentForEmbedding = internalQuery({
     }),
     v.object({
       kind: v.literal("contact"),
+      title: v.string(),
+      body: v.string(),
+      userId: v.id("users"),
+    }),
+    v.object({
+      kind: v.literal("project"),
       title: v.string(),
       body: v.string(),
       userId: v.id("users"),

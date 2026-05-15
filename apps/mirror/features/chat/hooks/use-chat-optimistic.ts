@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { type PaginationStatus } from "convex/react";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
+import { type ChatImageAttachment } from "../types";
 import {
   countMessagesByRole,
   findFirstNewAssistant,
@@ -16,6 +17,21 @@ type UseChatOptimisticOptions = {
   status: PaginationStatus;
   isStreaming: boolean;
 };
+
+function revokeOptimisticBlobUrls(messages: UIMessage[]): void {
+  for (const message of messages) {
+    for (const part of message.parts) {
+      if (
+        part.type === "file" &&
+        "url" in part &&
+        typeof part.url === "string" &&
+        part.url.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(part.url);
+      }
+    }
+  }
+}
 
 export function useChatOptimistic({
   conversationId,
@@ -30,16 +46,21 @@ export function useChatOptimistic({
   // Baselines + streaming-observed flag are state because they are read during
   // render to drive the optimistic merge. Using refs would violate the React
   // Compiler "no ref reads during render" rule and skip optimization.
-  const [realUserCountBaseline, setRealUserCountBaseline] =
-    useState<number | null>(null);
-  const [realAssistantCountBaseline, setRealAssistantCountBaseline] =
-    useState<number | null>(null);
+  const [realUserCountBaseline, setRealUserCountBaseline] = useState<
+    number | null
+  >(null);
+  const [realAssistantCountBaseline, setRealAssistantCountBaseline] = useState<
+    number | null
+  >(null);
   const [hasObservedStreaming, setHasObservedStreaming] = useState(false);
   // createdConversationRef is only read inside the conversation-switch effect,
   // never during render — staying as a ref is correct.
   const createdConversationRef = useRef<Id<"conversations"> | null>(null);
 
-  const messageCounts = useMemo(() => countMessagesByRole(messages), [messages]);
+  const messageCounts = useMemo(
+    () => countMessagesByRole(messages),
+    [messages],
+  );
   const realUserCount = messageCounts.user;
   const realAssistantCount = messageCounts.assistant;
   const userBaseline = realUserCountBaseline ?? 0;
@@ -49,26 +70,27 @@ export function useChatOptimistic({
     [messages, assistantBaseline],
   );
   const firstNewAssistantMessage = firstNewAssistant?.message ?? null;
-  const firstNewAssistantHasText = firstNewAssistantMessage !== null
-    && firstNewAssistantMessage.text.length > 0;
-  const firstNewAssistantSettledWithoutText = firstNewAssistantMessage !== null
-    && firstNewAssistantMessage.text.length === 0
-    && (
-      firstNewAssistantMessage.status === "success"
-      || firstNewAssistantMessage.status === "failed"
-    );
-  const assistantResponseSettled = firstNewAssistantSettledWithoutText
-    || (hasObservedStreaming && !isStreaming && !firstNewAssistantHasText);
+  const firstNewAssistantHasText =
+    firstNewAssistantMessage !== null &&
+    firstNewAssistantMessage.text.length > 0;
+  const firstNewAssistantSettledWithoutText =
+    firstNewAssistantMessage !== null &&
+    firstNewAssistantMessage.text.length === 0 &&
+    (firstNewAssistantMessage.status === "success" ||
+      firstNewAssistantMessage.status === "failed");
+  const assistantResponseSettled =
+    firstNewAssistantSettledWithoutText ||
+    (hasObservedStreaming && !isStreaming && !firstNewAssistantHasText);
   const showOptimisticMessages =
     optimisticMessages.length > 0 && realUserCount <= userBaseline;
   const showPendingAssistant =
-    pendingAssistantMessage !== null
-    && !firstNewAssistantHasText
-    && !assistantResponseSettled;
+    pendingAssistantMessage !== null &&
+    !firstNewAssistantHasText &&
+    !assistantResponseSettled;
   const shouldSuppressEmptyNewAssistant =
-    showPendingAssistant
-    && firstNewAssistantMessage !== null
-    && firstNewAssistantMessage.text.length === 0;
+    showPendingAssistant &&
+    firstNewAssistantMessage !== null &&
+    firstNewAssistantMessage.text.length === 0;
 
   // Merge optimistic + real messages
   const mergedMessages = useMemo(() => {
@@ -84,10 +106,10 @@ export function useChatOptimistic({
 
       displayMessages = hasNewAssistantMessages
         ? [
-          ...messages.slice(0, insertIndex),
-          ...optimisticMessages,
-          ...messages.slice(insertIndex),
-        ]
+            ...messages.slice(0, insertIndex),
+            ...optimisticMessages,
+            ...messages.slice(insertIndex),
+          ]
         : [...messages, ...optimisticMessages];
     }
 
@@ -124,7 +146,10 @@ export function useChatOptimistic({
     if (optimisticMessages.length === 0) return;
     if (realUserCount > userBaseline) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOptimisticMessages([]);
+      setOptimisticMessages((current) => {
+        revokeOptimisticBlobUrls(current);
+        return [];
+      });
       setRealUserCountBaseline(null);
     }
   }, [optimisticMessages.length, realUserCount, userBaseline]);
@@ -179,7 +204,10 @@ export function useChatOptimistic({
     if (conversationId === createdConversationRef.current) {
       createdConversationRef.current = null;
     } else {
-      setOptimisticMessages([]);
+      setOptimisticMessages((current) => {
+        revokeOptimisticBlobUrls(current);
+        return [];
+      });
       setPendingAssistantMessage(null);
       setRealUserCountBaseline(null);
       setRealAssistantCountBaseline(null);
@@ -191,12 +219,19 @@ export function useChatOptimistic({
   // dedup fails for any reason (e.g. text mismatch between client/server).
   useEffect(() => {
     if (optimisticMessages.length === 0) return;
-    const timer = setTimeout(() => setOptimisticMessages([]), 10_000);
+    const timer = setTimeout(
+      () =>
+        setOptimisticMessages((current) => {
+          revokeOptimisticBlobUrls(current);
+          return [];
+        }),
+      10_000,
+    );
     return () => clearTimeout(timer);
   }, [optimisticMessages.length]);
 
   const beginOptimistic = useCallback(
-    (content: string) => {
+    (content: string, attachments: ReadonlyArray<ChatImageAttachment> = []) => {
       // Create optimistic messages immediately so both the user bubble and
       // assistant placeholder render before the backend stream arrives.
       const optimisticTimestamp = Date.now();
@@ -207,7 +242,15 @@ export function useChatOptimistic({
         role: "user" as const,
         text: content,
         status: "pending" as const,
-        parts: [{ type: "text" as const, text: content }],
+        parts: [
+          { type: "text" as const, text: content },
+          ...attachments.map((attachment) => ({
+            type: "file" as const,
+            mediaType: attachment.mediaType,
+            filename: attachment.filename,
+            url: attachment.previewUrl,
+          })),
+        ],
         order: optimisticTimestamp,
         stepOrder: 0,
         _creationTime: optimisticTimestamp,
@@ -238,7 +281,10 @@ export function useChatOptimistic({
   );
 
   const rollbackOptimistic = useCallback(() => {
-    setOptimisticMessages([]);
+    setOptimisticMessages((current) => {
+      revokeOptimisticBlobUrls(current);
+      return [];
+    });
     setPendingAssistantMessage(null);
     setRealUserCountBaseline(null);
     setRealAssistantCountBaseline(null);

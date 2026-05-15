@@ -16,6 +16,7 @@ import {
   buildContentEditHref,
   buildContentHref,
   buildProfileSectionHref,
+  buildProjectsHref,
 } from "../content/href";
 import {
   analyzeAgentBodyProjection,
@@ -87,6 +88,7 @@ const profileConfigurationReturnValidator = v.object({
   username: v.string(),
   bioHref: v.string(),
   contactHref: v.string(),
+  projectsHref: v.string(),
   bioEntries: v.array(
     v.object({
       _id: v.id("bioEntries"),
@@ -103,6 +105,17 @@ const profileConfigurationReturnValidator = v.object({
       _id: v.id("contactEntries"),
       kind: contactEntryKindValidator,
       value: v.string(),
+    }),
+  ),
+  projects: v.array(
+    v.object({
+      _id: v.id("projects"),
+      title: v.string(),
+      startDate: v.number(),
+      endDate: v.union(v.number(), v.null()),
+      description: v.optional(v.string()),
+      link: v.optional(v.string()),
+      hasCoverImage: v.boolean(),
     }),
   ),
 });
@@ -376,7 +389,7 @@ export const queryProfileConfiguration = internalQuery({
     const user = await ctx.db.get(userId);
     if (!user?.username) return null;
 
-    const [bioEntries, contactEntries] = await Promise.all([
+    const [bioEntries, contactEntries, projects] = await Promise.all([
       ctx.db
         .query("bioEntries")
         .withIndex("by_userId", (q) => q.eq("userId", userId))
@@ -385,6 +398,10 @@ export const queryProfileConfiguration = internalQuery({
         .query("contactEntries")
         .withIndex("by_userId", (q) => q.eq("userId", userId))
         .take(10),
+      ctx.db
+        .query("projects")
+        .withIndex("by_userId", (q) => q.eq("userId", userId))
+        .take(50),
     ]);
 
     bioEntries.sort((a, b) => {
@@ -392,11 +409,16 @@ export const queryProfileConfiguration = internalQuery({
       return b._creationTime - a._creationTime;
     });
     contactEntries.sort((a, b) => b._creationTime - a._creationTime);
+    projects.sort((a, b) => {
+      if (a.startDate !== b.startDate) return b.startDate - a.startDate;
+      return b._creationTime - a._creationTime;
+    });
 
     return {
       username: user.username,
       bioHref: buildBioHref(user.username),
       contactHref: buildContactHref(user.username),
+      projectsHref: buildProjectsHref(user.username),
       bioEntries: bioEntries.map((entry) => ({
         _id: entry._id,
         kind: entry.kind,
@@ -411,11 +433,29 @@ export const queryProfileConfiguration = internalQuery({
         kind: entry.kind,
         value: entry.value,
       })),
+      projects: projects.map((project) => ({
+        _id: project._id,
+        title: project.title,
+        startDate: project.startDate,
+        endDate: project.endDate,
+        description: project.description,
+        link: project.link,
+        hasCoverImage: project.coverImageStorageId !== undefined,
+      })),
     };
   },
 });
 
 const contactPanelReturnValidator = v.union(
+  v.null(),
+  v.object({
+    username: v.string(),
+    href: v.string(),
+    hasEntries: v.boolean(),
+  }),
+);
+
+const projectsPanelReturnValidator = v.union(
   v.null(),
   v.object({
     username: v.string(),
@@ -452,6 +492,29 @@ export const queryContactPanel = internalQuery({
     return {
       username: owner.username,
       href: buildContactHref(owner.username),
+      hasEntries: firstEntry.length > 0,
+    };
+  },
+});
+
+export const queryProjectsPanel = internalQuery({
+  args: {
+    userId: v.id("users"),
+  },
+  returns: projectsPanelReturnValidator,
+  handler: async (ctx, { userId }) => {
+    const owner = await ctx.db.get(userId);
+    if (!owner) return null;
+    if (!owner.username) return null;
+
+    const firstEntry = await ctx.db
+      .query("projects")
+      .withIndex("by_userId", (q) => q.eq("userId", userId as Id<"users">))
+      .take(1);
+
+    return {
+      username: owner.username,
+      href: buildProjectsHref(owner.username),
       hasEntries: firstEntry.length > 0,
     };
   },

@@ -7,6 +7,7 @@ import {
   ensureRickRubinConversations,
   ensureWorktreeOwnerProfile,
   ensureWorktreeOwnerBio,
+  ensureSeedProjects,
 } from "./seed/helpers";
 
 export const seedRickRubin = internalMutation({
@@ -54,6 +55,7 @@ export const seedRickRubinDemo = internalMutation({
     const userId = await ensureRickRubinUser(ctx);
     await ensureRickRubinArticles(ctx, userId);
     await ensureRickRubinPosts(ctx, userId);
+    await ensureSeedProjects(ctx, userId);
     await ensureRickRubinConversations(ctx, userId);
     return null;
   },
@@ -81,6 +83,7 @@ export const seedOwnerContent = internalMutation({
     await ensureWorktreeOwnerBio(ctx, args.userId);
     await ensureRickRubinArticles(ctx, args.userId);
     await ensureRickRubinPosts(ctx, args.userId);
+    await ensureSeedProjects(ctx, args.userId);
     await ensureRickRubinConversations(ctx, args.userId);
     return null;
   },
@@ -120,6 +123,7 @@ export const seedWorktreeOwnerDemo = internalMutation({
     await ensureWorktreeOwnerBio(ctx, owner._id);
     await ensureRickRubinArticles(ctx, owner._id);
     await ensureRickRubinPosts(ctx, owner._id);
+    await ensureSeedProjects(ctx, owner._id);
     await ensureRickRubinConversations(ctx, owner._id);
     return owner._id;
   },
