@@ -88,7 +88,6 @@ import type * as posts_queries from "../posts/queries.js";
 import type * as posts_writeHelpers from "../posts/writeHelpers.js";
 import type * as projects_mutations from "../projects/mutations.js";
 import type * as projects_queries from "../projects/queries.js";
-import type * as projects_schema from "../projects/schema.js";
 import type * as projects_serializeForEmbedding from "../projects/serializeForEmbedding.js";
 import type * as projects_writeHelpers from "../projects/writeHelpers.js";
 import type * as seed from "../seed.js";
@@ -190,7 +189,6 @@ declare const fullApi: ApiFromModules<{
   "posts/writeHelpers": typeof posts_writeHelpers;
   "projects/mutations": typeof projects_mutations;
   "projects/queries": typeof projects_queries;
-  "projects/schema": typeof projects_schema;
   "projects/serializeForEmbedding": typeof projects_serializeForEmbedding;
   "projects/writeHelpers": typeof projects_writeHelpers;
   seed: typeof seed;

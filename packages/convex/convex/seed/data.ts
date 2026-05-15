@@ -191,6 +191,33 @@ export const SEED_BIO = [
   },
 ];
 
+export const SEED_PROJECTS = [
+  {
+    title: "Shangri-La Session Notes",
+    description:
+      "A quiet workspace for capturing session observations, creative constraints, and the small decisions that shape a record over time.",
+    link: "https://example.com/shangri-la-session-notes",
+    startDate: ymUtc(2024, 0),
+    endDate: null,
+  },
+  {
+    title: "The Listening Room",
+    description:
+      "An interactive archive of production ideas, artist conversations, and references organized around attention rather than genre.",
+    link: "https://example.com/the-listening-room",
+    startDate: ymUtc(2023, 4),
+    endDate: ymUtc(2024, 10),
+  },
+  {
+    title: "Minimal Mixes",
+    description:
+      "A collection of stripped-back arrangements exploring how much can be removed before the emotional center disappears.",
+    link: "https://example.com/minimal-mixes",
+    startDate: ymUtc(2022, 8),
+    endDate: ymUtc(2023, 2),
+  },
+];
+
 export const SEED_CONVERSATIONS = [
   {
     title: "What inspires your production style?",
