@@ -70,13 +70,32 @@ export const getByUsername = query({
     const { user, isOwner } = access;
     // Server-side cap so the list, cover-URL Promise.all, and inline-image
     // rewrite Promise.all all scale O(1) per request instead of O(posts).
-    // Bumped from .collect() — if a user ever crosses 100 posts we'll need
-    // to switch the list UI to usePaginatedQuery.
-    const posts = await ctx.db
-      .query("posts")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
-      .take(100);
+    //
+    // Non-owners read only `published` rows via the status index. If we
+    // capped `by_userId` first and filtered visibility after, drafts in the
+    // oldest 100 rows would consume cap slots and silently hide later
+    // published posts from the public list (the FG_248 cap × visibility
+    // interaction). Querying the status index makes the cap count only
+    // posts the visitor can actually see.
+    //
+    // Owners see every status; the 100-row cap is the documented FG_248
+    // tradeoff — once a user crosses 100 posts the list UI must move to
+    // usePaginatedQuery.
+    const posts = isOwner
+      ? await ctx.db
+          .query("posts")
+          .withIndex("by_userId", (q) => q.eq("userId", user._id))
+          .take(100)
+      : await ctx.db
+          .query("posts")
+          .withIndex("by_userId_and_status", (q) =>
+            q.eq("userId", user._id).eq("status", "published"),
+          )
+          .take(100);
 
+    // Defense in depth: a no-op for the non-owner branch (already
+    // published-only) and keeps every row for owners, but keeps the
+    // visibility invariant visible at this call site.
     const visible = filterVisibleContent(posts, isOwner);
     const coverUrls = await Promise.all(
       visible.map((p) => resolvePostCoverUrls(ctx, p)),
