@@ -208,21 +208,51 @@ export const ensureTestUser = internalMutation({
       );
     }
 
-    const duplicateRows = [
-      ...existingUsers.filter((user) => user._id !== existing?._id),
-      ...usernameOwners.filter(
-        (user) =>
-          user._id !== existing?._id && user.email.endsWith(TEST_EMAIL_SUFFIX),
-      ),
-    ];
-    const duplicateIds = new Set<string>();
-    for (const duplicate of duplicateRows) {
-      if (duplicateIds.has(duplicate._id)) continue;
-      duplicateIds.add(duplicate._id);
+    // Two cleanup groups, patched differently on purpose:
+    //
+    //  - sameEmailDuplicates: extra rows for *our own* email (the synthetic
+    //    `test_<email>` auth-id row plus the real auth row, or accumulated
+    //    dev/test garbage). These are entirely ours to reset — clear both
+    //    username and onboardingComplete.
+    //
+    //  - foreignUsernameHolders: *other* @mirror.test rows currently holding
+    //    the username we're about to claim. We release ONLY the username —
+    //    required so the claim stays exclusive, since the /@username route
+    //    and `by_username` `.unique()` callers assume a single owner. We
+    //    deliberately do NOT touch their onboardingComplete.
+    //
+    //    Why clobbering a foreign row's username is safe: under the FG_230
+    //    fixture design a username is either the shared literal "test-user"
+    //    (only ever paired with the canonical shared playwright email) or a
+    //    per-test unique `pla-<pid>-<ts>` (1:1 with its own email). So a
+    //    foreign row holding our username is stale-by-construction, never a
+    //    live peer. Scoping the patch to just `username` means that even if
+    //    a future spec violates that pairing invariant, a parallel peer is
+    //    not silently de-onboarded — only the contested username moves,
+    //    which is the minimum needed for exclusivity.
+    const sameEmailDuplicates = existingUsers.filter(
+      (user) => user._id !== existing?._id,
+    );
+    const foreignUsernameHolders = usernameOwners.filter(
+      (user) =>
+        user._id !== existing?._id &&
+        user.email !== args.email &&
+        user.email.endsWith(TEST_EMAIL_SUFFIX),
+    );
+
+    const patchedIds = new Set<string>();
+    for (const duplicate of sameEmailDuplicates) {
+      if (patchedIds.has(duplicate._id)) continue;
+      patchedIds.add(duplicate._id);
       await ctx.db.patch(duplicate._id, {
         username: undefined,
         onboardingComplete: false,
       });
+    }
+    for (const holder of foreignUsernameHolders) {
+      if (patchedIds.has(holder._id)) continue;
+      patchedIds.add(holder._id);
+      await ctx.db.patch(holder._id, { username: undefined });
     }
 
     if (existing) {
