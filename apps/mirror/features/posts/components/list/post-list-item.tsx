@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  type MouseEvent,
-  useCallback,
-  useEffect,
-  useState,
-} from "react";
+import { type MouseEvent, useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ContentBody } from "@feel-good/features/editor/components";
@@ -28,8 +23,9 @@ function useVisibilityGatedVideoPlayback() {
   const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
     null,
   );
-  const [visibleVideoElement, setVisibleVideoElement] =
-    useState<Element | null>(null);
+  const [visibleVideoElement, setVisibleVideoElement] = useState<
+    Element | null
+  >(null);
   const videoRef = useCallback((element: HTMLVideoElement | null) => {
     setVideoElement(element);
   }, []);
@@ -75,10 +71,7 @@ export function PostListItem({ post, username }: PostListItemProps) {
   // onClick below routes "normal" left-clicks through the same dispatcher
   // the agent uses (`useCloneActions().navigateToContent`).
   const href = buildChatAwareHref(getContentHref(username, "posts", post.slug));
-  const shouldAlignWithMetadata =
-    !post.coverVideoUrl &&
-    !post.coverImageUrl &&
-    post.title.trim() === "";
+  const shouldAlignWithMetadata = post.title.trim() === "";
 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -108,48 +101,52 @@ export function PostListItem({ post, username }: PostListItemProps) {
           <div
             className={cn(
               "max-w-lg flex flex-col w-full",
-              shouldAlignWithMetadata ? "gap-0" : "gap-2",
+              shouldAlignWithMetadata ? "gap-1.5" : "gap-2",
             )}
           >
-            {post.coverVideoUrl ? (
-              <Link
-                href={href}
-                scroll={false}
-                onClick={handleClick}
-                className="block mb-3.5"
-              >
-                <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)]">
-                  <video
-                    ref={coverVideoRef}
-                    src={post.coverVideoUrl}
-                    poster={post.coverVideoPosterUrl ?? undefined}
-                    preload="metadata"
-                    loop
-                    muted
-                    playsInline
-                    className="absolute inset-0 w-full h-full object-cover"
-                    data-testid="post-list-cover-video"
-                  />
-                </div>
-              </Link>
-            ) : post.coverImageUrl ? (
-              <Link
-                href={href}
-                scroll={false}
-                onClick={handleClick}
-                className="block mb-3.5"
-              >
-                <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)]">
-                  <Image
-                    src={post.coverImageUrl}
-                    alt=""
-                    fill
-                    sizes="(min-width: 768px) 32rem, 100vw"
-                    className="object-cover"
-                  />
-                </div>
-              </Link>
-            ) : null}
+            {post.coverVideoUrl
+              ? (
+                <Link
+                  href={href}
+                  scroll={false}
+                  onClick={handleClick}
+                  className="block mb-3.5"
+                >
+                  <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)]">
+                    <video
+                      ref={coverVideoRef}
+                      src={post.coverVideoUrl}
+                      poster={post.coverVideoPosterUrl ?? undefined}
+                      preload="metadata"
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 w-full h-full object-cover"
+                      data-testid="post-list-cover-video"
+                    />
+                  </div>
+                </Link>
+              )
+              : post.coverImageUrl
+              ? (
+                <Link
+                  href={href}
+                  scroll={false}
+                  onClick={handleClick}
+                  className="block mb-3.5"
+                >
+                  <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-background-subtle [corner-shape:superellipse(1.3)]">
+                    <Image
+                      src={post.coverImageUrl}
+                      alt=""
+                      fill
+                      sizes="(min-width: 768px) 32rem, 100vw"
+                      className="object-cover"
+                    />
+                  </div>
+                </Link>
+              )
+              : null}
             <div className="flex flex-col gap-3">
               <h2 className="text-xl leading-tight underline decoration-transparent transition-colors hover:text-blue-11">
                 <Link href={href} scroll={false} onClick={handleClick}>
