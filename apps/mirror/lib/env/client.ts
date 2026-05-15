@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { withoutTrailingSlash } from "@/lib/url";
+
 /**
  * Client-side environment variable validation.
  * These variables must be prefixed with NEXT_PUBLIC_ and are
@@ -40,7 +42,16 @@ function validateClientEnv() {
     );
   }
 
-  return result.data;
+  return {
+    ...result.data,
+    NEXT_PUBLIC_SITE_URL: withoutTrailingSlash(result.data.NEXT_PUBLIC_SITE_URL),
+    NEXT_PUBLIC_CONVEX_URL: withoutTrailingSlash(
+      result.data.NEXT_PUBLIC_CONVEX_URL,
+    ),
+    NEXT_PUBLIC_CONVEX_SITE_URL: withoutTrailingSlash(
+      result.data.NEXT_PUBLIC_CONVEX_SITE_URL,
+    ),
+  };
 }
 
 export const clientEnv = validateClientEnv();

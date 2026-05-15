@@ -1,70 +1,30 @@
 "use client";
 
-import { type MouseEvent, useCallback, useEffect, useState } from "react";
+import { type MouseEvent, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ContentBody } from "@feel-good/features/editor/components";
 import { cn } from "@feel-good/utils/cn";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentHref } from "@/features/content";
+import { useVisibilityGatedVideoPlayback } from "../../hooks/use-visibility-gated-video-playback";
+import { usePostList } from "../../context/post-list-context";
 import { PostMetadata } from "../detail/post-metadata";
 import { type PostSummary } from "../../types";
+import { PostListItemActions } from "./post-list-item-actions";
 
 type PostListItemProps = {
   post: PostSummary;
   username: string;
+  isOwner?: boolean;
 };
 
-// Mirrors `useVisibilityGatedVideoPlayback` in articles/list/article-list-featured-card.tsx.
-// IntersectionObserver pauses videos that scroll out of the viewport so a
-// long post list with many video covers doesn't churn through decoders.
-function useVisibilityGatedVideoPlayback() {
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
-    null,
-  );
-  const [visibleVideoElement, setVisibleVideoElement] = useState<
-    Element | null
-  >(null);
-  const videoRef = useCallback((element: HTMLVideoElement | null) => {
-    setVideoElement(element);
-  }, []);
-
-  useEffect(() => {
-    if (!videoElement || typeof IntersectionObserver === "undefined") return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setVisibleVideoElement(entry?.isIntersecting ? entry.target : null);
-      },
-      { rootMargin: "200px" },
-    );
-
-    observer.observe(videoElement);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [videoElement]);
-
-  useEffect(() => {
-    if (!videoElement) return;
-
-    if (visibleVideoElement !== videoElement) {
-      videoElement.pause();
-      return;
-    }
-
-    void videoElement.play().catch(() => {
-      // Muted-autoplay rejections can still happen on some browsers.
-    });
-  }, [visibleVideoElement, videoElement]);
-
-  return videoRef;
-}
-
-export function PostListItem({ post, username }: PostListItemProps) {
-  const { buildChatAwareHref } = useChatSearchParams();
+export function PostListItem({
+  post,
+  username,
+  isOwner = false,
+}: PostListItemProps) {
+  const { buildChatAwareHref } = usePostList();
   const { navigateToContent } = useCloneActions();
   const coverVideoRef = useVisibilityGatedVideoPlayback();
   // Keep `<Link href>` populated for SEO/middle-click semantics. The
@@ -92,7 +52,11 @@ export function PostListItem({ post, username }: PostListItemProps) {
   );
 
   return (
-    <article className="border-b border-border-subtle px-4.5 py-10 last:border-b-0">
+    <article
+      data-testid="post-list-item"
+      data-post-slug={post.slug}
+      className="group/post-item relative border-b border-border-subtle px-4.5 py-10 last:border-b-0"
+    >
       <div className="flex flex-col md:flex-row  md:items-start md:justify-between gap-5 md:gap-12 w-full items-center justify-center">
         <div className="mt-0.5 md:max-w-22 w-full max-w-lg">
           <PostMetadata post={post} capitalizeCategory />
@@ -167,6 +131,11 @@ export function PostListItem({ post, username }: PostListItemProps) {
           </div>
         </div>
       </div>
+      <PostListItemActions
+        post={post}
+        username={username}
+        isOwner={isOwner}
+      />
     </article>
   );
 }

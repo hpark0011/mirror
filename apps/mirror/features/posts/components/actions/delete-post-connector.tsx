@@ -2,17 +2,19 @@
 
 import { useIsProfileOwner } from "@/features/profile/context/profile-context";
 import { useDeletePost } from "../../hooks/use-delete-post";
-import { DeletePost } from "./delete-post";
 import { type PostSummary } from "../../types";
+import { DeletePost } from "./delete-post";
 
 type DeletePostConnectorProps = {
   username: string;
   post: PostSummary;
+  testId?: string;
 };
 
 export function DeletePostConnector({
   username,
   post,
+  testId,
 }: DeletePostConnectorProps) {
   const isOwner = useIsProfileOwner();
   const remove = useDeletePost({ postId: post._id, username });
@@ -26,6 +28,7 @@ export function DeletePostConnector({
       onOpenChange={remove.handleOpenChange}
       onConfirm={remove.handleConfirm}
       onCancel={remove.handleCancel}
+      testId={testId}
     />
   );
 }

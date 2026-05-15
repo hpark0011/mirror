@@ -1,3 +1,5 @@
+import { withoutTrailingSlash } from "@/lib/url";
+
 export function requireEnv(name: string): string {
   const value = process.env[name];
   if (!value) {
@@ -7,4 +9,8 @@ export function requireEnv(name: string): string {
     );
   }
   return value;
+}
+
+export function requireEnvUrl(name: string): string {
+  return withoutTrailingSlash(requireEnv(name));
 }
