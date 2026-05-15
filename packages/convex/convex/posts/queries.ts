@@ -68,10 +68,14 @@ export const getByUsername = query({
     }
 
     const { user, isOwner } = access;
+    // Server-side cap so the list, cover-URL Promise.all, and inline-image
+    // rewrite Promise.all all scale O(1) per request instead of O(posts).
+    // Bumped from .collect() — if a user ever crosses 100 posts we'll need
+    // to switch the list UI to usePaginatedQuery.
     const posts = await ctx.db
       .query("posts")
       .withIndex("by_userId", (q) => q.eq("userId", user._id))
-      .collect();
+      .take(100);
 
     const visible = filterVisibleContent(posts, isOwner);
     const coverUrls = await Promise.all(

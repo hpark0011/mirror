@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { withoutTrailingSlash } from "@/lib/url";
+
 /**
  * Client-side environment variable validation.
  * These variables must be prefixed with NEXT_PUBLIC_ and are
@@ -18,10 +20,6 @@ const clientEnvSchema = z.object({
     .string()
     .url("NEXT_PUBLIC_CONVEX_SITE_URL must be a valid URL"),
 });
-
-function withoutTrailingSlash(url: string): string {
-  return url.replace(/\/+$/, "");
-}
 
 function validateClientEnv() {
   const result = clientEnvSchema.safeParse({

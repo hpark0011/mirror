@@ -179,10 +179,14 @@ export const ensureTestUser = internalMutation({
   handler: async (ctx, args) => {
     assertTestEmail(args.email);
 
-    const existing = await ctx.db
+    const existingUsers = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique();
+      .collect();
+    const syntheticAuthId = `test_${args.email}`;
+    const existing =
+      existingUsers.find((user) => user.authId !== syntheticAuthId) ??
+      existingUsers[0];
 
     // Refuse to claim a username already owned by a different (non-test) email.
     // Use `.collect()` rather than `.unique()` because dev/test environments can
@@ -204,6 +208,23 @@ export const ensureTestUser = internalMutation({
       );
     }
 
+    const duplicateRows = [
+      ...existingUsers.filter((user) => user._id !== existing?._id),
+      ...usernameOwners.filter(
+        (user) =>
+          user._id !== existing?._id && user.email.endsWith(TEST_EMAIL_SUFFIX),
+      ),
+    ];
+    const duplicateIds = new Set<string>();
+    for (const duplicate of duplicateRows) {
+      if (duplicateIds.has(duplicate._id)) continue;
+      duplicateIds.add(duplicate._id);
+      await ctx.db.patch(duplicate._id, {
+        username: undefined,
+        onboardingComplete: false,
+      });
+    }
+
     if (existing) {
       await ctx.db.patch(existing._id, {
         username: args.username,
@@ -223,6 +244,7 @@ export const ensureTestUser = internalMutation({
     return null;
   },
 });
+
 
 /**
  * Resets the app-level users row for a test user into the authed-but-not-onboarded
@@ -282,10 +304,13 @@ export const ensureTestPostFixtures = internalMutation({
   handler: async (ctx, args) => {
     assertTestEmail(args.email);
 
-    const user = await ctx.db
+    const users = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique();
+      .collect();
+    const syntheticAuthId = `test_${args.email}`;
+    const user =
+      users.find((user) => user.authId !== syntheticAuthId) ?? users[0];
 
     if (!user) {
       throw new Error(
@@ -979,4 +1004,3 @@ export const ensureTestContactFixtures = internalMutation({
     };
   },
 });
-

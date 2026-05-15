@@ -8,9 +8,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
+import { usePostList } from "../../context/post-list-context";
+import { usePostListDelete } from "../../context/post-list-delete-context";
 import { type PostSummary } from "../../types";
-import { DeletePostConnector } from "../actions/delete-post-connector";
 
 type PostListItemActionsProps = {
   post: PostSummary;
@@ -23,8 +23,13 @@ export function PostListItemActions({
   username,
   isOwner,
 }: PostListItemActionsProps) {
-  const { buildChatAwareHref } = useChatSearchParams();
+  const { buildChatAwareHref } = usePostList();
+  const listDelete = usePostListDelete();
 
+  // UI-only gate. The real authorization boundaries are server-side:
+  //   - api.posts.mutations.remove (deletePostForUserById → isOwnedByUser)
+  //   - app/[username]/@content/posts/[slug]/edit/page.tsx (server-component owner check + redirect)
+  // Removing one of those gates is what would actually allow cross-user actions; this `null` return is cosmetic.
   if (!isOwner) return null;
 
   return (
@@ -51,11 +56,22 @@ export function PostListItemActions({
         </TooltipTrigger>
         <TooltipContent>Edit</TooltipContent>
       </Tooltip>
-      <DeletePostConnector
-        username={username}
-        post={post}
-        testId="post-list-delete-btn"
-      />
+      {listDelete != null && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Delete post"
+              data-testid="post-list-delete-btn"
+              onClick={() => listDelete.requestDelete(post)}
+            >
+              <Icon name="TrashFillIcon" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Delete</TooltipContent>
+        </Tooltip>
+      )}
     </div>
   );
 }
