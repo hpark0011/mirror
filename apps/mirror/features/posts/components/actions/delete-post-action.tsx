@@ -18,22 +18,27 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
+import { cn } from "@feel-good/utils/cn";
 
-type DeletePostProps = {
+type DeletePostActionProps = {
   isPending: boolean;
   dialogOpen: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   onCancel: () => void;
+  testId?: string;
+  className?: string;
 };
 
-export function DeletePost({
+export function DeletePostAction({
   isPending,
   dialogOpen,
   onOpenChange,
   onConfirm,
   onCancel,
-}: DeletePostProps) {
+  testId = "delete-post-btn",
+  className,
+}: DeletePostActionProps) {
   return (
     <AlertDialog open={dialogOpen} onOpenChange={onOpenChange}>
       <Tooltip>
@@ -43,8 +48,9 @@ export function DeletePost({
               variant="ghost"
               size="icon-sm"
               aria-label="Delete post"
-              data-testid="delete-post-btn"
+              data-testid={testId}
               data-post-deleting={isPending ? "true" : "false"}
+              className={cn(className)}
             >
               <Icon name="TrashFillIcon" />
             </Button>
@@ -52,10 +58,7 @@ export function DeletePost({
         </TooltipTrigger>
         <TooltipContent>Delete</TooltipContent>
       </Tooltip>
-      <AlertDialogContent
-        size="sm"
-        className="data-[size=sm]:max-w-md"
-      >
+      <AlertDialogContent size="sm" className="data-[size=sm]:max-w-md">
         <AlertDialogHeader className="mx-12 mb-4 mt-3">
           <AlertDialogTitle className="text-lg">Delete post</AlertDialogTitle>
           <AlertDialogDescription>
@@ -76,7 +79,7 @@ export function DeletePost({
             onClick={onConfirm}
             disabled={isPending}
           >
-            {isPending ? "Deleting…" : "Delete"}
+            {isPending ? "Deleting..." : "Delete"}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

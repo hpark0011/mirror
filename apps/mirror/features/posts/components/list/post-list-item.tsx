@@ -15,10 +15,12 @@ import { useCloneActions } from "@/app/[username]/_providers/clone-actions-conte
 import { getContentHref } from "@/features/content";
 import { PostMetadata } from "../detail/post-metadata";
 import { type PostSummary } from "../../types";
+import { PostListItemActions } from "./post-list-item-actions";
 
 type PostListItemProps = {
   post: PostSummary;
   username: string;
+  isOwner?: boolean;
 };
 
 // Mirrors `useVisibilityGatedVideoPlayback` in articles/list/article-list-featured-card.tsx.
@@ -67,7 +69,11 @@ function useVisibilityGatedVideoPlayback() {
   return videoRef;
 }
 
-export function PostListItem({ post, username }: PostListItemProps) {
+export function PostListItem({
+  post,
+  username,
+  isOwner = false,
+}: PostListItemProps) {
   const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToContent } = useCloneActions();
   const coverVideoRef = useVisibilityGatedVideoPlayback();
@@ -99,7 +105,11 @@ export function PostListItem({ post, username }: PostListItemProps) {
   );
 
   return (
-    <article className="border-b border-border-subtle px-4.5 py-10 last:border-b-0">
+    <article
+      data-testid="post-list-item"
+      data-post-slug={post.slug}
+      className="group/post-item relative border-b border-border-subtle px-4.5 py-10 last:border-b-0"
+    >
       <div className="flex flex-col md:flex-row  md:items-start md:justify-between gap-5 md:gap-12 w-full items-center justify-center">
         <div className="mt-0.5 md:max-w-22 w-full max-w-lg">
           <PostMetadata post={post} capitalizeCategory />
@@ -170,6 +180,11 @@ export function PostListItem({ post, username }: PostListItemProps) {
           </div>
         </div>
       </div>
+      <PostListItemActions
+        post={post}
+        username={username}
+        isOwner={isOwner}
+      />
     </article>
   );
 }

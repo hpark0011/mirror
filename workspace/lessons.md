@@ -1,5 +1,15 @@
 # Lessons Learned
 
+## 2026-05-15
+
+### Test URL envs should tolerate trailing slashes
+
+- Convex HTTP routes do not normalize doubled path slashes. When app code or a
+  test helper reads `NEXT_PUBLIC_CONVEX_URL` or
+  `NEXT_PUBLIC_CONVEX_SITE_URL`, strip trailing slashes before appending paths
+  or constructing clients; otherwise a valid deployment URL ending in `/`
+  becomes `//...` and can return empty/error responses.
+
 ## 2026-05-13
 
 ### Agent modes need immutable conversation boundaries

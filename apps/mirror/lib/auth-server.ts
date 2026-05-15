@@ -1,15 +1,49 @@
 import { createAuthServerUtils } from "@feel-good/features/auth/server";
-import { preloadQuery } from "convex/nextjs";
+import { fetchQuery, preloadQuery } from "convex/nextjs";
 import { cookies } from "next/headers";
-import { type FunctionReference } from "convex/server";
+import { type FunctionReference, type FunctionReturnType } from "convex/server";
 import { type Preloaded } from "convex/react";
 import { clientEnv } from "./env/client";
 
-export const { handler, isAuthenticated, getToken, preloadAuthQuery, fetchAuthQuery } =
-  createAuthServerUtils({
-    convexUrl: clientEnv.NEXT_PUBLIC_CONVEX_URL,
-    convexSiteUrl: clientEnv.NEXT_PUBLIC_CONVEX_SITE_URL,
-  });
+const convexUrl = clientEnv.NEXT_PUBLIC_CONVEX_URL;
+process.env.NEXT_PUBLIC_CONVEX_URL = convexUrl;
+
+const authServerUtils = createAuthServerUtils({
+  convexUrl,
+  convexSiteUrl: clientEnv.NEXT_PUBLIC_CONVEX_SITE_URL,
+});
+
+export const { handler, isAuthenticated, getToken } = authServerUtils;
+
+export async function preloadAuthQuery<
+  Query extends FunctionReference<"query">,
+>(
+  query: Query,
+  ...args: Query["_args"] extends Record<string, never>
+    ? [args?: Query["_args"]]
+    : [args: Query["_args"]]
+): Promise<Preloaded<Query>> {
+  const token = await getToken();
+  return preloadQuery(
+    query,
+    args[0] as Query["_args"],
+    { token, url: convexUrl },
+  );
+}
+
+export async function fetchAuthQuery<Query extends FunctionReference<"query">>(
+  query: Query,
+  ...args: Query["_args"] extends Record<string, never>
+    ? [args?: Query["_args"]]
+    : [args: Query["_args"]]
+): Promise<FunctionReturnType<Query>> {
+  const token = await getToken();
+  return fetchQuery(
+    query,
+    args[0] as Query["_args"],
+    { token, url: convexUrl },
+  );
+}
 
 // Skips the Convex auth-token round-trip when there is no Better Auth session
 // cookie. Use for queries that return authenticated-only fields (e.g. drafts)
@@ -41,6 +75,6 @@ export async function preloadAuthOptionalQuery<
   return preloadQuery(
     query,
     args[0] as Query["_args"],
-    { token },
+    { token, url: convexUrl },
   );
 }

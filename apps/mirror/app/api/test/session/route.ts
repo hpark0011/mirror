@@ -22,6 +22,10 @@ interface ReadOtpResponse {
 
 const TEST_EMAIL_SUFFIX = "@mirror.test";
 
+function withoutTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
 // Constant-time compare so the secret length does not leak via timing.
 function secretsMatch(a: string, b: string): boolean {
   if (a.length !== b.length) return false;
@@ -72,13 +76,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { email } = body;
-  const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
-  if (!convexSiteUrl) {
+  const rawConvexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
+  if (!rawConvexSiteUrl) {
     return NextResponse.json(
       { error: "NEXT_PUBLIC_CONVEX_SITE_URL is not configured" },
       { status: 500 },
     );
   }
+  const convexSiteUrl = withoutTrailingSlash(rawConvexSiteUrl);
 
   // Step 1: Trigger OTP send. The sendVerificationOTP hook intercepts in test
   // mode and stores the plain OTP in the testOtpStore table instead of emailing it.

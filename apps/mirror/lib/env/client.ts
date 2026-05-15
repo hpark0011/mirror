@@ -19,6 +19,10 @@ const clientEnvSchema = z.object({
     .url("NEXT_PUBLIC_CONVEX_SITE_URL must be a valid URL"),
 });
 
+function withoutTrailingSlash(url: string): string {
+  return url.replace(/\/+$/, "");
+}
+
 function validateClientEnv() {
   const result = clientEnvSchema.safeParse({
     NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
@@ -40,7 +44,16 @@ function validateClientEnv() {
     );
   }
 
-  return result.data;
+  return {
+    ...result.data,
+    NEXT_PUBLIC_SITE_URL: withoutTrailingSlash(result.data.NEXT_PUBLIC_SITE_URL),
+    NEXT_PUBLIC_CONVEX_URL: withoutTrailingSlash(
+      result.data.NEXT_PUBLIC_CONVEX_URL,
+    ),
+    NEXT_PUBLIC_CONVEX_SITE_URL: withoutTrailingSlash(
+      result.data.NEXT_PUBLIC_CONVEX_SITE_URL,
+    ),
+  };
 }
 
 export const clientEnv = validateClientEnv();

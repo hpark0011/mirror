@@ -6,7 +6,7 @@ import {
   getContentHref,
 } from "@/features/content";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
-import { DeletePostConnector } from "./delete-post-connector";
+import { DeletePostConnector } from "../actions/delete-post-connector";
 import { PublishToggleConnector } from "./publish-toggle-connector";
 import { type PostSummary } from "../../types";
 

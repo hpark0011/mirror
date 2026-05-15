@@ -37,6 +37,7 @@ export function ScrollablePostList() {
           key={post.slug}
           post={post}
           username={context.username}
+          isOwner={context.isOwner}
         />
       ))}
     </section>
