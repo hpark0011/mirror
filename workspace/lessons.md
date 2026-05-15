@@ -2,6 +2,24 @@
 
 ## 2026-05-15
 
+### `convex codegen` (1.37) is not offline — it pushes to a deployment
+
+- `convex codegen` was assumed (from memory) to be a purely-local generator
+  safe to wire into `pnpm lint` and CI. Verified on the installed version
+  (1.37): with no creds it hard-fails `✖ No CONVEX_DEPLOYMENT set`, and with
+  a deployment it **uploads functions to that deployment** ("Uploading
+  functions to Convex…") to derive accurate `_generated/api.d.ts` types.
+- Consequences: (1) it cannot be a `lint` side-effect — lint would mutate
+  the worktree's dev deployment and hard-fail without credentials; (2) it is
+  not a drop-in CI gate — CI has no Convex deployment. It belongs as a
+  deliberate pre-commit step in a provisioned worktree (which always has
+  `CONVEX_DEPLOYMENT`). A true CI codegen gate needs an ephemeral
+  deployment — separate, larger work.
+- Reinforces the existing rule: verify CLI behavior on the **installed
+  version** by running it, not by pattern-matching the tool's name. A
+  recommendation that calls something a "cheap CI gate" must be falsified
+  against the real binary before the cheapness claim is made.
+
 ### Test URL envs should tolerate trailing slashes
 
 - Convex HTTP routes do not normalize doubled path slashes. When app code or a
