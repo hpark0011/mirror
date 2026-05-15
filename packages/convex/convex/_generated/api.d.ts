@@ -45,6 +45,7 @@ import type * as chat_toolMutations from "../chat/toolMutations.js";
 import type * as chat_toolQueries from "../chat/toolQueries.js";
 import type * as chat_tools from "../chat/tools.js";
 import type * as contacts_detectContactKind from "../contacts/detectContactKind.js";
+import type * as contacts_hostnameAllowlist from "../contacts/hostnameAllowlist.js";
 import type * as contacts_labels from "../contacts/labels.js";
 import type * as contacts_mutations from "../contacts/mutations.js";
 import type * as contacts_queries from "../contacts/queries.js";
@@ -138,6 +139,7 @@ declare const fullApi: ApiFromModules<{
   "chat/toolQueries": typeof chat_toolQueries;
   "chat/tools": typeof chat_tools;
   "contacts/detectContactKind": typeof contacts_detectContactKind;
+  "contacts/hostnameAllowlist": typeof contacts_hostnameAllowlist;
   "contacts/labels": typeof contacts_labels;
   "contacts/mutations": typeof contacts_mutations;
   "contacts/queries": typeof contacts_queries;
