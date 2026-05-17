@@ -86,6 +86,7 @@
     "dev": "../../scripts/with-convex-dev-lock.sh convex dev",
     "deploy": "convex deploy",
     "generate": "convex codegen",
+    "verify:codegen": "node ../../scripts/verify-convex-codegen.mjs",
     "check-types": "tsc --noEmit -p convex/tsconfig.json",
     "seed:rick-rubin": "convex run seed:seedRickRubinDemo",
     "test": "vitest run"

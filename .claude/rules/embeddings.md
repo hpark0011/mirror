@@ -1,10 +1,9 @@
 ---
 paths:
   - "packages/convex/convex/embeddings/**"
-  - "packages/convex/convex/articles/mutations.ts"
-  - "packages/convex/convex/bio/mutations.ts"
-  - "packages/convex/convex/contacts/mutations.ts"
-  - "packages/convex/convex/posts/mutations.ts"
+  - "packages/convex/convex/**/mutations.ts"
+  - "packages/convex/convex/**/writeHelpers.ts"
+  - "packages/convex/convex/content/sourceRegistry.ts"
   - "packages/convex/convex/chat/**"
   - "packages/convex/convex/schema.ts"
   - "packages/convex/convex/http.ts"
@@ -16,6 +15,14 @@ paths:
 > Auto-loads under the paths above — any consumer of `contentEmbeddings`
 > (the chat RAG retrieval at `chat/actions.ts`) or any ingestion source
 > that schedules `internal.embeddings.actions.generateEmbedding`.
+>
+> **Do not re-enumerate individual `<table>/mutations.ts` entries here.**
+> The `paths:` list is pattern-based on purpose: every present and future
+> content mutation + writeHelper auto-loads this rule. The previous
+> per-table enumeration silently dropped `projects/mutations.ts` when the
+> Projects RAG source shipped — exactly the miss the schema↔registry
+> parity test (`content/__tests__/source-registry-parity.test.ts`) now
+> makes impossible to ignore.
 
 ## Cross-user isolation invariant
 

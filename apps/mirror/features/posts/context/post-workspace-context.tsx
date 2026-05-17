@@ -13,6 +13,7 @@ import {
   useContentSearch,
   useContentSort,
 } from "@/features/content";
+import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { type PostSummary } from "../types";
 import { usePostFilter } from "../hooks/use-post-filter";
 import { PostListContext } from "./post-list-context";
@@ -37,6 +38,7 @@ export function PostWorkspaceProvider({
   const router = useRouter();
   const reactivePosts = usePreloadedQuery(preloadedPosts);
   const isOwner = useIsProfileOwner();
+  const { buildChatAwareHref } = useChatSearchParams();
   const posts = useMemo(
     () => ((reactivePosts ?? []) as PostSummary[]),
     [reactivePosts],
@@ -100,8 +102,9 @@ export function PostWorkspaceProvider({
       hasNoPosts,
       showEmpty,
       emptyMessage,
+      buildChatAwareHref,
     }),
-    [visiblePosts, username, isOwner, hasNoPosts, showEmpty, emptyMessage],
+    [visiblePosts, username, isOwner, hasNoPosts, showEmpty, emptyMessage, buildChatAwareHref],
   );
 
   return (

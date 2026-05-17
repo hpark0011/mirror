@@ -25,6 +25,7 @@ type DeletePostProps = {
   onOpenChange: (open: boolean) => void;
   onConfirm: () => void;
   onCancel: () => void;
+  testId?: string;
 };
 
 export function DeletePost({
@@ -33,6 +34,7 @@ export function DeletePost({
   onOpenChange,
   onConfirm,
   onCancel,
+  testId = "delete-post-btn",
 }: DeletePostProps) {
   return (
     <AlertDialog open={dialogOpen} onOpenChange={onOpenChange}>
@@ -43,7 +45,7 @@ export function DeletePost({
               variant="ghost"
               size="icon-sm"
               aria-label="Delete post"
-              data-testid="delete-post-btn"
+              data-testid={testId}
               data-post-deleting={isPending ? "true" : "false"}
             >
               <Icon name="TrashFillIcon" />
@@ -52,10 +54,7 @@ export function DeletePost({
         </TooltipTrigger>
         <TooltipContent>Delete</TooltipContent>
       </Tooltip>
-      <AlertDialogContent
-        size="sm"
-        className="data-[size=sm]:max-w-md"
-      >
+      <AlertDialogContent size="sm" className="data-[size=sm]:max-w-md">
         <AlertDialogHeader className="mx-12 mb-4 mt-3">
           <AlertDialogTitle className="text-lg">Delete post</AlertDialogTitle>
           <AlertDialogDescription>

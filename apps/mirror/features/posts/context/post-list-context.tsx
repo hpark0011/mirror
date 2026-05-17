@@ -10,6 +10,7 @@ export type PostListContextValue = {
   hasNoPosts: boolean;
   showEmpty: boolean;
   emptyMessage: string;
+  buildChatAwareHref: (basePath: string) => string;
 };
 
 export const PostListContext = createContext<PostListContextValue | null>(null);

@@ -41,6 +41,30 @@ Then use Chrome MCP to interact with the feature and confirm correct behavior.
 
 All of the above: build, lint, screenshot, and interaction test.
 
+## Convex changes (mandatory, in addition to the tier above)
+
+Any change under `packages/convex/convex/**` MUST also run:
+
+```bash
+pnpm --filter=@feel-good/convex run verify:codegen
+```
+
+This regenerates `convex/_generated` and fails if the committed output is
+stale (`scripts/verify-convex-codegen.mjs`). A missing `_generated/api.d.ts`
+entry for a new module is a recurring P0 review finding — running this
+before commit catches it instead of leaving it for the next reviewer.
+
+Constraints (Convex 1.37 reality, verified — not a lint hook):
+
+- `convex codegen` is **not offline**: it needs a configured deployment and
+  pushes functions to the worktree's dev deployment. Run it from a
+  provisioned worktree (which always has `CONVEX_DEPLOYMENT`), as a
+  deliberate pre-commit step.
+- It is intentionally **not** wired into `pnpm lint` — lint must not mutate
+  a deployment or hard-fail without credentials.
+- It is **not** a CI gate as-is (CI has no Convex deployment). A true CI
+  gate needs an ephemeral deployment and is tracked as separate work.
+
 ## E2E Tests
 
 E2E tests use the Playwright CLI. Never use Playwright MCP or browser-automation MCP tools for tests.

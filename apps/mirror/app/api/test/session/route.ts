@@ -1,7 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { withoutTrailingSlash } from "@/lib/url";
+
 interface TestSessionRequestBody {
   email: string;
+  /**
+   * Optional app username for the authenticated test user. Defaults to the
+   * canonical Playwright owner used by existing authenticated specs.
+   */
+  username?: string;
   /**
    * When true, skip the `/test/ensure-user` step so the resulting session
    * belongs to a user whose `users.username` is undefined. Used by the
@@ -72,13 +79,14 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   }
 
   const { email } = body;
-  const convexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
-  if (!convexSiteUrl) {
+  const rawConvexSiteUrl = process.env.NEXT_PUBLIC_CONVEX_SITE_URL;
+  if (!rawConvexSiteUrl) {
     return NextResponse.json(
       { error: "NEXT_PUBLIC_CONVEX_SITE_URL is not configured" },
       { status: 500 },
     );
   }
+  const convexSiteUrl = withoutTrailingSlash(rawConvexSiteUrl);
 
   // Step 1: Trigger OTP send. The sendVerificationOTP hook intercepts in test
   // mode and stores the plain OTP in the testOtpStore table instead of emailing it.
@@ -131,7 +139,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const signInCookies = signInRes.headers.getSetCookie();
 
   // Step 4: Normalize the app-level user profile to the state this fixture needs.
-  // With-username path: upsert `users.username = "test-user"` + `onboardingComplete: true`.
+  // With-username path: upsert `users.username` + `onboardingComplete: true`.
   // No-username path: actively reset the row — `onCreate` only fires once per auth
   // user, so a row that a prior run (or manual repro) set to onboarded state would
   // otherwise persist and make the no-username fixture silently pass against a
@@ -139,9 +147,10 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
   const normalizeUrl = body.withoutUsername
     ? `${convexSiteUrl}/test/reset-user`
     : `${convexSiteUrl}/test/ensure-user`;
+  const testUsername = body.username ?? "test-user";
   const normalizeBody = body.withoutUsername
     ? { email }
-    : { email, username: "test-user" };
+    : { email, username: testUsername };
   const normalizeRes = await fetch(normalizeUrl, {
     method: "POST",
     headers: {
@@ -151,9 +160,11 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
     body: JSON.stringify(normalizeBody),
   });
   if (!normalizeRes.ok) {
+    const details = await normalizeRes.text();
     return NextResponse.json(
       {
         error: body.withoutUsername ? "reset-user failed" : "ensure-user failed",
+        details,
       },
       { status: normalizeRes.status },
     );
@@ -181,7 +192,7 @@ export async function POST(request: NextRequest): Promise<NextResponse> {
 
   const responseBody: TestSessionResponse = {
     ok: true,
-    username: body.withoutUsername ? null : "test-user",
+    username: body.withoutUsername ? null : testUsername,
   };
   const response = NextResponse.json(responseBody, { status: 200 });
 
