@@ -1,5 +1,23 @@
 # Lessons Learned
 
+## 2026-05-18
+
+### Duplicate "twin" components: verify rendered outcome, not class strings
+
+- When a change must be applied to two near-identical components
+  (`post-list-item.tsx` / `post-detail.tsx`), DOM-verifying the class string
+  on each is not enough. The two had already drifted: same `gap-0` class but
+  one renders the body via `ContentBody` (direct-child `<p>`, first-child
+  margin reset works) and the other via `RichTextViewer` (Tiptap
+  `.ProseMirror` wrapper → `<p>` is a grandchild, reset never applied) — so
+  identical classes produced a 16px misalignment. Verify the *measured
+  rendered result* (e.g. body-first-line vs metadata-first-line top delta) is
+  identical across both, not just that the markup matches.
+- Having to hand-apply the same fix to two files is itself the bug signal.
+  Surface the duplication and propose extracting one shared presentational
+  component instead of dual-patching (the compounding option). Connector →
+  pure-UI separation being clean does NOT mean the UI layer is DRY.
+
 ## 2026-05-15
 
 ### Agent batch mutations must defer destructive storage cleanup

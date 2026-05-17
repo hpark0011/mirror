@@ -53,6 +53,20 @@
   }
 }
 
+/*
+ * Flush-top modifier. Tiptap nests content under `.tiptap` inside the
+ * `.tiptap-content` root, so @tailwindcss/typography's own `> :first-child`
+ * reset only zeroes the `.tiptap` wrapper, never the first paragraph — the
+ * `p { margin: 1rem 0 }` rule above still applies a 1rem top margin. Callers
+ * that render the body with no preceding title (titleless posts, where the
+ * body must top-align with the adjacent metadata column) add the
+ * `tiptap-flush-top` class to the `.tiptap-content` root to opt in. Two
+ * classes + child combinator out-specifies `.tiptap-content .tiptap p`.
+ */
+.tiptap-content.tiptap-flush-top .tiptap > :first-child {
+  margin-top: 0;
+}
+
 /* --- 3. Block elements --- */
 .tiptap-content .tiptap {
   pre {
