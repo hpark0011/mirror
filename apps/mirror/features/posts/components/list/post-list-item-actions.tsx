@@ -11,7 +11,7 @@ import {
 } from "@feel-good/ui/primitives/tooltip";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentEditHref } from "@/features/content";
-import { usePostList } from "../../context/post-list-context";
+import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { usePostListDelete } from "../../context/post-list-delete-context";
 import { type PostSummary } from "../../types";
 
@@ -26,7 +26,7 @@ export function PostListItemActions({
   username,
   isOwner,
 }: PostListItemActionsProps) {
-  const { buildChatAwareHref } = usePostList();
+  const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToEditor } = useCloneActions();
   const listDelete = usePostListDelete();
 

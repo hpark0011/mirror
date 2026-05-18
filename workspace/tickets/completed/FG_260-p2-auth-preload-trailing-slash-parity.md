@@ -3,7 +3,7 @@ id: FG_260
 title: "All auth preloads use the trailing-slash-sanitized Convex URL"
 date: 2026-05-18
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "Only preloadAuthOptionalQuery passes the withoutTrailingSlash-sanitized convexUrl, so preloadAuthQuery and fetchAuthQuery still build URLs from the raw env and SSR detail and profile preloads fail when the deployment URL has a trailing slash."
 dependencies: []

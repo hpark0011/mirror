@@ -3,7 +3,7 @@ id: FG_257
 title: "ensureTestUser rejects contended username claims under parallel workers"
 date: 2026-05-18
 type: fix
-status: to-do
+status: completed
 priority: p2
 description: "ensureTestUser reads username owners then patches its own row to claim the username, so two parallel workers claiming the same username write different documents, both commit, and the by_username index becomes non-unique with no error."
 dependencies: ["FG_249"]

@@ -3,7 +3,7 @@ id: FG_255
 title: "getByUsername hides drafts from non-owners under the row cap"
 date: 2026-05-18
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "The non-owner by_userId_and_status branch that fixes the FG_248 cap-versus-visibility interaction has no unit test, so reverting it to the unbounded by_userId path would silently regress and hide published posts behind old drafts."
 dependencies: []

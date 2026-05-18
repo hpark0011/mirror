@@ -3,7 +3,7 @@ id: FG_256
 title: "Visibility-gated video playback logic exists in one place"
 date: 2026-05-18
 type: refactor
-status: to-do
+status: completed
 priority: p2
 description: "The extracted useVisibilityGatedVideoPlayback hook is a byte-identical copy of a private function still living inside the articles featured card, and its own comment admits it mirrors that copy and will drift."
 dependencies: []

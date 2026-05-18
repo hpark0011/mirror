@@ -3,7 +3,7 @@ id: FG_254
 title: "List post-delete hook guards are covered by unit tests"
 date: 2026-05-18
 type: chore
-status: to-do
+status: completed
 priority: p2
 description: "The list delete hook's double-submit, null-target, escape-during-pending guards and error-keeps-dialog-open catch arm have zero unit tests and can be inverted or removed without any existing test failing."
 dependencies: ["FG_252"]

@@ -3,7 +3,7 @@ id: FG_258
 title: "getByUsername inline-image URL resolution is bounded per request"
 date: 2026-05-18
 type: perf
-status: to-do
+status: completed
 priority: p2
 description: "getByUsername resolves inline-image storage URLs for every post body, so even with the hundred-row cap the storage fan-out is order posts times images-per-post, hitting roughly a thousand storage calls for content-heavy users."
 dependencies: []

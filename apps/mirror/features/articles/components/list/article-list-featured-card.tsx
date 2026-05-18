@@ -1,12 +1,13 @@
 "use client";
 
-import { type MouseEvent, useCallback, useEffect, useState } from "react";
+import { type MouseEvent, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@feel-good/utils/cn";
 import { formatShortDate, getContentHref } from "@/features/content";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
+import { useVisibilityGatedVideoPlayback } from "@/features/posts/hooks/use-visibility-gated-video-playback";
 import { type ArticleSummary } from "../../types";
 import { thumbhashToDataUrl } from "../../utils/thumbhash-to-data-url";
 
@@ -17,49 +18,6 @@ export type FeaturedArticleCardProps = {
   username: string;
   variant: FeaturedVariant;
 };
-
-function useVisibilityGatedVideoPlayback() {
-  const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(
-    null,
-  );
-  const [visibleVideoElement, setVisibleVideoElement] =
-    useState<Element | null>(null);
-  const videoRef = useCallback((element: HTMLVideoElement | null) => {
-    setVideoElement(element);
-  }, []);
-
-  useEffect(() => {
-    if (!videoElement || typeof IntersectionObserver === "undefined") return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setVisibleVideoElement(entry?.isIntersecting ? entry.target : null);
-      },
-      { rootMargin: "200px" },
-    );
-
-    observer.observe(videoElement);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [videoElement]);
-
-  useEffect(() => {
-    if (!videoElement) return;
-
-    if (visibleVideoElement !== videoElement) {
-      videoElement.pause();
-      return;
-    }
-
-    void videoElement.play().catch(() => {
-      // Browser autoplay policies can still reject muted playback.
-    });
-  }, [visibleVideoElement, videoElement]);
-
-  return videoRef;
-}
 
 export function FeaturedArticleCard({
   article,

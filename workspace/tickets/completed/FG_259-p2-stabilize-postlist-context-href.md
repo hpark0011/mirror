@@ -3,7 +3,7 @@ id: FG_259
 title: "Post list rows do not re-render on every chat panel toggle"
 date: 2026-05-18
 type: perf
-status: to-do
+status: completed
 priority: p2
 description: "buildChatAwareHref carries the Next searchParams object in its deps and was placed on the PostListContext memo, so every chat open, close, or conversation change gives it a new identity and re-renders every post row."
 dependencies: ["FG_251"]

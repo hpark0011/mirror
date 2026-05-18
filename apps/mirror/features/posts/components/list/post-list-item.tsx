@@ -5,8 +5,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentHref } from "@/features/content";
+import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useVisibilityGatedVideoPlayback } from "../../hooks/use-visibility-gated-video-playback";
-import { usePostList } from "../../context/post-list-context";
 import { PostLayout } from "../post-layout";
 import { type PostSummary } from "../../types";
 import { PostListItemActions } from "./post-list-item-actions";
@@ -22,7 +22,7 @@ export function PostListItem({
   username,
   isOwner = false,
 }: PostListItemProps) {
-  const { buildChatAwareHref } = usePostList();
+  const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToContent } = useCloneActions();
   const coverVideoRef = useVisibilityGatedVideoPlayback();
   // Keep `<Link href>` populated for SEO/middle-click semantics. The
