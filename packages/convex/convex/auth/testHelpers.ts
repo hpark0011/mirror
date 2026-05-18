@@ -168,6 +168,14 @@ export const readTestOtp = internalQuery({
  * Upserts the app-level users row for a test user.
  * Sets username, name, and onboardingComplete so tests can proceed past onboarding.
  *
+ * CONCURRENCY INVARIANT: Callers must supply a globally unique username per
+ * concurrent worker. Two parallel workers claiming the same username will both
+ * pass the initial owner check (each reads a pre-commit snapshot) and then the
+ * post-cleanup contention check will throw for whichever mutation runs second,
+ * surfacing the conflict as a loud retryable error rather than silent
+ * by_username index corruption. Use per-test unique usernames (e.g.,
+ * `pla-<pid>-<ts>`) to avoid contention entirely.
+ *
  * WARNING: Only call from test infrastructure. Never expose as public API.
  */
 export const ensureTestUser = internalMutation({
@@ -253,6 +261,30 @@ export const ensureTestUser = internalMutation({
       if (patchedIds.has(holder._id)) continue;
       patchedIds.add(holder._id);
       await ctx.db.patch(holder._id, { username: undefined });
+    }
+
+    // Post-cleanup contention check: re-read by_username owners immediately
+    // before the final username claim. Two concurrent mutations targeting the
+    // same username both pass the initial owner check (each sees a
+    // pre-commit snapshot), but whichever runs second will observe the first
+    // mutation's patch here and throw rather than producing a second row
+    // with the same username (which would corrupt the non-unique by_username
+    // index and make every .unique() caller throw).
+    const postCleanupOwners = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .collect();
+    const contentionOwner = postCleanupOwners.find(
+      (owner) =>
+        owner._id !== existing?._id &&
+        owner.email !== args.email &&
+        owner.email.endsWith(TEST_EMAIL_SUFFIX),
+    );
+    if (contentionOwner) {
+      throw new Error(
+        `ensureTestUser: username "${args.username}" is held by a concurrent worker (${contentionOwner.email}). ` +
+          `Use a globally unique username per concurrent worker (e.g., pla-<pid>-<ts>) to prevent this contention.`,
+      );
     }
 
     if (existing) {

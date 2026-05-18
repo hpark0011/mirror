@@ -18,6 +18,18 @@ import {
 import { type Id } from "../_generated/dataModel";
 
 /**
+ * Maximum number of unique inline-image storage IDs resolved per post in the
+ * list query (`getByUsername`). The list renders a preview, not the full body,
+ * so resolving every image in every post is unnecessary and expensive:
+ * 100 posts × unbounded images/post ≈ O(1 000) storage calls per request.
+ * Capping at 5 unique IDs/post bounds the list fan-out to ≤ 500 calls while
+ * still resolving the images most likely to appear in the preview viewport.
+ * Images beyond the cap keep their stale signed-URL `src`; the detail page
+ * (`getBySlug`) always resolves all images without a cap.
+ */
+const LIST_INLINE_IMAGE_CAP = 5;
+
+/**
  * Rewrite every inline image node's `src` from its `storageId` so the body
  * always renders with a fresh Convex signed URL (FR-05). Matches the
  * articles-side helper pattern: pre-resolves all storage URLs in parallel,
@@ -31,14 +43,25 @@ import { type Id } from "../_generated/dataModel";
  * external URLs); nodes whose blob is gone get `src: ""` so the <img>
  * fails locally rather than rendering a stale signed URL — matches the
  * spec edge-case "Query-time fallback: leave `src` empty".
+ *
+ * @param limit - Optional cap on the number of unique storage IDs resolved.
+ *   When set, only the first `limit` unique IDs are resolved; images beyond
+ *   the cap keep their existing `src` (stale but bounded). Omit or pass
+ *   `undefined` to resolve all images (used by `getBySlug`).
  */
 async function rewriteInlineImageSrc(
   ctx: QueryCtx,
   body: JSONContent | null | undefined,
+  limit?: number,
 ): Promise<JSONContent | null | undefined> {
   const storageIds = extractInlineImageStorageIds(body);
   if (storageIds.length === 0) return body;
-  const uniqueIds = Array.from(new Set(storageIds));
+  const allUniqueIds = Array.from(new Set(storageIds));
+  // Apply the per-post cap for list queries. IDs beyond the cap are not
+  // fetched; their image nodes will keep whatever `src` is already stored
+  // (typically a stale signed URL or empty string from a previous write).
+  const uniqueIds =
+    limit !== undefined ? allUniqueIds.slice(0, limit) : allUniqueIds;
   const urls = await Promise.all(
     uniqueIds.map((id) => ctx.storage.getUrl(id as Id<"_storage">)),
   );
@@ -51,6 +74,11 @@ async function rewriteInlineImageSrc(
     const sid = attrs.storageId;
     if (typeof sid !== "string" || sid.length === 0) return attrs;
     const resolved = urlByStorageId.get(sid);
+    // If the storageId was beyond the cap (not in the map), leave the
+    // existing `src` untouched rather than blanking it.
+    if (!urlByStorageId.has(sid as string)) {
+      return attrs;
+    }
     if (resolved == null) {
       return { ...attrs, src: "" };
     }
@@ -100,14 +128,15 @@ export const getByUsername = query({
     const coverUrls = await Promise.all(
       visible.map((p) => resolvePostCoverUrls(ctx, p)),
     );
-    // Rewrite inline image `src` per post. Bounded by the list page size and
-    // the per-post image count — Policy A from FG_093. Without this, the
-    // post list shows broken images for any post older than the signed-URL
-    // TTL because `postSummaryReturnValidator` includes `body: v.any()` and
-    // the editor stores image src as a Convex signed URL captured at upload
-    // time (mutations write the body verbatim).
+    // Rewrite inline image `src` per post, capped at LIST_INLINE_IMAGE_CAP
+    // unique storage IDs per post (FG_258). Without the cap the fan-out is
+    // O(posts × images/post) — up to ~1 000 storage calls for content-heavy
+    // users even with the 100-row outer cap. The cap bounds the list fan-out
+    // to ≤ 500 calls while still resolving the images most likely to appear
+    // in the preview viewport. The detail page (`getBySlug`) resolves all
+    // images without a cap.
     const rewrittenBodies = await Promise.all(
-      visible.map((p) => rewriteInlineImageSrc(ctx, p.body)),
+      visible.map((p) => rewriteInlineImageSrc(ctx, p.body, LIST_INLINE_IMAGE_CAP)),
     );
 
     return visible.map((post, i) =>

@@ -170,6 +170,78 @@ describe("posts.queries.getBySlug — inline image src rewrite (FR-05)", () => {
   });
 });
 
+describe("posts.queries.getByUsername — draft/published visibility (FG_248/FG_255)", () => {
+  beforeEach(() => {
+    authState.currentAuthUser = null;
+  });
+
+  it("non-owner sees only published posts (draft hidden)", async () => {
+    const t = makeT();
+    await setupOwnerAndSignIn(t);
+
+    // Create one draft and one published post as the owner.
+    await t.mutation(api.posts.mutations.create, {
+      title: "Draft Post",
+      slug: "draft-post",
+      category: "Creativity",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+    await t.mutation(api.posts.mutations.create, {
+      title: "Published Post",
+      slug: "published-post",
+      category: "Creativity",
+      body: { type: "doc", content: [] },
+      status: "published",
+    });
+
+    // Sign out so the caller is a non-owner.
+    authState.currentAuthUser = null;
+
+    const list = await t.query(api.posts.queries.getByUsername, {
+      username: "owner",
+    });
+
+    expect(list).not.toBeNull();
+    expect(list!).toHaveLength(1);
+    expect(list![0]!.status).toBe("published");
+    expect(list![0]!.slug).toBe("published-post");
+  });
+
+  it("owner sees all posts including drafts", async () => {
+    const t = makeT();
+    const { authId } = await setupOwnerAndSignIn(t);
+
+    // Create one draft and one published post as the owner.
+    await t.mutation(api.posts.mutations.create, {
+      title: "Draft Post",
+      slug: "draft-post",
+      category: "Creativity",
+      body: { type: "doc", content: [] },
+      status: "draft",
+    });
+    await t.mutation(api.posts.mutations.create, {
+      title: "Published Post",
+      slug: "published-post",
+      category: "Creativity",
+      body: { type: "doc", content: [] },
+      status: "published",
+    });
+
+    // Stay signed in as the owner.
+    authState.currentAuthUser = { _id: authId };
+
+    const list = await t.query(api.posts.queries.getByUsername, {
+      username: "owner",
+    });
+
+    expect(list).not.toBeNull();
+    expect(list!).toHaveLength(2);
+    const slugs = list!.map((p) => p.slug).sort();
+    expect(slugs).toEqual(["draft-post", "published-post"]);
+  });
+});
+
 describe("posts.queries.getByUsername — inline image src rewrite (FG_093)", () => {
   beforeEach(() => {
     authState.currentAuthUser = null;
