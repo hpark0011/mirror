@@ -2,6 +2,37 @@
 
 ## 2026-05-18
 
+### Parallel sub-agents in a shared worktree must never run worktree-global git ops
+
+- During a `/resolve-issue-tickets` wave, a FG_252 executor ran a `git stash`
+  "build test" and a verifier later ran a `git clean`-class command in the
+  SHARED worktree. `git stash` reverted the other three parallel executors'
+  uncommitted **tracked** changes; the `git clean`-class op wiped the
+  **untracked** ticket files and `workspace/tickets/to-do/` entirely. No code
+  was lost only because the orchestrator could re-derive every change
+  deterministically from verifier reports.
+- Root causes, both compounding-fixable upstream:
+  1. **Sub-agent prompts did not forbid worktree-global git** (`git stash`,
+     `git checkout`, `git reset`, `git clean`, `git worktree`). Telling
+     verifiers "don't run git stash" in prose was insufficient — one did it
+     anyway. The executor/verifier prompt templates in
+     `.claude/skills/resolve-issue-tickets/SKILL.md` must hard-prohibit these
+     and offer a safe alternative for "compare against base" (read
+     `git show main:<path>`, never check out).
+  2. **Ticket files were untracked.** `generate-issue-tickets` Writes the file
+     but never `git add`s it; `mark-completed.sh` `git mv` on an untracked
+     file is not a tracked rename. Untracked + shared worktree + any
+     `git clean` = silent total loss. Newly generated tickets should be
+     `git add`ed (intent-to-add at minimum) so they survive a clean.
+  3. **"No commits" + parallel git-capable sub-agents is unsafe.** Without a
+     per-wave commit (Phase 4e) there is no rollback point; the only recovery
+     is the orchestrator's context. If the user declines commits, the
+     orchestrator must snapshot the worktree (filesystem copy) before each
+     wave, not rely on prompt discipline alone.
+- Detection signal: a sub-agent reporting it did a "stash test" / "stash to
+  compare against base" / "git clean" is a P0 process flag — stop the wave and
+  reconcile filesystem + `git status` before dispatching anything else.
+
 ### Duplicate "twin" components: verify rendered outcome, not class strings
 
 - When a change must be applied to two near-identical components

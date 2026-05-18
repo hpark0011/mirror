@@ -297,10 +297,18 @@ export const resetTestUser = internalMutation({
   handler: async (ctx, args) => {
     assertTestEmail(args.email);
 
-    const existing = await ctx.db
+    // Mirror ensureTestUser: dev/test envs can accumulate a synthetic
+    // `test_<email>` auth row alongside the real Better Auth row for the
+    // same email. `.unique()` throws on that (the exact state ensureTestUser
+    // now deliberately creates), so collect and prefer the real-auth row.
+    const existingUsers = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique();
+      .collect();
+    const syntheticAuthId = `test_${args.email}`;
+    const existing =
+      existingUsers.find((user) => user.authId !== syntheticAuthId) ??
+      existingUsers[0];
     if (!existing) return null;
 
     await ctx.db.patch(existing._id, {

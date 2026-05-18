@@ -15,6 +15,7 @@ const variantLabels: Record<(typeof BUTTON_VARIANTS)[number], string> = {
   ghost: "Ghost",
   link: "Link",
   destructive: "Destructive",
+  wrapper: "Wrapper",
 };
 
 export function ButtonVariants() {

@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from "@feel-good/ui/primitives/alert-dialog";
 import { PostListDeleteContext } from "../../context/post-list-delete-context";
-import { useListDeletePost } from "../../hooks/use-list-delete-post";
+import { useDeletePost } from "../../hooks/use-delete-post";
 
 type PostListDeleteDialogProps = {
   username: string;
@@ -25,8 +25,8 @@ type PostListDeleteDialogProps = {
  * button can trigger the dialog without mounting its own hook tree.
  *
  * Hoisted per FG_233: DeletePostConnector was previously mounted once per row,
- * allocating O(N) hook trees (useMutation + useMemo + 2×useState + useRef +
- * 3×useCallback) inside a CSS-hidden container that React still executes.
+ * allocating O(N) hook trees (useMutation + useMemo + 2xsetState + useRef +
+ * 3xuseCallback) inside a CSS-hidden container that React still executes.
  */
 export function PostListDeleteDialog({
   username,
@@ -39,7 +39,7 @@ export function PostListDeleteDialog({
     handleConfirm,
     handleCancel,
     requestDelete,
-  } = useListDeletePost(username);
+  } = useDeletePost({ username });
 
   return (
     <PostListDeleteContext.Provider value={{ requestDelete }}>

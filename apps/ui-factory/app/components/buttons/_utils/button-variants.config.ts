@@ -17,4 +17,5 @@ export const BUTTON_VARIANTS: ButtonVariant[] = [
   "outline",
   "ghost",
   "link",
+  "wrapper",
 ] as const;

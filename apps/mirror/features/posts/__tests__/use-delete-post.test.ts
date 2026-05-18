@@ -420,3 +420,119 @@ describe("useDeletePost", () => {
     });
   });
 });
+
+
+// Late-bound (list-page) mode
+
+describe("useDeletePost — late-bound mode (no postId)", () => {
+  beforeEach(() => {
+    mockRemoveMutation.mockReset();
+    mockWithOptimisticUpdate.mockReset();
+    mockRouter.replace.mockReset();
+    mockShowToast.mockReset();
+    mockBuildChatAwareHref.mockReset();
+    mockBuildChatAwareHref.mockImplementation((href: string) => href);
+
+    mockWithOptimisticUpdate.mockImplementation((_callback: unknown) => {
+      return mockRemoveMutation;
+    });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("exposes requestDelete and does NOT navigate on success", async () => {
+    const { promise, resolve } = deferred<void>();
+    mockRemoveMutation.mockReturnValue(promise);
+
+    const { result } = renderHook(() =>
+      useDeletePost({ username: "listuser" }),
+    );
+
+    // Verify requestDelete is exposed in list mode
+    expect("requestDelete" in result.current).toBe(true);
+
+    // Open dialog via requestDelete
+    const fakePost = { _id: "post_list_1" } as never;
+    await act(async () => {
+      (result.current as { requestDelete: (p: unknown) => void }).requestDelete(
+        fakePost,
+      );
+    });
+
+    expect(result.current.dialogOpen).toBe(true);
+
+    // Confirm deletion
+    await act(async () => {
+      result.current.handleConfirm();
+      await Promise.resolve();
+    });
+
+    expect(result.current.isPending).toBe(true);
+
+    // FG_168 invariant: router.replace must NOT fire in list mode
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+
+    // Resolve mutation
+    await act(async () => {
+      resolve();
+    });
+
+    expect(mockShowToast).toHaveBeenCalledWith({
+      type: "success",
+      title: "Post deleted",
+    });
+    expect(result.current.dialogOpen).toBe(false);
+    expect(result.current.isPending).toBe(false);
+    // Still no navigation
+    expect(mockRouter.replace).not.toHaveBeenCalled();
+  });
+
+  it("handleConfirm is a no-op when requestDelete has not been called", async () => {
+    mockRemoveMutation.mockResolvedValue(undefined);
+
+    const { result } = renderHook(() =>
+      useDeletePost({ username: "listuser" }),
+    );
+
+    // No requestDelete call -> targetPostRef is null -> handleConfirm should bail
+    await act(async () => {
+      await result.current.handleConfirm();
+    });
+
+    expect(mockRemoveMutation).not.toHaveBeenCalled();
+    expect(mockShowToast).not.toHaveBeenCalled();
+  });
+
+  it("double-submit guard works the same as eager mode", async () => {
+    const { promise } = deferred<void>();
+    mockRemoveMutation.mockReturnValue(promise);
+
+    const { result } = renderHook(() =>
+      useDeletePost({ username: "listuser" }),
+    );
+
+    const fakePost = { _id: "post_list_2" } as never;
+    await act(async () => {
+      (result.current as { requestDelete: (p: unknown) => void }).requestDelete(
+        fakePost,
+      );
+    });
+
+    await act(async () => {
+      result.current.handleConfirm();
+      await Promise.resolve();
+    });
+
+    expect(result.current.isPending).toBe(true);
+
+    // Second confirm while in-flight
+    await act(async () => {
+      result.current.handleConfirm();
+    });
+
+    // Mutation should only have been called once
+    expect(mockRemoveMutation).toHaveBeenCalledTimes(1);
+  });
+});
