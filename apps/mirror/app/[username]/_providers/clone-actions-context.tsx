@@ -8,7 +8,11 @@ import {
   type ReactNode,
 } from "react";
 import { useRouter } from "next/navigation";
-import { getContentHref, type ContentKind } from "@/features/content";
+import {
+  getContentEditHref,
+  getContentHref,
+  type ContentKind,
+} from "@/features/content";
 import {
   getProfileTabHref,
   type ProfileTabKind,
@@ -72,6 +76,27 @@ type CloneActions = {
      */
     href?: string;
   }) => void;
+  /**
+   * Navigate to the inline editor for a specific post. Owner-only verb —
+   * called from the post-list Edit action (user-UI path) and from the
+   * `editPost` tool result watcher (agent path). Both routes funnel here so
+   * the chat-aware suffix and `scroll: false` invariant apply in one place.
+   *
+   * Agent path: passes the server-built `editHref` directly so the client
+   * never recomposes the URL template.
+   * User-UI path: omits `editHref` and the dispatcher builds it from
+   * `username + kind + slug` via `getContentEditHref`.
+   */
+  navigateToEditor: (args: {
+    kind: ContentKind;
+    slug: string;
+    /**
+     * Optional override — when called from the agent intent watcher,
+     * pass the server-built editHref directly instead of recomposing
+     * client-side.
+     */
+    editHref?: string;
+  }) => void;
 };
 
 const CloneActionsContext = createContext<CloneActions | null>(null);
@@ -120,9 +145,23 @@ export function CloneActionsProvider({ children }: CloneActionsProviderProps) {
     [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
   );
 
+  const navigateToEditor = useCallback<CloneActions["navigateToEditor"]>(
+    ({ kind, slug, editHref }) => {
+      // Panel-open invariant — same as navigateToContent and
+      // navigateToProfileSection.
+      ensureContentPanelOpen();
+      // Agent path: server provided the canonical editHref; do NOT recompose.
+      // User-UI path: build from username + kind + slug.
+      const basePath =
+        editHref ?? getContentEditHref(profile.username, kind, slug);
+      router.push(buildChatAwareHref(basePath), { scroll: false });
+    },
+    [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
+  );
+
   const value = useMemo<CloneActions>(
-    () => ({ navigateToContent, navigateToProfileSection }),
-    [navigateToContent, navigateToProfileSection],
+    () => ({ navigateToContent, navigateToProfileSection, navigateToEditor }),
+    [navigateToContent, navigateToProfileSection, navigateToEditor],
   );
 
   return (

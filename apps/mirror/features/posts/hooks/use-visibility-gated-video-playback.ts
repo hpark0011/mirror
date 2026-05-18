@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useState } from "react";
 
-// Mirrors `useVisibilityGatedVideoPlayback` in articles/list/article-list-featured-card.tsx.
 // IntersectionObserver pauses videos that scroll out of the viewport so a
 // long post list with many video covers doesn't churn through decoders.
 export function useVisibilityGatedVideoPlayback() {

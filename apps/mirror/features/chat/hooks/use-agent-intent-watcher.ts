@@ -39,6 +39,7 @@ import { isContentKind, type ContentKind } from "@/features/content";
  */
 const NAVIGATE_TO_CONTENT_TYPE = "tool-navigateToContent";
 const OPEN_PROFILE_SECTION_TYPE = "tool-openProfileSection";
+const EDIT_POST_TYPE = "tool-editPost";
 const DELETE_POST_TYPE = "tool-deletePost";
 const PUBLISH_POST_TYPE = "tool-publishPost";
 const UNPUBLISH_POST_TYPE = "tool-unpublishPost";
@@ -137,6 +138,28 @@ function isOpenProfileSectionOutput(
     typeof o.href === "string" &&
     o.href.length > 0 &&
     typeof o.hasEntries === "boolean"
+  );
+}
+
+type EditPostOutput = {
+  kind: "posts";
+  slug: string;
+  title: string;
+  status: "draft" | "published";
+  editHref: string;
+};
+
+function isEditPostOutput(output: unknown): output is EditPostOutput {
+  if (!output || typeof output !== "object") return false;
+  const o = output as Record<string, unknown>;
+  return (
+    o.kind === "posts" &&
+    typeof o.slug === "string" &&
+    o.slug.length > 0 &&
+    typeof o.title === "string" &&
+    (o.status === "draft" || o.status === "published") &&
+    typeof o.editHref === "string" &&
+    o.editHref.length > 0
   );
 }
 
@@ -328,7 +351,11 @@ export function useAgentIntentWatcher(
   messages: UIMessage[],
   conversationId: string | null,
 ) {
-  const { navigateToContent, navigateToProfileSection } = useCloneActions();
+  const {
+    navigateToContent,
+    navigateToProfileSection,
+    navigateToEditor,
+  } = useCloneActions();
 
   /**
    * Per-mount perf optimization: track the highest message index already
@@ -367,6 +394,7 @@ export function useAgentIntentWatcher(
         if (
           part.type !== NAVIGATE_TO_CONTENT_TYPE &&
           part.type !== OPEN_PROFILE_SECTION_TYPE &&
+          part.type !== EDIT_POST_TYPE &&
           part.type !== DELETE_POST_TYPE &&
           part.type !== PUBLISH_POST_TYPE &&
           part.type !== UNPUBLISH_POST_TYPE &&
@@ -454,6 +482,17 @@ export function useAgentIntentWatcher(
           continue;
         }
 
+        if (toolPart.type === EDIT_POST_TYPE) {
+          if (!isEditPostOutput(toolPart.output)) continue;
+          handled.add(toolPart.toolCallId);
+          navigateToEditor({
+            kind: toolPart.output.kind,
+            slug: toolPart.output.slug,
+            editHref: toolPart.output.editHref,
+          });
+          continue;
+        }
+
         if (toolPart.type === DELETE_POST_TYPE) {
           if (!isDeletePostOutput(toolPart.output)) continue;
           handled.add(toolPart.toolCallId);
@@ -522,5 +561,5 @@ export function useAgentIntentWatcher(
 
     // Update the last-scanned index so the next effect run starts from here.
     lastScannedIndexRef.current.set(idxKey, messages.length);
-  }, [messages, navigateToContent, navigateToProfileSection, conversationId]);
+  }, [messages, navigateToContent, navigateToProfileSection, navigateToEditor, conversationId]);
 }

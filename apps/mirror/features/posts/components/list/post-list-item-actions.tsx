@@ -1,5 +1,6 @@
 "use client";
 
+import { type MouseEvent, useCallback } from "react";
 import Link from "next/link";
 import { Icon } from "@feel-good/ui/components/icon";
 import { Button } from "@feel-good/ui/primitives/button";
@@ -8,7 +9,9 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@feel-good/ui/primitives/tooltip";
-import { usePostList } from "../../context/post-list-context";
+import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
+import { getContentEditHref } from "@/features/content";
+import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { usePostListDelete } from "../../context/post-list-delete-context";
 import { type PostSummary } from "../../types";
 
@@ -23,8 +26,35 @@ export function PostListItemActions({
   username,
   isOwner,
 }: PostListItemActionsProps) {
-  const { buildChatAwareHref } = usePostList();
+  const { buildChatAwareHref } = useChatSearchParams();
+  const { navigateToEditor } = useCloneActions();
   const listDelete = usePostListDelete();
+
+  // Keep `<Link href>` populated for SEO/middle-click semantics. The
+  // onClick below routes "normal" left-clicks through the same dispatcher
+  // the agent uses (`useCloneActions().navigateToEditor`), mirroring the
+  // pattern used by `PostListItem` for `navigateToContent`.
+  const editHref = buildChatAwareHref(
+    getContentEditHref(username, "posts", post.slug),
+  );
+
+  const handleEditClick = useCallback(
+    (event: MouseEvent<HTMLAnchorElement>) => {
+      // Preserve middle/cmd/shift-click-to-new-tab semantics.
+      if (
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey ||
+        event.button !== 0
+      ) {
+        return;
+      }
+      event.preventDefault();
+      navigateToEditor({ kind: "posts", slug: post.slug });
+    },
+    [navigateToEditor, post.slug],
+  );
 
   // UI-only gate. The real authorization boundaries are server-side:
   //   - api.posts.mutations.remove (deletePostForUserById → isOwnedByUser)
@@ -46,10 +76,7 @@ export function PostListItemActions({
             aria-label="Edit post"
             data-testid="post-list-edit-btn"
           >
-            <Link
-              href={buildChatAwareHref(`/@${username}/posts/${post.slug}/edit`)}
-              scroll={false}
-            >
+            <Link href={editHref} scroll={false} onClick={handleEditClick}>
               <Icon name="PencilIcon" />
             </Link>
           </Button>

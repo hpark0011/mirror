@@ -168,6 +168,14 @@ export const readTestOtp = internalQuery({
  * Upserts the app-level users row for a test user.
  * Sets username, name, and onboardingComplete so tests can proceed past onboarding.
  *
+ * CONCURRENCY INVARIANT: Callers must supply a globally unique username per
+ * concurrent worker. Two parallel workers claiming the same username will both
+ * pass the initial owner check (each reads a pre-commit snapshot) and then the
+ * post-cleanup contention check will throw for whichever mutation runs second,
+ * surfacing the conflict as a loud retryable error rather than silent
+ * by_username index corruption. Use per-test unique usernames (e.g.,
+ * `pla-<pid>-<ts>`) to avoid contention entirely.
+ *
  * WARNING: Only call from test infrastructure. Never expose as public API.
  */
 export const ensureTestUser = internalMutation({
@@ -255,6 +263,30 @@ export const ensureTestUser = internalMutation({
       await ctx.db.patch(holder._id, { username: undefined });
     }
 
+    // Post-cleanup contention check: re-read by_username owners immediately
+    // before the final username claim. Two concurrent mutations targeting the
+    // same username both pass the initial owner check (each sees a
+    // pre-commit snapshot), but whichever runs second will observe the first
+    // mutation's patch here and throw rather than producing a second row
+    // with the same username (which would corrupt the non-unique by_username
+    // index and make every .unique() caller throw).
+    const postCleanupOwners = await ctx.db
+      .query("users")
+      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .collect();
+    const contentionOwner = postCleanupOwners.find(
+      (owner) =>
+        owner._id !== existing?._id &&
+        owner.email !== args.email &&
+        owner.email.endsWith(TEST_EMAIL_SUFFIX),
+    );
+    if (contentionOwner) {
+      throw new Error(
+        `ensureTestUser: username "${args.username}" is held by a concurrent worker (${contentionOwner.email}). ` +
+          `Use a globally unique username per concurrent worker (e.g., pla-<pid>-<ts>) to prevent this contention.`,
+      );
+    }
+
     if (existing) {
       await ctx.db.patch(existing._id, {
         username: args.username,
@@ -297,10 +329,18 @@ export const resetTestUser = internalMutation({
   handler: async (ctx, args) => {
     assertTestEmail(args.email);
 
-    const existing = await ctx.db
+    // Mirror ensureTestUser: dev/test envs can accumulate a synthetic
+    // `test_<email>` auth row alongside the real Better Auth row for the
+    // same email. `.unique()` throws on that (the exact state ensureTestUser
+    // now deliberately creates), so collect and prefer the real-auth row.
+    const existingUsers = await ctx.db
       .query("users")
       .withIndex("by_email", (q) => q.eq("email", args.email))
-      .unique();
+      .collect();
+    const syntheticAuthId = `test_${args.email}`;
+    const existing =
+      existingUsers.find((user) => user.authId !== syntheticAuthId) ??
+      existingUsers[0];
     if (!existing) return null;
 
     await ctx.db.patch(existing._id, {

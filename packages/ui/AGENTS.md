@@ -147,6 +147,18 @@ outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:
 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40
 ```
 
+### Tooltip requires a root `TooltipProvider`
+
+`primitives/tooltip.tsx`'s `Tooltip` does **not** self-wrap a
+`TooltipProvider` (one provider per tooltip is wasteful and breaks shared
+delay/skip grouping). **Every consuming app MUST mount a single
+`TooltipProvider` at its root** (`apps/<app>/providers/root-provider.tsx`).
+Do not rely on another primitive (e.g. `SidebarProvider`) wrapping one
+internally — routes rendered outside that primitive lose tooltip context
+silently (tooltips never open, no console error). Any component here that
+renders `<Tooltip>` (`components/icon-button.tsx`, and editor
+`toolbar-button.tsx` in `@feel-good/features`) inherits this requirement.
+
 ## Adding New Components
 
 1. shadcn/ui components → `src/primitives/`; custom → `src/components/`

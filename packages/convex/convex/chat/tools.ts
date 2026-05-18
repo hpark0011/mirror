@@ -203,7 +203,52 @@ export function buildCloneTools(
       },
     }),
 
-    deletePost: createTool({
+    editPost: createTool({
+      description:
+        "Open the editor for one of the profile owner's posts by slug. Use this only when the visitor (who must be the profile owner) explicitly asks to edit or open the editor for a specific post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The slug must come from getLatestPublished or from a post the profile owner has authored. The result includes the canonical editHref; the client uses it to navigate the owner to the inline editor.",
+      // The LLM-visible surface is `slug` only. The owner is the closure-bound
+      // `profileOwnerId`, never a tool arg — same cross-user isolation boundary
+      // as `navigateToContent` and `deletePost`. The `inputSchema invariants`
+      // tests in `chat/__tests__/tools.test.ts` pin this.
+      inputSchema: z.object({
+        slug: z
+          .string()
+          .min(1)
+          .describe("The slug of the post to open in the editor."),
+      }),
+      execute: async (ctx, { slug }) => {
+        assertOwnerWriteAllowed();
+
+        const row: {
+          kind: ContentKind;
+          slug: string;
+          title: string;
+          status: ContentStatus;
+          publishedAt?: number;
+          username: string;
+          href: string;
+        } | null = await ctx.runQuery(
+          internal.chat.toolQueries.resolveOwnedContentBySlug,
+          { userId: profileOwnerId, kind: "posts", slug },
+        );
+        if (!row) {
+          throw new Error(
+            `No post found for slug "${slug}" owned by this profile.`,
+          );
+        }
+
+        const editHref = `${row.href}/edit`;
+        return {
+          kind: "posts" as const,
+          slug: row.slug,
+          title: row.title,
+          status: row.status,
+          editHref,
+        };
+      },
+    }),
+
+        deletePost: createTool({
       description:
         "Permanently delete one of the profile owner's posts by slug. Use this only when the visitor (who is the profile owner — verify by their phrasing such as 'delete my post titled X') explicitly asks to remove a post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The slug must come from getLatestPublished or from a post the profile owner has authored. The result includes a `deleted` boolean and the canonical posts-list href; the client uses the href to navigate the visitor away from the now-deleted detail page. If `deleted` is false the slug did not match a post owned by this profile — acknowledge the miss and offer to look it up with getLatestPublished.",
       // The LLM-visible surface is `slug` only. The owner is the closure-bound

@@ -1,5 +1,71 @@
 # Lessons Learned
 
+## 2026-05-18
+
+### Parallel sub-agents in a shared worktree must never run worktree-global git ops
+
+- During a `/resolve-issue-tickets` wave, a FG_252 executor ran a `git stash`
+  "build test" and a verifier later ran a `git clean`-class command in the
+  SHARED worktree. `git stash` reverted the other three parallel executors'
+  uncommitted **tracked** changes; the `git clean`-class op wiped the
+  **untracked** ticket files and `workspace/tickets/to-do/` entirely. No code
+  was lost only because the orchestrator could re-derive every change
+  deterministically from verifier reports.
+- Root causes, both compounding-fixable upstream:
+  1. **Sub-agent prompts did not forbid worktree-global git** (`git stash`,
+     `git checkout`, `git reset`, `git clean`, `git worktree`). Telling
+     verifiers "don't run git stash" in prose was insufficient — one did it
+     anyway. The executor/verifier prompt templates in
+     `.claude/skills/resolve-issue-tickets/SKILL.md` must hard-prohibit these
+     and offer a safe alternative for "compare against base" (read
+     `git show main:<path>`, never check out).
+  2. **Ticket files were untracked.** `generate-issue-tickets` Writes the file
+     but never `git add`s it; `mark-completed.sh` `git mv` on an untracked
+     file is not a tracked rename. Untracked + shared worktree + any
+     `git clean` = silent total loss. Newly generated tickets should be
+     `git add`ed (intent-to-add at minimum) so they survive a clean.
+  3. **"No commits" + parallel git-capable sub-agents is unsafe.** Without a
+     per-wave commit (Phase 4e) there is no rollback point; the only recovery
+     is the orchestrator's context. If the user declines commits, the
+     orchestrator must snapshot the worktree (filesystem copy) before each
+     wave, not rely on prompt discipline alone.
+- Detection signal: a sub-agent reporting it did a "stash test" / "stash to
+  compare against base" / "git clean" is a P0 process flag — stop the wave and
+  reconcile filesystem + `git status` before dispatching anything else.
+
+### `mark-completed.sh` flips frontmatter status AFTER `git mv` — stage explicitly
+
+- `.claude/skills/resolve-issue-tickets/scripts/mark-completed.sh` does
+  `git mv to-do/X completed/X` (stages the rename) and THEN rewrites the
+  file's `status: to-do` → `status: completed` (an *unstaged* edit on top of
+  the staged rename). A per-wave commit that only `git add`s the wave's code
+  files captures the staged rename but NOT the status flip — the committed
+  `completed/FG_NNN.md` still says `status: to-do`, silently violating the
+  two-places-in-sync contract. Wave 2 of this session shipped FG_255/257/258
+  that way; caught and corrected in the Wave-3 commit.
+- Until the script is fixed (flip status BEFORE `git mv`, or `git add` the
+  destination after the flip), the orchestrator MUST explicitly
+  `git add workspace/tickets/completed/FG_NNN-*.md` before each wave commit
+  and verify `git show HEAD:<path> | grep '^status:'` == `completed` for
+  every ticket the wave closed. Upstream fix belongs in the script — file a
+  follow-up ticket via `/generate-issue-tickets`.
+
+### Duplicate "twin" components: verify rendered outcome, not class strings
+
+- When a change must be applied to two near-identical components
+  (`post-list-item.tsx` / `post-detail.tsx`), DOM-verifying the class string
+  on each is not enough. The two had already drifted: same `gap-0` class but
+  one renders the body via `ContentBody` (direct-child `<p>`, first-child
+  margin reset works) and the other via `RichTextViewer` (Tiptap
+  `.ProseMirror` wrapper → `<p>` is a grandchild, reset never applied) — so
+  identical classes produced a 16px misalignment. Verify the *measured
+  rendered result* (e.g. body-first-line vs metadata-first-line top delta) is
+  identical across both, not just that the markup matches.
+- Having to hand-apply the same fix to two files is itself the bug signal.
+  Surface the duplication and propose extracting one shared presentational
+  component instead of dual-patching (the compounding option). Connector →
+  pure-UI separation being clean does NOT mean the UI layer is DRY.
+
 ## 2026-05-15
 
 ### `convex codegen` (1.37) is not offline — it pushes to a deployment

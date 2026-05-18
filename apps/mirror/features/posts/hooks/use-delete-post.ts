@@ -10,12 +10,14 @@ import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { type PostSummary } from "../types";
 
-export type UseDeletePostArgs = {
+// Eager (detail-page) mode
+
+export type UseDeletePostEagerArgs = {
   postId: PostSummary["_id"];
   username: string;
 };
 
-export type UseDeletePostReturn = {
+export type UseDeletePostEagerReturn = {
   dialogOpen: boolean;
   isPending: boolean;
   handleConfirm: () => Promise<void>;
@@ -23,18 +25,46 @@ export type UseDeletePostReturn = {
   handleOpenChange: (open: boolean) => void;
 };
 
+// Late-bound (list-page) mode
+
+export type UseDeletePostListArgs = {
+  postId?: undefined;
+  username: string;
+};
+
+export type UseDeletePostListReturn = UseDeletePostEagerReturn & {
+  requestDelete: (post: PostSummary) => void;
+};
+
+// Overloads
+
+export function useDeletePost(
+  args: UseDeletePostEagerArgs,
+): UseDeletePostEagerReturn;
+export function useDeletePost(
+  args: UseDeletePostListArgs,
+): UseDeletePostListReturn;
+
+// Implementation
+
 export function useDeletePost({
   postId,
   username,
-}: UseDeletePostArgs): UseDeletePostReturn {
+}: UseDeletePostEagerArgs | UseDeletePostListArgs):
+  | UseDeletePostEagerReturn
+  | UseDeletePostListReturn {
   const router = useRouter();
   const { buildChatAwareHref } = useChatSearchParams();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const isSubmittingRef = useRef(false);
 
+  // Late-bound target for list mode; null in eager mode.
+  const targetPostRef = useRef<PostSummary | null>(null);
+
   const removeMutation = useMutation(api.posts.mutations.remove);
 
+  // Single optimistic-update block — the sole source of truth for the filter.
   const removePosts = useMemo(
     () =>
       removeMutation.withOptimisticUpdate((store, args) => {
@@ -52,21 +82,28 @@ export function useDeletePost({
   );
 
   const handleConfirm = useCallback(async () => {
-    if (isSubmittingRef.current) return;
+    // Resolve the target id from either the eager prop or the late-bound ref.
+    const resolvedId = postId ?? targetPostRef.current?._id;
+    if (isSubmittingRef.current || resolvedId == null) return;
     isSubmittingRef.current = true;
     setIsPending(true);
 
     try {
-      // FG_168: Navigate first so the post-detail unmount happens before Convex
-      // invalidates the getById subscription — prevents the blank-flash where
-      // PostDetailConnector renders null between mutation resolve and route paint.
-      router.replace(buildChatAwareHref(getContentHref(username, "posts")));
-      await removePosts({ ids: [postId] });
+      if (postId != null) {
+        // FG_168: Navigate first so the post-detail unmount happens before
+        // Convex invalidates the getById subscription — prevents the
+        // blank-flash where PostDetailConnector renders null between mutation
+        // resolve and route paint.
+        router.replace(buildChatAwareHref(getContentHref(username, "posts")));
+      }
+      await removePosts({ ids: [resolvedId] });
       showToast({ type: "success", title: "Post deleted" });
       setDialogOpen(false);
+      targetPostRef.current = null;
     } catch (err) {
       showToast({ type: "error", title: getMutationErrorMessage(err) });
-      // Navigation already fired; error toast surfaces on the posts list page.
+      // If navigation already fired (detail mode), the error toast surfaces
+      // on the posts list page. In list mode, the dialog stays open.
     } finally {
       isSubmittingRef.current = false;
       setIsPending(false);
@@ -76,18 +113,36 @@ export function useDeletePost({
   const handleCancel = useCallback(() => {
     if (isSubmittingRef.current) return;
     setDialogOpen(false);
+    targetPostRef.current = null;
   }, []);
 
   const handleOpenChange = useCallback((open: boolean) => {
     if (!open && isSubmittingRef.current) return;
     setDialogOpen(open);
+    if (!open) {
+      targetPostRef.current = null;
+    }
   }, []);
 
-  return {
+  // List mode only: open dialog for a specific post.
+  const requestDelete = useCallback((post: PostSummary) => {
+    targetPostRef.current = post;
+    setDialogOpen(true);
+  }, []);
+
+  const base: UseDeletePostEagerReturn = {
     dialogOpen,
     isPending,
     handleConfirm,
     handleCancel,
     handleOpenChange,
   };
+
+  // Eager mode: do not expose requestDelete.
+  if (postId != null) {
+    return base;
+  }
+
+  // Late-bound mode: expose requestDelete.
+  return { ...base, requestDelete };
 }

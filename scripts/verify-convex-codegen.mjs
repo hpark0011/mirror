@@ -39,7 +39,10 @@ function run(cmd, args, cwd) {
   return spawnSync(cmd, args, { cwd, stdio: "inherit", encoding: "utf8" });
 }
 
-// 1. Regenerate. `--no-install` keeps it offline by resolving the local bin.
+// 1. Regenerate. `--no-install` only skips npx's package auto-download (it
+//    resolves the local bin); it does NOT make codegen network-offline.
+//    `convex codegen` (1.37) still requires CONVEX_DEPLOYMENT and pushes the
+//    working tree's functions to that dev deployment — see the header.
 const codegen = run("npx", ["--no-install", "convex", "codegen"], convexDir);
 if (codegen.status !== 0) {
   console.error(
