@@ -33,6 +33,23 @@
   compare against base" / "git clean" is a P0 process flag — stop the wave and
   reconcile filesystem + `git status` before dispatching anything else.
 
+### `mark-completed.sh` flips frontmatter status AFTER `git mv` — stage explicitly
+
+- `.claude/skills/resolve-issue-tickets/scripts/mark-completed.sh` does
+  `git mv to-do/X completed/X` (stages the rename) and THEN rewrites the
+  file's `status: to-do` → `status: completed` (an *unstaged* edit on top of
+  the staged rename). A per-wave commit that only `git add`s the wave's code
+  files captures the staged rename but NOT the status flip — the committed
+  `completed/FG_NNN.md` still says `status: to-do`, silently violating the
+  two-places-in-sync contract. Wave 2 of this session shipped FG_255/257/258
+  that way; caught and corrected in the Wave-3 commit.
+- Until the script is fixed (flip status BEFORE `git mv`, or `git add` the
+  destination after the flip), the orchestrator MUST explicitly
+  `git add workspace/tickets/completed/FG_NNN-*.md` before each wave commit
+  and verify `git show HEAD:<path> | grep '^status:'` == `completed` for
+  every ticket the wave closed. Upstream fix belongs in the script — file a
+  follow-up ticket via `/generate-issue-tickets`.
+
 ### Duplicate "twin" components: verify rendered outcome, not class strings
 
 - When a change must be applied to two near-identical components
