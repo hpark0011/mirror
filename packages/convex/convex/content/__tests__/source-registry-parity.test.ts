@@ -53,6 +53,10 @@ const NON_RAG_TABLES: Record<string, string> = {
   betaAllowlist: "Access-control allowlist — operational, not user content.",
   waitlistRequests: "Signup-funnel records — operational, not user content.",
   testOtpStore: "Test-only Playwright auth fixture — never production data.",
+  calendarConnections:
+    "Owner-only scheduling preferences — operational config, not authored content.",
+  scheduledMeetings:
+    "Per-visitor meeting records — derived from chat actions, not authored content.",
 };
 
 function sorted(values: readonly string[]): string[] {

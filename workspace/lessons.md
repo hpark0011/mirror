@@ -1,5 +1,42 @@
 # Lessons Learned
 
+## 2026-05-22
+
+### `@js-temporal/polyfill` 0.5.x: `disambiguation: 'reject'` doesn't tell you which DST case fired
+
+- `pdt.toZonedDateTime(tz, { disambiguation: 'reject' })` throws the same
+  generic `"multiple instants found"` `RangeError` for *both* nonexistent
+  (gap, spring-forward) and ambiguous (fold, fall-back) local times. Inspecting
+  the message text to distinguish them silently fails.
+- The spec-level `Temporal.TimeZone.from(...).getPossibleInstantsFor(...)` is
+  unavailable in this polyfill version (`Temporal.TimeZone` is undefined), so
+  the cleanest distinguisher is to retry with `'earlier'` and compare the
+  returned `toPlainDateTime()` to the input: same local clock-face time → fold
+  (ambiguous); different → gap (nonexistent). See
+  `packages/convex/convex/calendar/dateTime.ts:resolveLocalDateTime`.
+- `Intl.DateTimeFormat({ timeZone })` also accepts UTC offsets like `"+09:00"`,
+  not just IANA ids. Explicit offset rejection is required for any "must be
+  IANA" check — see
+  `packages/convex/convex/calendar/validators.ts:isValidIanaTimeZone`.
+
+### Calendar-agent plans need OAuth spikes and deterministic test seams up front
+
+- When an agent tool depends on a third-party OAuth provider, the plan must
+  spike the installed auth library's exact scope-upgrade behavior before UI
+  work. For Better Auth Google Calendar, verify `linkSocial`, refresh tokens,
+  `getAccessToken`, and the narrowest usable Calendar scope against the real
+  package version.
+- Treat OAuth token encryption prerequisites as hard gates, not follow-up
+  cleanup. `BETTER_AUTH_SECRET` must be validated before enabling
+  `account.encryptOAuthTokens`, and forward-only encryption means existing
+  plaintext rows may remain until reconnect.
+- External API tool plans should define a client interface and test injection
+  seam before implementation. Vague "stub HTTP in e2e" language invites
+  production `testMode` branches and brittle tests.
+- Availability checks followed by event creation are not atomic. Plans should
+  explicitly state the residual race, idempotency key behavior, and how future
+  cancellation markers affect duplicate detection.
+
 ## 2026-05-18
 
 ### Parallel sub-agents in a shared worktree must never run worktree-global git ops

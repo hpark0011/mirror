@@ -3,6 +3,10 @@ import { v } from "convex/values";
 import { articlesTable, coverImageOwnershipTable } from "./articles/schema";
 import { betaAllowlistTable } from "./betaAllowlist/schema";
 import { bioEntriesTable } from "./bio/schema";
+import {
+  calendarConnectionsTable,
+  scheduledMeetingsTable,
+} from "./calendar/schema";
 import { conversationsTable } from "./chat/schema";
 import { contactEntriesTable } from "./contacts/schema";
 import { contentEmbeddingsTable } from "./embeddings/schema";
@@ -20,6 +24,8 @@ export default defineSchema({
   projects: projectsTable,
   bioEntries: bioEntriesTable,
   contactEntries: contactEntriesTable,
+  calendarConnections: calendarConnectionsTable,
+  scheduledMeetings: scheduledMeetingsTable,
   conversations: conversationsTable,
   contentEmbeddings: contentEmbeddingsTable,
   inlineImageOwnership: inlineImageOwnershipTable,
