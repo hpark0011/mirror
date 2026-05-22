@@ -22,11 +22,13 @@ import { type UIMessage } from "@convex-dev/agent/react";
 
 const navigateToContentMock = vi.fn();
 const navigateToProfileSectionMock = vi.fn();
+const navigateToEditorMock = vi.fn();
 
 vi.mock("@/app/[username]/_providers/clone-actions-context", () => ({
   useCloneActions: () => ({
     navigateToContent: navigateToContentMock,
     navigateToProfileSection: navigateToProfileSectionMock,
+    navigateToEditor: navigateToEditorMock,
   }),
 }));
 
@@ -77,6 +79,7 @@ describe("useAgentIntentWatcher", () => {
   beforeEach(() => {
     navigateToContentMock.mockReset();
     navigateToProfileSectionMock.mockReset();
+    navigateToEditorMock.mockReset();
     handledByConversation.clear();
   });
 
@@ -88,7 +91,7 @@ describe("useAgentIntentWatcher", () => {
     const messages = [makeAssistantMessage([makeNavigateOutputPart("call_a")])];
 
     const { rerender } = renderHook(
-      ({ msgs }: { msgs: UIMessage[] }) => useAgentIntentWatcher(msgs, CONV_ID),
+      ({ msgs }: { msgs: UIMessage[] }) => useAgentIntentWatcher(msgs, CONV_ID, "clone"),
       { initialProps: { msgs: messages } },
     );
 
@@ -111,7 +114,7 @@ describe("useAgentIntentWatcher", () => {
   it("(b) dispatches zero additional times after unmount + remount with the same persisted messages", () => {
     const messages = [makeAssistantMessage([makeNavigateOutputPart("call_b")])];
 
-    const first = renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+    const first = renderHook(() => useAgentIntentWatcher(messages, CONV_ID, "clone"));
     expect(navigateToContentMock).toHaveBeenCalledTimes(1);
 
     first.unmount();
@@ -119,7 +122,7 @@ describe("useAgentIntentWatcher", () => {
     // Simulate the chat panel reopening: a fresh mount of the hook with
     // the same persisted messages array. With mount-scoped state this
     // would re-dispatch; with the module Map it must not.
-    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID, "clone"));
 
     expect(navigateToContentMock).toHaveBeenCalledTimes(1);
   });
@@ -135,7 +138,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID, "clone"));
 
     expect(navigateToContentMock).not.toHaveBeenCalled();
   });
@@ -151,7 +154,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID, "clone"));
 
     expect(navigateToContentMock).not.toHaveBeenCalled();
   });
@@ -174,7 +177,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, "conv_test_malformed"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_test_malformed", "clone"));
 
     expect(navigateToContentMock).not.toHaveBeenCalled();
   });
@@ -187,7 +190,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID, "clone"));
 
     expect(navigateToContentMock).toHaveBeenCalledTimes(2);
     expect(navigateToContentMock).toHaveBeenNthCalledWith(1, {
@@ -226,7 +229,7 @@ describe("useAgentIntentWatcher", () => {
         ]),
       ];
 
-      renderHook(() => useAgentIntentWatcher(messages, `conv_open_${section}`));
+      renderHook(() => useAgentIntentWatcher(messages, `conv_open_${section}`, "clone"));
 
       expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
       expect(navigateToProfileSectionMock).toHaveBeenCalledWith({
@@ -260,7 +263,7 @@ describe("useAgentIntentWatcher", () => {
     ];
 
     const first = renderHook(() =>
-      useAgentIntentWatcher(messages, "conv_section_idem"),
+      useAgentIntentWatcher(messages, "conv_section_idem", "clone"),
     );
     expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
 
@@ -270,7 +273,7 @@ describe("useAgentIntentWatcher", () => {
     expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
 
     first.unmount();
-    renderHook(() => useAgentIntentWatcher(messages, "conv_section_idem"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_section_idem", "clone"));
 
     expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
   });
@@ -305,7 +308,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, "conv_section_malformed"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_section_malformed", "clone"));
 
     expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
   });
@@ -346,7 +349,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, "conv_config_patch"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_config_patch", "clone"));
 
     expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(3);
     expect(navigateToProfileSectionMock).toHaveBeenNthCalledWith(1, {
@@ -398,7 +401,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, "conv_config_readonly"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_config_readonly", "clone"));
 
     expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
     expect(navigateToContentMock).not.toHaveBeenCalled();
@@ -439,7 +442,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, "conv_content_create"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_content_create", "clone"));
 
     expect(navigateToContentMock).toHaveBeenCalledTimes(1);
     expect(navigateToContentMock).toHaveBeenCalledWith({
@@ -483,7 +486,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, "conv_content_update"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_content_update", "clone"));
 
     expect(navigateToContentMock).toHaveBeenCalledWith({
       kind: "articles",
@@ -522,7 +525,7 @@ describe("useAgentIntentWatcher", () => {
       ]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, "conv_content_delete"));
+    renderHook(() => useAgentIntentWatcher(messages, "conv_content_delete", "clone"));
 
     expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
     expect(navigateToProfileSectionMock).toHaveBeenCalledWith({
@@ -569,7 +572,7 @@ describe("useAgentIntentWatcher", () => {
     ];
 
     renderHook(() =>
-      useAgentIntentWatcher(messages, "conv_content_readonly"),
+      useAgentIntentWatcher(messages, "conv_content_readonly", "clone"),
     );
 
     expect(navigateToContentMock).not.toHaveBeenCalled();
@@ -593,7 +596,7 @@ describe("useAgentIntentWatcher", () => {
     ];
 
     renderHook(() =>
-      useAgentIntentWatcher(messages, "conv_content_malformed"),
+      useAgentIntentWatcher(messages, "conv_content_malformed", "clone"),
     );
 
     expect(navigateToContentMock).not.toHaveBeenCalled();
@@ -623,7 +626,7 @@ describe("useAgentIntentWatcher", () => {
     ];
 
     renderHook(() =>
-      useAgentIntentWatcher(messages, "conv_content_noop"),
+      useAgentIntentWatcher(messages, "conv_content_noop", "clone"),
     );
 
     expect(navigateToContentMock).not.toHaveBeenCalled();
@@ -643,7 +646,7 @@ describe("useAgentIntentWatcher", () => {
     );
 
     const { rerender } = renderHook(
-      ({ msgs }: { msgs: UIMessage[] }) => useAgentIntentWatcher(msgs, CONV_ID),
+      ({ msgs }: { msgs: UIMessage[] }) => useAgentIntentWatcher(msgs, CONV_ID, "clone"),
       { initialProps: { msgs: history } },
     );
 
@@ -680,14 +683,116 @@ describe("useAgentIntentWatcher", () => {
       makeAssistantMessage([makeNavigateOutputPart("call_shared_id")]),
     ];
 
-    renderHook(() => useAgentIntentWatcher(messages, CONV_ID));
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID, "clone"));
     expect(navigateToContentMock).toHaveBeenCalledTimes(1);
 
     // Same toolCallId, different conversation → still dispatches in the
     // new conversation's bucket. (This is the rare case where two
     // conversations happen to share an opaque id; in practice they
     // won't, but the per-conversation isolation must hold either way.)
-    renderHook(() => useAgentIntentWatcher(messages, CONV_ID_2));
+    renderHook(() => useAgentIntentWatcher(messages, CONV_ID_2, "clone"));
     expect(navigateToContentMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("configuration mode does not dispatch navigation for applyBioEntryPatch and applyContentPatch tool results", () => {
+    // FG_262: in configuration mode, the watcher must not dispatch any
+    // navigation, even when the same completed tool-result parts are present
+    // that would normally trigger navigation in clone mode. This prevents
+    // the owner from being silently whisked away from a configuration
+    // conversation when they explicitly open it via the conversations-list
+    // sheet, a bookmarked URL, or browser back/forward.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyBioEntryPatch",
+          state: "output-available",
+          toolCallId: "call_apply_bio_config",
+          output: {
+            section: "bio",
+            href: "/@rick-rubin/bio",
+            applied: { created: 1, updated: 0, deleted: 0 },
+          },
+        },
+        {
+          type: "tool-applyContentPatch",
+          state: "output-available",
+          toolCallId: "call_apply_content_config",
+          output: {
+            applied: { created: 1, updated: 0, deleted: 0 },
+            lastTouched: {
+              kind: "posts",
+              slug: "agent-draft",
+              status: "draft",
+              href: "/@rick-rubin/posts/agent-draft",
+              editHref: "/@rick-rubin/posts/agent-draft/edit",
+              action: "create",
+            },
+            lastDeleted: null,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_config_mode", "configuration"),
+    );
+
+    expect(navigateToProfileSectionMock).not.toHaveBeenCalled();
+    expect(navigateToContentMock).not.toHaveBeenCalled();
+    expect(navigateToEditorMock).not.toHaveBeenCalled();
+  });
+
+  it("clone mode dispatches navigation for applyBioEntryPatch and applyContentPatch (regression guard)", () => {
+    // Regression guard: clone mode with the same fixture as the
+    // configuration-mode test must still dispatch navigation as before.
+    // This ensures the configuration-mode gate does not accidentally
+    // suppress clone-mode behavior.
+    const messages = [
+      makeAssistantMessage([
+        {
+          type: "tool-applyBioEntryPatch",
+          state: "output-available",
+          toolCallId: "call_apply_bio_clone",
+          output: {
+            section: "bio",
+            href: "/@rick-rubin/bio",
+            applied: { created: 1, updated: 0, deleted: 0 },
+          },
+        },
+        {
+          type: "tool-applyContentPatch",
+          state: "output-available",
+          toolCallId: "call_apply_content_clone",
+          output: {
+            applied: { created: 1, updated: 0, deleted: 0 },
+            lastTouched: {
+              kind: "posts",
+              slug: "agent-draft",
+              status: "draft",
+              href: "/@rick-rubin/posts/agent-draft",
+              editHref: "/@rick-rubin/posts/agent-draft/edit",
+              action: "create",
+            },
+            lastDeleted: null,
+          },
+        },
+      ]),
+    ];
+
+    renderHook(() =>
+      useAgentIntentWatcher(messages, "conv_clone_mode", "clone"),
+    );
+
+    expect(navigateToProfileSectionMock).toHaveBeenCalledTimes(1);
+    expect(navigateToProfileSectionMock).toHaveBeenCalledWith({
+      section: "bio",
+      href: "/@rick-rubin/bio",
+    });
+    expect(navigateToContentMock).toHaveBeenCalledTimes(1);
+    expect(navigateToContentMock).toHaveBeenCalledWith({
+      kind: "posts",
+      slug: "agent-draft",
+      href: "/@rick-rubin/posts/agent-draft/edit",
+    });
   });
 });

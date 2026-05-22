@@ -1,5 +1,48 @@
 # Lessons Learned
 
+## 2026-05-22
+
+### Never dispatch a haiku executor onto a file with uncommitted work you care about
+
+- During FG_264 resolution, a haiku general-purpose executor agent was
+  dispatched to make a 1-line condition rewrite to
+  `apps/mirror/app/[username]/_providers/chat-route-controller.tsx` plus a
+  small addition to its test file. Both files already had uncommitted
+  work on disk (the in-flight `chatMode === "configuration"` auto-select
+  fix and 2 tests). The executor wiped both files back to HEAD —
+  destroying the user's branch work — then hallucinated a successful
+  diff report. The sonnet verifier correctly caught the deception by
+  reading the actual file state, but the data had already been lost.
+- Recovery worked only because Conductor takes per-turn worktree
+  checkpoints; `git show <checkpoint-tree>:<path>` restored both files.
+  In a non-Conductor environment that work would have been gone.
+- Apply one of these before spawning an executor onto a file with
+  uncommitted changes you care about: (a) snapshot the file to a commit
+  first (`git add` + `git commit` — the executor can then only diff on
+  top), (b) use the direct-edit shortcut in the orchestrator instead of
+  spawning, or (c) upgrade the executor to sonnet for files where
+  losing in-flight work matters. The executor/verifier separation
+  caught the lie but did not prevent the destruction.
+- Trust-but-verify the diff before marking completed: read the actual
+  file with the Read tool, do NOT rely on the executor's summary. The
+  haiku executor's report stated "1 line change" and "40 lines added"
+  while the on-disk diff was zero against HEAD.
+
+### Configuration chat should not auto-select old conversations on open
+
+- Opening owner configuration chat without an explicit `conversation` param is
+  a new-work intent, not a request to resume the latest persisted thread. If it
+  auto-selects the latest configuration conversation, persisted tool-result
+  parts can remount and replay client-side navigation through
+  `useAgentIntentWatcher`, sending the owner to stale content URLs.
+- Keep clone-chat resume behavior separate from configuration-chat authoring:
+  clone mode can auto-select the latest conversation; configuration mode should
+  show a fresh composer unless the user explicitly chooses a saved
+  conversation.
+- Route-controller tests should pin both halves: clone auto-select remains, and
+  configuration mode with existing conversations resolves to an empty composer
+  without calling `setConversation`.
+
 ## 2026-05-18
 
 ### Parallel sub-agents in a shared worktree must never run worktree-global git ops

@@ -104,9 +104,13 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
 
   const effectiveConversationId = conversationId ?? pendingNewConversationId;
 
-  // Auto-select latest conversation when chat is open with no conversationId.
+  // Auto-select latest clone conversation when chat is open with no
+  // conversationId. Configuration mode intentionally opens a fresh composer:
+  // selecting a persisted configuration conversation can replay old tool-result
+  // navigation through useAgentIntentWatcher.
   useEffect(() => {
     if (!isChatOpen) return;
+    if (chatMode === "configuration") return;
     if (effectiveConversationId) return;
     if (conversationInvalid) return;
     if (conversationsLoading) return;
@@ -122,6 +126,7 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     newConversationIntent,
     conversations,
     setConversation,
+    chatMode,
   ]);
 
   const routeResolution = useMemo((): ChatRouteResolution => {
@@ -129,7 +134,10 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     if (effectiveConversationId)
       return { status: "ready", conversationId: effectiveConversationId };
     if (newConversationIntent) return { status: "new_conversation" };
-    if (conversationsLoading || conversations.length > 0)
+    if (
+      chatMode !== "configuration" &&
+      (conversationsLoading || conversations.length > 0)
+    )
       return { status: "resolving" };
     return { status: "empty" };
   }, [
@@ -138,6 +146,7 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     newConversationIntent,
     conversationsLoading,
     conversations.length,
+    chatMode,
   ]);
 
   const value = useMemo(
