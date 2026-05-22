@@ -74,6 +74,33 @@ describe("createGoogleCalendarClient.freeBusy", () => {
       status: 401,
     });
   });
+
+  it("throws when a 200 response includes per-calendar free/busy errors", async () => {
+    const fetchImpl: typeof fetch = async () =>
+      new Response(
+        JSON.stringify({
+          calendars: {
+            primary: {
+              busy: [],
+              errors: [{ domain: "global", reason: "notFound" }],
+            },
+          },
+        }),
+        { status: 200 },
+      );
+    const client = createGoogleCalendarClient("token", { fetchImpl });
+    await expect(
+      client.freeBusy({
+        timeMinIso: "2026-05-22T00:00:00Z",
+        timeMaxIso: "2026-05-23T00:00:00Z",
+        timeZone: "UTC",
+        calendarIds: ["primary"],
+      }),
+    ).rejects.toMatchObject({
+      name: "GoogleCalendarError",
+      kind: "not_found",
+    });
+  });
 });
 
 describe("createGoogleCalendarClient.insertEvent", () => {

@@ -33,6 +33,11 @@ export type FreeBusyResponse = {
   calendars: Record<string, { busy: FreeBusyBusyRange[] }>;
 };
 
+type GoogleFreeBusyCalendarError = {
+  domain?: string;
+  reason?: string;
+};
+
 export type InsertEventAttendee = {
   email: string;
   displayName?: string;
@@ -137,12 +142,23 @@ export function createGoogleCalendarClient(
       const json = (await response.json()) as {
         calendars?: Record<
           string,
-          { busy?: Array<{ start: string; end: string }> }
+          {
+            busy?: Array<{ start: string; end: string }>;
+            errors?: GoogleFreeBusyCalendarError[];
+          }
         >;
       };
       const calendars: FreeBusyResponse["calendars"] = {};
       for (const id of calendarIds) {
-        const busyRanges = json.calendars?.[id]?.busy ?? [];
+        const calendar = json.calendars?.[id];
+        const error = calendar?.errors?.[0];
+        if (error) {
+          throw new GoogleCalendarError(
+            freeBusyErrorKind(error),
+            freeBusyErrorMessage(error),
+          );
+        }
+        const busyRanges = calendar?.busy ?? [];
         calendars[id] = {
           busy: busyRanges.map((b) => ({
             startIso: b.start,
@@ -215,6 +231,25 @@ export function createGoogleCalendarClient(
       };
     },
   };
+}
+
+function freeBusyErrorKind(
+  error: GoogleFreeBusyCalendarError,
+): GoogleCalendarErrorKind {
+  const reason = error.reason ?? "";
+  if (reason === "notFound") return "not_found";
+  if (reason === "forbidden") return "forbidden";
+  if (reason === "rateLimitExceeded" || reason === "userRateLimitExceeded") {
+    return "rate_limited";
+  }
+  if (reason === "internalError") return "network";
+  return "unknown";
+}
+
+function freeBusyErrorMessage(error: GoogleFreeBusyCalendarError): string {
+  return error.reason
+    ? `Google Calendar free/busy failed: ${error.reason}`
+    : "Google Calendar free/busy failed";
 }
 
 async function readGoogleError(

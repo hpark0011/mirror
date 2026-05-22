@@ -73,15 +73,18 @@ export function resolveLocalDateTime(
   }
   let pdt: Temporal.PlainDateTime;
   try {
-    pdt = Temporal.PlainDateTime.from({
-      year: input.year,
-      month: input.month,
-      day: input.day,
-      hour: input.hour,
-      minute: input.minute,
-      second: 0,
-      millisecond: 0,
-    });
+    pdt = Temporal.PlainDateTime.from(
+      {
+        year: input.year,
+        month: input.month,
+        day: input.day,
+        hour: input.hour,
+        minute: input.minute,
+        second: 0,
+        millisecond: 0,
+      },
+      { overflow: "reject" },
+    );
   } catch (err) {
     return {
       ok: false,

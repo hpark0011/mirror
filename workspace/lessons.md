@@ -2,6 +2,20 @@
 
 ## 2026-05-22
 
+### Temporal calendar helpers must reject overflow explicitly
+
+- `Temporal.PlainDateTime.from(fields)` defaults to `overflow: "constrain"`.
+  For scheduling inputs, that silently turns invalid dates such as
+  February 31 into the last valid day of the month. Pass
+  `{ overflow: "reject" }` when converting user/model-supplied date parts.
+
+### Google FreeBusy can fail per calendar with HTTP 200
+
+- The Google Calendar FreeBusy endpoint can return a successful HTTP response
+  with `calendars[id].errors[]`. Treat those as provider failures instead of
+  defaulting missing `busy` to an empty array, otherwise the scheduler can
+  interpret an errored availability lookup as a free slot.
+
 ### `@js-temporal/polyfill` 0.5.x: `disambiguation: 'reject'` doesn't tell you which DST case fired
 
 - `pdt.toZonedDateTime(tz, { disambiguation: 'reject' })` throws the same

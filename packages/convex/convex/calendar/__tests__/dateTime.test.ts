@@ -53,6 +53,20 @@ describe("resolveLocalDateTime", () => {
     expect(result.reason).toBe("invalid_local_time");
   });
 
+  it("rejects invalid calendar days instead of constraining them", () => {
+    const result = resolveLocalDateTime({
+      year: 2026,
+      month: 2,
+      day: 31,
+      hour: 10,
+      minute: 0,
+      timeZone: "America/Los_Angeles",
+    });
+    expect(result.ok).toBe(false);
+    if (result.ok) return;
+    expect(result.reason).toBe("invalid_local_time");
+  });
+
   it("rejects nonexistent local times (spring forward gap)", () => {
     // 2026-03-08 02:30 in America/Los_Angeles does not exist — clock
     // jumps from 02:00 PST to 03:00 PDT.

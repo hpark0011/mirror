@@ -31,6 +31,8 @@ import type * as bio_serializeForEmbedding from "../bio/serializeForEmbedding.js
 import type * as bio_writeHelpers from "../bio/writeHelpers.js";
 import type * as calendar_dateTime from "../calendar/dateTime.js";
 import type * as calendar_googleApi from "../calendar/googleApi.js";
+import type * as calendar_queries from "../calendar/queries.js";
+import type * as calendar_tokens from "../calendar/tokens.js";
 import type * as calendar_validators from "../calendar/validators.js";
 import type * as chat___tests___testUtils from "../chat/__tests__/testUtils.js";
 import type * as chat_actions from "../chat/actions.js";
@@ -135,6 +137,8 @@ declare const fullApi: ApiFromModules<{
   "bio/writeHelpers": typeof bio_writeHelpers;
   "calendar/dateTime": typeof calendar_dateTime;
   "calendar/googleApi": typeof calendar_googleApi;
+  "calendar/queries": typeof calendar_queries;
+  "calendar/tokens": typeof calendar_tokens;
   "calendar/validators": typeof calendar_validators;
   "chat/__tests__/testUtils": typeof chat___tests___testUtils;
   "chat/actions": typeof chat_actions;

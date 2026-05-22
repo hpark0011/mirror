@@ -8,6 +8,10 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   test: {
     environment: "node",
+    // Populates env vars required by `convex/env.ts` before any test
+    // file's imports run. New required env vars only need to be added
+    // here, not in every test file that touches the schema/auth layer.
+    setupFiles: ["./convex/__tests__/envSetup.ts"],
     // Scoped to Vitest-migrated feature modules. Some legacy files under
     // convex/users/__tests__/ still import from "bun:test"; the new vitest
     // tests added during the bio→tagline rename use the standard pattern
