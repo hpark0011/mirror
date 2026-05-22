@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { isContentKind, type ContentKind } from "@/features/content";
+import { type ChatMode } from "@/features/chat/types";
 
 /**
  * Watches incoming `UIMessage[]` for completed tool results and dispatches
@@ -350,6 +351,7 @@ function isUnpublishToolType(type: string): boolean {
 export function useAgentIntentWatcher(
   messages: UIMessage[],
   conversationId: string | null,
+  chatMode: ChatMode,
 ) {
   const {
     navigateToContent,
@@ -373,6 +375,7 @@ export function useAgentIntentWatcher(
   const lastScannedIndexRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
+    if (chatMode === "configuration") return;
     if (messages.length === 0) return;
 
     const handled = getHandledSet(conversationId);
@@ -561,5 +564,5 @@ export function useAgentIntentWatcher(
 
     // Update the last-scanned index so the next effect run starts from here.
     lastScannedIndexRef.current.set(idxKey, messages.length);
-  }, [messages, navigateToContent, navigateToProfileSection, navigateToEditor, conversationId]);
+  }, [messages, navigateToContent, navigateToProfileSection, navigateToEditor, conversationId, chatMode]);
 }
