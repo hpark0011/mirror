@@ -1,6 +1,6 @@
 # Feel Good Monorepo
 
-Turborepo monorepo. One Next.js 15 (App Router, React 19) app backed by a shared Convex deployment (real-time queries + Better Auth), with UI primitives in `packages/ui` and cross-app feature modules in `packages/features`.
+Turborepo monorepo. One Next.js 16 (App Router, React 19) app backed by a shared Convex deployment (real-time queries + Better Auth), with UI primitives in `packages/ui` and cross-app feature modules in `packages/features`.
 
 Per-app and per-package details live in nested AGENTS.md files: [`apps/mirror/AGENTS.md`](apps/mirror/AGENTS.md) and [`packages/convex/AGENTS.md`](packages/convex/AGENTS.md).
 
