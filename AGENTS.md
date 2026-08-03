@@ -1,8 +1,8 @@
 # Feel Good Monorepo
 
-Turborepo monorepo. Two Next.js 15 (App Router, React 19) apps backed by a shared Convex deployment (real-time queries + Better Auth), with UI primitives in `packages/ui` and cross-app feature modules in `packages/features`.
+Turborepo monorepo. One Next.js 15 (App Router, React 19) app backed by a shared Convex deployment (real-time queries + Better Auth), with UI primitives in `packages/ui` and cross-app feature modules in `packages/features`.
 
-Per-app and per-package details live in nested AGENTS.md files: [`apps/mirror/AGENTS.md`](apps/mirror/AGENTS.md), [`apps/ui-factory/AGENTS.md`](apps/ui-factory/AGENTS.md), [`packages/convex/AGENTS.md`](packages/convex/AGENTS.md).
+Per-app and per-package details live in nested AGENTS.md files: [`apps/mirror/AGENTS.md`](apps/mirror/AGENTS.md) and [`packages/convex/AGENTS.md`](packages/convex/AGENTS.md).
 
 ## Commands
 
@@ -12,7 +12,7 @@ pnpm -r build                          # Build every workspace
 pnpm dev --filter=<app>                # Run a single app (see app-specific AGENTS.md for filter values)
 ```
 
-App-specific commands live in each app's `AGENTS.md` (`apps/mirror/AGENTS.md`, `apps/ui-factory/AGENTS.md`).
+App-specific commands live in [`apps/mirror/AGENTS.md`](apps/mirror/AGENTS.md).
 
 ## Deploy & Build Footguns
 
