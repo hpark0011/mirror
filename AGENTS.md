@@ -4,14 +4,6 @@ Turborepo monorepo. Two Next.js 15 (App Router, React 19) apps backed by a share
 
 Per-app and per-package details live in nested AGENTS.md files: [`apps/mirror/AGENTS.md`](apps/mirror/AGENTS.md), [`apps/ui-factory/AGENTS.md`](apps/ui-factory/AGENTS.md), [`packages/convex/AGENTS.md`](packages/convex/AGENTS.md).
 
-## Commands
-
-```bash
-pnpm install                          # Install all workspaces
-pnpm -r build                          # Build every workspace
-pnpm dev --filter=<app>                # Run a single app (see app-specific AGENTS.md for filter values)
-```
-
 App-specific commands live in each app's `AGENTS.md` (`apps/mirror/AGENTS.md`, `apps/ui-factory/AGENTS.md`).
 
 ## Deploy & Build Footguns

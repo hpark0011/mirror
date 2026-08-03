@@ -89,7 +89,7 @@ function SelectTrigger({
     >
       {children}
       <SelectPrimitive.Icon asChild>
-        <TriangleshapeDownFillIcon className="size-3.5 opacity-50" />
+        {/* <TriangleshapeDownFillIcon className="size-3.5 opacity-50" /> */}
       </SelectPrimitive.Icon>
     </SelectPrimitive.Trigger>
   );
