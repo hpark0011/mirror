@@ -36,8 +36,6 @@ vi.mock("@/app/[username]/_providers/profile-route-data-context", () => ({
       avatarUrl: undefined,
     },
     isOwner: false,
-    videoCallOpen: false,
-    setVideoCallOpen: vi.fn(),
     isEditing: false,
     setIsEditing: vi.fn(),
     isSubmitting: false,

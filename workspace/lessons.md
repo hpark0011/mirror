@@ -1,5 +1,17 @@
 # Lessons Learned
 
+## 2026-08-03
+
+### Run the `next-env.d.ts` guard after `next build`, not concurrently
+
+- Next.js can transiently rewrite `apps/mirror/next-env.d.ts` to import
+  `./.next/dev/types/routes.d.ts` while a production build is running, then
+  restore the required `./.next/types/routes.d.ts` form before the build exits.
+- A concurrent `test:unit` run can read that transient dev form and fail the
+  repository guard even though the final file is correct. Run `next build` to
+  completion before the Mirror unit suite, and verify the production import
+  before staging the merge.
+
 ## 2026-05-22
 
 ### Never dispatch a haiku executor onto a file with uncommitted work you care about

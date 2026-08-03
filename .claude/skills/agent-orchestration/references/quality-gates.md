@@ -84,4 +84,3 @@ The orchestrator determines the `<package>` filter from the target directory:
 | `packages/icons/` | `@feel-good/icons` |
 | `packages/convex/` | `@feel-good/convex` |
 | `apps/mirror/` | `@feel-good/mirror` |
-| `apps/ui-factory/` | `@feel-good/ui-factory` |

@@ -17,6 +17,7 @@
   "devDependencies": {
     "@feel-good/tsconfig": "workspace:*",
     "@types/react": "catalog:",
+    "react": "catalog:",
     "typescript": "catalog:"
   }
 }

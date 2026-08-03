@@ -23,12 +23,11 @@ In parallel worktrees, Mirror dev and Playwright e2e scripts use
 
 | Category  | Technology                                           |
 | --------- | ---------------------------------------------------- |
-| Framework | Next.js 15 (App Router), React 19, TypeScript        |
+| Framework | Next.js 16 (App Router), React 19, TypeScript        |
 | Backend   | Convex (real-time), @convex-dev/agent (clone chat)   |
 | Auth      | Better Auth with @convex-dev/better-auth             |
 | AI/Chat   | Vercel AI SDK (`ai`), streaming clone responses      |
 | Editor    | Tiptap (@tiptap/core) for post content               |
-| Video     | Tavus CVI, Daily.co (@daily-co/daily-js)             |
 | Styling   | Tailwind CSS, @tailwindcss/typography, framer-motion |
 | UI        | @feel-good/ui (shadcn/ui primitives)                 |
 | i18n      | react-i18next                                        |
@@ -38,7 +37,6 @@ In parallel worktrees, Mirror dev and Playwright e2e scripts use
 - `@feel-good/convex` — Shared Convex backend
 - `@feel-good/features` — Auth components and hooks
 - `@feel-good/ui` — Shared UI components (shadcn/ui)
-- `@feel-good/tavus` — Tavus CVI video calling
 - `@feel-good/utils` — Utilities (cn, etc.)
 - `@feel-good/sentry-config` — Error tracking
 
@@ -54,7 +52,6 @@ features/
   profile-tabs/         # Tab navigation between articles/posts/chat
   waitlist/             # Landing page + waitlist signup form
   onboarding/           # New user onboarding wizard
-  video-call/           # Tavus CVI video calling
 
 app/
   [username]/           # Public profile routes (/@username via rewrites)
@@ -71,7 +68,7 @@ app/
   (protected)/
     dashboard/          # Insights (auth required)
     onboarding/         # New user onboarding
-  api/                  # API routes (auth, tavus)
+  api/                  # API routes (auth)
 
 components/             # App-level shared (navbar, toolbar slot, avatar, logo)
 hooks/                  # App-level shared hooks
@@ -106,7 +103,7 @@ The `[username]` route uses a **panel-based workspace** with parallel routes:
 - **Panels**: `profile-panel`, `content-panel`, `chat-panel`, `interaction-panel`
 - **Providers**: `WorkspaceChromeContext` (panel visibility), `ProfileRouteDataContext` (profile data), `ChatRouteController` (chat state)
 - **Content slot** (`@content/`): renders posts, articles, bio, contact, or projects based on route
-- **Interaction slot** (`@interaction/`): renders chat or video call
+- **Interaction slot** (`@interaction/`): renders chat
 
 URL routing table lives in [`.claude/rules/apps/mirror/routing.md`](../../.claude/rules/apps/mirror/routing.md) (loads on demand under `app/`).
 

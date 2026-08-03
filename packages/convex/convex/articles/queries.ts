@@ -3,7 +3,6 @@ import { v } from "convex/values";
 import {
   articleSummaryReturnValidator,
   articleWithBodyReturnValidator,
-  conversationArticleReturnValidator,
   resolveArticleCoverImageUrl,
 } from "./helpers";
 import {
@@ -67,28 +66,6 @@ export const getByUsername = query({
         category: article.category,
       };
     });
-  },
-});
-
-export const getByUsernameForConversation = query({
-  args: { username: v.string() },
-  returns: v.union(v.array(conversationArticleReturnValidator), v.null()),
-  handler: async (ctx, args) => {
-    const access = await getUserAndContentAccess(ctx, args.username);
-    if (!access) {
-      return null;
-    }
-
-    const { user, isOwner } = access;
-    const articles = await ctx.db
-      .query("articles")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
-      .collect();
-
-    return filterVisibleContent(articles, isOwner).map((article) => ({
-      title: article.title,
-      body: article.body,
-    }));
   },
 });
 

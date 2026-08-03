@@ -125,7 +125,6 @@ Chrome MCP is for visual confirmation and interaction debugging — not for test
 | App | Filter |
 |-----|--------|
 | Mirror | `@feel-good/mirror` |
-| UI Factory | `@feel-good/ui-factory` |
 | Shared packages | `@feel-good/features`, `@feel-good/ui`, etc. |
 
 For shared package changes, build the consuming app(s).

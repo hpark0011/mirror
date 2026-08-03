@@ -135,7 +135,7 @@ Tell the user:
 ```
 /create-codebase-expert chat-backend-developer
 Owns: packages/convex/chat/*, convex schema for messages/threads
-Does NOT own: apps/mirror/src/chat/** (frontend), Tavus integration
+Does NOT own: apps/mirror/src/chat/** (frontend)
 ```
 
 ✗ Bad boundary (ambiguous — implies end-to-end ownership it doesn't have):

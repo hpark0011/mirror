@@ -51,11 +51,6 @@ export const articleWithBodyReturnValidator = v.object({
   body: v.any(),
 });
 
-export const conversationArticleReturnValidator = v.object({
-  title: v.string(),
-  body: v.any(),
-});
-
 export async function resolveArticleCoverImageUrl(
   ctx: QueryCtx | MutationCtx,
   coverImageStorageId: Id<"_storage"> | undefined,
