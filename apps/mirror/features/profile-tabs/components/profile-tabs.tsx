@@ -15,20 +15,11 @@ import {
 type ProfileTabsProps = {
   username: string;
   currentKind: ProfileTabKind;
-  isOwner: boolean;
 };
 
-export function ProfileTabs({
-  username,
-  currentKind,
-  isOwner,
-}: ProfileTabsProps) {
+export function ProfileTabs({ username, currentKind }: ProfileTabsProps) {
   const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToProfileSection } = useCloneActions();
-
-  const visibleKinds = PROFILE_TAB_DISPLAY_ORDER.filter(
-    (kind) => (kind !== "clone-settings" && kind !== "settings") || isOwner,
-  );
 
   // Funnels normal left-clicks through `useCloneActions().navigateToProfileSection`
   // — the same dispatcher the agent uses. cmd/middle/shift-click preserved
@@ -54,7 +45,7 @@ export function ProfileTabs({
   return (
     <Tabs value={currentKind}>
       <TabsList variant="minimal" className="gap-3">
-        {visibleKinds.map((kind) => (
+        {PROFILE_TAB_DISPLAY_ORDER.map((kind) => (
           <div key={kind} className="flex items-center">
             <TabsTrigger asChild value={kind} className="text-[13px]">
               <Link
@@ -62,11 +53,6 @@ export function ProfileTabs({
                 prefetch={false}
                 scroll={false}
                 onClick={(event) => handleClick(event, kind)}
-                {...(kind === "clone-settings"
-                  ? { "data-testid": "profile-tab-clone-settings" }
-                  : kind === "settings"
-                    ? { "data-testid": "profile-tab-settings" }
-                    : {})}
               >
                 <span className="font-normal">{PROFILE_TAB_LABELS[kind]}</span>
               </Link>

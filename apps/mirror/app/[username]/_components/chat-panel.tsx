@@ -8,7 +8,6 @@ export function ChatPanel() {
   const { profile } = useProfileRouteData();
   const {
     conversations,
-    chatMode,
     routeResolution,
     handleConversationIdChange,
     closeChat,
@@ -23,7 +22,6 @@ export function ChatPanel() {
       profileName={profile.name}
       username={profile.username}
       avatarUrl={profile.avatarUrl ?? null}
-      mode={chatMode}
       conversationId={conversationId}
       conversations={conversations}
       routeResolution={routeResolution}

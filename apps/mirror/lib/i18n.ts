@@ -27,19 +27,13 @@ void i18n.use(initReactI18next).init({
               title: "Hi! I'm {{profileName}}'s digital clone.",
               body: "Ask me anything about work and ideas.",
             },
-            configurationGreeting: {
-              title: "Hi! I can help configure your profile.",
-              body: "Paste a resume, LinkedIn URL, or profile update.",
-            },
           },
           input: {
             disclaimer: {
               clone: "Conversations may be visible to {{profileName}}",
-              configuration: "Profile helper chats can update your public profile",
             },
             placeholder: {
               clone: "Message {{profileName}}...",
-              configuration: "Paste a resume, LinkedIn URL, or profile update...",
             },
           },
         },
@@ -55,35 +49,10 @@ void i18n.use(initReactI18next).init({
           categoryPlaceholder: "e.g. Notes, Updates",
           titlePlaceholder: "Post Title",
         },
-        profile: {
-          configureButton: {
-            ariaLabel: "Configure profile",
-            tooltip: "Configure profile",
-          },
-        },
         profileTabs: {
           articles: "Articles",
           bio: "Bio",
           posts: "Posts",
-        },
-        settings: {
-          defaultContentType: {
-            description: "Choose which section opens first on your profile.",
-            label: "Default content type",
-            placeholder: "Select default content type",
-          },
-          panel: {
-            description: "Profile settings.",
-          },
-          toast: {
-            saveFailed: "Failed to save settings",
-            saved: "Settings saved",
-            unableToSave: "Unable to save settings",
-          },
-          toolbar: {
-            save: "Save",
-            saving: "Saving...",
-          },
         },
       },
     },

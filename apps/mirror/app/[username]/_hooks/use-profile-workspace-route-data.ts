@@ -15,8 +15,8 @@ import {
 import {
   getProfileTabHref,
   isProfileTabKind,
+  PROFILE_TAB_DEFAULT_KIND,
 } from "@/features/profile-tabs/types";
-import { useProfileRouteData } from "../_providers/profile-route-data-context";
 
 export type ProfileWorkspaceRouteData = {
   isChatOpen: boolean;
@@ -39,7 +39,6 @@ export function useProfileWorkspaceRouteData(): ProfileWorkspaceRouteData {
   const searchParams = useSearchParams();
   const segments = useSelectedLayoutSegments();
   const { isChatOpen, buildChatAwareHref } = useChatSearchParams();
-  const { profile } = useProfileRouteData();
 
   const username = params.username;
   const hasContentRoute = isProfileTabKind(segments[0]);
@@ -48,17 +47,17 @@ export function useProfileWorkspaceRouteData(): ProfileWorkspaceRouteData {
   const defaultContentHref = useMemo(() => {
     if (!username) return null;
 
-    const href = getProfileTabHref(username, profile.defaultProfileSection);
+    const href = getProfileTabHref(username, PROFILE_TAB_DEFAULT_KIND);
     const queryString = searchParams.toString();
     return queryString ? `${href}?${queryString}` : href;
-  }, [profile.defaultProfileSection, searchParams, username]);
+  }, [searchParams, username]);
 
   const profileBackHref = useMemo(() => {
     if (!username) return null;
     return buildChatAwareHref(
-      getProfileTabHref(username, profile.defaultProfileSection),
+      getProfileTabHref(username, PROFILE_TAB_DEFAULT_KIND),
     );
-  }, [buildChatAwareHref, profile.defaultProfileSection, username]);
+  }, [buildChatAwareHref, username]);
 
   const openDefaultContent = useCallback(() => {
     if (!defaultContentHref) return;

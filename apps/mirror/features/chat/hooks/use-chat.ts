@@ -1,21 +1,18 @@
 "use client";
 
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
-import { type ChatMode } from "../types";
 import { useChatMessages } from "./use-chat-messages";
 import { useChatOptimistic } from "./use-chat-optimistic";
 import { useChatSend } from "./use-chat-send";
 
 type UseChatOptions = {
   profileOwnerId: Id<"users">;
-  mode: ChatMode;
   conversationId: Id<"conversations"> | null;
   onConversationCreated?: (id: Id<"conversations">) => void;
 };
 
 export function useChat({
   profileOwnerId,
-  mode,
   conversationId,
   onConversationCreated,
 }: UseChatOptions) {
@@ -45,7 +42,6 @@ export function useChat({
 
   const { sendMessage, retryMessage, sendError, clearSendError } = useChatSend({
     profileOwnerId,
-    mode,
     conversationId,
     onConversationCreated,
     beginOptimistic,

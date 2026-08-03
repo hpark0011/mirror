@@ -17,9 +17,7 @@ import { expect, test, type Page } from "@playwright/test";
  * one published post, and one bio entry. This is the same fixture
  * `chat-agent-navigates.authenticated.spec.ts` and the bio specs lean on.
  *
- * The owner-only Clone Settings tab requires an authenticated session and
- * lives in a sibling `*.authenticated.spec.ts` (Step 7 / assertion #2 of
- * the plan); this file covers the visitor-visible sections.
+ * This file covers the visitor-visible profile sections.
  */
 
 const username = "rick-rubin";
@@ -47,10 +45,9 @@ test.describe("Profile tabs dispatcher — visitor sections (bio / articles / po
 
       await bioTab.click();
 
-      await expect(page).toHaveURL(
-        new RegExp(`/@${username}/bio(?:\\?|$)`),
-        { timeout: 10_000 },
-      );
+      await expect(page).toHaveURL(new RegExp(`/@${username}/bio(?:\\?|$)`), {
+        timeout: 10_000,
+      });
       // Chat-aware suffix preserved by the dispatcher's
       // `buildChatAwareHref` call.
       expect(page.url()).toMatch(/[?&]chat=1\b/);
@@ -90,10 +87,9 @@ test.describe("Profile tabs dispatcher — visitor sections (bio / articles / po
 
     await postsTab.click();
 
-    await expect(page).toHaveURL(
-      new RegExp(`/@${username}/posts(?:\\?|$)`),
-      { timeout: 10_000 },
-    );
+    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(?:\\?|$)`), {
+      timeout: 10_000,
+    });
     expect(page.url()).toMatch(/[?&]chat=1\b/);
   });
 
@@ -115,9 +111,7 @@ test.describe("Profile tabs dispatcher — visitor sections (bio / articles / po
     ]);
 
     await newPage.waitForLoadState("domcontentloaded");
-    expect(newPage.url()).toMatch(
-      new RegExp(`/@${username}/bio(?:\\?|$)`),
-    );
+    expect(newPage.url()).toMatch(new RegExp(`/@${username}/bio(?:\\?|$)`));
     // The opened tab must preserve `chat=1` too — the dispatcher's
     // early-return on modifier keys surrenders to the `<Link href>`,
     // so a regression in `href={buildChatAwareHref(...)}` would only

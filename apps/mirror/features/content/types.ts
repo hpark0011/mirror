@@ -10,9 +10,7 @@ import {
   buildContentHref,
   buildProfileSectionHref,
   DEFAULT_PROFILE_SECTION,
-  DEFAULT_PROFILE_SECTION_VALUES,
   type ContentKind,
-  type DefaultProfileSection,
 } from "@feel-good/convex/convex/content/href";
 import {
   getNavigableContentSource,
@@ -25,10 +23,8 @@ export {
   buildContentEditHref as getContentEditHref,
   buildProfileSectionHref,
   DEFAULT_PROFILE_SECTION,
-  DEFAULT_PROFILE_SECTION_VALUES,
   isNavigableContentKind,
   type ContentKind,
-  type DefaultProfileSection,
 };
 
 export const CONTENT_KINDS = NAVIGABLE_CONTENT_KINDS;
@@ -61,7 +57,7 @@ export function getContentRouteState(
 ): ContentRouteState | null {
   // Inverted predicate (issue m11): only routes whose first segment is a
   // content kind (posts/articles) have list/detail semantics. Every other
-  // tab — clone-settings, bio, and any future kindless tab — yields a null
+  // tab — bio and any future kindless tab — yields a null
   // route state. New tabs without list/detail semantics no longer require
   // touching this file; the closed CONTENT_KINDS set is self-maintaining.
   const [kindSegment, slug] = segments;

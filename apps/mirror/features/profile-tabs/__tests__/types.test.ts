@@ -7,10 +7,7 @@ import {
   buildProfileSectionHref,
   buildProjectsHref,
 } from "@feel-good/convex/convex/content/href";
-import {
-  getContentEditHref,
-  getContentHref,
-} from "@/features/content";
+import { getContentEditHref, getContentHref } from "@/features/content";
 import {
   getProfileTabHref,
   isProfileTabKind,
@@ -20,23 +17,21 @@ import {
 } from "../types";
 
 describe("PROFILE_TAB_KINDS", () => {
-  it("contains exactly seven kinds", () => {
-    expect(PROFILE_TAB_KINDS.length).toBe(7);
+  it("contains exactly five kinds", () => {
+    expect(PROFILE_TAB_KINDS.length).toBe(5);
   });
 
   it("includes bio at index 2 to preserve the position-independent default", () => {
     expect(PROFILE_TAB_KINDS[2]).toBe("bio");
   });
 
-  it("includes the canonical seven kinds", () => {
+  it("includes the canonical public profile kinds", () => {
     expect(PROFILE_TAB_KINDS).toEqual([
       "posts",
       "articles",
       "bio",
       "contact",
       "projects",
-      "clone-settings",
-      "settings",
     ]);
   });
 });
@@ -57,14 +52,12 @@ describe("isProfileTabKind", () => {
     }
   });
 
-  it("returns true specifically for posts, articles, bio, contact, projects, clone-settings, settings", () => {
+  it("returns true specifically for the five public profile kinds", () => {
     expect(isProfileTabKind("posts")).toBe(true);
     expect(isProfileTabKind("articles")).toBe(true);
     expect(isProfileTabKind("bio")).toBe(true);
     expect(isProfileTabKind("contact")).toBe(true);
     expect(isProfileTabKind("projects")).toBe(true);
-    expect(isProfileTabKind("clone-settings")).toBe(true);
-    expect(isProfileTabKind("settings")).toBe(true);
   });
 
   it("returns false for unknown strings", () => {
@@ -86,10 +79,6 @@ describe("getProfileTabHref", () => {
     expect(getProfileTabHref("alice", "bio")).toBe("/@alice/bio");
     expect(getProfileTabHref("alice", "contact")).toBe("/@alice/contact");
     expect(getProfileTabHref("alice", "projects")).toBe("/@alice/projects");
-    expect(getProfileTabHref("alice", "clone-settings")).toBe(
-      "/@alice/clone-settings",
-    );
-    expect(getProfileTabHref("alice", "settings")).toBe("/@alice/settings");
   });
 
   it("agrees with buildBioHref for the 'bio' kind — href-parity invariant", () => {
@@ -144,8 +133,7 @@ describe("getProfileTabHref", () => {
 });
 
 describe("buildContentEditHref", () => {
-  // The configuration agent's `applyContentPatch` tool returns a server-built
-  // `editHref` on draft create/update so the watcher can route the owner to
+  // The shared helper returns a server-built edit href so callers can route to
   // `/@<username>/<kind>/<slug>/edit`. Tests pin the URL template against the
   // Next.js dynamic edit route at
   // `apps/mirror/app/[username]/<kind>/[slug]/edit/page.tsx`.

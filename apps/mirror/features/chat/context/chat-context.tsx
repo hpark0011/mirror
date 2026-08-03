@@ -2,18 +2,13 @@
 
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
-import {
-  type ChatMode,
-  type ChatRouteResolution,
-  type Conversation,
-} from "../types";
+import { type ChatRouteResolution, type Conversation } from "../types";
 
 type ChatContextValue = {
   profileOwnerId: Id<"users">;
   profileName: string;
   username: string;
   avatarUrl: string | null;
-  mode: ChatMode;
   conversationId: Id<"conversations"> | null;
   conversations: Conversation[];
   routeResolution: ChatRouteResolution;
@@ -30,7 +25,6 @@ type ChatProviderProps = {
   profileName: string;
   username: string;
   avatarUrl: string | null;
-  mode: ChatMode;
   conversationId: Id<"conversations"> | null;
   conversations: Conversation[];
   routeResolution: ChatRouteResolution;
@@ -45,7 +39,6 @@ export function ChatProvider({
   profileName,
   username,
   avatarUrl,
-  mode,
   conversationId,
   conversations,
   routeResolution,
@@ -64,7 +57,6 @@ export function ChatProvider({
       profileName,
       username,
       avatarUrl,
-      mode,
       conversationId,
       conversations,
       routeResolution,
@@ -78,7 +70,6 @@ export function ChatProvider({
       profileName,
       username,
       avatarUrl,
-      mode,
       conversationId,
       conversations,
       routeResolution,

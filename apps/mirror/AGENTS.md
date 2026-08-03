@@ -47,7 +47,6 @@ features/
   articles/             # Article list, pagination, filtering, search, sort
   posts/                # Blog post authoring, markdown import, publish/unpublish
   chat/                 # Clone chat — AI conversation with author's digital clone
-  clone-settings/       # Clone persona configuration (tone, instructions)
   content/              # Shared list utilities (toolbar, filter, sort, date presets)
   profile/              # Profile display, inline editing, avatar
   profile-tabs/         # Tab navigation between articles/posts/chat
@@ -61,12 +60,10 @@ app/
     @content/           # Parallel route slot — content panel
       articles/         # Article list + detail
       posts/            # Post list + detail
-      clone-settings/   # Clone settings page
     @interaction/       # Parallel route slot — interaction panel
     articles/           # Canonical article routes
     posts/              # Canonical post routes
     chat/               # Chat routes (list + conversation)
-    clone-settings/     # Clone settings route
   (auth)/               # Auth flow (sign-in, sign-up)
   (protected)/
     dashboard/          # Insights (auth required)
@@ -105,7 +102,7 @@ The `[username]` route uses a **panel-based workspace** with parallel routes:
 - **Mobile**: stacked layout with bottom sheet navigation
 - **Panels**: `profile-panel`, `content-panel`, `chat-panel`, `interaction-panel`
 - **Providers**: `WorkspaceChromeContext` (panel visibility), `ProfileRouteDataContext` (profile data), `ChatRouteController` (chat state)
-- **Content slot** (`@content/`): renders articles, posts, or clone-settings based on route
+- **Content slot** (`@content/`): renders posts, articles, bio, contact, or projects based on route
 - **Interaction slot** (`@interaction/`): renders chat
 
 URL routing table lives in [`.claude/rules/apps/mirror/routing.md`](../../.claude/rules/apps/mirror/routing.md) (loads on demand under `app/`).

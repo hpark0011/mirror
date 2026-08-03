@@ -51,8 +51,8 @@ verb a single attachment point.
   items / profile tabs all funnel through:
   - `navigateToContent({ kind, slug, href? })`
   - `navigateToProfileSection({ section, href? })`
-  Both call `router.push(buildChatAwareHref(basePath), { scroll: false })`
-  and nothing else.
+    Both call `router.push(buildChatAwareHref(basePath), { scroll: false })`
+    and nothing else.
 - `WorkspaceChromeProvider`
   (`apps/mirror/app/[username]/_providers/workspace-chrome-context.tsx`)
   is mounted **inside** `DesktopWorkspace` / `MobileWorkspace`, which are
@@ -94,11 +94,11 @@ verb a single attachment point.
 
 Three options were on the table:
 
-| Option | Where the fix lives | Compounding? |
-|---|---|---|
-| (A) **Bridge context above `CloneActionsProvider`; dispatcher calls `ensureContentPanelOpen()`** | Both routes (agent + user-UI) | **Yes** — single attachment point; preserves "two routes, one dispatcher"; closes the parity gap at the verb level |
-| (B) Loosen the layout effect's transition guard to also expand on URL change while collapsed | `useContentPanelController` | No — re-expands every back-button navigation, every middleware redirect, every chat-aware-href rewrite. Fights user intent. |
-| (C) Have `useAgentIntentWatcher` separately call a new `expand` verb after each `navigateToContent` | Agent route only | No — duplicates the parity loop, splits routes, and doesn't fix the user-UI tab-while-collapsed case (which exists today after PLAN_005 wired tabs through the dispatcher). |
+| Option                                                                                              | Where the fix lives           | Compounding?                                                                                                                                                                |
+| --------------------------------------------------------------------------------------------------- | ----------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| (A) **Bridge context above `CloneActionsProvider`; dispatcher calls `ensureContentPanelOpen()`**    | Both routes (agent + user-UI) | **Yes** — single attachment point; preserves "two routes, one dispatcher"; closes the parity gap at the verb level                                                          |
+| (B) Loosen the layout effect's transition guard to also expand on URL change while collapsed        | `useContentPanelController`   | No — re-expands every back-button navigation, every middleware redirect, every chat-aware-href rewrite. Fights user intent.                                                 |
+| (C) Have `useAgentIntentWatcher` separately call a new `expand` verb after each `navigateToContent` | Agent route only              | No — duplicates the parity loop, splits routes, and doesn't fix the user-UI tab-while-collapsed case (which exists today after PLAN_005 wired tabs through the dispatcher). |
 
 This plan picks (A). The bridge context is a thin imperative seam, not a
 state container — `WorkspaceChromeProvider` keeps owning panel state. The
@@ -107,14 +107,14 @@ downstream provider (the chrome) to do something imperative.
 
 ## 4. Naming decisions
 
-| Surface | Name |
-|---|---|
-| New context module | `apps/mirror/app/[username]/_providers/workspace-panel-bridge-context.tsx` |
-| Provider component | `WorkspacePanelBridgeProvider` |
-| Consumer hook | `useWorkspacePanelBridge` (throws when missing — same shape as `useCloneActions`) |
-| Optional consumer hook | `useOptionalWorkspacePanelBridge` (returns `null`) — used only by tests / fallback paths |
-| Imperative methods | `register(fn: () => void) => () => void` (returns unregister) and `ensureContentPanelOpen(): void` |
-| New controller method | `ensureExpanded(): void` on `ContentPanelController` |
+| Surface                | Name                                                                                               |
+| ---------------------- | -------------------------------------------------------------------------------------------------- |
+| New context module     | `apps/mirror/app/[username]/_providers/workspace-panel-bridge-context.tsx`                         |
+| Provider component     | `WorkspacePanelBridgeProvider`                                                                     |
+| Consumer hook          | `useWorkspacePanelBridge` (throws when missing — same shape as `useCloneActions`)                  |
+| Optional consumer hook | `useOptionalWorkspacePanelBridge` (returns `null`) — used only by tests / fallback paths           |
+| Imperative methods     | `register(fn: () => void) => () => void` (returns unregister) and `ensureContentPanelOpen(): void` |
+| New controller method  | `ensureExpanded(): void` on `ContentPanelController`                                               |
 
 `ensureContentPanelOpen` (verb-on-the-bridge) and `ensureExpanded`
 (method-on-the-controller) are deliberately distinct names so a code search
@@ -181,7 +181,9 @@ export function useWorkspacePanelBridge() {
 
 export function WorkspacePanelBridgeProvider({
   children,
-}: { children: ReactNode }) {
+}: {
+  children: ReactNode;
+}) {
   const handlerRef = useRef<(() => void) | null>(null);
 
   const register = useCallback((fn: () => void) => {
@@ -209,6 +211,7 @@ export function WorkspacePanelBridgeProvider({
 ```
 
 Comment block at the top of the file MUST cite:
+
 - `.claude/rules/agent-parity.md` § "Two routes, one dispatcher" as the rule
   this satisfies.
 - `apps/mirror/app/[username]/_providers/clone-actions-context.tsx` and
@@ -274,6 +277,7 @@ can also opt into the panel guarantee.
 - Read `ensureContentPanelOpen` from the bridge in `CloneActionsProvider`.
 - In **both** `navigateToContent` and `navigateToProfileSection`, call
   `ensureContentPanelOpen()` **before** `router.push(...)`:
+
   ```ts
   const navigateToContent = useCallback<CloneActions["navigateToContent"]>(
     ({ kind, slug, href }) => {
@@ -295,11 +299,12 @@ can also opt into the panel guarantee.
     [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
   );
   ```
+
 - Update the JSDoc block at the top of the file to add a third bullet:
   > Both verbs call `ensureContentPanelOpen()` from the workspace panel
   > bridge before pushing — guarantees a manually-collapsed panel re-opens
   > on every dispatcher navigation, regardless of whether `hasContentRoute`
-  > transitions. Closes the parity gap noted in the FG_???-style ticket
+  > transitions. Closes the parity gap noted in the FG\_???-style ticket
   > attached to PLAN_010.
 
 ### Step 5 — Desktop registration
@@ -381,17 +386,14 @@ Extend the existing test setup with a `useWorkspacePanelBridge` mock:
 
 ```ts
 const ensureContentPanelOpenSpy = vi.fn();
-vi.mock(
-  "@/app/[username]/_providers/workspace-panel-bridge-context",
-  () => ({
-    useWorkspacePanelBridge: () => ({
-      register: vi.fn(() => () => {}),
-      ensureContentPanelOpen: ensureContentPanelOpenSpy,
-    }),
-    WorkspacePanelBridgeProvider: ({ children }: { children: ReactNode }) =>
-      children,
+vi.mock("@/app/[username]/_providers/workspace-panel-bridge-context", () => ({
+  useWorkspacePanelBridge: () => ({
+    register: vi.fn(() => () => {}),
+    ensureContentPanelOpen: ensureContentPanelOpenSpy,
   }),
-);
+  WorkspacePanelBridgeProvider: ({ children }: { children: ReactNode }) =>
+    children,
+}));
 ```
 
 Add new `describe("CloneActionsProvider — panel-bridge integration (PLAN_010)")`
@@ -400,12 +402,13 @@ block asserting:
 1. `navigateToContent({…, href})` (agent path) calls `ensureContentPanelOpen`
    **before** `router.push`. Use `mock.invocationCallOrder` to pin ordering:
    ```ts
-   expect(ensureContentPanelOpenSpy.mock.invocationCallOrder[0])
-     .toBeLessThan(pushSpy.mock.invocationCallOrder[0]);
+   expect(ensureContentPanelOpenSpy.mock.invocationCallOrder[0]).toBeLessThan(
+     pushSpy.mock.invocationCallOrder[0],
+   );
    ```
 2. `navigateToContent({…})` (user-UI path, `href` omitted) — same ordering.
 3. `navigateToProfileSection({section, href})` — same ordering, all four
-   sections (`bio | articles | posts | clone-settings`).
+   sections (`bio | articles | posts | contact | projects`).
 4. `navigateToProfileSection({section})` (user-UI) — same ordering.
 5. The chat-aware suffix preservation tests already in the file MUST still
    pass — assert `ensureContentPanelOpen` is called regardless of the
@@ -436,7 +439,7 @@ identity must remain stable across the lifecycle of the component for the
 
 - In `clone-actions-context.tsx`: add a one-line comment near the
   `ensureContentPanelOpen()` call sites: `// PLAN_010 — both routes funnel
-  through the bridge; mobile no-ops by construction.`
+through the bridge; mobile no-ops by construction.`
 - Update `.claude/rules/agent-parity.md` § "Two routes, one dispatcher" with
   a short note: every dispatcher verb that pushes a content URL MUST call
   `ensureContentPanelOpen()` before `router.push`. Add a sentence at the
@@ -491,8 +494,6 @@ identity must remain stable across the lifecycle of the component for the
   (no right pane). Both are real problems but architecturally orthogonal —
   the fix is either auto-close-chat on mobile content nav or rephrase the
   agent's response based on viewport. Track separately.
-- 🚫 **Persona-aware acknowledgement.** The agent says "Just opened it on
-  the right" deterministically. No tone/persona changes here.
 - 🚫 **Telemetry.** No instrumentation of "panel was auto-expanded by the
   bridge" — if the next plan wants this, the bridge is the single
   attachment point.
@@ -534,6 +535,7 @@ one published post (already true; same fixture
 rely on).
 
 Use the existing helpers:
+
 - `e2e/helpers/chat.ts` for `openChat` / `sendChatMessage` / `RECEIVED_BUBBLE_SELECTOR`.
 - `data-testid="desktop-content-panel"` exposes `data-state="open" | "closed"`
   (defined in `workspace-panels.tsx:57`).
@@ -543,16 +545,22 @@ Use the existing helpers:
 #### Test 1 — User-UI path: tab click while collapsed re-opens the panel
 
 ```ts
-test("clicking a profile tab while the content panel is collapsed re-opens it", async ({ page }) => {
+test("clicking a profile tab while the content panel is collapsed re-opens it", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto(`/@rick-rubin/posts`);
 
   const contentRegion = page.getByTestId("desktop-content-panel");
-  await expect(contentRegion).toHaveAttribute("data-state", "open", { timeout: 10000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "open", {
+    timeout: 10000,
+  });
 
   // Manually collapse via the artifacts toggle.
   await page.getByRole("button", { name: "Hide Artifacts" }).click();
-  await expect(contentRegion).toHaveAttribute("data-state", "closed", { timeout: 5000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "closed", {
+    timeout: 5000,
+  });
 
   // Click another profile tab — URL stays in the `isProfileTabKind` set,
   // so the layout-effect transition guard does NOT fire. Without the
@@ -560,21 +568,29 @@ test("clicking a profile tab while the content panel is collapsed re-opens it", 
   await page.getByRole("tab", { name: "Bio" }).click();
 
   await expect(page).toHaveURL(/\/@rick-rubin\/bio(\?|$)/);
-  await expect(contentRegion).toHaveAttribute("data-state", "open", { timeout: 5000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "open", {
+    timeout: 5000,
+  });
 });
 ```
 
 #### Test 2 — User-UI path: list-item click while collapsed re-opens the panel
 
 ```ts
-test("clicking an article list item while the content panel is collapsed re-opens it", async ({ page }) => {
+test("clicking an article list item while the content panel is collapsed re-opens it", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto(`/@rick-rubin/articles`);
 
   const contentRegion = page.getByTestId("desktop-content-panel");
-  await expect(contentRegion).toHaveAttribute("data-state", "open", { timeout: 10000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "open", {
+    timeout: 10000,
+  });
   await page.getByRole("button", { name: "Hide Artifacts" }).click();
-  await expect(contentRegion).toHaveAttribute("data-state", "closed", { timeout: 5000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "closed", {
+    timeout: 5000,
+  });
 
   // Click into an article — URL goes /@rick-rubin/articles → /@rick-rubin/articles/<slug>.
   // Both pass `isProfileTabKind`. The list-item click funnels through
@@ -586,7 +602,9 @@ test("clicking an article list item while the content panel is collapsed re-open
   await firstArticle.click();
 
   await expect(page).toHaveURL(/\/@rick-rubin\/articles\/[^/?#]+/);
-  await expect(contentRegion).toHaveAttribute("data-state", "open", { timeout: 5000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "open", {
+    timeout: 5000,
+  });
 });
 ```
 
@@ -601,32 +619,41 @@ This test exercises the real LLM (`*.authenticated.spec.ts`); model
 test.describe.configure({ mode: "serial", timeout: 150_000 });
 const NAV_TIMEOUT = 60_000;
 
-test("agent navigation while the content panel is collapsed re-opens it", async ({ page }) => {
+test("agent navigation while the content panel is collapsed re-opens it", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   // openChat goes to /@rick-rubin?chat=1 → middleware redirects to
   // /@rick-rubin/posts?chat=1 → chat panel mounts → ?conversation= populates.
   const textarea = await openChat(page, "rick-rubin");
 
   const contentRegion = page.getByTestId("desktop-content-panel");
-  await expect(contentRegion).toHaveAttribute("data-state", "open", { timeout: 10000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "open", {
+    timeout: 10000,
+  });
 
   // Manually collapse — the bug repro starting state.
   await page.getByRole("button", { name: "Hide Artifacts" }).click();
-  await expect(contentRegion).toHaveAttribute("data-state", "closed", { timeout: 5000 });
+  await expect(contentRegion).toHaveAttribute("data-state", "closed", {
+    timeout: 5000,
+  });
 
   await sendChatMessage(textarea, "show me your latest article.");
 
   // The agent calls getLatestPublished → navigateToContent. The watcher
   // dispatches via useCloneActions().navigateToContent. PLAN_010's bridge
   // fires inside the dispatcher, before router.push.
-  await page.waitForURL(
-    /\/@rick-rubin\/articles\/[^/?#]+/,
-    { timeout: NAV_TIMEOUT },
-  );
+  await page.waitForURL(/\/@rick-rubin\/articles\/[^/?#]+/, {
+    timeout: NAV_TIMEOUT,
+  });
 
   // The load-bearing assertion: the panel is open after the agent navigates.
-  await expect(contentRegion).toHaveAttribute("data-state", "open", { timeout: 10000 });
-  await expect(page.locator("article h1").first()).toBeVisible({ timeout: NAV_TIMEOUT });
+  await expect(contentRegion).toHaveAttribute("data-state", "open", {
+    timeout: 10000,
+  });
+  await expect(page.locator("article h1").first()).toBeVisible({
+    timeout: NAV_TIMEOUT,
+  });
   expect(page.url()).toMatch(/[?&]chat=1\b/);
   expect(page.url()).toMatch(/[?&]conversation=[^&]+/);
 });
@@ -638,13 +665,19 @@ Make sure calling the bridge when the panel is already open is a no-op (no
 flicker, no layout reset).
 
 ```ts
-test("clicking a tab while the panel is already open does not flicker the layout", async ({ page }) => {
+test("clicking a tab while the panel is already open does not flicker the layout", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await page.goto(`/@rick-rubin/posts`);
 
   const contentRegion = page.getByTestId("desktop-content-panel");
-  const contentResizablePanel = page.locator('[data-slot="resizable-panel"]').nth(1);
-  await expect(contentRegion).toHaveAttribute("data-state", "open", { timeout: 10000 });
+  const contentResizablePanel = page
+    .locator('[data-slot="resizable-panel"]')
+    .nth(1);
+  await expect(contentRegion).toHaveAttribute("data-state", "open", {
+    timeout: 10000,
+  });
 
   // Capture the user's chosen split width (drag to a non-50/50 size).
   // Reuse `dragHandleBy` from `profile-content-panel-toggle.spec.ts` —
@@ -674,10 +707,14 @@ layout."
 #### Test 5 — Mobile no-op (regression guard)
 
 ```ts
-test("mobile: dispatcher navigation does not depend on the bridge", async ({ page }) => {
+test("mobile: dispatcher navigation does not depend on the bridge", async ({
+  page,
+}) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto(`/@rick-rubin/articles`);
-  await expect(page.getByRole("link", { name: /./ }).first()).toBeVisible({ timeout: 10000 });
+  await expect(page.getByRole("link", { name: /./ }).first()).toBeVisible({
+    timeout: 10000,
+  });
 
   // Click an article. Mobile route nav drives the visual swap; the bridge
   // is unregistered on mobile. URL must still resolve to the detail page.
@@ -700,6 +737,7 @@ pnpm --filter=@feel-good/mirror test:e2e content-panel-auto-expand
 ```
 
 Each assertion above is independently necessary — together they prove:
+
 - **#1, #2** the user-UI half of the dispatcher fires the bridge,
 - **#3** the agent half of the dispatcher fires the bridge,
 - **#4** the bridge does not clobber a user's manually-resized layout,
@@ -722,14 +760,14 @@ load-bearing proof.
 
 ## 8. Risks & mitigations
 
-| Risk | Mitigation |
-|---|---|
-| Calling `ensureContentPanelOpen()` before `router.push` could trigger an extra render that delays navigation. | The bridge handler is a `useRef` invocation — no React state writes, no re-render. The controller's `setLayout` call is a single synchronous imperative on the resizable-panel-group ref. Net cost: one function call per dispatcher invocation. Test #4 pins "no visible flicker." |
-| `register`'s cleanup could fire after a re-registration in StrictMode dev double-mount, clobbering the live registrant. | The cleanup checks `handlerRef.current === fn` before clearing — covered by Step 7a test #4. This is the standard "stale cleanup guard" pattern. |
-| Mobile silently regressing because the bridge is provided but never registered. | Test #5 explicitly exercises the mobile dispatch path. The bridge's `ensureContentPanelOpen` no-ops gracefully when no callback is registered (no exception, no warning), which is the correct mobile behavior. |
-| Adding the bridge above `CloneActionsProvider` increases the number of context layers wrapping every `[username]` route. | One thin context with a single `useRef` and two memoized callbacks. Render cost is negligible; the alternatives (lifting state, lifting the panel group) are strictly more invasive. |
-| The agent path in Test #3 hits the real LLM — flake risk. | Mirror `chat-agent-navigates.authenticated.spec.ts`'s pattern: serial mode, 150s describe timeout, generous `NAV_TIMEOUT`. The "show me your latest article" prompt is the same one already pinned to the navigateToContent flow, so any LLM flake here would also flake the existing agent-navigates spec. |
-| The bridge's "single registrant wins" semantics could surprise a future caller registering a second handler. | Documented in Step 1's JSDoc and pinned by Step 7a test #3. If multi-handler dispatch is ever needed, expand `register` to push into an array — cheap follow-up. |
+| Risk                                                                                                                     | Mitigation                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Calling `ensureContentPanelOpen()` before `router.push` could trigger an extra render that delays navigation.            | The bridge handler is a `useRef` invocation — no React state writes, no re-render. The controller's `setLayout` call is a single synchronous imperative on the resizable-panel-group ref. Net cost: one function call per dispatcher invocation. Test #4 pins "no visible flicker."                         |
+| `register`'s cleanup could fire after a re-registration in StrictMode dev double-mount, clobbering the live registrant.  | The cleanup checks `handlerRef.current === fn` before clearing — covered by Step 7a test #4. This is the standard "stale cleanup guard" pattern.                                                                                                                                                            |
+| Mobile silently regressing because the bridge is provided but never registered.                                          | Test #5 explicitly exercises the mobile dispatch path. The bridge's `ensureContentPanelOpen` no-ops gracefully when no callback is registered (no exception, no warning), which is the correct mobile behavior.                                                                                             |
+| Adding the bridge above `CloneActionsProvider` increases the number of context layers wrapping every `[username]` route. | One thin context with a single `useRef` and two memoized callbacks. Render cost is negligible; the alternatives (lifting state, lifting the panel group) are strictly more invasive.                                                                                                                        |
+| The agent path in Test #3 hits the real LLM — flake risk.                                                                | Mirror `chat-agent-navigates.authenticated.spec.ts`'s pattern: serial mode, 150s describe timeout, generous `NAV_TIMEOUT`. The "show me your latest article" prompt is the same one already pinned to the navigateToContent flow, so any LLM flake here would also flake the existing agent-navigates spec. |
+| The bridge's "single registrant wins" semantics could surprise a future caller registering a second handler.             | Documented in Step 1's JSDoc and pinned by Step 7a test #3. If multi-handler dispatch is ever needed, expand `register` to push into an array — cheap follow-up.                                                                                                                                            |
 
 ## 9. PR shape
 

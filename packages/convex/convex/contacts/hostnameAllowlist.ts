@@ -3,9 +3,8 @@
  * `validateValue` function that enforces hostname-vs-kind at the mutation
  * boundary.
  *
- * This module is the single source of truth shared between:
- * - `detectContactKind.ts` — maps a URL to a ContactEntryKind
- * - `writeHelpers.ts:validateValue` → re-exported from here
+ * This module is the single source of truth used by
+ * `writeHelpers.ts:validateValue` and re-exported from there.
  *
  * Both the `twitter.com → x` and `youtu.be → youtube` aliases are included.
  *

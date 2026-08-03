@@ -5,12 +5,11 @@ date: 2026-02-28
 type: improvement
 status: to-do
 priority: p2
-description: "Implement UX polish, auth gating, stale stream cleanup cron jobs, and UI error states for the Chat feature."
+description: "Implement UX polish, stale stream cleanup cron jobs, and UI error states for the Chat feature."
 dependencies:
   - "FG_039"
 parent_plan_id: docs/plans/2026-02-28-feat-chat-thread-digital-clone-plan.md
 acceptance_criteria:
-  - "Profile `ChatInput` blocks send attempts and prompts for sign-in if `chatAuthRequired` is enabled and user is unauthenticated"
   - "Send button is disabled while `conversation.streamingInProgress === true`"
   - "UI displays an error state for failed streaming messages alongside partial content, offering a retry button"
   - "Agent API retry behavior schedules new `streamResponse` actions, and `loadPersonaContext` ignores errored context"
@@ -27,16 +26,15 @@ The core features (backend mutations, modular UI, profile shell routing) for the
 
 ## Goal
 
-Wrap up all edge cases ensuring that errors or slow operations (streaming/api failures) display correct error logic. Allow manual retries for API failures and configure fallback systems preventing stale locks in the backend. 
+Wrap up all edge cases ensuring that errors or slow operations (streaming/api failures) display correct error logic. Allow manual retries for API failures and configure fallback systems preventing stale locks in the backend.
 
 ## Scope
 
-- Connect `ChatInput` auth gating logic to `chatAuthRequired`.
 - Surface rate limit catches natively in `ChatInput` (display inline error).
 - Attach retry logic invoking agent API hooks directly and update UI for aborted/errored models within `chat-message.tsx`.
 - Disable standard inputs if locking is true.
 - Finish stale stream crons in `packages/convex/convex/crons.ts`.
-- Fallbacks for unconfigured `personaPrompt`.
+- Fallbacks for profiles with no author tagline or published content.
 
 ## Out of Scope
 
@@ -51,12 +49,11 @@ Augment currently connected hooks inside `features/chat/` applying conditional d
 
 ## Implementation Steps
 
-1. Review `apps/mirror/features/profile/components/chat-input.tsx` and gate submissions behind a sign-in redirect wrapper executing when `!isAuthenticated` AND the profile's `chatAuthRequired` flag equals true.
-2. In `apps/mirror/features/chat/components/chat-input.tsx`, trap `ConvexError` outputs originating from sending issues (e.g., rate limits). Display inline textual warnings like "Rate limit reached." 
-3. Wire `disable` properties on inputs listening to `conversation.streamingInProgress` state.
-4. Establish visual "Retry" UI actions in `chat-message.tsx` shown conditionally based on status. Ensure clicking it dispatches a retry flow bypassing superseded messages in the context wrapper `loadPersonaContext`.
-5. Implement the empty state UI rendering "You are a digital clone of [name]. Answer based on their writing" when the clone persona prompt lacks definition.
-6. Finalize backend cron in `packages/convex/convex/crons.ts` scanning the `conversations` table for any object retaining `streamingInProgress: true` longer than 2 minutes. Write a patch to clear those properties.
+1. In `apps/mirror/features/chat/components/chat-input.tsx`, trap `ConvexError` outputs originating from sending issues (e.g., rate limits). Display inline textual warnings like "Rate limit reached."
+2. Wire `disable` properties on inputs listening to `conversation.streamingInProgress` state.
+3. Establish visual "Retry" UI actions in `chat-message.tsx` shown conditionally based on status.
+4. Implement the empty state UI rendering "You are a digital clone of [name]. Answer based on their writing" when no messages exist.
+5. Finalize backend stale-lock cleanup for conversations retaining `streamingInProgress: true` longer than 2 minutes.
 
 ## Constraints
 

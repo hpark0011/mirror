@@ -5,14 +5,14 @@ date: 2026-04-23
 type: refactor
 status: completed
 priority: p3
-description: "apps/mirror/features/posts/lib/ holds parse-md-frontmatter.ts (138 lines) and markdown-to-json-content.ts (16 lines) directly at the lib/ root. The convention used by clone-settings, auth, and dock is lib/schemas/<name>.schema.ts for Zod schemas with parsers/adapters in their own subfolders or co-located with what they serve. Audit posts/lib/ against that convention and bring naming into line."
+description: "apps/mirror/features/posts/lib/ holds parsers directly at the lib root. Shared feature modules put Zod schemas under lib/schemas and parsers/adapters in their own subfolders or beside their consumer. Audit posts/lib against that convention."
 dependencies: []
 parent_plan_id: workspace/research/convex-nextjs-client-feature-org.md
 acceptance_criteria:
   - "If parse-md-frontmatter.ts contains a Zod schema, that schema lives at apps/mirror/features/posts/lib/schemas/<name>.schema.ts"
   - "Parsers in apps/mirror/features/posts/lib/ live under a clearly-named subdirectory (e.g. lib/parsers/) OR remain at lib/ root with a documented rationale in the ticket completion note — not both"
   - "grep -rn 'posts/lib/parse-md-frontmatter\\|posts/lib/markdown-to-json-content' apps/mirror returns no matches at the old path if files were moved"
-  - "Convention parity is verifiable: ls apps/mirror/features/posts/lib/ produces the same shape (schemas/ subdir if applicable) as ls apps/mirror/features/clone-settings/lib/"
+  - "Convention parity is verifiable against the shared auth and dock feature modules."
   - "pnpm --filter=@feel-good/mirror build exits 0"
   - "pnpm --filter=@feel-good/mirror lint produces 0 errors"
 owner_agent: "general-purpose"
@@ -28,7 +28,7 @@ owner_agent: "general-purpose"
 - `markdown-to-json-content.ts` (16 lines) — Tiptap headless converter.
 
 The sibling feature modules establish a clearer convention:
-- `apps/mirror/features/clone-settings/lib/schemas/clone-settings.schema.ts` — Zod schema in a `lib/schemas/` subdirectory.
+
 - `packages/features/auth/lib/schemas/auth.schema.ts` — same pattern.
 - `packages/features/dock/lib/schemas/dock.schema.ts` — same pattern.
 
@@ -38,7 +38,7 @@ This is the lowest-urgency item from the research report. It's a structural clea
 
 ## Goal
 
-`apps/mirror/features/posts/lib/` follows the same shape as `apps/mirror/features/clone-settings/lib/`. Any Zod schemas live under `lib/schemas/`. Parsers live under a clearly-named location (likely `lib/parsers/` or co-located with their consumer) with a single, documented rationale.
+`apps/mirror/features/posts/lib/` follows the shared feature-module shape. Any Zod schemas live under `lib/schemas/`. Parsers live under a clearly named location with a documented rationale.
 
 ## Scope
 
@@ -58,7 +58,7 @@ This is the lowest-urgency item from the research report. It's a structural clea
 
 ## Approach
 
-Step 1: read `parse-md-frontmatter.ts` end-to-end; if there's an inline Zod schema, extract it to `lib/schemas/`. Step 2: compare `posts/lib/` vs `clone-settings/lib/` and pick the layout that produces the closest shape. Step 3: move files (if needed) and update imports. Step 4: build + lint.
+Step 1: read `parse-md-frontmatter.ts` end-to-end; if there's an inline Zod schema, extract it to `lib/schemas/`. Step 2: compare `posts/lib/` with the shared feature-module convention. Step 3: move files (if needed) and update imports. Step 4: build + lint.
 
 If `parse-md-frontmatter.ts` doesn't contain a Zod schema (the validation may be manual length checks against constants), then the only change is the parser location decision — and the right answer might be to leave them at `lib/` root with a one-line note, since "two parsers, no schemas" is a thin justification for a `parsers/` subdir.
 
@@ -69,7 +69,7 @@ If `parse-md-frontmatter.ts` doesn't contain a Zod schema (the validation may be
 
 1. Read `apps/mirror/features/posts/lib/parse-md-frontmatter.ts` end-to-end and identify whether validation uses Zod or hand-rolled length checks.
 2. If Zod: create `apps/mirror/features/posts/lib/schemas/<name>.schema.ts` with the schema and have `parse-md-frontmatter.ts` import it.
-3. Compare the resulting `posts/lib/` shape to `clone-settings/lib/`. Decide whether to move parsers under `lib/parsers/` (if there are >1 parsers and the subdir adds clarity) or leave them at `lib/` root (document why in the ticket completion note).
+3. Decide whether to move parsers under `lib/parsers/` (if there are more than one and the subdirectory adds clarity) or leave them at the `lib/` root.
 4. Update any import sites with `grep -rln "posts/lib/parse-md-frontmatter\|posts/lib/markdown-to-json-content"`.
 5. Run `pnpm --filter=@feel-good/mirror build && pnpm --filter=@feel-good/mirror lint`.
 
@@ -84,5 +84,5 @@ If `parse-md-frontmatter.ts` doesn't contain a Zod schema (the validation may be
 
 - Research report (motivation): `workspace/research/convex-nextjs-client-feature-org.md`
 - Current state: `apps/mirror/features/posts/lib/parse-md-frontmatter.ts` (138 lines), `apps/mirror/features/posts/lib/markdown-to-json-content.ts` (16 lines)
-- Reference layout: `apps/mirror/features/clone-settings/lib/schemas/clone-settings.schema.ts`, `packages/features/auth/lib/schemas/`, `packages/features/dock/lib/schemas/`
+- Reference layouts: `packages/features/auth/lib/schemas/`, `packages/features/dock/lib/schemas/`
 - Conventions: `.claude/rules/file-organization.md`, `.claude/rules/forms.md`

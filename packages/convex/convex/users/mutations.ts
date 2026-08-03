@@ -1,29 +1,6 @@
 import { v } from "convex/values";
 import { authMutation } from "../lib/auth";
-import { RESERVED_USERNAMES, buildPersonaPatch, getAppUser } from "./helpers";
-import { tonePresetValidator } from "../chat/tonePresets";
-import { DEFAULT_PROFILE_SECTION } from "../content/href";
-import { defaultProfileSectionValidator } from "./defaultProfileSection";
-
-export const updatePersonaSettings = authMutation({
-  args: {
-    personaPrompt: v.optional(v.union(v.string(), v.null())),
-    // Keep tone preset literals sourced from chat/tonePresets.ts.
-    tonePreset: v.optional(v.union(tonePresetValidator, v.null())),
-    topicsToAvoid: v.optional(v.union(v.string(), v.null())),
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const appUser = await getAppUser(ctx, ctx.user._id);
-    const patch = buildPersonaPatch(args);
-    if (Object.keys(patch).length === 0) {
-      return null;
-    }
-
-    await ctx.db.patch("users", appUser._id, patch);
-    return null;
-  },
-});
+import { RESERVED_USERNAMES, getAppUser } from "./helpers";
 
 export const setUsername = authMutation({
   args: { username: v.string() },
@@ -68,21 +45,6 @@ export const updateProfile = authMutation({
     await ctx.db.patch("users", appUser._id, {
       ...(args.name !== undefined ? { name: args.name } : {}),
       ...(args.tagline !== undefined ? { tagline: args.tagline } : {}),
-    });
-    return null;
-  },
-});
-
-export const updateProfileSettings = authMutation({
-  args: {
-    defaultProfileSection: defaultProfileSectionValidator,
-  },
-  returns: v.null(),
-  handler: async (ctx, args) => {
-    const appUser = await getAppUser(ctx, ctx.user._id);
-
-    await ctx.db.patch("users", appUser._id, {
-      defaultProfileSection: args.defaultProfileSection,
     });
     return null;
   },
@@ -149,7 +111,6 @@ export const ensureProfile = authMutation({
         authId: ctx.user._id,
         email: ctx.user.email,
         onboardingComplete: false,
-        defaultProfileSection: DEFAULT_PROFILE_SECTION,
       });
     }
 

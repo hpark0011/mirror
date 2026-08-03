@@ -79,7 +79,6 @@ test.describe("Article detail — Edit button (owner-only entry to editor)", () 
    * visits @test-user's article and must NOT see the Edit button.
    *
    * Uses the non-owner fixture pattern from
-   * apps/mirror/e2e/clone-settings/non-owner-hidden-tab-and-404.spec.ts and
    * apps/mirror/e2e/bio/bio-tab-cross-user.authenticated.spec.ts.
    */
   test("non-owner viewers cannot see the Edit button on article detail", async ({

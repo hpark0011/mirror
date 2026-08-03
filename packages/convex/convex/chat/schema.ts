@@ -5,8 +5,9 @@ import { chatModeValidator } from "./mode";
 export const conversationsTable = defineTable({
   profileOwnerId: v.id("users"),
   viewerId: v.optional(v.id("users")),
-  // Widened for PLAN_012. Existing rows without a mode are treated as
-  // "clone" by every read path until the backfill narrows this field.
+  // Release A migration envelope. New conversations omit this field and
+  // legacy configuration rows are quarantined. Remove the field and index
+  // only after cleanup is verified on every deployment (PLAN_015 Release B).
   mode: v.optional(chatModeValidator),
   threadId: v.string(),
   status: v.union(v.literal("active"), v.literal("archived")),
@@ -21,4 +22,5 @@ export const conversationsTable = defineTable({
 })
   .index("by_profileOwnerId_and_viewerId", ["profileOwnerId", "viewerId"])
   .index("by_viewerId", ["viewerId"])
+  .index("by_mode", ["mode"])
   .index("by_threadId", ["threadId"]);

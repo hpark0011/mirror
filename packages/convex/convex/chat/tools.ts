@@ -248,7 +248,7 @@ export function buildCloneTools(
       },
     }),
 
-        deletePost: createTool({
+    deletePost: createTool({
       description:
         "Permanently delete one of the profile owner's posts by slug. Use this only when the visitor (who is the profile owner — verify by their phrasing such as 'delete my post titled X') explicitly asks to remove a post. Pass the slug only — the owner is resolved server-side from the chat context, do not pass any user identifier. The slug must come from getLatestPublished or from a post the profile owner has authored. The result includes a `deleted` boolean and the canonical posts-list href; the client uses the href to navigate the visitor away from the now-deleted detail page. If `deleted` is false the slug did not match a post owned by this profile — acknowledge the miss and offer to look it up with getLatestPublished.",
       // The LLM-visible surface is `slug` only. The owner is the closure-bound
@@ -592,8 +592,7 @@ export function buildCloneTools(
       // The LLM-visible surface is `section` only. The owner is the
       // closure-bound `profileOwnerId`, never a tool arg. The
       // `inputSchema invariants` tests in `chat/__tests__/tools.test.ts`
-      // pin this. `clone-settings` is intentionally excluded — it is
-      // owner-only and not a visitor-reachable view.
+      // pin this to the five public profile routes.
       inputSchema: z.object({
         section: z
           .enum(["bio", "contact", "projects", "articles", "posts"])
