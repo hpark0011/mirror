@@ -47,7 +47,7 @@ Canonical scaffold lives at [skill-template/SKILL.md](skill-template/SKILL.md). 
 
    - **Constraints**: `^[a-z0-9-]+$`, ≤64 chars, no reserved words (`anthropic`, `claude`).
    - **Directory name must equal frontmatter `name`** — location already namespaces the skill, so don't prefix.
-   - **Acceptable fallbacks**: action form (`configure-settings`) or tool-action (`sentry-cli`, `tavus-cvi-quickstart`) when the tool name is the primary trigger.
+   - **Acceptable fallbacks**: action form (`configure-settings`) or tool-action (`sentry-cli`) when the tool name is the primary trigger.
    - **Avoid**: `helper`, `utils`, `tools`, version suffixes (`v2-...`), filler verbs (`do-stuff-with-...`), CamelCase.
    - **Do not mass-rename existing skills.** Apply this to new skills and rename opportunistically — churn costs more than inconsistency.
 

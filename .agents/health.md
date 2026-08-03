@@ -7,7 +7,7 @@ Last audited: 2026-02-24
 | Area | Status | Notes |
 |------|--------|-------|
 | AGENTS.md (root) | Current | Packages, structure, icon names verified |
-| AGENTS.md (mirror) | Current | Onboarding, video-call features added |
+| AGENTS.md (mirror) | Current | Onboarding features added |
 | AGENTS.md (features) | Current | Editor, theme features documented |
 | .claude/rules/ | Current | monorepo.md, testing.md fixed |
 | MEMORY.md | Current | Stale entries cleaned |

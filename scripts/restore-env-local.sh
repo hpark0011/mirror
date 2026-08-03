@@ -3,7 +3,7 @@
 #
 # Sources:
 #   - packages/convex/.env.local                   -> CONVEX_DEPLOYMENT (+ derived URLs)
-#   - vercel env pull --environment=production     -> NEXT_PUBLIC_SENTRY_DSN, TAVUS_*
+#   - vercel env pull --environment=production     -> NEXT_PUBLIC_SENTRY_DSN
 #
 # Convex-side secrets (BETTER_AUTH_SECRET, GOOGLE_*, RESEND_API_KEY,
 # ANTHROPIC_API_KEY, PLAYWRIGHT_TEST_SECRET) live in Convex env, not
@@ -49,7 +49,7 @@ TMP_VERCEL="$(mktemp)"
 TMP_CONVEX="$(mktemp)"
 trap 'rm -f "$TMP_VERCEL" "$TMP_CONVEX"' EXIT
 if ! (cd "$ROOT/apps/mirror" && vercel env pull --environment=production --yes "$TMP_VERCEL" >/dev/null 2>&1); then
-  echo "warn: vercel env pull failed — Sentry/Tavus values will be missing. Run \`vercel link\` once, then re-run." >&2
+  echo "warn: vercel env pull failed — Sentry values will be missing. Run \`vercel link\` once, then re-run." >&2
   : > "$TMP_VERCEL"
 fi
 
@@ -79,10 +79,6 @@ fi
   fi
   echo "NEXT_PUBLIC_SENTRY_ENVIRONMENT=development"
   echo "NEXT_PUBLIC_SENTRY_TRACES_SAMPLE_RATE=0.1"
-  echo
-  echo "# Tavus"
-  grep -E '^TAVUS_API_KEY=' "$TMP_VERCEL" | head -1 || echo "# TAVUS_API_KEY= (not in Vercel production env)"
-  grep -E '^TAVUS_PERSONA_ID=' "$TMP_VERCEL" | head -1 || echo "# TAVUS_PERSONA_ID= (not in Vercel production env)"
   echo
   echo "# Convex-side secrets (mirrored from \`convex env list\` for local scripts)."
   echo "# Source of truth is Convex env — server-side code reads from there at runtime."

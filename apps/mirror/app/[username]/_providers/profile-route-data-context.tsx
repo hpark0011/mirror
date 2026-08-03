@@ -7,23 +7,15 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import dynamic from "next/dynamic";
 import { type Preloaded } from "convex/react";
 import { type api } from "@feel-good/convex/convex/_generated/api";
 import { type Profile } from "@/features/profile";
 import { ProfileProvider } from "@/features/profile";
 import { useProfileData } from "@/features/profile/hooks/use-profile-data";
 
-const VideoCallModal = dynamic(
-  () => import("@/features/video-call").then((m) => m.VideoCallModal),
-  { ssr: false },
-);
-
 type ProfileRouteData = {
   profile: Profile;
   isOwner: boolean;
-  videoCallOpen: boolean;
-  setVideoCallOpen: (open: boolean) => void;
   isEditing: boolean;
   setIsEditing: (v: boolean) => void;
   isSubmitting: boolean;
@@ -60,7 +52,6 @@ export function ProfileRouteDataProvider({
     preloadedProfile,
   });
 
-  const [videoCallOpen, setVideoCallOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -70,25 +61,17 @@ export function ProfileRouteDataProvider({
     () => ({
       profile,
       isOwner,
-      videoCallOpen,
-      setVideoCallOpen,
       isEditing,
       setIsEditing,
       isSubmitting,
       setIsSubmitting,
     }),
-    [profile, isOwner, videoCallOpen, isEditing, isSubmitting],
+    [profile, isOwner, isEditing, isSubmitting],
   );
 
   return (
     <ProfileRouteDataContext.Provider value={routeDataValue}>
       <ProfileProvider value={profileContextValue}>{children}</ProfileProvider>
-      {videoCallOpen && (
-        <VideoCallModal
-          username={profile.username}
-          onClose={() => setVideoCallOpen(false)}
-        />
-      )}
     </ProfileRouteDataContext.Provider>
   );
 }

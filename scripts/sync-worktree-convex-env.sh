@@ -6,7 +6,7 @@
 # packages/convex/.env.local.
 #
 # Idempotent: rewrites the three CONVEX_* lines in apps/mirror/.env.local
-# in place; everything else (Sentry, Tavus, Anthropic, Better Auth) is preserved.
+# in place; everything else (Sentry, Anthropic, Better Auth) is preserved.
 
 set -e
 
