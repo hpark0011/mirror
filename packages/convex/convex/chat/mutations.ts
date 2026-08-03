@@ -4,7 +4,10 @@ import { mutation, internalMutation } from "../_generated/server";
 import { internal, components } from "../_generated/api";
 import { authComponent } from "../auth/client";
 import { chatRateLimiter } from "./rateLimits";
-import { isLegacyConfigurationConversation } from "./mode";
+import {
+  chatModeValidator,
+  isLegacyConfigurationConversation,
+} from "./mode";
 
 const MAX_MESSAGE_LENGTH = 3000;
 const STREAMING_LOCK_TTL_MS = 2 * 60 * 1000;
@@ -49,10 +52,17 @@ export const sendMessage = mutation({
   args: {
     profileOwnerId: v.id("users"),
     conversationId: v.optional(v.id("conversations")),
+    // Release A rollout compatibility for already-loaded clients.
+    // Remove this argument after the Release B gate has been met.
+    mode: v.optional(chatModeValidator),
     content: v.string(),
   },
   returns: v.object({ conversationId: v.id("conversations") }),
   handler: async (ctx, args) => {
+    if (args.mode === "configuration") {
+      throw new Error("Configuration chat is no longer available");
+    }
+
     const messageText = args.content.trim();
     if (messageText.length === 0) {
       throw new Error("Message cannot be empty");
@@ -168,9 +178,16 @@ export const sendMessage = mutation({
 export const retryMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
+    // Release A rollout compatibility for already-loaded clients.
+    // Remove this argument after the Release B gate has been met.
+    mode: v.optional(chatModeValidator),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
+    if (args.mode === "configuration") {
+      throw new Error("Configuration chat is no longer available");
+    }
+
     const authUser = await authComponent.safeGetAuthUser(ctx);
     const appUser = authUser
       ? await ctx.db

@@ -5,7 +5,10 @@ import { query, internalQuery } from "../_generated/server";
 import { components } from "../_generated/api";
 import { authComponent } from "../auth/client";
 import { type Doc } from "../_generated/dataModel";
-import { isLegacyConfigurationConversation } from "./mode";
+import {
+  chatModeValidator,
+  isLegacyConfigurationConversation,
+} from "./mode";
 
 const conversationReturnValidator = v.object({
   _id: v.id("conversations"),
@@ -63,9 +66,16 @@ export const getConversation = query({
 });
 
 export const getConversations = query({
-  args: { profileOwnerId: v.id("users") },
+  args: {
+    profileOwnerId: v.id("users"),
+    // Release A rollout compatibility for already-loaded clients.
+    // Remove this argument after the Release B gate has been met.
+    mode: v.optional(chatModeValidator),
+  },
   returns: v.array(conversationReturnValidator),
-  handler: async (ctx, { profileOwnerId }) => {
+  handler: async (ctx, { profileOwnerId, mode }) => {
+    if (mode === "configuration") return [];
+
     const authUser = await authComponent.safeGetAuthUser(ctx);
     if (!authUser) return [];
 
