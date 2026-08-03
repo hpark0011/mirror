@@ -35,7 +35,6 @@ type ProfileInfoProps = {
   onEditComplete: () => void;
   onSubmittingChange?: (submitting: boolean) => void;
   onOpenChat?: () => void;
-  onOpenVideoCall?: () => void;
 };
 
 export function ProfileInfo({
@@ -44,7 +43,6 @@ export function ProfileInfo({
   onEditComplete,
   onSubmittingChange,
   onOpenChat,
-  onOpenVideoCall,
 }: ProfileInfoProps) {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -166,7 +164,6 @@ export function ProfileInfo({
         <EditableProfileActions
           isEditing={isEditing}
           onOpenChat={onOpenChat}
-          onOpenVideoCall={onOpenVideoCall}
         />
       </div>
       <div className="w-full">

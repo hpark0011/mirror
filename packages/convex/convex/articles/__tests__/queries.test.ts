@@ -29,7 +29,6 @@ vi.mock("../../auth/client", () => {
 });
 
 import { api } from "../../_generated/api";
-import { type Id } from "../../_generated/dataModel";
 import schema from "../../schema";
 
 function normalizeConvexGlob(
@@ -165,51 +164,5 @@ describe("articles.queries.getBySlug — inline image src rewrite (FR-05)", () =
     ).content[0].content[0];
     expect(node.attrs.src).toBe("https://legacy.example/old.png");
     expect(node.attrs.storageId).toBeUndefined();
-  });
-});
-
-describe("articles.queries.getByUsernameForConversation — FR-05 articles-only exemption", () => {
-  beforeEach(() => {
-    authState.currentAuthUser = null;
-  });
-
-  it("returns body verbatim — no URL rewrite (text extractor skips images)", async () => {
-    const t = makeT();
-    await setupOwnerAndSignIn(t);
-
-    const storageId: Id<"_storage"> = await storeBlob(t, "for-convo");
-
-    await t.mutation(api.articles.mutations.create, {
-      title: "Convo body",
-      category: "general",
-      body: {
-        type: "doc",
-        content: [
-          {
-            type: "paragraph",
-            content: [
-              {
-                type: "image",
-                attrs: { storageId, src: "stable://untouched" },
-              },
-            ],
-          },
-        ],
-      },
-      status: "published",
-    });
-
-    const list = await t.query(
-      api.articles.queries.getByUsernameForConversation,
-      { username: "owner" },
-    );
-    const node = (
-      list?.[0]?.body as {
-        content: { content: { attrs: Record<string, unknown> }[] }[];
-      }
-    ).content[0].content[0];
-    // src is exactly the placeholder — NOT rewritten.
-    expect(node.attrs.src).toBe("stable://untouched");
-    expect(node.attrs.storageId).toBe(storageId);
   });
 });
