@@ -23,7 +23,7 @@ In parallel worktrees, Mirror dev and Playwright e2e scripts use
 
 | Category  | Technology                                           |
 | --------- | ---------------------------------------------------- |
-| Framework | Next.js 15 (App Router), React 19, TypeScript        |
+| Framework | Next.js 16 (App Router), React 19, TypeScript        |
 | Backend   | Convex (real-time), @convex-dev/agent (clone chat)   |
 | Auth      | Better Auth with @convex-dev/better-auth             |
 | AI/Chat   | Vercel AI SDK (`ai`), streaming clone responses      |

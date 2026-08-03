@@ -57,7 +57,7 @@ styles/                   # CSS files (Tailwind + custom)
 
 ## Tech Stack
 
-- Next.js 15 (App Router)
+- Next.js 16 (App Router)
 - React 19
 - Tailwind CSS
 - next-themes (dark/light mode)

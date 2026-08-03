@@ -22,7 +22,7 @@ pnpm dev --filter=@feel-good/ui-factory
 
 | Category  | Technology                                      |
 | --------- | ----------------------------------------------- |
-| Framework | Next.js 15 (App Router), React 19, TypeScript   |
+| Framework | Next.js 16 (App Router), React 19, TypeScript   |
 | Styling   | Tailwind CSS, @feel-good/ui                     |
 | Theming   | next-themes                                     |
 
