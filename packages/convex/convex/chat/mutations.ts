@@ -3,34 +3,11 @@ import { createThread, saveMessage } from "@convex-dev/agent";
 import { mutation, internalMutation } from "../_generated/server";
 import { internal, components } from "../_generated/api";
 import { authComponent } from "../auth/client";
-import { validateThumbhashFormat } from "../articles/helpers";
-import { assertCoverBlobOwnership } from "../content/coverBlobOwnership";
-import { ALLOWED_INLINE_IMAGE_TYPES } from "../content/storagePolicy";
 import { chatRateLimiter } from "./rateLimits";
-import {
-  DEFAULT_CHAT_MODE,
-  chatModeValidator,
-  getConversationMode,
-  type ChatMode,
-} from "./mode";
+import { isLegacyConfigurationConversation } from "./mode";
 
 const MAX_MESSAGE_LENGTH = 3000;
-const MAX_CONFIGURATION_MESSAGE_LENGTH = 12000;
-
-// A streaming-lock is treated as "held" only if it was acquired within the
-// last STREAMING_LOCK_TTL_MS. Older locks are presumed crashed (the
-// `streamResponse` action either finished and called `clearStreamingLock`
-// or it died) and the next message acquires fresh. Replaces the prior
-// 5-minute cron sweep — recovery now happens lazily at the only place
-// that cares about lock state.
 const STREAMING_LOCK_TTL_MS = 2 * 60 * 1000;
-
-const chatAttachmentValidator = v.object({
-  storageId: v.id("_storage"),
-  mediaType: v.string(),
-  filename: v.optional(v.string()),
-  thumbhash: v.optional(v.string()),
-});
 
 function isStreamingLockHeld(conversation: {
   streamingInProgress?: boolean;
@@ -46,45 +23,19 @@ type LimitName =
   | "retryMessage"
   | "createConversation"
   | "sendMessageDailyAnon"
-  | "sendMessageDailyAuth"
-  | "createConfigurationConversation"
-  | "sendConfigurationMessage"
-  | "retryConfigurationMessage"
-  | "sendConfigurationDailyOwner";
+  | "sendMessageDailyAuth";
 
 type LimitCode = "RATE_LIMIT_MINUTE" | "RATE_LIMIT_DAILY";
 
-/**
- * Narrow wrapper around `chatRateLimiter.limit` that converts a rejection into
- * a structured `ConvexError` the frontend can discriminate on (per FR-07).
- *
- * `retryAfter` from `@convex-dev/rate-limiter` is already in milliseconds, so
- * we pass it through unchanged as `retryAfterMs`.
- *
- * Ordering note (Wave 1 Finding B verification, 2026-04-15): callers check
- * the per-minute bucket BEFORE the daily bucket. This is safe because
- * `@convex-dev/rate-limiter@0.3.2` does NOT consume a token on rejection —
- * `checkRateLimitSharded` in the component's `internal.ts` returns
- * `updates: []` when `!status.ok`, and the component's `rateLimit` mutation
- * in `lib.ts` only patches/inserts entries in `updates`. So a failed
- * per-minute check leaves ALL buckets untouched, and the downstream daily
- * check only runs when the per-minute check already passed. Swapping the
- * order would not improve correctness; the reviewer's concern was a false
- * positive after source verification.
- */
 async function enforceLimit(
-  // The rate limiter accepts any query/mutation/action context. Using a loose
-  // type here avoids fighting the generic component-client parameter type.
   ctx: Parameters<typeof chatRateLimiter.limit>[0],
   name: LimitName,
   key: string,
   code: LimitCode,
-  count?: number,
 ): Promise<void> {
   const result = await chatRateLimiter.limit(ctx, name, {
     key,
     throws: false,
-    ...(count !== undefined ? { count } : {}),
   });
   if (!result.ok) {
     throw new ConvexError({
@@ -94,283 +45,121 @@ async function enforceLimit(
   }
 }
 
-export function estimateInputTokenCount(content: string): number {
-  return Math.max(1, Math.ceil(content.length / 4));
-}
-
-function getMaxMessageLength(mode: ChatMode): number {
-  return mode === "configuration"
-    ? MAX_CONFIGURATION_MESSAGE_LENGTH
-    : MAX_MESSAGE_LENGTH;
-}
-
 export const sendMessage = mutation({
   args: {
     profileOwnerId: v.id("users"),
     conversationId: v.optional(v.id("conversations")),
-    mode: v.optional(chatModeValidator),
     content: v.string(),
-    attachments: v.optional(v.array(chatAttachmentValidator)),
   },
   returns: v.object({ conversationId: v.id("conversations") }),
   handler: async (ctx, args) => {
-    const mode = args.mode ?? DEFAULT_CHAT_MODE;
-
-    // 1. Input validation — must precede any rate-limit work so oversize
-    //    messages are rejected without consuming daily budget (FR-02).
-    const attachments = args.attachments ?? [];
-    if (attachments.length > 1) {
-      throw new Error("Only one image attachment is supported per message");
-    }
-    if (attachments.length > 0 && mode !== "configuration") {
-      throw new Error("Image attachments are only supported in profile helper chats");
-    }
-
-    const content = args.content.trim();
-    const messageText =
-      content.length > 0
-        ? content
-        : attachments.length > 0
-          ? "Use the attached image."
-          : "";
+    const messageText = args.content.trim();
     if (messageText.length === 0) {
       throw new Error("Message cannot be empty");
     }
-    const maxMessageLength = getMaxMessageLength(mode);
-    if (messageText.length > maxMessageLength) {
-      throw new Error(`Message exceeds ${maxMessageLength} character limit`);
-    }
-    for (const attachment of attachments) {
-      if (!ALLOWED_INLINE_IMAGE_TYPES.has(attachment.mediaType)) {
-        throw new Error("Image attachment must be PNG, JPEG, or WebP");
-      }
-      if (attachment.thumbhash !== undefined && attachment.thumbhash !== "") {
-        validateThumbhashFormat(attachment.thumbhash);
-      }
+    if (messageText.length > MAX_MESSAGE_LENGTH) {
+      throw new Error(`Message exceeds ${MAX_MESSAGE_LENGTH} character limit`);
     }
 
-    // 2. Optional auth
     const authUser = await authComponent.safeGetAuthUser(ctx);
-    let appUser = null;
-    if (authUser) {
-      appUser = await ctx.db
-        .query("users")
-        .withIndex("by_authId", (q) => q.eq("authId", authUser._id))
-        .unique();
-    }
+    const appUser = authUser
+      ? await ctx.db
+          .query("users")
+          .withIndex("by_authId", (q) => q.eq("authId", authUser._id))
+          .unique()
+      : null;
 
-    // 3. Profile owner validation
     const profileOwner = await ctx.db.get(args.profileOwnerId);
     if (!profileOwner) {
       throw new Error("Profile owner not found");
     }
-    if (profileOwner.chatAuthRequired && !appUser) {
-      throw new Error("Authentication required to chat with this profile");
-    }
 
-    if (mode === "configuration") {
-      if (!appUser) {
-        throw new Error("Authentication required to configure this profile");
-      }
-      if (appUser._id !== args.profileOwnerId) {
-        throw new Error("Only the profile owner can configure this profile");
-      }
-    }
-
-    for (const attachment of attachments) {
-      await assertCoverBlobOwnership(
-        ctx,
-        attachment.storageId,
-        appUser!._id,
-        "image",
-      );
-    }
-
-    // 4. Existing conversation ownership validation
     let conversationId = args.conversationId;
-    let existingConversation = null;
     if (conversationId) {
-      existingConversation = await ctx.db.get(conversationId);
+      const existingConversation = await ctx.db.get(conversationId);
       if (!existingConversation) {
+        throw new Error("Conversation not found");
+      }
+      if (isLegacyConfigurationConversation(existingConversation)) {
         throw new Error("Conversation not found");
       }
       if (existingConversation.profileOwnerId !== args.profileOwnerId) {
         throw new Error("Conversation does not belong to this profile");
       }
-      const existingMode = getConversationMode(existingConversation);
-      if (existingMode !== mode) {
-        throw new Error("Conversation mode mismatch");
-      }
-      // Viewer must match
       if (appUser) {
         if (existingConversation.viewerId !== appUser._id) {
           throw new Error("Not authorized to send to this conversation");
         }
-      } else {
-        if (existingConversation.viewerId !== undefined) {
-          throw new Error("Not authorized to send to this conversation");
-        }
+      } else if (existingConversation.viewerId !== undefined) {
+        throw new Error("Not authorized to send to this conversation");
       }
-
-      // Concurrency guard runs BEFORE rate-limit so a double-click / retry
-      // against an already-streaming conversation is rejected without
-      // spending minute or daily budget. A stale lock (older than the TTL)
-      // is treated as released — see `isStreamingLockHeld`.
       if (isStreamingLockHeld(existingConversation)) {
         throw new Error(
           "A response is already being generated. Please wait for it to complete.",
         );
       }
 
-      // 5a. Per-minute burst limit (existing conversation).
-      if (mode === "configuration") {
-        await enforceLimit(
-          ctx,
-          "sendConfigurationMessage",
-          appUser!._id,
-          "RATE_LIMIT_MINUTE",
-        );
-      } else {
-        await enforceLimit(
-          ctx,
-          "sendMessage",
-          appUser ? appUser._id : conversationId,
-          "RATE_LIMIT_MINUTE",
-        );
-      }
-    } else {
-      // 5a. Per-minute burst limit (new conversation path).
-      if (mode === "configuration") {
-        await enforceLimit(
-          ctx,
-          "createConfigurationConversation",
-          appUser!._id,
-          "RATE_LIMIT_MINUTE",
-        );
-      } else {
-        await enforceLimit(
-          ctx,
-          "createConversation",
-          appUser ? appUser._id : args.profileOwnerId,
-          "RATE_LIMIT_MINUTE",
-        );
-      }
-    }
-
-    // 5b. Daily spend ceiling (FR-03/FR-04/FR-06). Keyed by user (auth) or
-    //     profileOwnerId (anon) in BOTH branches so new-conversation churn
-    //     cannot bypass the daily cap. MUST run strictly before we patch
-    //     streamingInProgress (NFR-03).
-    if (mode === "configuration") {
       await enforceLimit(
         ctx,
-        "sendConfigurationDailyOwner",
-        appUser!._id,
-        "RATE_LIMIT_DAILY",
-        estimateInputTokenCount(messageText),
-      );
-    } else if (appUser) {
-      await enforceLimit(
-        ctx,
-        "sendMessageDailyAuth",
-        appUser._id,
-        "RATE_LIMIT_DAILY",
+        "sendMessage",
+        appUser ? appUser._id : conversationId,
+        "RATE_LIMIT_MINUTE",
       );
     } else {
       await enforceLimit(
         ctx,
-        "sendMessageDailyAnon",
-        args.profileOwnerId,
-        "RATE_LIMIT_DAILY",
+        "createConversation",
+        appUser ? appUser._id : args.profileOwnerId,
+        "RATE_LIMIT_MINUTE",
       );
     }
 
-    // 7. Create conversation + thread if first message
+    await enforceLimit(
+      ctx,
+      appUser ? "sendMessageDailyAuth" : "sendMessageDailyAnon",
+      appUser ? appUser._id : args.profileOwnerId,
+      "RATE_LIMIT_DAILY",
+    );
+
     if (!conversationId) {
       const threadId = await createThread(ctx, components.agent, {
         userId: appUser?._id,
       });
-
       conversationId = await ctx.db.insert("conversations", {
         profileOwnerId: args.profileOwnerId,
-        viewerId: mode === "configuration" ? args.profileOwnerId : appUser?._id,
-        mode,
+        viewerId: appUser?._id,
         threadId,
         status: "active",
         title: messageText.slice(0, 100),
       });
     }
 
-    // Refetch for threadId (needed for saveMessage)
     const conversation = await ctx.db.get(conversationId);
-    if (!conversation) {
-      throw new Error("Failed to create conversation");
+    if (!conversation || isLegacyConfigurationConversation(conversation)) {
+      throw new Error("Conversation not found");
     }
-
-    // 8. Save user message
-    const imageParts = await Promise.all(
-      attachments.map(async (attachment) => {
-        const url = await ctx.storage.getUrl(attachment.storageId);
-        if (!url) {
-          throw new Error("Image attachment is unavailable");
-        }
-        return {
-          type: "image" as const,
-          image: new URL(url),
-          mediaType: attachment.mediaType,
-          providerOptions: {
-            mirror: {
-              storageId: attachment.storageId,
-              ...(attachment.thumbhash
-                ? { thumbhash: attachment.thumbhash }
-                : {}),
-            },
-          },
-        };
-      }),
-    );
 
     const { messageId } = await saveMessage(ctx, components.agent, {
       threadId: conversation.threadId,
       message: {
         role: "user",
-        content: [
-          { type: "text", text: messageText },
-          ...imageParts,
-        ],
+        content: [{ type: "text", text: messageText }],
       },
       userId: appUser?._id,
     });
 
-    // 9. Set streaming lock
     const lockStartedAt = Date.now();
     await ctx.db.patch(conversationId, {
       streamingInProgress: true,
       streamingStartedAt: lockStartedAt,
     });
-
-    // 10. Schedule action
-    await ctx.scheduler.runAfter(
-      0,
-      internal.chat.actions.streamResponse,
-      {
-        conversationId,
-        profileOwnerId: args.profileOwnerId,
-        promptMessageId: messageId,
-        lockStartedAt,
-        userMessage: messageText,
-        ...(attachments[0]
-          ? {
-              latestImageAttachment: {
-                storageId: attachments[0].storageId,
-                ...(attachments[0].thumbhash
-                  ? { thumbhash: attachments[0].thumbhash }
-                  : {}),
-              },
-            }
-          : {}),
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.chat.actions.streamResponse, {
+      conversationId,
+      profileOwnerId: args.profileOwnerId,
+      promptMessageId: messageId,
+      lockStartedAt,
+      userMessage: messageText,
+    });
 
     return { conversationId };
   },
@@ -379,121 +168,60 @@ export const sendMessage = mutation({
 export const retryMessage = mutation({
   args: {
     conversationId: v.id("conversations"),
-    mode: v.optional(chatModeValidator),
   },
   returns: v.null(),
   handler: async (ctx, args) => {
-    const requestedMode = args.mode ?? DEFAULT_CHAT_MODE;
-
-    // 1. Auth + ownership check
     const authUser = await authComponent.safeGetAuthUser(ctx);
-    let appUser = null;
-    if (authUser) {
-      appUser = await ctx.db
-        .query("users")
-        .withIndex("by_authId", (q) => q.eq("authId", authUser._id))
-        .unique();
-    }
+    const appUser = authUser
+      ? await ctx.db
+          .query("users")
+          .withIndex("by_authId", (q) => q.eq("authId", authUser._id))
+          .unique()
+      : null;
 
     const conversation = await ctx.db.get(args.conversationId);
-    if (!conversation) {
+    if (!conversation || isLegacyConfigurationConversation(conversation)) {
       throw new Error("Conversation not found");
     }
-    const conversationMode = getConversationMode(conversation);
-    if (conversationMode !== requestedMode) {
-      throw new Error("Conversation mode mismatch");
-    }
 
-    // Viewer must match
     if (appUser) {
       if (conversation.viewerId !== appUser._id) {
         throw new Error("Not authorized to retry in this conversation");
       }
-    } else {
-      if (conversation.viewerId !== undefined) {
-        throw new Error("Not authorized to retry in this conversation");
-      }
+    } else if (conversation.viewerId !== undefined) {
+      throw new Error("Not authorized to retry in this conversation");
     }
 
-    if (conversationMode === "configuration") {
-      if (!appUser || appUser._id !== conversation.profileOwnerId) {
-        throw new Error("Only the profile owner can configure this profile");
-      }
-    }
-
-    // Concurrency guard runs BEFORE rate-limit so a retry against an
-    // already-streaming conversation is rejected without spending budget.
-    // A stale lock (older than the TTL) is treated as released — see
-    // `isStreamingLockHeld`.
     if (isStreamingLockHeld(conversation)) {
       throw new Error(
         "A response is already being generated. Please wait for it to complete.",
       );
     }
 
-    // 2a. Per-minute burst limit. Re-keyed to profileOwnerId (anon) /
-    //     appUser._id (auth) — matching sendMessage — so retries on a
-    //     fresh conversation cannot bypass daily caps via key-switching
-    //     (FR-05).
-    if (conversationMode === "configuration") {
-      await enforceLimit(
-        ctx,
-        "retryConfigurationMessage",
-        appUser!._id,
-        "RATE_LIMIT_MINUTE",
-      );
-    } else {
-      await enforceLimit(
-        ctx,
-        "retryMessage",
-        appUser ? appUser._id : conversation.profileOwnerId,
-        "RATE_LIMIT_MINUTE",
-      );
-    }
+    await enforceLimit(
+      ctx,
+      "retryMessage",
+      appUser ? appUser._id : conversation.profileOwnerId,
+      "RATE_LIMIT_MINUTE",
+    );
+    await enforceLimit(
+      ctx,
+      appUser ? "sendMessageDailyAuth" : "sendMessageDailyAnon",
+      appUser ? appUser._id : conversation.profileOwnerId,
+      "RATE_LIMIT_DAILY",
+    );
 
-    // 2b. Daily spend ceiling (FR-03/FR-04).
-    if (conversationMode === "configuration") {
-      await enforceLimit(
-        ctx,
-        "sendConfigurationDailyOwner",
-        appUser!._id,
-        "RATE_LIMIT_DAILY",
-        1,
-      );
-    } else if (appUser) {
-      await enforceLimit(
-        ctx,
-        "sendMessageDailyAuth",
-        appUser._id,
-        "RATE_LIMIT_DAILY",
-      );
-    } else {
-      await enforceLimit(
-        ctx,
-        "sendMessageDailyAnon",
-        conversation.profileOwnerId,
-        "RATE_LIMIT_DAILY",
-      );
-    }
-
-    // 4. Set streaming lock
     const lockStartedAt = Date.now();
     await ctx.db.patch(args.conversationId, {
       streamingInProgress: true,
       streamingStartedAt: lockStartedAt,
     });
-
-    // 5. Schedule streamResponse with empty promptMessageId (retry signal)
-    await ctx.scheduler.runAfter(
-      0,
-      internal.chat.actions.streamResponse,
-      {
-        conversationId: args.conversationId,
-        profileOwnerId: conversation.profileOwnerId,
-        promptMessageId: "",
-        lockStartedAt,
-      },
-    );
+    await ctx.scheduler.runAfter(0, internal.chat.actions.streamResponse, {
+      conversationId: args.conversationId,
+      profileOwnerId: conversation.profileOwnerId,
+      promptMessageId: "",
+      lockStartedAt,
+    });
 
     return null;
   },

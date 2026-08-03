@@ -12,7 +12,6 @@ acceptance_criteria:
   - "@convex-dev/agent and @convex-dev/rate-limiter dependencies are installed in package.json"
   - "Convex config defines agent and rate-limiter components"
   - "Conversations table is defined in chat/schema.ts"
-  - "Users table includes optional personaPrompt and chatAuthRequired fields"
   - "Convex types generate successfully via `pnpm exec convex codegen` without errors"
 owner_agent: "Backend Engineer"
 ---
@@ -31,7 +30,6 @@ Install necessary backend packages and define the schema for conversations and t
 
 - Install `@convex-dev/agent` and `@convex-dev/rate-limiter` packages.
 - Add `convex.config.ts`.
-- Update `users/schema.ts` to add `personaPrompt` (string, optional) and `chatAuthRequired` (boolean, optional).
 - Create `chat/schema.ts` with the `conversations` table.
 - Link the new table to the root `schema.ts`.
 
@@ -51,10 +49,9 @@ Use `pnpm` to install dependencies in `packages/convex`. Follow the standard Con
 
 1. In `packages/convex`, run `pnpm install @convex-dev/agent @convex-dev/rate-limiter`.
 2. Create `packages/convex/convex/convex.config.ts` and define/register `agent` and `rateLimiter` components.
-3. Edit `packages/convex/convex/users/schema.ts` entirely to add the optional fields `personaPrompt` and `chatAuthRequired`.
-4. Create `packages/convex/convex/chat/schema.ts` to define the `conversations` table with: `profileOwnerId`, `viewerId` (optional), `threadId`, `status`, `title`, and `streamingInProgress` (optional boolean lock).
-5. Update `packages/convex/convex/schema.ts` to export the chat schema.
-6. Run `pnpm exec convex codegen` or `pnpm build` in `packages/convex` to verify the schema compiles correctly.
+3. Create `packages/convex/convex/chat/schema.ts` to define the `conversations` table with: `profileOwnerId`, `viewerId` (optional), `threadId`, `status`, `title`, and `streamingInProgress` (optional boolean lock).
+4. Update `packages/convex/convex/schema.ts` to export the chat schema.
+5. Run `pnpm exec convex codegen` or `pnpm build` in `packages/convex` to verify the schema compiles correctly.
 
 ## Constraints
 

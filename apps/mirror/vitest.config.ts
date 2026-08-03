@@ -8,10 +8,6 @@ export default defineConfig({
     exclude: [
       "e2e/**",
       "node_modules/**",
-      // Pre-existing tests that use bun:test API (incompatible with vitest runner)
-      "features/clone-settings/__tests__/char-counter-textarea.test.tsx",
-      "features/clone-settings/__tests__/clear-all-dialog.test.tsx",
-      "features/clone-settings/__tests__/tone-preset-select.test.tsx",
       "app/[username]/_components/__tests__/mobile-workspace.test.tsx",
     ],
   },

@@ -29,12 +29,12 @@ Surfaced during review of PR #13 (route-based mobile navigation). `apps/mirror/a
 - `searchParams` / `segments` (URL primitives)
 - `isChatOpen`, `buildChatAwareHref` (chat hook)
 - `hasContentRoute` (segment derivation)
-- `routeState` (segment derivation, with a clone-settings carve-out — see FG_079)
+- `routeState` (profile content-segment derivation)
 - `defaultContentHref` (memo over username + searchParams)
 - `profileBackHref` (memo over buildChatAwareHref + username)
 - `openDefaultContent` (router.push wrapper)
 
-It then renders one of two trees, threading those values as props. Most of those derived values exist *only* to be passed down. `MobileWorkspace` receives `isChatOpen` and `profileBackHref` as props but is itself a client component that could call `useChatSearchParams()` and `useParams()` directly. The shell ends up acting as a router-state pipe.
+It then renders one of two trees, threading those values as props. Most of those derived values exist _only_ to be passed down. `MobileWorkspace` receives `isChatOpen` and `profileBackHref` as props but is itself a client component that could call `useChatSearchParams()` and `useParams()` directly. The shell ends up acting as a router-state pipe.
 
 ## Goal
 
@@ -50,7 +50,6 @@ It then renders one of two trees, threading those values as props. Most of those
 ## Out of Scope
 
 - Splitting the `WorkspaceChromeContext` further (separate ticket)
-- Pushing the clone-settings carve-out into `getContentRouteState` (covered by FG_079 — this ticket should reuse whatever shape `routeState` has at the time)
 - Touching the `useProfileNavigationEffects` hook
 - Renaming `WorkspaceShell` or restructuring the parallel-route slots
 

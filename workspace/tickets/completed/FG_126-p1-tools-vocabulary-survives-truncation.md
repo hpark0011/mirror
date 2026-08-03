@@ -10,7 +10,7 @@ dependencies: []
 parent_plan_id: docs/plans/2026-05-04-feat-agent-ui-parity-plan.md
 acceptance_criteria:
   - "`grep -n 'TOOLS_VOCABULARY' packages/convex/convex/chat/helpers.ts` shows the constant pushed into the `fixed` array, not `truncatable`"
-  - "`grep -n \"truncatable.push(TOOLS_VOCABULARY)\" packages/convex/convex/chat/helpers.ts` returns no matches"
+  - '`grep -n "truncatable.push(TOOLS_VOCABULARY)" packages/convex/convex/chat/helpers.ts` returns no matches'
   - "Existing helpers.test.ts FR-09 oversize cases (lines 130-203) gain `expect(result).toContain('navigateToContent')` and `expect(result).toContain('getLatestPublished')` assertions"
   - "The 'truly-minimal call (only name, all other fields omitted)' test at helpers.test.ts:91-96 gains the same toContain('navigateToContent') assertion"
   - "Section-order tests still pass — TOOLS_VOCABULARY appears AFTER tone clause and BEFORE bio/persona/topics (since fixed region precedes truncatable)"
@@ -38,7 +38,7 @@ const share = Math.floor((p.length / truncatableTotal) * budget);
 return p.slice(0, share);
 ```
 
-For a user with a verbose `personaPrompt` (~12,000 chars), large `bio` (~6,000 chars), and detailed `topicsToAvoid` (~6,000 chars), the truncatable total was ~24,000 chars and the budget was ~5,400. TOOLS_VOCABULARY's share collapsed to `floor(161/24000 * 5400) ≈ 35` chars, which was `"You can open content for the visito"` — neither tool name survived.
+For a user with an oversized tagline and full content inventory, proportional truncation could previously shrink tool vocabulary until no complete tool name survived.
 
 The agent learned nothing about its tool surface and silently fell back to text. The bug only manifested for users who filled in all profile fields extensively, but for those users the navigation feature was silently dead.
 

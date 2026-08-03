@@ -19,7 +19,6 @@ export type Profile = {
   name: string;
   tagline: string;
   avatarUrl: PublicProfileResponse["avatarUrl"];
-  defaultProfileSection: PublicProfileResponse["defaultProfileSection"];
   media?: {
     video: string;
     poster: string;

@@ -12,15 +12,8 @@ import { ChatInput } from "./chat-input";
 import { ChatMessageList } from "./chat-message-list";
 
 export function ChatThread() {
-  const {
-    routeResolution,
-    profileName,
-    avatarUrl,
-    mode,
-    closeChat,
-    headerAddon,
-  } = useChatContext();
-  const headerName = mode === "configuration" ? "Profile helper" : profileName;
+  const { routeResolution, profileName, avatarUrl, closeChat, headerAddon } =
+    useChatContext();
 
   if (routeResolution.status === "resolving") {
     return (
@@ -28,7 +21,7 @@ export function ChatThread() {
         {headerAddon}
         <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
           <ChatHeader
-            profileName={headerName}
+            profileName={profileName}
             avatarUrl={avatarUrl}
             onProfileClick={closeChat}
           />
@@ -48,7 +41,7 @@ export function ChatThread() {
       <div className="flex flex-col h-full relative">
         {headerAddon}
         <ChatHeader
-          profileName={headerName}
+          profileName={profileName}
           avatarUrl={avatarUrl}
           onProfileClick={closeChat}
         />
@@ -72,7 +65,6 @@ function ChatActiveThread() {
     profileOwnerId,
     profileName,
     avatarUrl,
-    mode,
     conversationId,
     conversations,
     routeResolution,
@@ -105,13 +97,9 @@ function ChatActiveThread() {
     sendAnimationKey,
   } = useChat({
     profileOwnerId,
-    mode,
     conversationId,
     onConversationCreated: setConversationId,
   });
-
-  const isConfigurationMode = mode === "configuration";
-  const chatDisplayName = isConfigurationMode ? "Profile helper" : profileName;
 
   // Watch for agent tool-results that drive UI navigation (the agent half
   // of the "two routes, one dispatcher" pattern — see
@@ -119,7 +107,7 @@ function ChatActiveThread() {
   // `conversationId` keys the module-level idempotency Map, so the
   // handled-toolCallId set survives chat-panel close/reopen and
   // conversation switches.
-  useAgentIntentWatcher(messages, conversationId, mode);
+  useAgentIntentWatcher(messages, conversationId);
 
   // Conversation deleted after route resolved — show error state
   if (conversationNotFound) {
@@ -133,10 +121,10 @@ function ChatActiveThread() {
           activeConversationId={activeConversationId}
           onSelect={setConversationId}
           isAuthenticated={isAuthenticated}
-          title={isConfigurationMode ? "Profile helper chats" : "Conversations"}
+          title="Conversations"
         />
         <ChatHeader
-          profileName={chatDisplayName}
+          profileName={profileName}
           avatarUrl={avatarUrl}
           onProfileClick={closeChat}
           onNewConversation={startNewConversation}
@@ -161,11 +149,11 @@ function ChatActiveThread() {
         activeConversationId={activeConversationId}
         onSelect={setConversationId}
         isAuthenticated={isAuthenticated}
-        title={isConfigurationMode ? "Profile helper chats" : "Conversations"}
+        title="Conversations"
       />
       <div className="absolute top-0 left-0 right-0 z-10 bg-linear-to-b from-transparent to-transparent h-12">
         <ChatHeader
-          profileName={chatDisplayName}
+          profileName={profileName}
           avatarUrl={avatarUrl}
           onProfileClick={closeChat}
           onNewConversation={startNewConversation}
@@ -177,7 +165,6 @@ function ChatActiveThread() {
         messages={messages}
         avatarUrl={avatarUrl}
         profileName={profileName}
-        mode={mode}
         status={status}
         loadMore={loadMore}
         onRetry={retryMessage}
@@ -187,7 +174,6 @@ function ChatActiveThread() {
       <div className="absolute bottom-0 w-full mx-auto bg-linear-to-t from-background via-30% via-background to-transparent">
         <ChatInput
           profileName={profileName}
-          mode={mode}
           isResponding={isResponding}
           onSend={sendMessage}
           sendError={sendError}

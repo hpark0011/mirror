@@ -2,9 +2,7 @@ import { v } from "convex/values";
 import { listMessages } from "@convex-dev/agent";
 import { internalQuery } from "../_generated/server";
 import { components } from "../_generated/api";
-import { TONE_PRESETS, type TonePreset } from "./tonePresets";
-import { chatModeValidator, getConversationMode } from "./mode";
-import { composeConfigurationPrompt } from "./configurationPrompt";
+import { isLegacyConfigurationConversation } from "./mode";
 
 /**
  * Inventory of which structured RAG-ingestion sources the profile owner has
@@ -77,7 +75,7 @@ export const STYLE_RULES = `Write the way someone texts a friend. Plain conversa
 Do not use **, *, _, or backticks for emphasis. Do not use bullet points, numbered lists, or headers.
 Keep replies short — usually 1–3 sentences. If you need to mention multiple things, weave them into a sentence instead of listing them.`;
 
-const DEFAULT_PERSONA =
+const PUBLIC_CHAT_INSTRUCTIONS =
   "Answer questions helpfully based on your profile information and published articles.";
 
 // Tools-vocabulary section. Tells the agent the verbs it can call to act on
@@ -121,9 +119,8 @@ const SEPARATOR = "\n\n";
  * Proportionally truncates the truncatable sections so the final joined
  * system prompt fits within `SYSTEM_PROMPT_MAX_CHARS` (FR-09).
  *
- * Safety prefix and tone clause are never touched in the *normal* case —
- * they are load-bearing safety content. Only the persona/tagline/topics
- * sections are proportionally shrunk.
+ * Safety and style sections are never touched in the normal case; only
+ * author-derived and inventory sections are proportionally shrunk.
  *
  * There is ONE pathological case: if the fixed sections alone (a very long
  * `name` producing an enormous safety prefix) already exceed the budget,
@@ -133,9 +130,8 @@ const SEPARATOR = "\n\n";
  * into the safety prefix. That is the lesser evil vs. blowing the cap.
  *
  * Section ORDER is preserved:
- *   safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
- * The first four are fixed (load-bearing) — safety prefix, style rules, the
- * optional tone clause, and the tools vocabulary. The rest are truncatable.
+ *   safety → style → tools-vocab → tagline → public instructions → inventory.
+ * The first three are fixed; the rest are truncatable.
  */
 function truncateToBudget(
   fixedParts: Array<string>,
@@ -182,14 +178,11 @@ function truncateToBudget(
 export function composeSystemPrompt(opts: {
   name?: string | null;
   tagline?: string | null;
-  personaPrompt?: string | null;
-  tonePreset?: TonePreset | null;
-  topicsToAvoid?: string | null;
   contentInventory?: ContentInventory | null;
   canUseOwnerWriteTools?: boolean | null;
 }): string {
   // Bound name up front so a pathologically long value cannot force the
-  // final backstop slice to cut into SAFETY_PREFIX or the tone clause.
+  // final backstop slice to cut into SAFETY_PREFIX.
   const rawName = opts.name || "this person";
   const name =
     rawName.length > MAX_NAME_CHARS
@@ -197,21 +190,16 @@ export function composeSystemPrompt(opts: {
       : rawName;
 
   // Fixed (non-truncatable) sections — always preserved verbatim.
-  // Order: safety → style → tone(optional) → tools-vocab. Style rules are
-  // product-wide (the chat UI renders plain text, not markdown), so they
-  // apply regardless of tone preset or persona prompt. The tools vocabulary is
+  // Style rules are product-wide (the chat UI renders plain text, not
+  // markdown). The tools vocabulary is
   // load-bearing too — it is the only place the system prompt names
   // `getLatestPublished` / `navigateToContent`, so under budget pressure it
   // must not be proportionally shrunk away. Owner-write verbs are appended
   // only for conversations whose viewer is the profile owner.
   const fixed: Array<string> = [SAFETY_PREFIX(name), STYLE_RULES];
-  if (opts.tonePreset && opts.tonePreset in TONE_PRESETS) {
-    fixed.push(TONE_PRESETS[opts.tonePreset].clause);
-  }
   fixed.push(buildToolsVocabulary(opts.canUseOwnerWriteTools === true));
 
-  // Truncatable sections — tagline, persona, topics, inventory. Order:
-  // safety → style → tone → tools-vocab → tagline → persona → topics → inventory.
+  // Truncatable sections — tagline, fixed public-chat instructions, inventory.
   // The inventory sentence is appended last so it does not destabilize
   // existing prompt ordering for users without structured content; it is
   // genuinely user-derived (depends on which kinds the owner has populated)
@@ -220,10 +208,7 @@ export function composeSystemPrompt(opts: {
   if (opts.tagline) {
     truncatable.push(`Tagline: ${opts.tagline}`);
   }
-  truncatable.push(opts.personaPrompt || DEFAULT_PERSONA);
-  if (opts.topicsToAvoid) {
-    truncatable.push(`Avoid discussing: ${opts.topicsToAvoid}`);
-  }
+  truncatable.push(PUBLIC_CHAT_INSTRUCTIONS);
   if (opts.contentInventory) {
     const inventorySentence = buildContentInventorySentence(
       opts.contentInventory,
@@ -233,8 +218,6 @@ export function composeSystemPrompt(opts: {
     }
   }
 
-  // Track which truncatable slots correspond to tagline/persona/topics so we can
-  // reassemble in order after truncation.
   const assembled = truncateToBudget(fixed, truncatable);
   const joined = assembled.join(SEPARATOR);
 
@@ -255,7 +238,6 @@ export const loadStreamingContext = internalQuery({
   returns: v.object({
     threadId: v.string(),
     systemPrompt: v.string(),
-    mode: chatModeValidator,
     viewerId: v.optional(v.id("users")),
   }),
   handler: async (ctx, { conversationId, profileOwnerId }) => {
@@ -266,24 +248,13 @@ export const loadStreamingContext = internalQuery({
     if (conversation.profileOwnerId !== profileOwnerId) {
       throw new Error("Conversation/profile owner mismatch");
     }
+    if (isLegacyConfigurationConversation(conversation)) {
+      throw new Error("Conversation not found");
+    }
 
     const profileOwner = await ctx.db.get(profileOwnerId);
     if (!profileOwner) {
       throw new Error("Profile owner not found");
-    }
-
-    const mode = getConversationMode(conversation);
-
-    if (mode === "configuration") {
-      if (conversation.viewerId !== profileOwnerId) {
-        throw new Error("Only the profile owner can configure this profile");
-      }
-      return {
-        threadId: conversation.threadId,
-        systemPrompt: composeConfigurationPrompt(),
-        mode,
-        viewerId: conversation.viewerId,
-      };
     }
 
     // Inventory of structured content the profile owner has populated.
@@ -340,13 +311,9 @@ export const loadStreamingContext = internalQuery({
       systemPrompt: composeSystemPrompt({
         name: profileOwner.name,
         tagline: profileOwner.tagline ?? null,
-        personaPrompt: profileOwner.personaPrompt,
-        tonePreset: profileOwner.tonePreset as TonePreset | null | undefined,
-        topicsToAvoid: profileOwner.topicsToAvoid,
         contentInventory,
         canUseOwnerWriteTools,
       }),
-      mode,
       ...(conversation.viewerId !== undefined
         ? { viewerId: conversation.viewerId }
         : {}),

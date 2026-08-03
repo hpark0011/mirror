@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { isContentKind, type ContentKind } from "@/features/content";
-import { type ChatMode } from "@/features/chat/types";
 
 /**
  * Watches incoming `UIMessage[]` for completed tool results and dispatches
@@ -47,10 +46,6 @@ const UNPUBLISH_POST_TYPE = "tool-unpublishPost";
 const DELETE_ARTICLE_TYPE = "tool-deleteArticle";
 const PUBLISH_ARTICLE_TYPE = "tool-publishArticle";
 const UNPUBLISH_ARTICLE_TYPE = "tool-unpublishArticle";
-const APPLY_BIO_ENTRY_PATCH_TYPE = "tool-applyBioEntryPatch";
-const APPLY_CONTACT_ENTRY_PATCH_TYPE = "tool-applyContactEntryPatch";
-const APPLY_PROJECT_PATCH_TYPE = "tool-applyProjectPatch";
-const APPLY_CONTENT_PATCH_TYPE = "tool-applyContentPatch";
 
 /**
  * Module-level Map of conversationId → set of dispatched toolCallIds.
@@ -107,9 +102,7 @@ function isNavigateOutput(output: unknown): output is NavigateOutput {
 }
 
 type OpenProfileSectionOutput = {
-  // The agent's `openProfileSection` enum is the visitor-visible subset of
-  // `ProfileTabKind` — `clone-settings` is owner-only and is never returned
-  // by the tool.
+  // The agent's `openProfileSection` enum is the visitor-visible profile set.
   kind: "bio" | "contact" | "projects" | "articles" | "posts";
   href: string;
   // Emitted by the `openProfileSection` tool so a future caller (a richer
@@ -240,106 +233,6 @@ function isDeleteArticleOutput(output: unknown): output is DeleteArticleOutput {
   );
 }
 
-type ConfigurationPatchOutput = {
-  section: "bio" | "contact" | "projects";
-  href: string;
-  applied: Record<string, number>;
-};
-
-function isConfigurationPatchOutput(
-  output: unknown,
-): output is ConfigurationPatchOutput {
-  if (!output || typeof output !== "object") return false;
-  const o = output as Record<string, unknown>;
-  if (
-    o.section !== "bio" &&
-    o.section !== "contact" &&
-    o.section !== "projects"
-  ) {
-    return false;
-  }
-  if (typeof o.href !== "string" || o.href.length === 0) return false;
-  if (!o.applied || typeof o.applied !== "object") return false;
-  const applied = o.applied as Record<string, unknown>;
-  if (o.section === "bio" || o.section === "projects") {
-    return (
-      typeof applied.created === "number" &&
-      typeof applied.updated === "number" &&
-      typeof applied.deleted === "number"
-    );
-  }
-  return (
-    typeof applied.upserted === "number" && typeof applied.deleted === "number"
-  );
-}
-
-// PLAN_013: result shape returned by the configuration agent's
-// `applyContentPatch` tool. `lastTouched` is the most recent create/update —
-// the watcher uses it to route the owner to the editor (drafts) or detail
-// page (published) for review. `lastDeleted` is the most recent delete —
-// the watcher uses it to route to the section list when no create/update
-// happened in the same patch.
-type ContentPatchOutput = {
-  applied: { created: number; updated: number; deleted: number };
-  lastTouched: {
-    kind: ContentKind;
-    slug: string;
-    status: "draft" | "published";
-    href: string;
-    editHref: string;
-    action: "create" | "update";
-  } | null;
-  lastDeleted: {
-    kind: ContentKind;
-    slug: string;
-    href: string;
-  } | null;
-};
-
-function isContentPatchOutput(output: unknown): output is ContentPatchOutput {
-  if (!output || typeof output !== "object") return false;
-  const o = output as Record<string, unknown>;
-  if (!o.applied || typeof o.applied !== "object") return false;
-  const applied = o.applied as Record<string, unknown>;
-  if (
-    typeof applied.created !== "number" ||
-    typeof applied.updated !== "number" ||
-    typeof applied.deleted !== "number"
-  ) {
-    return false;
-  }
-  if (o.lastTouched !== null) {
-    if (!o.lastTouched || typeof o.lastTouched !== "object") return false;
-    const lt = o.lastTouched as Record<string, unknown>;
-    if (
-      !isContentKind(typeof lt.kind === "string" ? lt.kind : undefined) ||
-      typeof lt.slug !== "string" ||
-      lt.slug.length === 0 ||
-      (lt.status !== "draft" && lt.status !== "published") ||
-      typeof lt.href !== "string" ||
-      lt.href.length === 0 ||
-      typeof lt.editHref !== "string" ||
-      lt.editHref.length === 0 ||
-      (lt.action !== "create" && lt.action !== "update")
-    ) {
-      return false;
-    }
-  }
-  if (o.lastDeleted !== null) {
-    if (!o.lastDeleted || typeof o.lastDeleted !== "object") return false;
-    const ld = o.lastDeleted as Record<string, unknown>;
-    if (
-      !isContentKind(typeof ld.kind === "string" ? ld.kind : undefined) ||
-      typeof ld.slug !== "string" ||
-      typeof ld.href !== "string" ||
-      ld.href.length === 0
-    ) {
-      return false;
-    }
-  }
-  return true;
-}
-
 function isPublishToolType(type: string): boolean {
   return type === PUBLISH_POST_TYPE || type === PUBLISH_ARTICLE_TYPE;
 }
@@ -351,13 +244,9 @@ function isUnpublishToolType(type: string): boolean {
 export function useAgentIntentWatcher(
   messages: UIMessage[],
   conversationId: string | null,
-  chatMode: ChatMode,
 ) {
-  const {
-    navigateToContent,
-    navigateToProfileSection,
-    navigateToEditor,
-  } = useCloneActions();
+  const { navigateToContent, navigateToProfileSection, navigateToEditor } =
+    useCloneActions();
 
   /**
    * Per-mount perf optimization: track the highest message index already
@@ -375,7 +264,6 @@ export function useAgentIntentWatcher(
   const lastScannedIndexRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
-    if (chatMode === "configuration") return;
     if (messages.length === 0) return;
 
     const handled = getHandledSet(conversationId);
@@ -384,8 +272,7 @@ export function useAgentIntentWatcher(
 
     // Guard: if messages shrank (unlikely but possible on remount / id reuse),
     // treat as a reset and scan from the beginning.
-    const startIndex =
-      messages.length < storedIndex ? 0 : storedIndex;
+    const startIndex = messages.length < storedIndex ? 0 : storedIndex;
 
     // Walk the assistant messages in order; tool calls can land in any
     // assistant message and the order is preserved by `combineUIMessages`.
@@ -403,11 +290,7 @@ export function useAgentIntentWatcher(
           part.type !== UNPUBLISH_POST_TYPE &&
           part.type !== DELETE_ARTICLE_TYPE &&
           part.type !== PUBLISH_ARTICLE_TYPE &&
-          part.type !== UNPUBLISH_ARTICLE_TYPE &&
-          part.type !== APPLY_BIO_ENTRY_PATCH_TYPE &&
-          part.type !== APPLY_CONTACT_ENTRY_PATCH_TYPE &&
-          part.type !== APPLY_PROJECT_PATCH_TYPE &&
-          part.type !== APPLY_CONTENT_PATCH_TYPE
+          part.type !== UNPUBLISH_ARTICLE_TYPE
         ) {
           continue;
         }
@@ -511,58 +394,16 @@ export function useAgentIntentWatcher(
           });
           continue;
         }
-
-        if (
-          toolPart.type === APPLY_BIO_ENTRY_PATCH_TYPE ||
-          toolPart.type === APPLY_CONTACT_ENTRY_PATCH_TYPE ||
-          toolPart.type === APPLY_PROJECT_PATCH_TYPE
-        ) {
-          if (!isConfigurationPatchOutput(toolPart.output)) continue;
-          handled.add(toolPart.toolCallId);
-          navigateToProfileSection({
-            section: toolPart.output.section,
-            href: toolPart.output.href,
-          });
-          continue;
-        }
-
-        if (toolPart.type === APPLY_CONTENT_PATCH_TYPE) {
-          if (!isContentPatchOutput(toolPart.output)) continue;
-          handled.add(toolPart.toolCallId);
-
-          // Routing rules for the configuration agent's content patch:
-          //   - If the patch created/updated a row, route to that row.
-          //     Drafts land on the edit route so the owner can review the
-          //     generated content before publishing; published rows land
-          //     on the public detail page.
-          //   - Otherwise, if the patch deleted a row, route to the section
-          //     list so the owner doesn't sit on a now-404 detail page.
-          //   - Otherwise (no rows touched — shouldn't happen, but the
-          //     server returns success on missing-slug deletes), no-op.
-          const { lastTouched, lastDeleted } = toolPart.output;
-          if (lastTouched) {
-            navigateToContent({
-              kind: lastTouched.kind,
-              slug: lastTouched.slug,
-              href:
-                lastTouched.status === "draft"
-                  ? lastTouched.editHref
-                  : lastTouched.href,
-            });
-            continue;
-          }
-          if (lastDeleted) {
-            navigateToProfileSection({
-              section: lastDeleted.kind,
-              href: lastDeleted.href,
-            });
-          }
-          continue;
-        }
       }
     }
 
     // Update the last-scanned index so the next effect run starts from here.
     lastScannedIndexRef.current.set(idxKey, messages.length);
-  }, [messages, navigateToContent, navigateToProfileSection, navigateToEditor, conversationId, chatMode]);
+  }, [
+    messages,
+    navigateToContent,
+    navigateToProfileSection,
+    navigateToEditor,
+    conversationId,
+  ]);
 }

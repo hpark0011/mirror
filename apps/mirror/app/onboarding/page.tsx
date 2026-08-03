@@ -15,10 +15,7 @@ export default async function OnboardingPage() {
 
   if (profile?.username && profile.onboardingComplete) {
     redirect(
-      buildProfileSectionHref(
-        profile.username,
-        profile.defaultProfileSection ?? DEFAULT_PROFILE_SECTION,
-      ),
+      buildProfileSectionHref(profile.username, DEFAULT_PROFILE_SECTION),
     );
   }
 

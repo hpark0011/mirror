@@ -40,12 +40,9 @@ export default async function ContentPage({
 
   if (!profile) notFound();
 
-  const defaultSection =
-    profile.defaultProfileSection ?? DEFAULT_PROFILE_SECTION;
-
   redirect(
     appendSearchParams(
-      buildProfileSectionHref(username, defaultSection),
+      buildProfileSectionHref(username, DEFAULT_PROFILE_SECTION),
       query,
     ),
   );

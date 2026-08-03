@@ -21,45 +21,34 @@ describe("useChatSearchParams", () => {
     replaceSpy.mockReset();
   });
 
-  it("buildChatAwareHref preserves configuration chat mode and conversation id", () => {
+  it("preserves public chat and conversation state during content navigation", () => {
     mockSearchParams = new URLSearchParams(
-      "chat=1&chatMode=configuration&conversation=conv_123",
+      "chat=1&chatMode=stale&conversation=conv_123",
     );
-
     const { result } = renderHook(() => useChatSearchParams());
 
-    expect(result.current.chatMode).toBe("configuration");
     expect(result.current.buildChatAwareHref("/@alice/bio")).toBe(
-      "/@alice/bio?chat=1&chatMode=configuration&conversation=conv_123",
+      "/@alice/bio?chat=1&conversation=conv_123",
     );
   });
 
-  it("openChat can switch explicitly between clone and configuration modes", () => {
-    mockSearchParams = new URLSearchParams("chat=1&conversation=conv_123");
+  it("openChat creates only the public chat query parameter", () => {
+    mockSearchParams = new URLSearchParams(
+      "conversation=conv_123&chatMode=stale",
+    );
     const { result } = renderHook(() => useChatSearchParams());
 
-    result.current.openChat({ mode: "configuration" });
-    expect(pushSpy).toHaveBeenLastCalledWith(
-      "/@alice?chat=1&chatMode=configuration",
-    );
-
-    result.current.openChat({ mode: "clone" });
+    result.current.openChat();
     expect(pushSpy).toHaveBeenLastCalledWith("/@alice?chat=1");
   });
 
-  it("closeChat clears chat, conversation, and chatMode from the URL", () => {
+  it("closeChat clears chat, conversation, and stale chatMode parameters", () => {
     mockSearchParams = new URLSearchParams(
-      "chat=1&chatMode=configuration&conversation=conv_123",
+      "chat=1&chatMode=stale&conversation=conv_123",
     );
     const { result } = renderHook(() => useChatSearchParams());
 
     result.current.closeChat();
-
-    expect(pushSpy).toHaveBeenCalledTimes(1);
-    const pushedUrl = pushSpy.mock.calls[0]?.[0] as string;
-    expect(pushedUrl).toBe("/@alice");
-    expect(pushedUrl).not.toContain("chat=");
-    expect(pushedUrl).not.toContain("chatMode=");
-    expect(pushedUrl).not.toContain("conversation=");
+    expect(pushSpy).toHaveBeenCalledWith("/@alice");
   });
 });

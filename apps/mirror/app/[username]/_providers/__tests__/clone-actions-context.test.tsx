@@ -34,7 +34,6 @@ vi.mock("@/app/[username]/_providers/profile-route-data-context", () => ({
       name: "Alice",
       bio: "",
       avatarUrl: undefined,
-      defaultProfileSection: "posts",
     },
     isOwner: false,
     videoCallOpen: false,
@@ -249,10 +248,7 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
   // Tab-level dispatcher parity: every ProfileTab section funnels through
   // `useCloneActions().navigateToProfileSection`. The agent path passes a
   // server-built href; the user-UI path omits it and the dispatcher
-  // composes via `getProfileTabHref(username, section)`. The
-  // Owner-only cases exercise the dispatcher's wider section enum
-  // (the agent enum is narrower than the owner UI) since the
-  // dispatcher is also the user-UI path for owner-only tabs.
+  // composes via `getProfileTabHref(username, section)`.
   afterEach(() => {
     cleanup();
     pushSpy.mockReset();
@@ -261,15 +257,7 @@ describe("CloneActionsProvider — navigateToProfileSection", () => {
     mockIsChatOpen = true;
   });
 
-  const sections = [
-    "bio",
-    "contact",
-    "projects",
-    "articles",
-    "posts",
-    "clone-settings",
-    "settings",
-  ] as const;
+  const sections = ["bio", "contact", "projects", "articles", "posts"] as const;
 
   for (const section of sections) {
     describe(`section: ${section}`, () => {
@@ -438,15 +426,7 @@ describe("CloneActionsProvider — panel-bridge integration (PLAN_010)", () => {
     expectBridgeCalledBeforePush();
   });
 
-  const sections = [
-    "bio",
-    "contact",
-    "projects",
-    "articles",
-    "posts",
-    "clone-settings",
-    "settings",
-  ] as const;
+  const sections = ["bio", "contact", "projects", "articles", "posts"] as const;
 
   for (const section of sections) {
     it(`navigateToProfileSection({ section: ${section}, href }) calls ensureContentPanelOpen before router.push`, () => {

@@ -10,11 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
-import {
-  useConversations,
-  type ChatMode,
-  type Conversation,
-} from "@/features/chat";
+import { useConversations, type Conversation } from "@/features/chat";
 import { type ChatRouteResolution } from "@/features/chat/types";
 import { parseConversationId } from "@/features/chat/lib/parse-conversation-id";
 import { useChatSearchParams } from "@/hooks/use-chat-search-params";
@@ -23,7 +19,6 @@ import { useProfileRouteData } from "./profile-route-data-context";
 type ChatRouteControllerValue = {
   conversations: Conversation[];
   conversationsLoading: boolean;
-  chatMode: ChatMode;
   routeResolution: ChatRouteResolution;
   handleConversationIdChange: (id: Id<"conversations"> | null) => void;
   closeChat: () => void;
@@ -50,7 +45,6 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
   const { profile } = useProfileRouteData();
   const {
     isChatOpen,
-    chatMode,
     conversationId: rawConversationId,
     setConversation,
     openChat,
@@ -59,7 +53,6 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
 
   const { conversations, isLoading: conversationsLoading } = useConversations({
     profileOwnerId: profile._id,
-    mode: chatMode,
     enabled: isChatOpen,
   });
 
@@ -79,14 +72,14 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
       if (!id) {
         setNewConversationIntent(true);
         setPendingNewConversationId(null);
-        openChat({ mode: chatMode });
+        openChat();
       } else {
         setNewConversationIntent(false);
         setPendingNewConversationId(id);
         setConversation(id);
       }
     },
-    [chatMode, openChat, setConversation],
+    [openChat, setConversation],
   );
 
   // Clear the bridge once the URL has caught up (conversationId now matches the
@@ -104,13 +97,9 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
 
   const effectiveConversationId = conversationId ?? pendingNewConversationId;
 
-  // Auto-select latest clone conversation when chat is open with no
-  // conversationId. Configuration mode intentionally opens a fresh composer:
-  // selecting a persisted configuration conversation can replay old tool-result
-  // navigation through useAgentIntentWatcher.
+  // Auto-select the latest public conversation when chat is open with no id.
   useEffect(() => {
     if (!isChatOpen) return;
-    if (chatMode === "configuration") return;
     if (effectiveConversationId) return;
     if (conversationInvalid) return;
     if (conversationsLoading) return;
@@ -126,7 +115,6 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     newConversationIntent,
     conversations,
     setConversation,
-    chatMode,
   ]);
 
   const routeResolution = useMemo((): ChatRouteResolution => {
@@ -134,10 +122,7 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     if (effectiveConversationId)
       return { status: "ready", conversationId: effectiveConversationId };
     if (newConversationIntent) return { status: "new_conversation" };
-    if (
-      chatMode !== "configuration" &&
-      (conversationsLoading || conversations.length > 0)
-    )
+    if (conversationsLoading || conversations.length > 0)
       return { status: "resolving" };
     return { status: "empty" };
   }, [
@@ -146,7 +131,6 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
     newConversationIntent,
     conversationsLoading,
     conversations.length,
-    chatMode,
   ]);
 
   const value = useMemo(
@@ -154,7 +138,6 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
       conversations,
       conversationsLoading,
       routeResolution,
-      chatMode,
       handleConversationIdChange,
       closeChat,
     }),
@@ -162,7 +145,6 @@ export function ChatRouteController({ children }: ChatRouteControllerProps) {
       conversations,
       conversationsLoading,
       routeResolution,
-      chatMode,
       handleConversationIdChange,
       closeChat,
     ],

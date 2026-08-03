@@ -16,6 +16,9 @@ export const userFields = {
   tagline: v.optional(v.string()),
   avatarStorageId: v.optional(v.id("_storage")),
   onboardingComplete: v.boolean(),
+  // Release A migration envelope. No application code may read or write
+  // these fields. Remove them only after every deployment has completed and
+  // verified the cleanup migration described in PLAN_015.
   personaPrompt: v.optional(v.union(v.string(), v.null())),
   tonePreset: v.optional(
     v.union(

@@ -17,7 +17,7 @@ verification_tier: 5
 
 Generalize `useCloneActions().openBio` into a single tab-navigation verb
 (`navigateToProfileSection({ section, href? })`) and wire **every** ProfileTab
-(Bio, Articles, Posts, and owner-only Clone Settings) through it. Replace the
+(Bio, Articles, Posts, Contact, and Projects) through it. Replace the
 agent-side `openBio` tool with a single `openProfileSection({ section })` tool
 that covers visitor-reachable sections (`bio | articles | posts`) so the
 agent's verb space stays compact while gaining list-level navigation it does
@@ -37,9 +37,8 @@ The "uncalled user-UI branch" anomaly currently documented at
   - `openBio({ href })` — used **only** by the watcher today. The user-UI Bio
     tab in `apps/mirror/features/profile-tabs/components/profile-tabs.tsx`
     uses a bare `<Link>` consistent with the other 3 ProfileTabs.
-- `PROFILE_TAB_KINDS` = `["posts", "articles", "bio", "clone-settings"]`
-  (`apps/mirror/features/profile-tabs/types.ts`). `clone-settings` only renders
-  for the owner (`isOwner` filter at `profile-tabs.tsx:26-28`).
+- `PROFILE_TAB_KINDS` = `["posts", "articles", "bio", "contact", "projects"]`
+  (`apps/mirror/features/profile-tabs/types.ts`).
 - The agent already has `getLatestPublished`, `navigateToContent`, and `openBio`
   registered in `packages/convex/convex/chat/tools.ts`. The system prompt's
   `TOOLS_VOCABULARY` block in `packages/convex/convex/chat/helpers.ts:79-80`
@@ -64,23 +63,21 @@ three sibling no-arg tools ((B)). Reasons:
 - Symmetrical with `navigateToContent({ kind, slug })` — same shape, same
   watcher narrowing pattern. Engineers don't have to remember two different
   conventions for "navigate-to-X" tools.
-- `clone-settings` is excluded from the agent's enum (owner-only screen) so
-  the verb's surface area can't accidentally exfiltrate visitors into a
-  page that throws on render.
+- The agent enum mirrors public profile routes, so every exposed section has
+  a matching visitor-reachable page and server-side resolver.
 
 ## 4. Naming decisions
 
-| Surface | Old | New |
-|---|---|---|
-| Dispatcher verb on `useCloneActions` | `openBio({ href })` | `navigateToProfileSection({ section, href? })` |
-| Agent tool | `openBio` (no args) | `openProfileSection({ section })` |
-| Watcher part type literal | `tool-openBio` | `tool-openProfileSection` |
-| Watcher narrowing fn | `isOpenBioOutput` | `isOpenProfileSectionOutput` |
-| Server-side href helper | (only `buildBioHref`) | add `buildProfileSectionHref(username, section)` next to it |
+| Surface                              | Old                   | New                                                         |
+| ------------------------------------ | --------------------- | ----------------------------------------------------------- |
+| Dispatcher verb on `useCloneActions` | `openBio({ href })`   | `navigateToProfileSection({ section, href? })`              |
+| Agent tool                           | `openBio` (no args)   | `openProfileSection({ section })`                           |
+| Watcher part type literal            | `tool-openBio`        | `tool-openProfileSection`                                   |
+| Watcher narrowing fn                 | `isOpenBioOutput`     | `isOpenProfileSectionOutput`                                |
+| Server-side href helper              | (only `buildBioHref`) | add `buildProfileSectionHref(username, section)` next to it |
 
-`section: "bio" | "articles" | "posts" | "clone-settings"` for the dispatcher
-(the user-UI surface includes all 4). The agent enum is the visitor-visible
-subset: `"bio" | "articles" | "posts"`.
+`section: "bio" | "articles" | "posts" | "contact" | "projects"` for both
+the dispatcher and the visitor-visible agent enum.
 
 ## 5. Implementation steps (in order)
 
@@ -89,9 +86,10 @@ subset: `"bio" | "articles" | "posts"`.
 > vocabulary → tool data resolution scopes to `profileOwnerId`.
 
 ### Step 1 — Server: add `buildProfileSectionHref`
+
 File: `packages/convex/convex/content/href.ts`
 
-- Add `export type ProfileSection = "bio" | "articles" | "posts" | "clone-settings";`
+- Add `export type ProfileSection = "bio" | "articles" | "posts" | "contact" | "projects";`
 - Add `export function buildProfileSectionHref(username: string, section: ProfileSection): string` that returns `/@${username}/${section}`.
 - For `bio`, this MUST equal `buildBioHref(username)` — collapse them or have
   one delegate to the other so there's no parallel impl.
@@ -102,6 +100,7 @@ File: `packages/convex/convex/content/href.ts`
   pins parity.
 
 ### Step 2 — Add `openProfileSection` agent tool (replacing `openBio`)
+
 File: `packages/convex/convex/chat/tools.ts`
 
 - Remove `openBio` from `buildCloneTools(profileOwnerId)`.
@@ -118,6 +117,7 @@ File: `packages/convex/convex/chat/tools.ts`
   - All `ctx.runQuery` calls pass `userId: profileOwnerId` (server-derived; never an arg). The cross-user invariant in `.claude/rules/agent-parity.md` § "Cross-user isolation invariant — extends from RAG to actions" still holds.
 
 ### Step 2a — Internal query for articles/posts list presence
+
 File: `packages/convex/convex/chat/toolQueries.ts`
 
 - Add `queryProfileSectionList({ userId, section })` where `section ∈ {"articles", "posts"}`.
@@ -128,6 +128,7 @@ File: `packages/convex/convex/chat/toolQueries.ts`
   `href = buildContentHref(username, section)` (no slug).
 
 ### Step 3 — Update `TOOLS_VOCABULARY`
+
 File: `packages/convex/convex/chat/helpers.ts:79-80`
 
 - Replace the existing `openBio` clause with one mention of
@@ -142,6 +143,7 @@ File: `packages/convex/convex/chat/helpers.ts:79-80`
   load-bearing under budget pressure.
 
 ### Step 4 — Generalize the dispatcher
+
 File: `apps/mirror/app/[username]/_providers/clone-actions-context.tsx`
 
 - Replace `openBio` in the `CloneActions` type with:
@@ -153,7 +155,9 @@ File: `apps/mirror/app/[username]/_providers/clone-actions-context.tsx`
   ```
 - Implementation:
   ```ts
-  const navigateToProfileSection = useCallback<CloneActions["navigateToProfileSection"]>(
+  const navigateToProfileSection = useCallback<
+    CloneActions["navigateToProfileSection"]
+  >(
     ({ section, href }) => {
       const basePath = href ?? getProfileTabHref(profile.username, section);
       router.push(buildChatAwareHref(basePath), { scroll: false });
@@ -169,6 +173,7 @@ File: `apps/mirror/app/[username]/_providers/clone-actions-context.tsx`
 - Update `useMemo` value + return.
 
 ### Step 5 — Wire ProfileTabs through the dispatcher
+
 File: `apps/mirror/features/profile-tabs/components/profile-tabs.tsx`
 
 Mirror the `post-list-item.tsx:26-42` pattern:
@@ -178,7 +183,14 @@ const { navigateToProfileSection } = useCloneActions();
 
 const handleClick = useCallback(
   (event: MouseEvent<HTMLAnchorElement>, kind: ProfileTabKind) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+    if (
+      event.metaKey ||
+      event.ctrlKey ||
+      event.shiftKey ||
+      event.altKey ||
+      event.button !== 0
+    )
+      return;
     event.preventDefault();
     navigateToProfileSection({ section: kind });
   },
@@ -195,6 +207,7 @@ const handleClick = useCallback(
   and noting "post-list-item.tsx is the analogue for list items."
 
 ### Step 6 — Update the agent intent watcher
+
 File: `apps/mirror/features/chat/hooks/use-agent-intent-watcher.ts`
 
 - Rename: `OPEN_BIO_TYPE` → `OPEN_PROFILE_SECTION_TYPE = "tool-openProfileSection"`.
@@ -224,11 +237,12 @@ File: `apps/mirror/features/chat/hooks/use-agent-intent-watcher.ts`
 ### Step 7 — Tests
 
 #### 7a. `clone-actions-context.test.tsx`
+
 File: `apps/mirror/app/[username]/_providers/__tests__/clone-actions-context.test.tsx`
 
 Replace the `describe("CloneActionsProvider — openBio", ...)` block (lines
 230-281) with `describe("CloneActionsProvider — navigateToProfileSection", ...)`.
-Cover, for each of `bio | articles | posts | clone-settings`:
+Cover, for each of `bio | articles | posts | contact | projects`:
 
 1. **Agent path** — when `href` is supplied (server-built), `router.push` is
    called with the exact server-built path + chat-aware suffix.
@@ -238,11 +252,8 @@ Cover, for each of `bio | articles | posts | clone-settings`:
 4. **Chat-aware suffix preservation** — both branches preserve
    `?chat=1&conversation=...` when `isChatOpen` is true and elide it when false.
 
-The `clone-settings` case exercises the dispatcher (user-UI path only —
-agents never navigate to clone-settings), proving the section enum on the
-dispatcher side is wider than the agent enum.
-
 #### 7b. `use-agent-intent-watcher.test.ts`
+
 File: `apps/mirror/features/chat/hooks/__tests__/use-agent-intent-watcher.test.ts`
 
 - Rename `openBioMock` → `navigateToProfileSectionMock`.
@@ -256,13 +267,14 @@ File: `apps/mirror/features/chat/hooks/__tests__/use-agent-intent-watcher.test.t
   they translate 1:1 to the new shape.
 
 #### 7c. `tools.test.ts`
+
 File: `packages/convex/convex/chat/__tests__/tools.test.ts`
 
 In the `inputSchema invariants` describe block (line 528-):
 
 - Remove the `openBio.inputSchema is empty` assertion (line 615-).
 - Add `openProfileSection.inputSchema does not expose userId (or any user identifier)` — same predicate as the existing `navigateToContent` assertion at line 579.
-- Add `openProfileSection.inputSchema exposes only \`section\`, bounded to ["bio", "articles", "posts"]` — assert the zod schema's keys are exactly `["section"]` and the enum values are exactly the visitor-visible subset.
+- Add `openProfileSection.inputSchema exposes only \`section\`, bounded to ["bio", "articles", "posts"]`— assert the zod schema's keys are exactly`["section"]` and the enum values are exactly the visitor-visible subset.
 
 Add behavioral tests for `openProfileSection.execute`:
 
@@ -270,11 +282,12 @@ Add behavioral tests for `openProfileSection.execute`:
   - Owner with content present → `hasEntries: true`, `href` matches the
     server-built canonical path.
   - Owner with no content → `hasEntries: false`, `href` still well-formed.
-- Cross-user isolation regression: a `posts` row owned by *another* user must
+- Cross-user isolation regression: a `posts` row owned by _another_ user must
   NOT make `openProfileSection({ section: "posts" })` return `hasEntries: true`
   for the current `profileOwnerId`.
 
 #### 7d. `profile-tabs/__tests__/types.test.ts`
+
 File: `apps/mirror/features/profile-tabs/__tests__/types.test.ts`
 
 Extend the existing `getProfileTabHref` describe block (lines 66-89):
@@ -313,8 +326,6 @@ against them):
 - ❌ Do NOT regress the chat-aware href + `scroll: false` behavior for any
   tab. Both paths must funnel through `buildChatAwareHref` and pass
   `{ scroll: false }`.
-- ❌ Do NOT include `clone-settings` in the agent's `section` enum. It's
-  owner-gated server-side and irrelevant to a visitor's clone agent.
 
 **Non-goals** (explicit scope cuts):
 
@@ -327,8 +338,6 @@ against them):
 - No telemetry/analytics events on tab dispatch. (If they're wanted later,
   the dispatcher is the single attachment point — that's the compounding
   payoff.)
-- No change to `clone-settings` owner-gating (the existing `isOwner` filter
-  on `visibleKinds` stays).
 
 ## 7. Hard verification
 
@@ -369,15 +378,10 @@ specs use).
    - `expect(page.url()).toContain(\`conversation=${capturedConversationId}\`);`
    - `await expect(page.getByTestId('bio-panel')).toBeVisible();`
 
-2. **Repeat for Articles → Posts → Clone Settings (owner only — gated test)**
-   - For Articles and Posts, the matrix is identical: click via
-     `getByRole('tab', { name: 'Articles' | 'Posts' })`, assert URL pivots
+2. **Repeat for Articles → Posts → Contact → Projects**
+   - For each tab, the matrix is identical: click via
+     `getByRole('tab', { name: 'Articles' | 'Posts' | 'Contact' | 'Projects' })`, assert URL pivots
      to the section + chat suffix preserved.
-   - For Clone Settings, run as an authenticated owner spec
-     (`*.authenticated.spec.ts`); assert the URL pivots to
-     `/@<owner>/clone-settings` and the chat suffix is preserved. (Confirms
-     the dispatcher's wider `section` enum works for the owner path even
-     though no agent tool covers it.)
 
 3. **Cmd/meta-click on a tab opens a new tab — open-in-new-tab semantics preserved**
    - From `/@rick-rubin/posts?chat=1`, do
@@ -408,6 +412,7 @@ pnpm --filter=@feel-good/mirror test:e2e profile-tabs-dispatcher
 ```
 
 Each assertion above is independently necessary — collectively they prove:
+
 - the user-UI half of the dispatcher fires (#1, #2),
 - the chat-aware suffix invariant holds end-to-end (#1, #2),
 - middle-click semantics are preserved (#3),
@@ -424,12 +429,12 @@ Playwright assertions above are the load-bearing proof.
 
 ## 8. Risks & mitigations
 
-| Risk | Mitigation |
-|---|---|
-| The agent's `openBio` system-prompt vocabulary is in active use; renaming the tool mid-stream could break in-flight conversations. | The system prompt is recomposed every request from `composeSystemPrompt`; there is no persisted prompt cache keyed on tool names. The next message after deploy uses the new vocabulary. |
-| `ProfileTabs` is rendered both desktop and mobile; the `onClick` may not fire consistently on touch tap-then-release. | The `event.button !== 0` early return only triggers for pointer types where `button` is non-zero. Touch taps surface as `button === 0` like normal left-clicks. Add a Playwright mobile-viewport variant of assertion #1 to confirm. |
-| Adding `articles`/`posts` to the agent enum could cause the LLM to call `openProfileSection` instead of `getLatestPublished`+`navigateToContent` for a "show me your latest article" prompt — degrading the existing flow. | Vocabulary phrasing in `TOOLS_VOCABULARY` (Step 3) MUST distinguish: "list view of articles/posts" → `openProfileSection`; "the latest article" / "the article about X" → `getLatestPublished` + `navigateToContent`. Add a regression e2e on the existing `chat-agent-navigates.authenticated.spec.ts` "positive path" so we'd see if the agent's verb pick drifts. |
-| The href-parity assertion in `types.test.ts:76` only covers `bio` today; extending it to all 4 kinds (Step 7d) might surface a pre-existing drift between `getProfileTabHref` and `buildContentHref` for `articles`/`posts`. | Both helpers produce `/@<user>/<kind>` (no slug). Step 7d's failure mode would be a real bug — fix at root rather than narrow the assertion. |
+| Risk                                                                                                                                                                                                                         | Mitigation                                                                                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The agent's `openBio` system-prompt vocabulary is in active use; renaming the tool mid-stream could break in-flight conversations.                                                                                           | The system prompt is recomposed every request from `composeSystemPrompt`; there is no persisted prompt cache keyed on tool names. The next message after deploy uses the new vocabulary.                                                                                                                                                                             |
+| `ProfileTabs` is rendered both desktop and mobile; the `onClick` may not fire consistently on touch tap-then-release.                                                                                                        | The `event.button !== 0` early return only triggers for pointer types where `button` is non-zero. Touch taps surface as `button === 0` like normal left-clicks. Add a Playwright mobile-viewport variant of assertion #1 to confirm.                                                                                                                                 |
+| Adding `articles`/`posts` to the agent enum could cause the LLM to call `openProfileSection` instead of `getLatestPublished`+`navigateToContent` for a "show me your latest article" prompt — degrading the existing flow.   | Vocabulary phrasing in `TOOLS_VOCABULARY` (Step 3) MUST distinguish: "list view of articles/posts" → `openProfileSection`; "the latest article" / "the article about X" → `getLatestPublished` + `navigateToContent`. Add a regression e2e on the existing `chat-agent-navigates.authenticated.spec.ts` "positive path" so we'd see if the agent's verb pick drifts. |
+| The href-parity assertion in `types.test.ts:76` only covers `bio` today; extending it to all 4 kinds (Step 7d) might surface a pre-existing drift between `getProfileTabHref` and `buildContentHref` for `articles`/`posts`. | Both helpers produce `/@<user>/<kind>` (no slug). Step 7d's failure mode would be a real bug — fix at root rather than narrow the assertion.                                                                                                                                                                                                                         |
 
 ## 9. PR shape
 

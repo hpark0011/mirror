@@ -29,10 +29,8 @@ Discovered during agent-parity architecture review (2026-05-04). The repo has a 
 
 - `SAFETY_PREFIX(name)` — fixed
 - `STYLE_RULES` — fixed
-- Tone clause if `tonePreset` set — fixed
 - `Bio: ${opts.bio}` if the short bio string field is populated — truncatable
-- `personaPrompt` or `DEFAULT_PERSONA` — truncatable
-- `Avoid discussing: ${topicsToAvoid}` — truncatable
+- Tagline and fixed public-chat instructions — truncatable
 
 Nothing tells the agent "this user has structured bio entries (work history, education) you can speak from." `bioEntries` rows are embedded and reachable via `chat/actions.ts:streamResponse` `vectorSearch` (line 110-118), but the agent has no proactive vocabulary for the noun. Result: the clone will mention work/education only when the visitor's message lexically triggers retrieval — it will not volunteer "I worked at X" when asked an open-ended "tell me about yourself" question, even though the chunks would land in retrieval if the question were phrased on-topic.
 
@@ -70,7 +68,7 @@ After this ticket, the clone's system prompt names the structured content kinds 
 ## Implementation Steps
 
 1. In `packages/convex/convex/chat/helpers.ts`, add a `ContentInventory` type aliased over `embeddingSourceTableValidator` literals (manual mirror is acceptable; a comment pointing to `embeddings/schema.ts` keeps the contract visible).
-2. Extend `composeSystemPrompt` opts with `contentInventory?: ContentInventory`. Build a sentence like `"You can speak from this person's bio entries (work history, education), published posts, and published articles when relevant."` listing only the kinds whose flag is true. Push the sentence into `truncatable` after `topicsToAvoid`.
+2. Extend `composeSystemPrompt` opts with `contentInventory?: ContentInventory`. Build a sentence listing only populated kinds and append it after the fixed public-chat instructions.
 3. Extend `loadStreamingContext` to compute `contentInventory` via three `ctx.db.query(...).withIndex("by_userId", q => q.eq("userId", profileOwnerId)).take(1)` calls (filter `status === "published"` for articles/posts via `.filter(...)` or by re-using existing helper queries if cheaper).
 4. Pass `contentInventory` to `composeSystemPrompt` in `loadStreamingContext`.
 5. Add unit tests to `packages/convex/convex/chat/__tests__/helpers.test.ts`: bio-only inventory, full inventory, empty inventory, truncation-budget test with full inventory.
@@ -80,7 +78,7 @@ After this ticket, the clone's system prompt names the structured content kinds 
 
 - The new section must live in the truncatable region — never the fixed region — so `SYSTEM_PROMPT_MAX_CHARS` (6000) cannot be blown by a user with all kinds populated.
 - The phrasing must respect `STYLE_RULES` ("plain conversational prose, no markdown") since the agent will copy the register from the prompt.
-- Do not duplicate the bio short-string field's content — the inventory sentence is about *structured* kinds, not the free-form bio text.
+- Do not duplicate the bio short-string field's content — the inventory sentence is about _structured_ kinds, not the free-form bio text.
 - Contract with `embeddingSourceTableValidator`: when a new literal is added there in the future, TypeScript should force a corresponding update here. Use the same literal union (or a derived `keyof` type) so the compiler enforces parity.
 
 ## Resources

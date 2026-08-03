@@ -1,10 +1,8 @@
 // User-scoped write helpers for the `posts` table.
 //
-// Mirrors `articles/writeHelpers.ts`. Originally the validation + DB write
-// core lived inline in the public `authMutation`s in `posts/mutations.ts`.
-// Configuration-mode agent content authoring (PLAN_013) needs to call the
-// same core from `internalMutation`s that derive `profileOwnerId`
-// server-side from the chat conversation, so the helpers were lifted here.
+// Mirrors `articles/writeHelpers.ts`. The validation + DB write core is
+// shared by the authenticated post mutations so every write follows the same
+// normalization and storage rules.
 //
 // Invariants preserved verbatim from `posts/mutations.ts` — see the
 // articles helper file for the full list. Posts add one wrinkle vs.

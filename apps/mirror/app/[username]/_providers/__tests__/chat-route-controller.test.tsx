@@ -21,7 +21,6 @@ import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
 
 let mockIsChatOpen = true;
 let mockRawConversationId: string | undefined = undefined;
-let mockChatMode: "clone" | "configuration" = "clone";
 let mockConversations: Array<{ _id: string; _creationTime: number }> = [];
 let mockConversationsLoading = false;
 
@@ -35,7 +34,6 @@ const useConversationsSpy = vi.fn();
 vi.mock("@/hooks/use-chat-search-params", () => ({
   useChatSearchParams: () => ({
     isChatOpen: mockIsChatOpen,
-    chatMode: mockChatMode,
     conversationId: mockRawConversationId,
     setConversation: setConversationSpy,
     openChat: openChatSpy,
@@ -72,7 +70,6 @@ vi.mock("@/app/[username]/_providers/profile-route-data-context", () => ({
       name: "Alice",
       tagline: "",
       avatarUrl: undefined,
-      defaultProfileSection: "posts",
     },
   }),
 }));
@@ -117,7 +114,6 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     useConversationsSpy.mockReset();
     mockIsChatOpen = true;
     mockRawConversationId = undefined;
-    mockChatMode = "clone";
     mockConversations = [];
     mockConversationsLoading = false;
   });
@@ -203,30 +199,7 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
 
     expect(latest!.routeResolution).toEqual({ status: "new_conversation" });
     expect(openChatSpy).toHaveBeenCalledTimes(1);
-    expect(openChatSpy).toHaveBeenCalledWith({ mode: "clone" });
-  });
-
-  it("passes chatMode into the conversation query and preserves it when starting a new configuration chat", () => {
-    let latest: Captured | null = null;
-    mockChatMode = "configuration";
-
-    render(
-      <Wrapper>
-        <CaptureContext onValue={(v) => (latest = v)} />
-      </Wrapper>,
-    );
-
-    expect(useConversationsSpy).toHaveBeenLastCalledWith({
-      profileOwnerId: "user_alice",
-      mode: "configuration",
-      enabled: true,
-    });
-
-    act(() => {
-      latest!.handleConversationIdChange(null);
-    });
-
-    expect(openChatSpy).toHaveBeenCalledWith({ mode: "configuration" });
+    expect(openChatSpy).toHaveBeenCalledWith();
   });
 
   it("Auto-select effect does not double-fire while the bridge is active even when conversations populate", () => {
@@ -269,7 +242,7 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     });
   });
 
-  it("auto-selects the latest clone conversation when chat opens without a conversation id", () => {
+  it("auto-selects the latest public conversation when chat opens without a conversation id", () => {
     let latest: Captured | null = null;
     mockConversations = [
       { _id: "conv_latest", _creationTime: 2 },
@@ -285,24 +258,6 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     expect(latest!.routeResolution).toEqual({ status: "resolving" });
     expect(setConversationSpy).toHaveBeenCalledTimes(1);
     expect(setConversationSpy).toHaveBeenCalledWith("conv_latest");
-  });
-
-  it("does not auto-select existing configuration conversations when Configure Profile opens chat", () => {
-    let latest: Captured | null = null;
-    mockChatMode = "configuration";
-    mockConversations = [
-      { _id: "config_latest", _creationTime: 2 },
-      { _id: "config_older", _creationTime: 1 },
-    ];
-
-    render(
-      <Wrapper>
-        <CaptureContext onValue={(v) => (latest = v)} />
-      </Wrapper>,
-    );
-
-    expect(latest!.routeResolution).toEqual({ status: "empty" });
-    expect(setConversationSpy).not.toHaveBeenCalled();
   });
 
   it("URL conversationId wins over the bridge when they disagree", () => {
@@ -369,28 +324,11 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
     });
   });
 
-  // FG_264 — configuration mode bypasses the resolving window entirely so the
-  // composer renders immediately instead of waiting for the conversations query.
-  it("configuration mode + conversationsLoading → empty (not resolving)", () => {
-    let latest: Captured | null = null;
-    mockChatMode = "configuration";
-    mockConversationsLoading = true;
-
-    render(
-      <Wrapper>
-        <CaptureContext onValue={(v) => (latest = v)} />
-      </Wrapper>,
-    );
-
-    expect(latest!.routeResolution).toEqual({ status: "empty" });
-  });
-
   // FG_264 — regression guard: clone mode must still show the resolving state
   // during the conversations-loading window so the auto-select effect has a
   // chance to fire on the next render.
-  it("clone mode + conversationsLoading=true + no conversations still returns resolving", () => {
+  it("public chat + conversationsLoading=true + no conversations still returns resolving", () => {
     let latest: Captured | null = null;
-    mockChatMode = "clone";
     mockConversationsLoading = true;
     mockConversations = [];
 
@@ -402,85 +340,5 @@ describe("ChatRouteController — pendingNewConversationId bridge", () => {
 
     expect(latest!.routeResolution).toEqual({ status: "resolving" });
     expect(setConversationSpy).not.toHaveBeenCalled();
-  });
-
-  // FG_263 — protected today by the routeResolution memo's branch ordering
-  // (effectiveConversationId check fires before the chatMode guard). A reorder
-  // would silently route a configuration-mode visitor with an explicit URL
-  // conversation id to "empty"; this test pins the URL-wins invariant.
-  it("configuration mode + URL conversationId → ready, no auto-select call", () => {
-    let latest: Captured | null = null;
-    mockChatMode = "configuration";
-    mockRawConversationId = "conv_config_abc";
-
-    render(
-      <Wrapper>
-        <CaptureContext onValue={(v) => (latest = v)} />
-      </Wrapper>,
-    );
-
-    expect(latest!.routeResolution).toEqual({
-      status: "ready",
-      conversationId: "conv_config_abc",
-    });
-    expect(setConversationSpy).not.toHaveBeenCalled();
-  });
-
-  // FG_263 — same branch-ordering protection as the URL-wins test, but for the
-  // pendingNewConversationId bridge. Starting a fresh configuration conversation
-  // must immediately resolve to "ready" before the URL flushes.
-  it("configuration mode + bridge id → ready immediately after handleConversationIdChange(newId)", () => {
-    let latest: Captured | null = null;
-    mockChatMode = "configuration";
-
-    render(
-      <Wrapper>
-        <CaptureContext onValue={(v) => (latest = v)} />
-      </Wrapper>,
-    );
-
-    const newId = "conv_config_new";
-    act(() => {
-      latest!.handleConversationIdChange(newId as Id<"conversations">);
-    });
-
-    expect(latest!.routeResolution).toEqual({
-      status: "ready",
-      conversationId: newId,
-    });
-    expect(setConversationSpy).toHaveBeenCalledWith(newId);
-  });
-
-  // FG_263 — load-bearing regression guard for the chatMode entry in the
-  // useEffect dep array. If chatMode is dropped from the deps, the effect would
-  // not re-evaluate after a mid-session mode change and would silently re-fire
-  // setConversation. The rerender simulates that transition.
-  it("chatMode transition from clone → configuration does not re-fire auto-select", () => {
-    let latest: Captured | null = null;
-    mockConversations = [
-      { _id: "conv_clone_latest", _creationTime: 2 },
-      { _id: "conv_clone_older", _creationTime: 1 },
-    ];
-
-    const { rerender } = render(
-      <Wrapper>
-        <CaptureContext onValue={(v) => (latest = v)} />
-      </Wrapper>,
-    );
-
-    expect(setConversationSpy).toHaveBeenCalledTimes(1);
-    expect(setConversationSpy).toHaveBeenCalledWith("conv_clone_latest");
-
-    mockChatMode = "configuration";
-    mockRawConversationId = undefined;
-    mockConversations = [{ _id: "conv_config_only", _creationTime: 3 }];
-    rerender(
-      <Wrapper>
-        <CaptureContext onValue={(v) => (latest = v)} />
-      </Wrapper>,
-    );
-
-    expect(setConversationSpy).toHaveBeenCalledTimes(1);
-    expect(latest!.routeResolution).toEqual({ status: "empty" });
   });
 });
