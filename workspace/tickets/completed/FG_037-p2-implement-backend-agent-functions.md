@@ -33,7 +33,7 @@ Create backend functions `sendMessage`, `streamResponse`, and access queries tha
 - Write `chat/mutations.ts` (`sendMessage` with validation/concurrency protection, `clearStreamingLock`).
 - Write `chat/actions.ts` (`streamResponse`).
 - Write `chat/queries.ts` (`getConversation`, `getConversations`, `listMessages`).
-- Write `chat/helpers.ts` to build the `personaPrompt` contextual payload (sliding window, max 20).
+- Write `chat/helpers.ts` to build the bounded public system prompt and load recent messages.
 - Setup two-tier rate limiting for anon + per-user authenticated limits in `chat/rateLimits.ts`.
 - Add stale stream cleanup cron in `crons.ts`.
 

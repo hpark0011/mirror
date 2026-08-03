@@ -1,0 +1,130 @@
+{
+  "version": 1,
+  "taskId": "ISSUE-2",
+  "entries": [
+    {
+      "kind": "event",
+      "id": "8f879f74-d6ac-4ee7-8e23-6fac84ed9ab0",
+      "actor": "user",
+      "payload": {
+        "type": "task_created"
+      },
+      "createdAt": "2026-08-03T04:05:57.574Z"
+    },
+    {
+      "kind": "event",
+      "id": "c78c6727-3740-434f-b630-79b2842cbe99",
+      "actor": "user",
+      "payload": {
+        "type": "status_changed",
+        "from": "todo",
+        "to": "in_progress"
+      },
+      "createdAt": "2026-08-03T04:26:41.854Z"
+    },
+    {
+      "kind": "event",
+      "id": "805bc666-3f1e-4d79-ae35-3b3da6401e13",
+      "actor": "system",
+      "payload": {
+        "type": "handed_off",
+        "sessionId": "greyboard:claude:b8496383-29da-432f-bef3-ab4bd116fbbb"
+      },
+      "createdAt": "2026-08-03T04:26:43.126Z"
+    },
+    {
+      "kind": "comment",
+      "id": "a56574ed-7c65-4d65-88a1-dd4c556a7a6a",
+      "author": {
+        "actor": "agent",
+        "agentProfileId": "agent_general_claude",
+        "displayName": "Claude",
+        "sessionId": "greyboard:claude:b8496383-29da-432f-bef3-ab4bd116fbbb"
+      },
+      "body": "## Tavus API removed ✅\n\nExecuted the full removal plan across all 6 phases on branch `greyboard/ISSUE-2-remove-tavus-api`. **48 files changed, +21 / −2313**, sliced into 5 commits (`06f94691` → `378d72c5`).\n\n### What changed\n- **Phase 1 — deleted whole units:** `packages/tavus`, `apps/mirror/app/api/tavus`, `apps/mirror/features/video-call`, `apps/mirror/e2e/video-call.spec.ts`, and the `tavus-cvi-*` skills under both `.claude/skills` and `.agents/skills`.\n- **Phase 2 — unwired the profile \"Video\" button:** threaded `onOpenVideoCall` out of @apps/mirror/features/profile/components/editable-profile-actions.tsx (now a single \"Text\" action), @apps/mirror/features/profile/components/profile-info.tsx, @apps/mirror/app/[username]/_components/profile-panel.tsx, and @apps/mirror/app/[username]/_providers/profile-route-data-context.tsx (dropped the `dynamic()` VideoCallModal import, `videoCallOpen` state/type/render block). Fixed the mock in @apps/mirror/app/[username]/_providers/__tests__/clone-actions-context.test.tsx.\n- **Phase 3 — env & build config:** deleted `lib/env/server.ts` (it validated only `TAVUS_*`), pruned the CSP in @apps/mirror/next.config.ts (removed `*.daily.co` + `tavusapi.com`, **kept** Convex cover-video `media-src` per PLAN_010, tightened `Permissions-Policy` camera/mic → `()`), and removed the deps/env from @apps/mirror/package.json, @turbo.json, and `.env.local.example`. Lockfile regenerated (0 tavus/daily refs).\n- **Phase 4 — Convex dead code:** removed `getByUsernameForConversation` + `conversationArticleReturnValidator` from @packages/convex/convex/articles/queries.ts / @packages/convex/convex/articles/helpers.ts and its test block.\n- **Phases 5–6 — scripts & docs:** purged Tavus from @scripts/restore-env-local.sh, `sync-worktree-convex-env.sh`, @apps/mirror/AGENTS.md, the `worktrees.md` rules, and the `create-codebase-expert` / `create-skill` skills (`.claude` + `.agents` kept in lockstep).\n\n### Verification\n| Check | Result |\n|---|---|\n| `pnpm install` | ✅ lockfile clean, 0 `@feel-good/tavus` / `@daily-co/*` |\n| `pnpm build --filter=@feel-good/mirror` | ✅ compiles & type-checks; no `/api/tavus` route, `exhaust-chat-daily` (daily rate-limit) correctly retained |\n| `pnpm lint --filter=@feel-good/mirror` | ✅ 0 errors (2 pre-existing warnings) |\n| `pnpm --filter=@feel-good/mirror test:unit` | ✅ 349/349 pass |\n| Convex `articles/queries.test.ts` | ✅ 2/2 pass |\n| Final `grep -ril tavus` | ✅ only the intentionally-retained historical tickets |\n\n### Heads-up / not run here\n- **Convex `verify:codegen` (live) couldn't run** — this worktree has no provisioned Convex dev deployment (`CONVEX_DEPLOYMENT` unset), and the gate pushes to a deployment. I verified instead that `_generated/` has **no** stale `getByUsernameForConversation` reference and is git-clean (the API references modules whole, so removing a function within one produces no codegen diff). Worth a quick `verify:codegen` run from a provisioned worktree before merge.\n- **Chrome visual check not done** — needs a provisioned backend + signed-in profile to render. The build confirms the profile route compiles with the Video action gone; a human should eyeball a profile to confirm the single \"Text\" action lays out well.\n- **2 pre-existing Convex test failures** (`chat/rateLimits.test.ts`, `embeddings/bio-source.test.ts` — a \"project\" serializer registry drift from the Projects tab #101). I confirmed both fail identically on the pristine tree via `git stash`, so they're **unrelated** to this task.\n- **History left untouched** per the plan's Decisions: canceled/completed tickets (FG_012/046/048/170) and the cover-video plan / FG_197 still mention Tavus/Daily as archival record — none contain live code.\n\nNot opening a PR — review & merge stay yours.",
+      "attachments": [],
+      "createdAt": "2026-08-03T04:40:05.693Z",
+      "dispatchedSessionId": null,
+      "dispatchedAt": null
+    },
+    {
+      "kind": "event",
+      "id": "534db647-34f2-46f3-a2d0-a939b6b4f457",
+      "actor": "user",
+      "payload": {
+        "type": "status_changed",
+        "from": "in_progress",
+        "to": "in_review"
+      },
+      "createdAt": "2026-08-03T04:57:52.693Z"
+    },
+    {
+      "kind": "event",
+      "id": "baeecfa0-d82b-4a10-bb3d-b41736246e60",
+      "actor": "agent",
+      "payload": {
+        "type": "subtask_added",
+        "subtaskId": "ISSUE-7",
+        "subtaskTitle": "Update stale health.md docs after video-call removal from AGENTS.md",
+        "source": "created",
+        "fromParentId": null
+      },
+      "createdAt": "2026-08-03T05:01:51.497Z"
+    },
+    {
+      "kind": "event",
+      "id": "c8fd15c7-43ed-4fb3-953f-d62fc65a277a",
+      "actor": "agent",
+      "payload": {
+        "type": "review_reported",
+        "verdict": "issues_found",
+        "findingCounts": {
+          "blocking": 0,
+          "should-fix": 0,
+          "nit": 1
+        },
+        "subtaskIds": [
+          "ISSUE-7"
+        ],
+        "summary": "Reviewed the full main...HEAD diff (48 files, +21/-2313 lines) removing the Tavus CVI video-calling integration and its Daily.co dependency, dispatching the review-code skill's full reviewer fleet (correctness, convention, tests, maintainability, agent-native, security, data-integrity) alongside manual verification of dangling references, lockfile/workspace consistency, CSP/Permissions-Policy correctness, Convex codegen freshness, and directory deletions. The removal is thorough and self-consistent: no dangling imports, props, env vars, or Convex query/validator references anywhere in the tree; the previously-flagged unauthenticated-Tavus-route security concern (canceled ticket FG_012) is now moot since the route is deleted entirely; CSP/Permissions-Policy correctly drop camera/microphone/Daily.co/tavusapi.com while retaining what surviving features (e.g. Convex-hosted cover video) still need; and all associated tests were updated or removed consistently with passing suites. The single surviving finding is a P3/nit: `.claude/health.md` and `.agents/health.md` still describe `apps/mirror/AGENTS.md` as \"Current\" while citing \"video-call features added,\" which this same PR just removed from AGENTS.md — filed as ISSUE-7. Harness-reported `bun run typecheck` failure is a pre-existing repo gap (no `typecheck` script exists anywhere in the monorepo, on main or this branch) unrelated to this diff."
+      },
+      "createdAt": "2026-08-03T05:02:01.533Z"
+    },
+    {
+      "kind": "comment",
+      "id": "f888eaaa-ccaf-48f8-a4ca-fed1c2547b0b",
+      "author": {
+        "actor": "agent",
+        "agentProfileId": "agent_general_claude",
+        "displayName": "Claude",
+        "sessionId": "greyboard:claude:cca8ade4-9324-4116-a16d-6049cd2e12bf"
+      },
+      "body": "Fixed the last open finding (ISSUE-7): updated the stale \"video-call features added\" note in both @.claude/health.md and @.agents/health.md to \"Onboarding features added\", matching the actual AGENTS.md (mirror) content after the Tavus removal. Docs-only change, no build/lint tier applies — diff verified by re-reading both files.",
+      "attachments": [],
+      "createdAt": "2026-08-03T05:03:19.403Z",
+      "dispatchedSessionId": null,
+      "dispatchedAt": null
+    },
+    {
+      "kind": "event",
+      "id": "84b91638-8ae8-4543-a4f6-9f1cd34144f6",
+      "actor": "user",
+      "payload": {
+        "type": "status_changed",
+        "from": "in_review",
+        "to": "done"
+      },
+      "createdAt": "2026-08-03T05:52:52.195Z"
+    },
+    {
+      "kind": "event",
+      "id": "25b6635b-77d9-482e-98a6-74756a1e1320",
+      "actor": "system",
+      "payload": {
+        "type": "pr_merged",
+        "prUrl": "https://github.com/hpark0011/mirror/pull/106"
+      },
+      "createdAt": "2026-08-03T05:52:58.644Z"
+    }
+  ]
+}

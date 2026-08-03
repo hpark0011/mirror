@@ -1,5 +1,17 @@
 # Lessons Learned
 
+## 2026-08-03
+
+### Run the `next-env.d.ts` guard after `next build`, not concurrently
+
+- Next.js can transiently rewrite `apps/mirror/next-env.d.ts` to import
+  `./.next/dev/types/routes.d.ts` while a production build is running, then
+  restore the required `./.next/types/routes.d.ts` form before the build exits.
+- A concurrent `test:unit` run can read that transient dev form and fail the
+  repository guard even though the final file is correct. Run `next build` to
+  completion before the Mirror unit suite, and verify the production import
+  before staging the merge.
+
 ## 2026-05-22
 
 ### Never dispatch a haiku executor onto a file with uncommitted work you care about
@@ -27,21 +39,6 @@
   file with the Read tool, do NOT rely on the executor's summary. The
   haiku executor's report stated "1 line change" and "40 lines added"
   while the on-disk diff was zero against HEAD.
-
-### Configuration chat should not auto-select old conversations on open
-
-- Opening owner configuration chat without an explicit `conversation` param is
-  a new-work intent, not a request to resume the latest persisted thread. If it
-  auto-selects the latest configuration conversation, persisted tool-result
-  parts can remount and replay client-side navigation through
-  `useAgentIntentWatcher`, sending the owner to stale content URLs.
-- Keep clone-chat resume behavior separate from configuration-chat authoring:
-  clone mode can auto-select the latest conversation; configuration mode should
-  show a fresh composer unless the user explicitly chooses a saved
-  conversation.
-- Route-controller tests should pin both halves: clone auto-select remains, and
-  configuration mode with existing conversations resolves to an empty composer
-  without calling `setConversation`.
 
 ## 2026-05-18
 
@@ -80,7 +77,7 @@
 
 - `.claude/skills/resolve-issue-tickets/scripts/mark-completed.sh` does
   `git mv to-do/X completed/X` (stages the rename) and THEN rewrites the
-  file's `status: to-do` → `status: completed` (an *unstaged* edit on top of
+  file's `status: to-do` → `status: completed` (an _unstaged_ edit on top of
   the staged rename). A per-wave commit that only `git add`s the wave's code
   files captures the staged rename but NOT the status flip — the committed
   `completed/FG_NNN.md` still says `status: to-do`, silently violating the
@@ -101,8 +98,8 @@
   one renders the body via `ContentBody` (direct-child `<p>`, first-child
   margin reset works) and the other via `RichTextViewer` (Tiptap
   `.ProseMirror` wrapper → `<p>` is a grandchild, reset never applied) — so
-  identical classes produced a 16px misalignment. Verify the *measured
-  rendered result* (e.g. body-first-line vs metadata-first-line top delta) is
+  identical classes produced a 16px misalignment. Verify the _measured
+  rendered result_ (e.g. body-first-line vs metadata-first-line top delta) is
   identical across both, not just that the markup matches.
 - Having to hand-apply the same fix to two files is itself the bug signal.
   Surface the duplication and propose extracting one shared presentational

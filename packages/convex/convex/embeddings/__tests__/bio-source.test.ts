@@ -144,7 +144,7 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
     }
 
     for (const source of INDEXABLE_CONTENT_SOURCES) {
-      expect(["document", "bio", "contact"]).toContain(
+      expect(["document", "bio", "contact", "project"]).toContain(
         source.embedding.serializer,
       );
       expect(["draft-published", "always-indexable"]).toContain(
@@ -176,7 +176,9 @@ describe("embeddings: bio source — discriminated union & status gate (FR-12, N
     if (content!.kind !== "bio") throw new Error("type-narrow");
     expect(content.title).toBe("Senior Engineer at Acme");
     // Body is the prose-serialized form.
-    expect(content.body).toMatch(/^Worked as Senior Engineer at Acme from January 2022 to March 2024\./);
+    expect(content.body).toMatch(
+      /^Worked as Senior Engineer at Acme from January 2022 to March 2024\./,
+    );
     expect(content.userId).toBe(ownerId);
   });
 

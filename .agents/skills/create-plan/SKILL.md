@@ -36,7 +36,7 @@ worktree: .worktrees/feature-name/   # absolute-from-repo-root path, or null if 
 scope: "One-sentence scope summary."
 
 # Standard — drives the verification automation
-apps: [mirror]                  # subset of: mirror, ui-factory
+apps: [mirror]
 verification_tier: 5            # 1-5 per .claude/rules/verification.md
 
 # Optional — include only when the relationship exists

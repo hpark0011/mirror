@@ -1,13 +1,7 @@
 // User-scoped write helpers for the `articles` table.
 //
-// Originally the validation + DB write core lived inline in the public
-// `authMutation`s in `articles/mutations.ts`. Configuration-mode agent
-// content authoring (PLAN_013) needs to call the same core from
-// `internalMutation`s that derive `profileOwnerId` server-side from the
-// chat conversation, so the helpers were lifted here. Public mutations
-// resolve `appUser` via `getAppUser` and call into the helpers; the chat
-// agent's `applyContentPatch` does the same with its closure-bound owner
-// id.
+// The validation + DB write core is shared by the authenticated article
+// mutations so every write follows the same normalization and storage rules.
 //
 // Invariants preserved verbatim from `articles/mutations.ts`:
 //
@@ -23,9 +17,6 @@
 //   - Embedding schedule fires only on `status === "published"` writes;
 //     status-flip to draft removes embeddings.
 //
-// The agent path supplies text-only `bodyBlocks` and never any cover or
-// thumbhash arg, so the cover-handling branches are no-ops on that path.
-
 import { ConvexError } from "convex/values";
 import { type Doc, type Id } from "../_generated/dataModel";
 import { internal } from "../_generated/api";
@@ -401,10 +392,7 @@ async function updateArticleRow(
   }
   if (clearedAllCover || replacedImage || replacedPoster) {
     if (article.coverVideoPosterStorageId) {
-      await deleteCoverBlobAndOwnership(
-        ctx,
-        article.coverVideoPosterStorageId,
-      );
+      await deleteCoverBlobAndOwnership(ctx, article.coverVideoPosterStorageId);
     }
   }
 

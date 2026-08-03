@@ -10,7 +10,7 @@
   "devDependencies": {
     "@eslint/js": "catalog:",
     "eslint": "catalog:",
-    "eslint-config-next": ">=15.0.0",
+    "eslint-config-next": "catalog:",
     "eslint-config-prettier": "catalog:",
     "typescript-eslint": "catalog:"
   },

@@ -105,24 +105,21 @@ one that matches the verb's granularity:
   `{ kind: "<section>", href, ... }` and the watcher dispatches
   `navigateToProfileSection({ section, href })`. The agent-side verb is
   `openProfileSection({ section })` with the section enum constrained to
-  visitor-reachable tabs only (see "Owner-only views" below).
+  profile sections that have a matching public route and data resolver.
 
 In both cases the watcher reads the part type prefix (`tool-<verbName>`)
 and the structured `output`.
 
-## Owner-only views are excluded from agent section enums
+## Profile-section enums mirror public routes
 
-Some profile tabs (today: `clone-settings`) are owner-only and not
-visitor-reachable. They MUST be excluded from any agent-visible enum
-that selects a section to open. Concretely, `openProfileSection`'s
-`section` enum in
+`openProfileSection`'s `section` enum in
 [`packages/convex/convex/chat/tools.ts`](../../packages/convex/convex/chat/tools.ts)
-is `'bio' | 'articles' | 'posts'` — `clone-settings` is omitted by
-design.
+is `'bio' | 'articles' | 'posts' | 'contact' | 'projects'`. Every literal
+must have a matching public route and server-side data resolver.
 
 When you add a new tab to `PROFILE_TAB_KINDS`, classify it before
-extending the agent enum: if it is owner-only, leave the agent enum
-alone; if it is visitor-reachable, extend the agent enum AND add a
+extending the agent enum: if it is not publicly reachable, leave the agent
+enum alone; if it is visitor-reachable, extend the agent enum AND add a
 matching `buildProfileSectionHref` branch AND add a
 `queryBioPanel`-style data resolver that pins to `profileOwnerId`.
 

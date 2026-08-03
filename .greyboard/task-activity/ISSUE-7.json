@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "taskId": "ISSUE-7",
+  "entries": [
+    {
+      "kind": "event",
+      "id": "84ee7a09-bf9e-402d-af07-a354259f62d4",
+      "actor": "agent",
+      "payload": {
+        "type": "task_created"
+      },
+      "createdAt": "2026-08-03T05:01:51.497Z"
+    },
+    {
+      "kind": "event",
+      "id": "269616d0-6f44-4d34-b758-232e9194c771",
+      "actor": "agent",
+      "payload": {
+        "type": "status_changed",
+        "from": "todo",
+        "to": "done"
+      },
+      "createdAt": "2026-08-03T05:03:16.161Z"
+    }
+  ]
+}

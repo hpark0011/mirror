@@ -30,16 +30,7 @@ export {
   NAVIGABLE_CONTENT_KINDS,
 };
 
-export const DEFAULT_PROFILE_SECTION_VALUES = [
-  "bio",
-  "contact",
-  "projects",
-  "posts",
-  "articles",
-] as const;
-export type DefaultProfileSection =
-  (typeof DEFAULT_PROFILE_SECTION_VALUES)[number];
-export const DEFAULT_PROFILE_SECTION: DefaultProfileSection = "posts";
+export const DEFAULT_PROFILE_SECTION = "posts" as const;
 
 export function buildContentHref(
   username: string,
@@ -56,8 +47,7 @@ export function buildContentHref(
 // lives at `apps/mirror/app/[username]/<kind>/[slug]/edit/page.tsx`. Keeping
 // the URL template here means a typo surfaces in the href-parity test
 // (`apps/mirror/features/profile-tabs/__tests__/types.test.ts`) instead of as
-// a silent 404 when the configuration agent's `applyContentPatch` tool routes
-// the owner to the editor for review of a freshly created draft.
+// a silent 404 when an editor link is opened.
 export function buildContentEditHref(
   username: string,
   kind: ContentKind,
@@ -66,17 +56,9 @@ export function buildContentEditHref(
   return `${buildContentHref(username, kind, slug)}/edit`;
 }
 
-// Profile section identifier — covers every ProfileTab the user-UI dispatcher
-// can navigate to. The agent's `openProfileSection` tool pins to a strict
-// subset (`bio | contact | projects | articles | posts`); owner-only sections are not
-// part of the agent's verb space (see `chat/tools.ts`).
-export type ProfileSection =
-  | "bio"
-  | "contact"
-  | "projects"
-  | ContentKind
-  | "clone-settings"
-  | "settings";
+// Profile section identifier shared by the user-UI dispatcher and the agent's
+// `openProfileSection` tool. Keep both consumers aligned when adding a section.
+export type ProfileSection = "bio" | "contact" | "projects" | ContentKind;
 
 // Server-side parallel of `getProfileTabHref` at
 // `apps/mirror/features/profile-tabs/types.ts`. The href-parity invariant is

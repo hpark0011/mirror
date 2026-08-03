@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "taskId": "ISSUE-2",
+  "status": "completed",
+  "sessionId": null,
+  "startedAt": null,
+  "finishedAt": "2026-08-03T05:02:01.531Z",
+  "errorMessage": null,
+  "startHeadSha": "378d72c588da2f930a8892be30251952b393a3d6",
+  "startDirtyDiffHash": "a14a744518b4f84ebf089bfa68c1f3799d40d82f4f39e159a741af1aeb49a8a4",
+  "result": {
+    "verdict": "issues_found",
+    "reviewedHeadSha": "378d72c588da2f930a8892be30251952b393a3d6",
+    "reviewedDirtyDiffHash": "7690b64f32da22f43e31df8971b8bc66be819fb494997765d53afa383663ef18",
+    "startHeadSha": "378d72c588da2f930a8892be30251952b393a3d6",
+    "startDirtyDiffHash": "a14a744518b4f84ebf089bfa68c1f3799d40d82f4f39e159a741af1aeb49a8a4",
+    "baseRef": "main",
+    "findingCounts": {
+      "blocking": 0,
+      "should-fix": 0,
+      "nit": 1
+    },
+    "subtaskIds": [
+      "ISSUE-7"
+    ],
+    "summary": "Reviewed the full main...HEAD diff (48 files, +21/-2313 lines) removing the Tavus CVI video-calling integration and its Daily.co dependency, dispatching the review-code skill's full reviewer fleet (correctness, convention, tests, maintainability, agent-native, security, data-integrity) alongside manual verification of dangling references, lockfile/workspace consistency, CSP/Permissions-Policy correctness, Convex codegen freshness, and directory deletions. The removal is thorough and self-consistent: no dangling imports, props, env vars, or Convex query/validator references anywhere in the tree; the previously-flagged unauthenticated-Tavus-route security concern (canceled ticket FG_012) is now moot since the route is deleted entirely; CSP/Permissions-Policy correctly drop camera/microphone/Daily.co/tavusapi.com while retaining what surviving features (e.g. Convex-hosted cover video) still need; and all associated tests were updated or removed consistently with passing suites. The single surviving finding is a P3/nit: `.claude/health.md` and `.agents/health.md` still describe `apps/mirror/AGENTS.md` as \"Current\" while citing \"video-call features added,\" which this same PR just removed from AGENTS.md — filed as ISSUE-7. Harness-reported `bun run typecheck` failure is a pre-existing repo gap (no `typecheck` script exists anywhere in the monorepo, on main or this branch) unrelated to this diff.",
+    "reportedAt": "2026-08-03T05:02:01.531Z"
+  }
+}

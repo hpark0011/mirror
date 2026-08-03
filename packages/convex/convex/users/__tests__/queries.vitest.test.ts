@@ -109,7 +109,6 @@ describe("users.queries.getByUsername (post-narrow: returns tagline only)", () =
     });
     expect(result).not.toBeNull();
     expect(result!.tagline).toBe("only tagline set");
-    expect(result!.defaultProfileSection).toBe("posts");
     // The `bio` field has been removed from the schema and the public
     // profile validator; the returned shape must not expose it.
     expect((result as Record<string, unknown>).bio).toBeUndefined();
@@ -133,7 +132,7 @@ describe("users.queries.getByUsername (post-narrow: returns tagline only)", () =
     expect(result!.tagline).toBeUndefined();
   });
 
-  it("returns a stored default profile section", async () => {
+  it("does not expose legacy profile customization fields", async () => {
     const t = makeT();
     await t.run(async (ctx) => {
       await ctx.db.insert("users", {
@@ -142,6 +141,10 @@ describe("users.queries.getByUsername (post-narrow: returns tagline only)", () =
         username: "erin",
         onboardingComplete: true,
         defaultProfileSection: "bio",
+        personaPrompt: "legacy prompt",
+        tonePreset: "friendly",
+        topicsToAvoid: "legacy topics",
+        chatAuthRequired: true,
       });
     });
 
@@ -149,7 +152,11 @@ describe("users.queries.getByUsername (post-narrow: returns tagline only)", () =
       username: "erin",
     });
     expect(result).not.toBeNull();
-    expect(result!.defaultProfileSection).toBe("bio");
+    expect(result).not.toHaveProperty("defaultProfileSection");
+    expect(result).not.toHaveProperty("personaPrompt");
+    expect(result).not.toHaveProperty("tonePreset");
+    expect(result).not.toHaveProperty("topicsToAvoid");
+    expect(result).not.toHaveProperty("chatAuthRequired");
   });
 });
 

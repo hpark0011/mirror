@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "taskId": "ISSUE-10",
+  "entries": [
+    {
+      "kind": "event",
+      "id": "8560eb69-12cb-49e1-b43b-6c1bf53e812b",
+      "actor": "user",
+      "payload": {
+        "type": "task_created"
+      },
+      "createdAt": "2026-08-03T06:16:47.446Z"
+    },
+    {
+      "kind": "event",
+      "id": "0f95898c-8992-4914-9189-8977cb24e925",
+      "actor": "user",
+      "payload": {
+        "type": "status_changed",
+        "from": "todo",
+        "to": "in_progress"
+      },
+      "createdAt": "2026-08-03T06:45:20.327Z"
+    }
+  ]
+}

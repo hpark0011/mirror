@@ -4,7 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { type UIMessage } from "@convex-dev/agent/react";
 import { type PaginationStatus } from "convex/react";
 import { type Id } from "@feel-good/convex/convex/_generated/dataModel";
-import { type ChatImageAttachment } from "../types";
 import {
   countMessagesByRole,
   findFirstNewAssistant,
@@ -17,21 +16,6 @@ type UseChatOptimisticOptions = {
   status: PaginationStatus;
   isStreaming: boolean;
 };
-
-function revokeOptimisticBlobUrls(messages: UIMessage[]): void {
-  for (const message of messages) {
-    for (const part of message.parts) {
-      if (
-        part.type === "file" &&
-        "url" in part &&
-        typeof part.url === "string" &&
-        part.url.startsWith("blob:")
-      ) {
-        URL.revokeObjectURL(part.url);
-      }
-    }
-  }
-}
 
 export function useChatOptimistic({
   conversationId,
@@ -146,10 +130,7 @@ export function useChatOptimistic({
     if (optimisticMessages.length === 0) return;
     if (realUserCount > userBaseline) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setOptimisticMessages((current) => {
-        revokeOptimisticBlobUrls(current);
-        return [];
-      });
+      setOptimisticMessages([]);
       setRealUserCountBaseline(null);
     }
   }, [optimisticMessages.length, realUserCount, userBaseline]);
@@ -204,10 +185,7 @@ export function useChatOptimistic({
     if (conversationId === createdConversationRef.current) {
       createdConversationRef.current = null;
     } else {
-      setOptimisticMessages((current) => {
-        revokeOptimisticBlobUrls(current);
-        return [];
-      });
+      setOptimisticMessages([]);
       setPendingAssistantMessage(null);
       setRealUserCountBaseline(null);
       setRealAssistantCountBaseline(null);
@@ -219,19 +197,12 @@ export function useChatOptimistic({
   // dedup fails for any reason (e.g. text mismatch between client/server).
   useEffect(() => {
     if (optimisticMessages.length === 0) return;
-    const timer = setTimeout(
-      () =>
-        setOptimisticMessages((current) => {
-          revokeOptimisticBlobUrls(current);
-          return [];
-        }),
-      10_000,
-    );
+    const timer = setTimeout(() => setOptimisticMessages([]), 10_000);
     return () => clearTimeout(timer);
   }, [optimisticMessages.length]);
 
   const beginOptimistic = useCallback(
-    (content: string, attachments: ReadonlyArray<ChatImageAttachment> = []) => {
+    (content: string) => {
       // Create optimistic messages immediately so both the user bubble and
       // assistant placeholder render before the backend stream arrives.
       const optimisticTimestamp = Date.now();
@@ -242,15 +213,7 @@ export function useChatOptimistic({
         role: "user" as const,
         text: content,
         status: "pending" as const,
-        parts: [
-          { type: "text" as const, text: content },
-          ...attachments.map((attachment) => ({
-            type: "file" as const,
-            mediaType: attachment.mediaType,
-            filename: attachment.filename,
-            url: attachment.previewUrl,
-          })),
-        ],
+        parts: [{ type: "text" as const, text: content }],
         order: optimisticTimestamp,
         stepOrder: 0,
         _creationTime: optimisticTimestamp,
@@ -281,10 +244,7 @@ export function useChatOptimistic({
   );
 
   const rollbackOptimistic = useCallback(() => {
-    setOptimisticMessages((current) => {
-      revokeOptimisticBlobUrls(current);
-      return [];
-    });
+    setOptimisticMessages([]);
     setPendingAssistantMessage(null);
     setRealUserCountBaseline(null);
     setRealAssistantCountBaseline(null);

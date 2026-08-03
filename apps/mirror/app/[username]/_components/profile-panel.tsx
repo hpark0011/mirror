@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  ConfigureProfileButton,
   EditActions,
   EditProfileButton,
   ProfileInfo,
@@ -21,10 +20,6 @@ export function ProfilePanel() {
     setIsSubmitting,
   } = useProfileRouteData();
   const { openChat } = useChatSearchParams();
-  const openConfigurationChat = useCallback(() => {
-    openChat({ mode: "configuration" });
-  }, [openChat]);
-
   const handleEditClose = useCallback(() => {
     setIsEditing(false);
     setIsSubmitting(false);
@@ -49,10 +44,7 @@ export function ProfilePanel() {
             onCancel={handleEditClose}
           />
         ) : isOwner ? (
-          <>
-            <ConfigureProfileButton onClick={openConfigurationChat} />
-            <EditProfileButton onClick={() => setIsEditing(true)} />
-          </>
+          <EditProfileButton onClick={() => setIsEditing(true)} />
         ) : null}
       </div>
 

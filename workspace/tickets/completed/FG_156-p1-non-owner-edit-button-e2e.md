@@ -12,7 +12,7 @@ acceptance_criteria:
   - "New Playwright spec at apps/mirror/e2e/article-edit-button.authenticated.spec.ts exists and is discovered by pnpm --filter=@feel-good/mirror test:e2e"
   - "The new spec authenticates as a user different from @test-user, navigates to /@test-user/articles/<publishedSlug>, and asserts await page.getByTestId('edit-article-btn').count() === 0"
   - "The new spec calls await waitForAuthReady(page) after page.goto per the authenticated-spec rule"
-  - "Spec uses the non-owner fixture pattern from apps/mirror/e2e/clone-settings/non-owner-hidden-tab-and-404.spec.ts (verified by grep: grep -E 'non-owner|test-user' apps/mirror/e2e/article-edit-button.authenticated.spec.ts returns at least one match)"
+  - "Spec uses the established non-owner fixture pattern from the Bio cross-user E2E."
   - "pnpm --filter=@feel-good/mirror build exits 0"
   - "pnpm --filter=@feel-good/mirror lint produces 0 errors"
 owner_agent: "Playwright e2e author"
@@ -26,22 +26,36 @@ PR #39 (`feature-edit-article-button`, merged in `437d481b`) added the Edit butt
 
 ```tsx
 // apps/mirror/features/articles/components/detail/article-detail-toolbar.tsx:18-43
-export function ArticleDetailToolbar({ username, slug }: ArticleDetailToolbarProps) {
+export function ArticleDetailToolbar({
+  username,
+  slug,
+}: ArticleDetailToolbarProps) {
   const isOwner = useIsProfileOwner();
   // ...
-  {isOwner && (
-    <Button asChild variant="primary" size="xs" className="w-12" data-testid="edit-article-btn">
-      <Link href={buildChatAwareHref(`/@${username}/articles/${slug}/edit`)} scroll={false}>
-        Edit
-      </Link>
-    </Button>
-  )}
+  {
+    isOwner && (
+      <Button
+        asChild
+        variant="primary"
+        size="xs"
+        className="w-12"
+        data-testid="edit-article-btn"
+      >
+        <Link
+          href={buildChatAwareHref(`/@${username}/articles/${slug}/edit`)}
+          scroll={false}
+        >
+          Edit
+        </Link>
+      </Button>
+    );
+  }
 }
 ```
 
 The `isOwner` gate is the sole boundary preventing non-author readers from seeing an "Edit" affordance on a public article URL. There is currently no Playwright coverage that asserts this gating holds. A future refactor of `useIsProfileOwner` (or a slip in how `username` is plumbed into the toolbar) could silently flip the gate without any test failure.
 
-The pattern to mirror exists at `apps/mirror/e2e/clone-settings/non-owner-hidden-tab-and-404.spec.ts` — it authenticates as a non-owner and asserts an owner-only affordance is absent.
+The pattern to mirror exists in the Bio cross-user E2E: authenticate as a non-owner and assert an owner-only affordance is absent.
 
 ## Goal
 
@@ -62,7 +76,7 @@ A new Playwright spec proves the Edit button is invisible to anyone other than t
 
 ## Approach
 
-Mirror the non-owner fixture shape used by `apps/mirror/e2e/clone-settings/non-owner-hidden-tab-and-404.spec.ts`. Reuse `ensureTestArticleFixtures` to guarantee the published article exists. Authenticate as the non-owner, navigate to the article detail URL, await `waitForAuthReady`, then assert:
+Mirror the non-owner fixture shape used by the Bio cross-user E2E. Reuse `ensureTestArticleFixtures` to guarantee the published article exists. Authenticate as the non-owner, navigate to the article detail URL, await `waitForAuthReady`, then assert:
 
 ```ts
 const editBtn = page.getByTestId("edit-article-btn");
@@ -76,7 +90,7 @@ The back button should still be visible — verifying the toolbar rendered at al
 
 ## Implementation Steps
 
-1. Read `apps/mirror/e2e/clone-settings/non-owner-hidden-tab-and-40e.spec.ts` to confirm the non-owner fixture/auth pattern (test fixture name, viewport, etc.).
+1. Read the Bio cross-user E2E to confirm the non-owner fixture/auth pattern.
 2. Read `apps/mirror/e2e/workspace-back-button.authenticated.spec.ts` and copy the `ensureTestArticleFixtures` helper (or extract it to a shared `e2e/lib/` helper if both specs would benefit — only if trivial).
 3. Create `apps/mirror/e2e/article-edit-button.authenticated.spec.ts` with one test: "non-owner viewers cannot see the Edit button on article detail".
 4. In the test: get the published slug via `ensureTestArticleFixtures()`, authenticate as a non-owner, `page.goto(/@test-user/articles/<publishedSlug>)`, `await waitForAuthReady(page)`, assert `getByTestId("workspace-back-button")` is visible (page rendered), then assert `getByTestId("edit-article-btn")` has count 0.
@@ -92,7 +106,7 @@ The back button should still be visible — verifying the toolbar rendered at al
 ## Resources
 
 - File under test: `apps/mirror/features/articles/components/detail/article-detail-toolbar.tsx:18-45`
-- Pattern to mirror: `apps/mirror/e2e/clone-settings/non-owner-hidden-tab-and-404.spec.ts`
+- Pattern to mirror: `apps/mirror/e2e/bio/bio-tab-cross-user.authenticated.spec.ts`
 - Fixture helper to reuse: `apps/mirror/e2e/workspace-back-button.authenticated.spec.ts:9-27` (`ensureTestArticleFixtures`)
 - Originating PR: `#39 feature-edit-article-button` (merged at commit `437d481b`)
 - Convention: `.claude/rules/verification.md` — Tier 5 (e2e for new feature gating)

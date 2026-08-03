@@ -21,19 +21,11 @@ describe("getContentRouteState", () => {
     expect(getContentRouteState(["articles"])).not.toBeNull();
   });
 
-  it("returns null for the 'clone-settings' tab (no list/detail semantics)", () => {
-    expect(getContentRouteState(["clone-settings"])).toBeNull();
-  });
-
   // Locks the inverted predicate (issue m11) against regression: a future
   // implementer must not restore the old enumeration logic that defaulted
   // unknown segments to a content kind.
   it("returns null for the 'bio' tab", () => {
     expect(getContentRouteState(["bio"])).toBeNull();
-  });
-
-  it("returns null for the 'settings' tab", () => {
-    expect(getContentRouteState(["settings"])).toBeNull();
   });
 
   it("returns the kind/view/slug shape for a posts list", () => {
@@ -117,14 +109,6 @@ describe("isContentKind", () => {
 
   it("returns false for 'bio'", () => {
     expect(isContentKind("bio")).toBe(false);
-  });
-
-  it("returns false for 'clone-settings'", () => {
-    expect(isContentKind("clone-settings")).toBe(false);
-  });
-
-  it("returns false for 'settings'", () => {
-    expect(isContentKind("settings")).toBe(false);
   });
 
   it("returns false for null and undefined", () => {
