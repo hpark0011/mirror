@@ -1,0 +1,48 @@
+{
+  "version": 1,
+  "taskId": "ISSUE-4",
+  "entries": [
+    {
+      "kind": "event",
+      "id": "5b8e93b8-07a3-40f1-a27e-eb4204157992",
+      "actor": "user",
+      "payload": {
+        "type": "task_created"
+      },
+      "createdAt": "2026-08-03T04:37:35.010Z"
+    },
+    {
+      "kind": "event",
+      "id": "23983424-33d3-4a54-8ca5-1c985450fe04",
+      "actor": "user",
+      "payload": {
+        "type": "status_changed",
+        "from": "todo",
+        "to": "in_progress"
+      },
+      "createdAt": "2026-08-03T04:37:37.380Z"
+    },
+    {
+      "kind": "event",
+      "id": "c645ea6f-b4ea-4801-82df-e1b1c628e3b1",
+      "actor": "user",
+      "payload": {
+        "type": "status_changed",
+        "from": "in_progress",
+        "to": "in_review"
+      },
+      "createdAt": "2026-08-03T05:53:38.037Z"
+    },
+    {
+      "kind": "event",
+      "id": "57638678-9cc4-4098-9a33-c2328ffb883c",
+      "actor": "user",
+      "payload": {
+        "type": "status_changed",
+        "from": "in_review",
+        "to": "done"
+      },
+      "createdAt": "2026-08-03T06:49:18.423Z"
+    }
+  ]
+}
