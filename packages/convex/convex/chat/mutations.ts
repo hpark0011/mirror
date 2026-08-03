@@ -4,10 +4,7 @@ import { mutation, internalMutation } from "../_generated/server";
 import { internal, components } from "../_generated/api";
 import { authComponent } from "../auth/client";
 import { chatRateLimiter } from "./rateLimits";
-import {
-  chatModeValidator,
-  isLegacyConfigurationConversation,
-} from "./mode";
+import { chatModeValidator, isLegacyConfigurationConversation } from "./mode";
 
 const MAX_MESSAGE_LENGTH = 3000;
 const STREAMING_LOCK_TTL_MS = 2 * 60 * 1000;

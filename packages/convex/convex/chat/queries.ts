@@ -5,10 +5,7 @@ import { query, internalQuery } from "../_generated/server";
 import { components } from "../_generated/api";
 import { authComponent } from "../auth/client";
 import { type Doc } from "../_generated/dataModel";
-import {
-  chatModeValidator,
-  isLegacyConfigurationConversation,
-} from "./mode";
+import { chatModeValidator, isLegacyConfigurationConversation } from "./mode";
 
 const conversationReturnValidator = v.object({
   _id: v.id("conversations"),

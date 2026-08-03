@@ -130,13 +130,10 @@ describe("Release A previous-client chat contract", () => {
       });
       authState.currentAuthUser = { _id: "rollout_owner" };
 
-      const conversations = await t.query(
-        api.chat.queries.getConversations,
-        {
-          profileOwnerId,
-          mode: "clone",
-        },
-      );
+      const conversations = await t.query(api.chat.queries.getConversations, {
+        profileOwnerId,
+        mode: "clone",
+      });
       expect(conversations.map((conversation) => conversation._id)).toEqual([
         conversationId,
       ]);

@@ -3,7 +3,7 @@ id: FG_268
 title: "Legacy cleanup runner deletes every configuration thread safely"
 date: 2026-08-03
 type: improvement
-status: to-do
+status: completed
 priority: p1
 description: "Exercise the successful destructive cleanup chain so target selection, component deletion, local deletion, rescheduling, and completion are proven."
 dependencies: []
