@@ -11,6 +11,9 @@
   repository guard even though the final file is correct. Run `next build` to
   completion before the Mirror unit suite, and verify the production import
   before staging the merge.
+- A still-running `next dev` process also keeps the file in its development
+  form. Stop the dev server before running the guard, then restore the
+  production import if necessary.
 
 ## 2026-05-22
 

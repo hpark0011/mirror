@@ -1,12 +1,12 @@
-# Codex cloud environment config for the mirror monorepo.
-# Local-worktree setup uses `.agents/skills/new-worktree/scripts/new-worktree.sh`
-# (per-worktree Convex deployment, env sync, etc.). Codex cloud envs are
-# fresh clones with no sibling main checkout, so they only need deps installed.
+# Codex environment config for the mirror monorepo.
+# Local secondary worktrees receive a per-worktree Convex deployment and env
+# sync. Standalone Codex cloud clones have no sibling main checkout, so they
+# only install dependencies.
 version = 1
 name = "mirror"
 
 [setup]
-script = "pnpm install --frozen-lockfile --prefer-offline --reporter=append-only"
+script = "./scripts/codex-setup.sh"
 
 [[actions]]
 name = "Run Mirror"
