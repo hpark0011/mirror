@@ -15,7 +15,6 @@ export function ProfilePanel() {
   const {
     profile,
     isOwner,
-    setVideoCallOpen,
     isEditing,
     setIsEditing,
     isSubmitting,
@@ -63,7 +62,6 @@ export function ProfilePanel() {
         onEditComplete={handleEditClose}
         onSubmittingChange={setIsSubmitting}
         onOpenChat={openChat}
-        onOpenVideoCall={() => setVideoCallOpen(true)}
       />
     </div>
   );

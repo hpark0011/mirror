@@ -20,14 +20,12 @@ const shinyButtonShadowClass =
 type ProfileActionsProps = {
   isEditing?: boolean;
   onOpenChat?: () => void;
-  onOpenVideoCall?: () => void;
   onEdit?: () => void;
 };
 
 export function EditableProfileActions({
   isEditing,
   onOpenChat,
-  onOpenVideoCall,
   onEdit,
 }: ProfileActionsProps) {
   const actions: ProfileAction[] = [
@@ -36,12 +34,6 @@ export function EditableProfileActions({
       icon: "BubbleLeftFillIcon",
       iconClassName: "size-5.5",
       handler: onOpenChat,
-    },
-    {
-      label: "Video",
-      icon: "VideoFillIcon",
-      iconClassName: "size-5.5",
-      handler: onOpenVideoCall,
     },
   ];
 
