@@ -1,3 +1,5 @@
+import { DEFAULT_PROFILE_SECTION } from "@feel-good/convex/convex/content/href";
+
 export const PROFILE_TAB_KINDS = [
   "posts",
   "articles",
@@ -10,7 +12,7 @@ export type ProfileTabKind = (typeof PROFILE_TAB_KINDS)[number];
 // Decoupled from PROFILE_TAB_KINDS tuple position (issue I4) so reordering the
 // tuple — e.g. inserting a new tab — never silently changes the workspace's
 // default-fallback tab. The default is an explicit literal.
-export const PROFILE_TAB_DEFAULT_KIND: ProfileTabKind = "posts";
+export const PROFILE_TAB_DEFAULT_KIND: ProfileTabKind = DEFAULT_PROFILE_SECTION;
 
 // Visual ordering for the profile tab row. Decoupled from PROFILE_TAB_KINDS so
 // the canonical kind list can be reordered (e.g. for default-kind preservation)

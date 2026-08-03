@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { cn } from "@feel-good/utils/cn";
 import { formatShortDate, getContentHref } from "@/features/content";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { useVisibilityGatedVideoPlayback } from "@/features/posts/hooks/use-visibility-gated-video-playback";
 import { type ArticleSummary } from "../../types";
@@ -24,11 +23,8 @@ export function FeaturedArticleCard({
   username,
   variant,
 }: FeaturedArticleCardProps) {
-  const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToContent } = useCloneActions();
-  const href = buildChatAwareHref(
-    getContentHref(username, "articles", article.slug),
-  );
+  const href = getContentHref(username, "articles", article.slug);
 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -68,58 +64,52 @@ export function FeaturedArticleCard({
       </div>
       <div className="mt-4 @max-[480px]:mt-2 @max-[480px]:leading-[1.3] leading-[1.4] text-sm">
         <div>{article.category}</div>
-        {article.publishedAt
-          ? (
-            <time dateTime={new Date(article.publishedAt).toISOString()}>
-              {formatShortDate(article.publishedAt)}
-            </time>
-          )
-          : null}
+        {article.publishedAt ? (
+          <time dateTime={new Date(article.publishedAt).toISOString()}>
+            {formatShortDate(article.publishedAt)}
+          </time>
+        ) : null}
       </div>
     </div>
   );
 
-  const coverBlock = hasCoverVideo
-    ? (
-      <div
-        className={cn(
-          "relative w-full aspect-video h-full bg-gray-5 max-w-[480px] overflow-hidden",
-          imageFirst && "@max-[480px]:order-2",
-        )}
-      >
-        <video
-          ref={coverVideoRef}
-          src={article.coverVideoUrl!}
-          poster={article.coverVideoPosterUrl ?? undefined}
-          preload="metadata"
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover"
-          data-testid="article-list-cover-video"
-        />
-      </div>
-    )
-    : hasCoverImage
-    ? (
-      <div
-        className={cn(
-          "relative w-full aspect-video h-full bg-gray-5 max-w-[480px] overflow-hidden",
-          imageFirst && "@max-[480px]:order-2",
-        )}
-      >
-        <Image
-          src={article.coverImageUrl!}
-          alt=""
-          fill
-          sizes="(max-width: 880px) 100vw, 480px"
-          placeholder={blurDataUrl ? "blur" : "empty"}
-          blurDataURL={blurDataUrl ?? undefined}
-          className="object-cover"
-        />
-      </div>
-    )
-    : null;
+  const coverBlock = hasCoverVideo ? (
+    <div
+      className={cn(
+        "relative w-full aspect-video h-full bg-gray-5 max-w-[480px] overflow-hidden",
+        imageFirst && "@max-[480px]:order-2",
+      )}
+    >
+      <video
+        ref={coverVideoRef}
+        src={article.coverVideoUrl!}
+        poster={article.coverVideoPosterUrl ?? undefined}
+        preload="metadata"
+        loop
+        muted
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover"
+        data-testid="article-list-cover-video"
+      />
+    </div>
+  ) : hasCoverImage ? (
+    <div
+      className={cn(
+        "relative w-full aspect-video h-full bg-gray-5 max-w-[480px] overflow-hidden",
+        imageFirst && "@max-[480px]:order-2",
+      )}
+    >
+      <Image
+        src={article.coverImageUrl!}
+        alt=""
+        fill
+        sizes="(max-width: 880px) 100vw, 480px"
+        placeholder={blurDataUrl ? "blur" : "empty"}
+        blurDataURL={blurDataUrl ?? undefined}
+        className="object-cover"
+      />
+    </div>
+  ) : null;
 
   return (
     <Link
@@ -130,19 +120,17 @@ export function FeaturedArticleCard({
       data-testid="article-list-featured-card"
     >
       <div className="flex flex-row @max-[480px]:flex-col @max-[480px]:gap-0 gap-7 items-start justify-between">
-        {imageFirst
-          ? (
-            <>
-              {coverBlock}
-              {titleBlock}
-            </>
-          )
-          : (
-            <>
-              {titleBlock}
-              {coverBlock}
-            </>
-          )}
+        {imageFirst ? (
+          <>
+            {coverBlock}
+            {titleBlock}
+          </>
+        ) : (
+          <>
+            {titleBlock}
+            {coverBlock}
+          </>
+        )}
       </div>
     </Link>
   );

@@ -4,7 +4,6 @@ import { type MouseEvent, useCallback } from "react";
 import Link from "next/link";
 import { Tabs, TabsList, TabsTrigger } from "@feel-good/ui/primitives/tabs";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import {
   getProfileTabHref,
   PROFILE_TAB_DISPLAY_ORDER,
@@ -18,7 +17,6 @@ type ProfileTabsProps = {
 };
 
 export function ProfileTabs({ username, currentKind }: ProfileTabsProps) {
-  const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToProfileSection } = useCloneActions();
 
   // Funnels normal left-clicks through `useCloneActions().navigateToProfileSection`
@@ -49,7 +47,7 @@ export function ProfileTabs({ username, currentKind }: ProfileTabsProps) {
           <div key={kind} className="flex items-center">
             <TabsTrigger asChild value={kind} className="text-[13px]">
               <Link
-                href={buildChatAwareHref(getProfileTabHref(username, kind))}
+                href={getProfileTabHref(username, kind)}
                 prefetch={false}
                 scroll={false}
                 onClick={(event) => handleClick(event, kind)}

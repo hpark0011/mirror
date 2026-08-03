@@ -1,5 +1,4 @@
 import { test, expect, waitForAuthReady } from "./fixtures/auth";
-import { openChat, sendChatMessage } from "./helpers/chat";
 import { type Page } from "@playwright/test";
 
 const ownerUsername = "test-user";
@@ -82,37 +81,16 @@ test.describe("removed Clone and Settings surfaces", () => {
     }
   });
 
-  test("profile root always resolves to Posts", async ({
+  test("profile root always resolves to Articles", async ({
     authenticatedPage: page,
   }) => {
     await page.goto(`/@${ownerUsername}`);
     await expect(page).toHaveURL(
-      new RegExp(`/@${ownerUsername}/posts(?:\\?|$)`),
+      new RegExp(`/@${ownerUsername}/articles(?:\\?|$)`),
     );
-    await expect(page.getByRole("tab", { name: "Posts" })).toHaveAttribute(
+    await expect(page.getByRole("tab", { name: "Articles" })).toHaveAttribute(
       "data-state",
       "active",
     );
-  });
-
-  test("public chat sends without mode state and preserves chat state across tabs", async ({
-    authenticatedPage: page,
-  }) => {
-    const message = `Removal regression ${Date.now()}`;
-    const textarea = await openChat(page, ownerUsername);
-
-    expect(page.url()).not.toContain("chatMode=");
-    await sendChatMessage(textarea, message);
-    await expect(textarea).toHaveValue("");
-    await expect(page).toHaveURL(/[?&]conversation=[^&]+/, { timeout: 15_000 });
-    expect(page.url()).not.toContain("chatMode=");
-
-    const conversationId = new URL(page.url()).searchParams.get("conversation");
-    expect(conversationId).toBeTruthy();
-    await page.getByRole("tab", { name: "Articles" }).click();
-    await expect(page).toHaveURL(new RegExp(`/@${ownerUsername}/articles`));
-    expect(page.url()).toContain("chat=1");
-    expect(page.url()).toContain(`conversation=${conversationId}`);
-    expect(page.url()).not.toContain("chatMode=");
   });
 });

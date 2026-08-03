@@ -99,43 +99,6 @@ test.describe("Workspace back button — unified component", () => {
     await expect(back).not.toHaveAttribute("href", /.+/);
   });
 
-  // FG_159: verify that ?chat=1 is preserved in the article detail back-button
-  // href. buildChatAwareHref in article-detail-toolbar.tsx carries the chat
-  // query param so the reader returns to a list URL that keeps the chat panel
-  // open.
-  test("article detail back button preserves ?chat=1", async ({
-    authenticatedPage: page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 960 });
-    const { publishedSlug } = await ensureTestArticleFixtures();
-
-    await page.goto(`/@${username}/articles/${publishedSlug}?chat=1`, {
-      waitUntil: "domcontentloaded",
-    });
-    await waitForAuthReady(page);
-
-    const back = page.getByTestId("workspace-back-button");
-    await expect(back).toBeVisible({ timeout: 10_000 });
-    await expect(back).toHaveAttribute("href", /chat=1/);
-  });
-
-  // FG_159: same preservation check for the post detail toolbar variant.
-  test("post detail back button preserves ?chat=1", async ({
-    authenticatedPage: page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 960 });
-    const { publishedSlug } = await ensureTestPostFixtures();
-
-    await page.goto(`/@${username}/posts/${publishedSlug}?chat=1`, {
-      waitUntil: "domcontentloaded",
-    });
-    await waitForAuthReady(page);
-
-    const back = page.getByTestId("workspace-back-button");
-    await expect(back).toBeVisible({ timeout: 10_000 });
-    await expect(back).toHaveAttribute("href", /chat=1/);
-  });
-
   // FG_161: clicking the editor's workspace-back-button (onCancel) must
   // navigate to the article detail URL — not stay on /edit.
   test("article editor cancel navigates back to article detail", async ({

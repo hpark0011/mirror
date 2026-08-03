@@ -51,29 +51,6 @@ test.describe("Article detail — Edit button (owner-only entry to editor)", () 
     await expect(page.getByTestId("save-article-btn")).toBeVisible();
   });
 
-  test("Edit button preserves an open chat panel via ?chat=1", async ({
-    authenticatedPage: page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 960 });
-    const { publishedSlug } = await ensureTestArticleFixtures();
-
-    await page.goto(`/@${username}/articles/${publishedSlug}?chat=1`, {
-      waitUntil: "domcontentloaded",
-    });
-    await waitForAuthReady(page);
-
-    await page.getByTestId("edit-article-btn").click();
-
-    // The chat-aware href appends ?chat=1 so the parallel chat panel
-    // does not collapse on navigation.
-    await expect(page).toHaveURL(
-      new RegExp(
-        `/@${username}/articles/${escapeRegex(publishedSlug)}/edit\\?chat=1(?:&|$)`,
-      ),
-      { timeout: 10_000 },
-    );
-  });
-
   /**
    * Non-owner test: a different authenticated user (playwright-no-username@mirror.test)
    * visits @test-user's article and must NOT see the Edit button.

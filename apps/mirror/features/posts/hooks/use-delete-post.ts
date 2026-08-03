@@ -6,7 +6,6 @@ import { useMutation } from "convex/react";
 import { api } from "@feel-good/convex/convex/_generated/api";
 import { showToast } from "@feel-good/ui/components/toast";
 import { getContentHref } from "@/features/content";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { getMutationErrorMessage } from "@/lib/get-mutation-error-message";
 import { type PostSummary } from "../types";
 
@@ -54,7 +53,6 @@ export function useDeletePost({
   | UseDeletePostEagerReturn
   | UseDeletePostListReturn {
   const router = useRouter();
-  const { buildChatAwareHref } = useChatSearchParams();
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isPending, setIsPending] = useState(false);
   const isSubmittingRef = useRef(false);
@@ -94,7 +92,7 @@ export function useDeletePost({
         // Convex invalidates the getById subscription — prevents the
         // blank-flash where PostDetailConnector renders null between mutation
         // resolve and route paint.
-        router.replace(buildChatAwareHref(getContentHref(username, "posts")));
+        router.replace(getContentHref(username, "posts"));
       }
       await removePosts({ ids: [resolvedId] });
       showToast({ type: "success", title: "Post deleted" });
@@ -108,7 +106,7 @@ export function useDeletePost({
       isSubmittingRef.current = false;
       setIsPending(false);
     }
-  }, [postId, removePosts, router, buildChatAwareHref, username]);
+  }, [postId, removePosts, router, username]);
 
   const handleCancel = useCallback(() => {
     if (isSubmittingRef.current) return;

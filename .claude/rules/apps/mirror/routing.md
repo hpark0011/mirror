@@ -9,7 +9,7 @@ paths:
 
 | URL                               | Route                                                                  | Auth                                             | Content                                                                |
 | --------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------ | ---------------------------------------------------------------------- |
-| `/@username`                      | `[username]/page.tsx`                                                  | Public                                           | Profile + Posts                                                        |
+| `/@username`                      | `[username]/page.tsx`                                                  | Public                                           | Temporary redirect to Articles                                         |
 | `/@username/articles`             | `[username]/articles/page.tsx`                                         | Public                                           | Article list                                                           |
 | `/@username/articles/:slug`       | `[username]/articles/[slug]/page.tsx`                                  | Public                                           | Article detail                                                         |
 | `/@username/articles/:slug/edit`  | `[username]/@content/articles/[slug]/edit/page.tsx`                    | Owner (server-component check; redirect on miss) | Article inline editor                                                  |
@@ -19,11 +19,13 @@ paths:
 | `/@username/posts/:slug/edit`     | `[username]/@content/posts/[slug]/edit/page.tsx`                       | Owner (server-component check; redirect on miss) | Post inline editor                                                     |
 | `/@username/bio`                  | `[username]/bio/page.tsx` + `[username]/@content/bio/page.tsx`         | Public (read-only); Owner-only mutation UI       | Structured work history + education entries                            |
 | `/@username/contact`              | `[username]/contact/page.tsx` + `[username]/@content/contact/page.tsx` | Public (read-only); Owner-only mutation UI       | Email + social profile links (linkedin, instagram, x, tiktok, youtube) |
-| `/@username/chat`                 | `[username]/chat/page.tsx`                                             | Public                                           | Chat with clone                                                        |
-| `/@username/chat/:conversationId` | `[username]/chat/[conversationId]/page.tsx`                            | Public                                           | Specific conversation                                                  |
+| `/@username/chat`                 | `[username]/chat/page.tsx`                                             | Public                                           | Temporary redirect to Articles                                         |
+| `/@username/chat/:conversationId` | `[username]/chat/[conversationId]/page.tsx`                            | Public                                           | Temporary redirect to Articles                                         |
 | `/onboarding`                     | `onboarding/page.tsx`                                                  | Required                                         | New user wizard                                                        |
 | `/dashboard`                      | `(protected)/dashboard/page.tsx`                                       | Required                                         | Insights                                                               |
 | `/sign-in`                        | `(auth)/sign-in/page.tsx`                                              | Public                                           | Login                                                                  |
 | `/sign-up`                        | `(auth)/sign-up/page.tsx`                                              | Public                                           | Sign up                                                                |
 
 `/@username` URLs are mapped to `/[username]` via Next.js rewrites in `next.config.ts`.
+Profile URLs containing `chat`, `conversation`, or `chatMode` query keys are
+temporarily redirected to clean `/@username/articles` by `middleware.ts`.

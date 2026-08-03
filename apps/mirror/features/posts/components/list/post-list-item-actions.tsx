@@ -11,7 +11,6 @@ import {
 } from "@feel-good/ui/primitives/tooltip";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { getContentEditHref } from "@/features/content";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { usePostListDelete } from "../../context/post-list-delete-context";
 import { type PostSummary } from "../../types";
 
@@ -26,7 +25,6 @@ export function PostListItemActions({
   username,
   isOwner,
 }: PostListItemActionsProps) {
-  const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToEditor } = useCloneActions();
   const listDelete = usePostListDelete();
 
@@ -34,9 +32,7 @@ export function PostListItemActions({
   // onClick below routes "normal" left-clicks through the same dispatcher
   // the agent uses (`useCloneActions().navigateToEditor`), mirroring the
   // pattern used by `PostListItem` for `navigateToContent`.
-  const editHref = buildChatAwareHref(
-    getContentEditHref(username, "posts", post.slug),
-  );
+  const editHref = getContentEditHref(username, "posts", post.slug);
 
   const handleEditClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {

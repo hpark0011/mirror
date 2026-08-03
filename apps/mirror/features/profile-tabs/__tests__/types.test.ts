@@ -37,10 +37,11 @@ describe("PROFILE_TAB_KINDS", () => {
 });
 
 describe("PROFILE_TAB_DEFAULT_KIND", () => {
-  // Regression guard for issue I4: the default must remain "posts" regardless
+  // The default remains independent from display order, where Articles stays
+  // last even though it is the landing section.
   // of how PROFILE_TAB_KINDS is reordered.
-  it("is the literal 'posts', not derived from tuple position", () => {
-    expect(PROFILE_TAB_DEFAULT_KIND).toBe("posts");
+  it("is the literal 'articles', not derived from tuple position", () => {
+    expect(PROFILE_TAB_DEFAULT_KIND).toBe("articles");
     expect(isProfileTabKind(PROFILE_TAB_DEFAULT_KIND)).toBe(true);
   });
 });

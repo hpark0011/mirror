@@ -1,5 +1,5 @@
 // FR-01: Edit button is hidden when useIsProfileOwner() is false
-// FR-02: Edit button renders for owner with chat-aware href
+// FR-02: Edit button renders for owner with canonical href
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 
@@ -12,8 +12,7 @@ vi.mock("@/features/content", () => ({
       Back
     </a>
   ),
-  getContentHref: (username: string, kind: string) =>
-    `/@${username}/${kind}`,
+  getContentHref: (username: string, kind: string) => `/@${username}/${kind}`,
 }));
 
 let mockIsOwner = true;
@@ -21,16 +20,8 @@ vi.mock("@/features/profile", () => ({
   useIsProfileOwner: () => mockIsOwner,
 }));
 
-let mockBuildChatAwareHref = (path: string) => path;
-vi.mock("@/hooks/use-chat-search-params", () => ({
-  useChatSearchParams: () => ({
-    buildChatAwareHref: mockBuildChatAwareHref,
-  }),
-}));
-
-const { ArticleDetailToolbar } = await import(
-  "@/features/articles/components/detail/article-detail-toolbar"
-);
+const { ArticleDetailToolbar } =
+  await import("@/features/articles/components/detail/article-detail-toolbar");
 
 describe("ArticleDetailToolbar", () => {
   afterEach(() => {
@@ -39,7 +30,6 @@ describe("ArticleDetailToolbar", () => {
 
   beforeEach(() => {
     mockIsOwner = true;
-    mockBuildChatAwareHref = (path: string) => path;
   });
 
   describe("FR-01: owner-only Edit button", () => {
@@ -56,15 +46,14 @@ describe("ArticleDetailToolbar", () => {
     });
   });
 
-  describe("FR-02: Edit href is chat-aware", () => {
-    it("links to /@username/articles/:slug/edit through buildChatAwareHref", () => {
+  describe("FR-02: Edit href is canonical", () => {
+    it("links to /@username/articles/:slug/edit", () => {
       mockIsOwner = true;
-      mockBuildChatAwareHref = (path) => `${path}?chat=1`;
       render(<ArticleDetailToolbar username="alice" slug="hello-world" />);
 
       const editLink = screen.getByTestId("edit-article-btn");
       expect(editLink.getAttribute("href")).toBe(
-        "/@alice/articles/hello-world/edit?chat=1",
+        "/@alice/articles/hello-world/edit",
       );
     });
   });

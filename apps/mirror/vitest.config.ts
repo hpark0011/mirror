@@ -5,11 +5,7 @@ export default defineConfig({
   test: {
     environment: "happy-dom",
     include: ["**/__tests__/**/*.test.{ts,tsx}", "**/*.unit.test.ts"],
-    exclude: [
-      "e2e/**",
-      "node_modules/**",
-      "app/[username]/_components/__tests__/mobile-workspace.test.tsx",
-    ],
+    exclude: ["e2e/**", "node_modules/**"],
   },
   resolve: {
     alias: [
