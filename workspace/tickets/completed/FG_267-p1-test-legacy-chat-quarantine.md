@@ -3,7 +3,7 @@ id: FG_267
 title: "Legacy configuration chats stay quarantined at every boundary"
 date: 2026-08-03
 type: improvement
-status: to-do
+status: completed
 priority: p1
 description: "Add regression coverage proving private legacy configuration conversations cannot be listed, read, sent, retried, or streamed."
 dependencies: []

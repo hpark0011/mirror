@@ -3,7 +3,7 @@ id: FG_266
 title: "Release A preserves public chat for already-loaded clients"
 date: 2026-08-03
 type: fix
-status: to-do
+status: completed
 priority: p1
 description: "Keep the surviving public-chat API compatible while Convex deploys ahead of the new Next client bundle."
 dependencies: []
