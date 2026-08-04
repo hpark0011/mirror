@@ -1,28 +1,20 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
-import { type ContentRouteState, ScrollRootProvider } from "@/features/content";
+import { type ReactElement, type ReactNode, useState } from "react";
 import { WorkspaceNavbar } from "@/components/workspace-navbar";
-import {
-  ToolbarSlotProvider,
-  ToolbarSlotTarget,
-} from "@/components/workspace-toolbar-slot";
+import { ToolbarSlotProvider } from "@/components/workspace-toolbar-slot";
+import { type ContentRouteState, ScrollRootProvider } from "@/features/content";
 import { useProfileNavigationEffects } from "@/hooks/use-profile-navigation-effects";
-
-// Bottom padding reserved inside the scroll container so content clears the
-// chat input / sticky footer that floats above it. Pairs with the chat input
-// height — bump this if that surface grows.
-// const SCROLL_FOOTER_PAD_PX = 64;
-// Height of the top fade-mask gradient that softens content scrolling under
-// the WorkspaceNavbar + ToolbarSlotTarget. Pairs with the navbar/toolbar
-// stack — adjust if either grows or the fade should reach further.
 
 type ContentPanelProps = {
   routeState: ContentRouteState | null;
   children: ReactNode;
 };
 
-export function ContentPanel({ routeState, children }: ContentPanelProps) {
+export function ContentPanel({
+  routeState,
+  children,
+}: ContentPanelProps): ReactElement {
   const [scrollRoot, setScrollRoot] = useState<HTMLDivElement | null>(null);
 
   useProfileNavigationEffects(scrollRoot, routeState);
@@ -31,13 +23,8 @@ export function ContentPanel({ routeState, children }: ContentPanelProps) {
     <ToolbarSlotProvider>
       <div className="relative flex h-full min-w-0 flex-col">
         <WorkspaceNavbar />
-        <ToolbarSlotTarget />
         <div className="flex-1 min-h-0 *:h-full relative">
-          <div
-            ref={setScrollRoot}
-            className="overflow-y-auto h-full pt-0"
-            // style={{ paddingBottom: SCROLL_FOOTER_PAD_PX }}
-          >
+          <div ref={setScrollRoot} className="overflow-y-auto h-full pt-0">
             <ScrollRootProvider value={scrollRoot}>
               {children}
             </ScrollRootProvider>
