@@ -1,4 +1,4 @@
-import { type ReactNode } from "react";
+import { type ReactElement, type ReactNode } from "react";
 import { cn } from "@feel-good/utils/cn";
 
 type ContentToolbarShellProps = {
@@ -9,14 +9,15 @@ type ContentToolbarShellProps = {
 export function ContentToolbarShell({
   children,
   variant = "list",
-}: ContentToolbarShellProps) {
+}: ContentToolbarShellProps): ReactElement {
+  const alignmentClassName =
+    variant === "list" ? "justify-end md:justify-between" : "justify-between";
+
   return (
     <div
       className={cn(
-        "flex h-9 gap-3 px-3.5 items-center bg-background relative border-b border-border-subtle pb-1.5",
-        variant === "list"
-          ? "md:justify-between justify-end"
-          : "justify-between",
+        "relative flex h-full min-w-0 flex-1 items-center gap-3",
+        alignmentClassName,
       )}
     >
       {children}

@@ -2,6 +2,9 @@
 
 import {
   createContext,
+  type ReactElement,
+  type ReactNode,
+  type ReactPortal,
   useContext,
   useLayoutEffect,
   useMemo,
@@ -12,18 +15,24 @@ import { createPortal } from "react-dom";
 
 type ToolbarSlotContextValue = {
   portalTarget: HTMLElement | null;
-  setPortalTarget: (el: HTMLElement | null) => void;
+  setPortalTarget: (element: HTMLElement | null) => void;
 };
 
 const ToolbarSlotContext = createContext<ToolbarSlotContextValue | null>(null);
 
-export function ToolbarSlotProvider(
-  { children }: { children: React.ReactNode },
-) {
+type ToolbarSlotProviderProps = {
+  children: ReactNode;
+};
+
+export function ToolbarSlotProvider({
+  children,
+}: ToolbarSlotProviderProps): ReactElement {
   const [portalTarget, setPortalTarget] = useState<HTMLElement | null>(null);
-  const value = useMemo(() => ({ portalTarget, setPortalTarget }), [
-    portalTarget,
-  ]);
+  const value = useMemo<ToolbarSlotContextValue>(
+    () => ({ portalTarget, setPortalTarget }),
+    [portalTarget],
+  );
+
   return (
     <ToolbarSlotContext.Provider value={value}>
       {children}
@@ -32,35 +41,46 @@ export function ToolbarSlotProvider(
 }
 
 /** Renders the DOM target element where toolbar content will be portaled into. */
-export function ToolbarSlotTarget() {
-  const ctx = useContext(ToolbarSlotContext);
-  if (!ctx) {
+export function ToolbarSlotTarget(): ReactElement {
+  const context = useContext(ToolbarSlotContext);
+  if (!context) {
     throw new Error(
       "ToolbarSlotTarget must be used within ToolbarSlotProvider",
     );
   }
-  const { setPortalTarget } = ctx;
-  const divRef = useRef<HTMLDivElement>(null);
+
+  const { setPortalTarget } = context;
+  const targetRef = useRef<HTMLDivElement>(null);
 
   useLayoutEffect(() => {
-    setPortalTarget(divRef.current);
+    setPortalTarget(targetRef.current);
     return () => setPortalTarget(null);
   }, [setPortalTarget]);
 
   return (
     <div
-      ref={divRef}
-      className="shrink-0 h-9 z-20 w-full relative"
+      ref={targetRef}
+      className="relative flex h-full min-w-0 flex-1 items-center justify-end"
     />
   );
 }
 
-/** Portals children into the ToolbarSlotTarget. Children stay in their original React tree (preserving context). */
-export function WorkspaceToolbar({ children }: { children: React.ReactNode }) {
-  const ctx = useContext(ToolbarSlotContext);
-  if (!ctx) {
+type WorkspaceToolbarProps = {
+  children: ReactNode;
+};
+
+/** Portals children while preserving their original React context. */
+export function WorkspaceToolbar({
+  children,
+}: WorkspaceToolbarProps): ReactPortal | null {
+  const context = useContext(ToolbarSlotContext);
+  if (!context) {
     throw new Error("WorkspaceToolbar must be used within ToolbarSlotProvider");
   }
-  if (!ctx.portalTarget) return null;
-  return createPortal(children, ctx.portalTarget);
+
+  if (!context.portalTarget) {
+    return null;
+  }
+
+  return createPortal(children, context.portalTarget);
 }
