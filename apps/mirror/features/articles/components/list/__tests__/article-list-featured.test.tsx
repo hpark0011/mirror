@@ -46,12 +46,6 @@ function stripNextImageProps(
   return rest;
 }
 
-vi.mock("@/hooks/use-chat-search-params", () => ({
-  useChatSearchParams: () => ({
-    buildChatAwareHref: (path: string) => path,
-  }),
-}));
-
 vi.mock("@/app/[username]/_providers/clone-actions-context", () => ({
   useCloneActions: () => ({
     navigateToContent: vi.fn(),
@@ -121,12 +115,10 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-const { ArticleListFeatured } = await import(
-  "@/features/articles/components/list/article-list-featured"
-);
-const { FeaturedArticleCard } = await import(
-  "@/features/articles/components/list/article-list-featured-card"
-);
+const { ArticleListFeatured } =
+  await import("@/features/articles/components/list/article-list-featured");
+const { FeaturedArticleCard } =
+  await import("@/features/articles/components/list/article-list-featured-card");
 
 function makeArticle(overrides: Partial<ArticleSummary> = {}): ArticleSummary {
   return {
@@ -156,9 +148,7 @@ describe("ArticleListFeatured", () => {
   });
 
   it("renders one card for a single article", () => {
-    const articles = [
-      makeArticle({ slug: "hello", title: "Hello World" }),
-    ];
+    const articles = [makeArticle({ slug: "hello", title: "Hello World" })];
     render(<ArticleListFeatured articles={articles} username="alice" />);
     expect(screen.getByText("Hello World")).toBeDefined();
     // Exactly one anchor link rendered (one card).

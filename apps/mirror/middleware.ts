@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { getSessionCookie } from "better-auth/cookies";
+import { getProfileRouteRedirect } from "@/lib/profile-route-redirect";
 
 const PUBLIC_ROUTES = ["/", "/sign-in", "/sign-up"];
 const AUTH_ROUTES = ["/sign-in", "/sign-up"];
@@ -10,6 +11,17 @@ export function middleware(request: NextRequest) {
   // Allow API routes and static files
   if (pathname.startsWith("/api/") || pathname.startsWith("/_next/")) {
     return NextResponse.next();
+  }
+
+  const profileRedirect = getProfileRouteRedirect(
+    pathname,
+    request.nextUrl.searchParams,
+  );
+  if (profileRedirect) {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = profileRedirect;
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
   }
 
   const sessionCookie = getSessionCookie(request);

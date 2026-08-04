@@ -11,6 +11,13 @@
   repository guard even though the final file is correct. Run `next build` to
   completion before the Mirror unit suite, and verify the production import
   before staging the merge.
+- A still-running `next dev` process also keeps the file in its development
+  form. Stop the dev server before running the guard, then restore the
+  production import if necessary.
+- When deleting a parallel route slot, remove its now-empty `@slot` directory
+  from the working tree as well. Turbopack sees physical empty slot directories
+  and reports a missing `default.tsx` even when the layout no longer accepts
+  that slot.
 
 ## 2026-05-22
 

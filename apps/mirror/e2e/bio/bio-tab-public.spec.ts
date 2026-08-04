@@ -10,8 +10,7 @@ import { test, expect, type Page } from "@playwright/test";
  *   - FR-09 — entries rendered in DOM order desc by startDate
  *   - FR-10 — public query caps at 50 entries even when 51+ are seeded
  *   - FR-17 — empty bio shows the "no entries yet" empty card for visitors
- *   - Issue C3 — content panel is OPEN (data-state="open") at /@<user>/bio,
- *               locking the `hasContentRoute=true, routeState=null` contract.
+ *   - Bio remains reachable in the single-surface workspace.
  *
  * Each test uses a unique `<scenario>` test user and email so Playwright's
  * `fullyParallel: true` worker pool can't race fixture seeds (every test had
@@ -80,9 +79,7 @@ async function ensureTestUser(email: string, name: string): Promise<void> {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(
-      `ensure-user failed (${res.status}) for ${email}: ${body}`,
-    );
+    throw new Error(`ensure-user failed (${res.status}) for ${email}: ${body}`);
   }
 }
 
@@ -106,9 +103,7 @@ async function setupScenarioUser(scenario: string): Promise<{
 }
 
 test.describe("Bio tab — signed-out visitor", () => {
-  test("FR-01 + Issue C3: panel renders, tab trigger present, content panel is OPEN", async ({
-    page,
-  }) => {
+  test("FR-01: panel renders and tab trigger is present", async ({ page }) => {
     const { username, email } = await setupScenarioUser("fr01");
     await ensureBioFixtures(email, [
       {
@@ -131,14 +126,6 @@ test.describe("Bio tab — signed-out visitor", () => {
     await expect(page.getByRole("tab", { name: "Bio" })).toBeVisible({
       timeout: 5_000,
     });
-
-    // Issue C3: the content panel is OPEN at /@username/bio (locks the
-    // hasContentRoute=true, routeState=null contract). The same data-state
-    // attribute used by profile-content-panel-toggle.spec.ts.
-    await expect(page.getByTestId("desktop-content-panel")).toHaveAttribute(
-      "data-state",
-      "open",
-    );
   });
 
   test("FR-02: entry cards render kind/title/date-range; link has target=_blank + rel=noopener noreferrer", async ({

@@ -311,9 +311,8 @@ export function useAgentIntentWatcher(
           navigateToContent({
             kind: toolPart.output.kind,
             slug: toolPart.output.slug,
-            // Server-built href — do NOT recompose client-side. The
-            // dispatcher passes this through `buildChatAwareHref` to
-            // preserve `?chat=1&conversation=...`.
+            // Server-built href — the dispatcher passes it through without
+            // recomposing the URL template.
             href: toolPart.output.href,
           });
           continue;

@@ -1,4 +1,8 @@
 import { redirect } from "next/navigation";
+import {
+  buildProfileSectionHref,
+  DEFAULT_PROFILE_SECTION,
+} from "@feel-good/convex/convex/content/href";
 
 export default async function ChatRedirect({
   params,
@@ -6,5 +10,5 @@ export default async function ChatRedirect({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
-  redirect(`/@${username}?chat=1`);
+  redirect(buildProfileSectionHref(username, DEFAULT_PROFILE_SECTION));
 }

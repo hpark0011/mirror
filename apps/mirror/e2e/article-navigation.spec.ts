@@ -21,128 +21,27 @@ function isPrefetchRequest(headers: Record<string, string | undefined>) {
 }
 
 test.describe("Article navigation", () => {
-  test("keeps the desktop profile root hidden until artifacts are opened", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 960 });
-    await page.goto(`/@${username}`);
-
-    await expect(
-      page,
-    ).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
-    await expect(
-      page.getByRole("button", { name: "Show Artifacts" }),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByRole("link", { name: articleTitle }),
-    ).toHaveCount(0);
-  });
-
-  test("redirects the mobile profile root to posts", async ({ page }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto(`/@${username}`);
-
-    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
-
-    const emptyState = page.getByText("No posts yet");
-    const seededPostLink = page.getByRole("link", { name: postTitle });
-
-    await Promise.race([
-      emptyState.waitFor({ state: "visible", timeout: 10000 }),
-      seededPostLink.waitFor({ state: "visible", timeout: 10000 }),
-    ]);
-  });
-
-  test("does not show desktop chrome during mobile client navigation to the profile root", async ({
-    page,
-  }) => {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
-    await page.evaluate((rootHref) => {
-      const testWindow = window as typeof window & {
-        __desktopChromeSeen?: boolean;
-        __profileRootHarnessMounted?: boolean;
-        next: {
-          router: {
-            push: (href: string) => Promise<void> | void;
-          };
-        };
-      };
-
-      testWindow.__desktopChromeSeen = false;
-      testWindow.__profileRootHarnessMounted = true;
-
-      const recordDesktopChrome = () => {
-        const bodyText = document.body?.innerText || "";
-        const hasDesktopToggle =
-          bodyText.includes("Show Artifacts") || bodyText.includes("Hide Artifacts");
-        const hasDesktopPanel = !!document.querySelector(
-          '[data-testid="desktop-content-panel"]',
-        );
-
-        if (hasDesktopToggle || hasDesktopPanel) {
-          testWindow.__desktopChromeSeen = true;
-        }
-      };
-
-      recordDesktopChrome();
-
-      const observer = new MutationObserver(recordDesktopChrome);
-      observer.observe(document.documentElement, {
-        subtree: true,
-        childList: true,
-        characterData: true,
-        attributes: true,
-      });
-
-      const button = document.createElement("button");
-      button.id = "profile-root-test-link";
-      button.type = "button";
-      button.textContent = "Open profile root";
-      button.addEventListener("click", () => {
-        void Promise.resolve(testWindow.next.router.push(rootHref));
-      });
-      document.body.appendChild(button);
-    }, `/@${username}`);
-
-    await page.locator("#profile-root-test-link").click();
-
-    await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
-
-    const navigationState = await page.evaluate(() => {
-      const testWindow = window as typeof window & {
-        __desktopChromeSeen?: boolean;
-        __profileRootHarnessMounted?: boolean;
-      };
-
-      return {
-        desktopChromeSeen: testWindow.__desktopChromeSeen === true,
-        sameDocumentNavigation: testWindow.__profileRootHarnessMounted === true,
-      };
-    });
-
-    expect(navigationState.sameDocumentNavigation).toBe(true);
-    expect(navigationState.desktopChromeSeen).toBe(false);
-  });
-
   test("shows loading UI during list-to-detail navigation and returns to the typed list", async ({
     page,
   }) => {
     let delayedNavigation = false;
 
-    await page.route(`**/${username}/articles/${articleSlug}*`, async (route) => {
-      const headers = route.request().headers();
-      const isPrefetch =
-        headers["next-router-prefetch"] !== undefined ||
-        headers.purpose === "prefetch";
+    await page.route(
+      `**/${username}/articles/${articleSlug}*`,
+      async (route) => {
+        const headers = route.request().headers();
+        const isPrefetch =
+          headers["next-router-prefetch"] !== undefined ||
+          headers.purpose === "prefetch";
 
-      if (!delayedNavigation && !isPrefetch) {
-        delayedNavigation = true;
-        await new Promise((resolve) => setTimeout(resolve, 700));
-      }
+        if (!delayedNavigation && !isPrefetch) {
+          delayedNavigation = true;
+          await new Promise((resolve) => setTimeout(resolve, 700));
+        }
 
-      await route.continue();
-    });
+        await route.continue();
+      },
+    );
 
     await page.goto(`/@${username}/articles`);
 
@@ -154,26 +53,28 @@ test.describe("Article navigation", () => {
     await expect(page.getByTestId("article-detail-loading")).toBeVisible({
       timeout: 5000,
     });
-    await expect(
-      page.getByRole("heading", { name: articleTitle }),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(articleExcerpt)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: articleTitle })).toBeVisible(
+      { timeout: 10000 },
+    );
+    await expect(page.getByText(articleExcerpt)).toBeVisible({
+      timeout: 10000,
+    });
 
     await page.getByRole("link", { name: "Back" }).click();
 
-    await expect(page).toHaveURL(
-      new RegExp(`/@${username}/articles(\\?.*)?$`),
-    );
+    await expect(page).toHaveURL(new RegExp(`/@${username}/articles(\\?.*)?$`));
     await expect(articleLink).toBeVisible({ timeout: 10000 });
   });
 
   test("renders article detail on direct entry", async ({ page }) => {
     await page.goto(`/@${username}/articles/${articleSlug}`);
 
-    await expect(
-      page.getByRole("heading", { name: articleTitle }),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(page.getByText(articleExcerpt)).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: articleTitle })).toBeVisible(
+      { timeout: 10000 },
+    );
+    await expect(page.getByText(articleExcerpt)).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("keeps article toolbar search and filter working", async ({ page }) => {
@@ -189,15 +90,11 @@ test.describe("Article navigation", () => {
     await expect(
       page.getByRole("link", { name: creativityArticleTitle }),
     ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByRole("link", { name: articleTitle }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: articleTitle })).toHaveCount(0);
 
     await page.getByRole("button", { name: "Filter" }).click();
     await page.getByRole("menuitem", { name: /^Category/ }).click();
-    await page
-      .getByRole("menuitemcheckbox", { name: /Music & Sound/ })
-      .click();
+    await page.getByRole("menuitemcheckbox", { name: /Music & Sound/ }).click();
 
     await expect(
       page.getByText("No articles match your search and filters"),
@@ -240,16 +137,19 @@ test.describe("Article navigation", () => {
 
     await expect(seededPostLink).toBeVisible({ timeout: 10000 });
     await expect(
-      page.locator("article").filter({ has: seededPostLink }).getByText(postCategory),
+      page
+        .locator("article")
+        .filter({ has: seededPostLink })
+        .getByText(postCategory),
     ).toBeVisible({ timeout: 10000 });
     await seededPostLink.click();
     await expect(page).toHaveURL(new RegExp(`/@${username}/posts/.+`));
-    await expect(
-      page.getByRole("heading", { name: postTitle }),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.locator("article").getByText(postCategory),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("heading", { name: postTitle })).toBeVisible({
+      timeout: 10000,
+    });
+    await expect(page.locator("article").getByText(postCategory)).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("navigates back to the articles tab with loading UI", async ({
@@ -268,9 +168,9 @@ test.describe("Article navigation", () => {
 
     await page.goto(`/@${username}/posts`);
 
-    await expect(
-      page.getByRole("tab", { name: "Articles" }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("tab", { name: "Articles" })).toBeVisible({
+      timeout: 10000,
+    });
 
     await page.getByRole("tab", { name: "Articles" }).click();
 
@@ -278,9 +178,9 @@ test.describe("Article navigation", () => {
       timeout: 5000,
     });
     await expect(page).toHaveURL(new RegExp(`/@${username}/articles(\\?.*)?$`));
-    await expect(
-      page.getByRole("link", { name: articleTitle }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: articleTitle })).toBeVisible({
+      timeout: 10000,
+    });
   });
 
   test("searches, filters, sorts, and preserves post list state", async ({
@@ -288,9 +188,9 @@ test.describe("Article navigation", () => {
   }) => {
     await page.goto(`/@${username}/posts`);
 
-    await expect(
-      page.getByRole("link", { name: newestPostTitle }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: newestPostTitle })).toBeVisible(
+      { timeout: 10000 },
+    );
 
     await page.getByRole("button", { name: "Search posts" }).click();
 
@@ -299,9 +199,9 @@ test.describe("Article navigation", () => {
     });
     await postSearch.fill("Listening");
 
-    await expect(
-      page.getByRole("link", { name: oldestPostTitle }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: oldestPostTitle })).toBeVisible(
+      { timeout: 10000 },
+    );
     await expect(
       page.getByRole("link", { name: collaborationPostTitle }),
     ).toHaveCount(0);
@@ -311,40 +211,40 @@ test.describe("Article navigation", () => {
     await expect(
       page.getByRole("link", { name: collaborationPostTitle }),
     ).toBeVisible({ timeout: 10000 });
-    await expect(
-      page.getByRole("link", { name: oldestPostTitle }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("link", { name: oldestPostTitle })).toHaveCount(
+      0,
+    );
 
     await page.getByRole("button", { name: "Search posts" }).click();
 
-    await expect(
-      page.locator("article h2").first(),
-    ).toHaveText(newestPostTitle, { timeout: 10000 });
+    await expect(page.locator("article h2").first()).toHaveText(
+      newestPostTitle,
+      { timeout: 10000 },
+    );
 
     await page.getByRole("button", { name: "Sort" }).click();
     await page.getByRole("menuitemradio", { name: "Oldest" }).click();
 
-    await expect(
-      page.locator("article h2").first(),
-    ).toHaveText(oldestPostTitle, { timeout: 10000 });
+    await expect(page.locator("article h2").first()).toHaveText(
+      oldestPostTitle,
+      { timeout: 10000 },
+    );
 
     await page.getByRole("button", { name: "Filter" }).click();
-    await expect(
-      page.getByRole("menuitem", { name: /^Created/ }),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("menuitem", { name: /^Status/ }),
-    ).toHaveCount(0);
+    await expect(page.getByRole("menuitem", { name: /^Created/ })).toHaveCount(
+      0,
+    );
+    await expect(page.getByRole("menuitem", { name: /^Status/ })).toHaveCount(
+      0,
+    );
     await page.getByRole("menuitem", { name: /^Category/ }).click();
-    await page
-      .getByRole("menuitemcheckbox", { name: /Attention/ })
-      .click();
+    await page.getByRole("menuitemcheckbox", { name: /Attention/ }).click();
     await page.keyboard.press("Escape");
     await page.keyboard.press("Escape");
 
-    await expect(
-      page.getByRole("link", { name: oldestPostTitle }),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(page.getByRole("link", { name: oldestPostTitle })).toBeVisible(
+      { timeout: 10000 },
+    );
     await expect(
       page.getByRole("link", { name: collaborationPostTitle }),
     ).toHaveCount(0);
@@ -357,9 +257,10 @@ test.describe("Article navigation", () => {
     await page.getByRole("link", { name: "Back" }).click();
 
     await expect(page).toHaveURL(new RegExp(`/@${username}/posts(\\?.*)?$`));
-    await expect(
-      page.locator("article h2").first(),
-    ).toHaveText(oldestPostTitle, { timeout: 10000 });
+    await expect(page.locator("article h2").first()).toHaveText(
+      oldestPostTitle,
+      { timeout: 10000 },
+    );
     await expect(
       page.getByRole("link", { name: collaborationPostTitle }),
     ).toHaveCount(0);
@@ -371,12 +272,13 @@ test.describe("Article navigation", () => {
     await page.getByRole("menuitem", { name: /^Published/ }).click();
     await page.getByRole("menuitemradio", { name: "This week" }).click();
 
-    await expect(
-      page.locator("article h2").first(),
-    ).toHaveText(filteredWeekPostTitle, { timeout: 10000 });
-    await expect(
-      page.getByRole("link", { name: oldestPostTitle }),
-    ).toHaveCount(0);
+    await expect(page.locator("article h2").first()).toHaveText(
+      filteredWeekPostTitle,
+      { timeout: 10000 },
+    );
+    await expect(page.getByRole("link", { name: oldestPostTitle })).toHaveCount(
+      0,
+    );
 
     await page.getByRole("button", { name: "Search posts" }).click();
     await page

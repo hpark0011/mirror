@@ -17,9 +17,7 @@ import {
   getProfileTabHref,
   type ProfileTabKind,
 } from "@/features/profile-tabs/types";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useProfileRouteData } from "./profile-route-data-context";
-import { useWorkspacePanelBridge } from "./workspace-panel-bridge-context";
 
 /**
  * Single dispatcher for clone-level actions.
@@ -37,16 +35,9 @@ import { useWorkspacePanelBridge } from "./workspace-panel-bridge-context";
  * The user-UI path omits `href` and the dispatcher composes it from
  * `username + kind` (or `username + kind + slug` for content).
  *
- * `buildChatAwareHref` preserves the chat query params (`?chat=1&conversation=...`)
- * across navigation, mirroring the current `<Link>` semantics in both
- * list items.
- *
- * Both verbs call `ensureContentPanelOpen()` from the workspace panel
- * bridge before pushing — guarantees a manually-collapsed panel re-opens
- * on every dispatcher navigation, regardless of whether `hasContentRoute`
- * transitions. Closes the parity gap fixed in PLAN_010 (see
- * `.claude/rules/agent-parity.md` § "Two routes, one dispatcher" — Panel-
- * open invariant).
+ * Navigation always targets the canonical content URL directly. Obsolete
+ * chat query state is canonicalized at the request boundary before this
+ * provider mounts.
  */
 type CloneActions = {
   navigateToContent: (args: {
@@ -64,8 +55,8 @@ type CloneActions = {
    * Tab-level parallel of `navigateToContent`. User-UI caller:
    * `apps/mirror/features/profile-tabs/components/profile-tabs.tsx`.
    * Agent caller: `apps/mirror/features/chat/hooks/use-agent-intent-watcher.ts`.
-   * Both routes funnel here so the chat-aware suffix and `scroll: false`
-   * invariant are applied in exactly one place.
+   * Both routes funnel here so the `scroll: false` invariant is applied in
+   * exactly one place.
    */
   navigateToProfileSection: (args: {
     section: ProfileTabKind;
@@ -80,7 +71,7 @@ type CloneActions = {
    * Navigate to the inline editor for a specific post. Owner-only verb —
    * called from the post-list Edit action (user-UI path) and from the
    * `editPost` tool result watcher (agent path). Both routes funnel here so
-   * the chat-aware suffix and `scroll: false` invariant apply in one place.
+   * the `scroll: false` invariant applies in one place.
    *
    * Agent path: passes the server-built `editHref` directly so the client
    * never recomposes the URL template.
@@ -104,9 +95,7 @@ const CloneActionsContext = createContext<CloneActions | null>(null);
 export function useCloneActions() {
   const ctx = useContext(CloneActionsContext);
   if (!ctx) {
-    throw new Error(
-      "useCloneActions must be used within CloneActionsProvider",
-    );
+    throw new Error("useCloneActions must be used within CloneActionsProvider");
   }
   return ctx;
 }
@@ -118,45 +107,36 @@ type CloneActionsProviderProps = {
 export function CloneActionsProvider({ children }: CloneActionsProviderProps) {
   const router = useRouter();
   const { profile } = useProfileRouteData();
-  const { buildChatAwareHref } = useChatSearchParams();
-  const { ensureContentPanelOpen } = useWorkspacePanelBridge();
 
   const navigateToContent = useCallback<CloneActions["navigateToContent"]>(
     ({ kind, slug, href }) => {
-      // PLAN_010 — both routes funnel through the bridge; mobile no-ops by construction.
-      ensureContentPanelOpen();
       // Agent path: server provided the canonical href; do NOT recompose.
       // User path: build from username + kind + slug.
       const basePath = href ?? getContentHref(profile.username, kind, slug);
-      router.push(buildChatAwareHref(basePath), { scroll: false });
+      router.push(basePath, { scroll: false });
     },
-    [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
+    [router, profile.username],
   );
 
   const navigateToProfileSection = useCallback<
     CloneActions["navigateToProfileSection"]
   >(
     ({ section, href }) => {
-      // PLAN_010 — both routes funnel through the bridge; mobile no-ops by construction.
-      ensureContentPanelOpen();
       const basePath = href ?? getProfileTabHref(profile.username, section);
-      router.push(buildChatAwareHref(basePath), { scroll: false });
+      router.push(basePath, { scroll: false });
     },
-    [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
+    [router, profile.username],
   );
 
   const navigateToEditor = useCallback<CloneActions["navigateToEditor"]>(
     ({ kind, slug, editHref }) => {
-      // Panel-open invariant — same as navigateToContent and
-      // navigateToProfileSection.
-      ensureContentPanelOpen();
       // Agent path: server provided the canonical editHref; do NOT recompose.
       // User-UI path: build from username + kind + slug.
       const basePath =
         editHref ?? getContentEditHref(profile.username, kind, slug);
-      router.push(buildChatAwareHref(basePath), { scroll: false });
+      router.push(basePath, { scroll: false });
     },
-    [router, profile.username, buildChatAwareHref, ensureContentPanelOpen],
+    [router, profile.username],
   );
 
   const value = useMemo<CloneActions>(

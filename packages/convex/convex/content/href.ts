@@ -30,7 +30,7 @@ export {
   NAVIGABLE_CONTENT_KINDS,
 };
 
-export const DEFAULT_PROFILE_SECTION = "posts" as const;
+export const DEFAULT_PROFILE_SECTION = "articles" as const;
 
 export function buildContentHref(
   username: string,

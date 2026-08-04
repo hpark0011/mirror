@@ -6,6 +6,7 @@ paths:
   - "scripts/with-worktree-port.mjs"
   - "scripts/with-convex-dev-lock.sh"
   - "scripts/ensure-local-auth-url.mjs"
+  - "scripts/codex-setup.sh"
   - ".claude/skills/new-worktree/**"
   - ".agents/skills/new-worktree/**"
   - ".codex/environments/**"
@@ -39,9 +40,9 @@ inside the worktree. If `packages/convex/.env.local` is missing, run
 The worktree helper scripts resolve the main checkout from Git's common
 directory or `MIRROR_CANONICAL_ROOT`, so recovery commands also work from
 external git worktree roots such as Codex or Conductor paths, even when the main
-checkout is currently on a feature branch. Codex cloud setup only installs
-dependencies via `.codex/environments/environment.toml`; it does not provision a
-local Convex deployment.
+checkout is currently on a feature branch. Codex setup routes through
+`scripts/codex-setup.sh`: local secondary worktrees run the full provisioning
+workflow, while standalone Codex cloud clones only install dependencies.
 
 ## Convex Deployment Model
 
@@ -153,13 +154,13 @@ payload back to dev's `currentURL` → dev decrypts and creates a session.
 Required Convex env (set on **every** deployment — prod, main dev, every
 worktree dev):
 
-| Var | Prod value | Worktree dev value |
-|-----|------------|---------------------|
-| `SITE_URL` | `https://greymirror.ai` | this worktree's URL, e.g. `http://localhost:3350` |
-| `AUTH_ALLOWED_HOSTS` | (omit) | `localhost:*,127.0.0.1:*` |
-| `OAUTH_PROXY_ENABLED` | `true` | `true` |
-| `OAUTH_PROXY_PRODUCTION_URL` | `https://greymirror.ai` | `https://greymirror.ai` |
-| `OAUTH_PROXY_SECRET` | shared 32-byte base64 | identical shared value |
+| Var                          | Prod value              | Worktree dev value                                |
+| ---------------------------- | ----------------------- | ------------------------------------------------- |
+| `SITE_URL`                   | `https://greymirror.ai` | this worktree's URL, e.g. `http://localhost:3350` |
+| `AUTH_ALLOWED_HOSTS`         | (omit)                  | `localhost:*,127.0.0.1:*`                         |
+| `OAUTH_PROXY_ENABLED`        | `true`                  | `true`                                            |
+| `OAUTH_PROXY_PRODUCTION_URL` | `https://greymirror.ai` | `https://greymirror.ai`                           |
+| `OAUTH_PROXY_SECRET`         | shared 32-byte base64   | identical shared value                            |
 
 **Why `OAUTH_PROXY_SECRET` must match across deployments:** the proxy
 encrypts the user payload on prod and decrypts it on dev. If the secret

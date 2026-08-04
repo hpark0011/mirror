@@ -16,7 +16,6 @@ const mockRemoveMutation = vi.fn();
 const mockWithOptimisticUpdate = vi.fn();
 const mockRouter = { replace: vi.fn() };
 const mockShowToast = vi.fn();
-const mockBuildChatAwareHref = vi.fn((href: string) => href);
 
 // Mock convex/react
 vi.mock("convex/react", () => ({
@@ -42,13 +41,6 @@ vi.mock("@feel-good/ui/components/toast", () => ({
   showToast: mockShowToast,
 }));
 
-// Mock useChatSearchParams
-vi.mock("@/hooks/use-chat-search-params", () => ({
-  useChatSearchParams: () => ({
-    buildChatAwareHref: mockBuildChatAwareHref,
-  }),
-}));
-
 // Mock the convex API
 vi.mock("@feel-good/convex/convex/_generated/api", () => ({
   api: {
@@ -65,8 +57,7 @@ vi.mock("@feel-good/convex/convex/_generated/api", () => ({
 
 // Mock getContentHref
 vi.mock("@/features/content", () => ({
-  getContentHref: (username: string, type: string) =>
-    `/@${username}/${type}`,
+  getContentHref: (username: string, type: string) => `/@${username}/${type}`,
 }));
 
 const { useDeletePost } = await import("../hooks/use-delete-post");
@@ -77,8 +68,6 @@ describe("useDeletePost", () => {
     mockWithOptimisticUpdate.mockReset();
     mockRouter.replace.mockReset();
     mockShowToast.mockReset();
-    mockBuildChatAwareHref.mockReset();
-    mockBuildChatAwareHref.mockImplementation((href: string) => href);
 
     // Set up the default behavior: withOptimisticUpdate returns the mutation itself
     mockWithOptimisticUpdate.mockImplementation((_callback: unknown) => {
@@ -96,7 +85,6 @@ describe("useDeletePost", () => {
 
       // First call will hang on this deferred promise
       mockRemoveMutation.mockReturnValue(promise);
-      mockBuildChatAwareHref.mockImplementation((href: string) => href);
 
       const { result } = renderHook(() =>
         useDeletePost({
@@ -232,7 +220,6 @@ describe("useDeletePost", () => {
       const { promise, reject } = deferred<void>();
 
       mockRemoveMutation.mockReturnValue(promise);
-      mockBuildChatAwareHref.mockImplementation((href: string) => href);
 
       const { result } = renderHook(() =>
         useDeletePost({
@@ -280,7 +267,6 @@ describe("useDeletePost", () => {
       const { promise, reject } = deferred<void>();
 
       mockRemoveMutation.mockReturnValue(promise);
-      mockBuildChatAwareHref.mockImplementation((href: string) => href);
 
       const { result } = renderHook(() =>
         useDeletePost({
@@ -320,7 +306,6 @@ describe("useDeletePost", () => {
       const { promise, resolve } = deferred<void>();
 
       mockRemoveMutation.mockReturnValue(promise);
-      mockBuildChatAwareHref.mockImplementation((href: string) => href);
 
       const { result } = renderHook(() =>
         useDeletePost({
@@ -421,7 +406,6 @@ describe("useDeletePost", () => {
   });
 });
 
-
 // Late-bound (list-page) mode
 
 describe("useDeletePost — late-bound mode (no postId)", () => {
@@ -430,8 +414,6 @@ describe("useDeletePost — late-bound mode (no postId)", () => {
     mockWithOptimisticUpdate.mockReset();
     mockRouter.replace.mockReset();
     mockShowToast.mockReset();
-    mockBuildChatAwareHref.mockReset();
-    mockBuildChatAwareHref.mockImplementation((href: string) => href);
 
     mockWithOptimisticUpdate.mockImplementation((_callback: unknown) => {
       return mockRemoveMutation;

@@ -49,21 +49,20 @@ features/
   chat/                 # Clone chat — AI conversation with author's digital clone
   content/              # Shared list utilities (toolbar, filter, sort, date presets)
   profile/              # Profile display, inline editing, avatar
-  profile-tabs/         # Tab navigation between articles/posts/chat
+  profile-tabs/         # Bio, Contact, Projects, Posts, and Articles tabs
   waitlist/             # Landing page + waitlist signup form
   onboarding/           # New user onboarding wizard
 
 app/
   [username]/           # Public profile routes (/@username via rewrites)
-    _components/        # Workspace shell (desktop/mobile layouts, panels)
-    _providers/         # Route-level providers (chat, profile data, workspace chrome)
-    @content/           # Parallel route slot — content panel
+    _components/        # Single-surface workspace shell and content chrome
+    _providers/         # Profile data and shared clone-action dispatcher
+    @content/           # Parallel route slot — full-width content surface
       articles/         # Article list + detail
       posts/            # Post list + detail
-    @interaction/       # Parallel route slot — interaction panel
     articles/           # Canonical article routes
     posts/              # Canonical post routes
-    chat/               # Chat routes (list + conversation)
+    chat/               # Legacy chat routes redirecting to Articles
   (auth)/               # Auth flow (sign-in, sign-up)
   (protected)/
     dashboard/          # Insights (auth required)
@@ -96,14 +95,14 @@ Each feature under `features/` follows this layout:
 
 ## Workspace Shell Architecture
 
-The `[username]` route uses a **panel-based workspace** with parallel routes:
+The `[username]` route uses a single full-width content workspace at every
+breakpoint:
 
-- **Desktop**: sidebar profile panel + content panel + optional interaction panel
-- **Mobile**: stacked layout with bottom sheet navigation
-- **Panels**: `profile-panel`, `content-panel`, `chat-panel`, `interaction-panel`
-- **Providers**: `WorkspaceChromeContext` (panel visibility), `ProfileRouteDataContext` (profile data), `ChatRouteController` (chat state)
 - **Content slot** (`@content/`): renders posts, articles, bio, contact, or projects based on route
-- **Interaction slot** (`@interaction/`): renders chat
+- **Default**: `/@username` temporarily redirects to `/@username/articles`
+- **Legacy chat state**: chat routes and chat query parameters temporarily redirect to clean Articles
+- **Providers**: `ProfileRouteDataContext` supplies profile data; `CloneActionsProvider` is the shared UI/agent navigation dispatcher
+- **Dormant features**: reusable profile/chat components and backend code remain, but no interaction surface mounts in the workspace
 
 URL routing table lives in [`.claude/rules/apps/mirror/routing.md`](../../.claude/rules/apps/mirror/routing.md) (loads on demand under `app/`).
 
@@ -112,7 +111,7 @@ URL routing table lives in [`.claude/rules/apps/mirror/routing.md`](../../.claud
 - Server components by default; `"use client"` only when needed
 - Better Auth for session management (OTP login)
 - Convex for real-time data synchronization
-- Workspace layout: navbar / toolbar slot / content panel separation
+- Workspace layout: navbar / toolbar slot / full-width content surface
 - Feature contexts split by concern (toolbar vs list vs workspace)
 - Context connector pattern: `*-connector.tsx` reads context, passes props to pure UI
 - `content/` feature provides shared list infrastructure reused by articles and posts

@@ -276,8 +276,8 @@ export function buildCloneTools(
 
         // Resolve the posts-list href once on the server (same single source
         // of truth `openProfileSection` uses for `section: "posts"`). The
-        // client-side intent watcher passes this through `buildChatAwareHref`
-        // — never recomposing the URL template.
+        // client-side intent watcher passes this through the shared
+        // dispatcher without recomposing the URL template.
         const list: {
           kind: ContentKind;
           username: string;

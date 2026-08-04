@@ -1,8 +1,8 @@
 // Re-export the canonical href builder from the shared `@feel-good/convex`
 // helper so both the Next.js client and the Convex backend share one source
 // of truth for the `/@<username>/<kind>/<slug>` URL shape. Legacy callers
-// (`article-list-item.tsx`, `post-list-item.tsx`, `clone-actions-context.tsx`,
-// `use-profile-workspace-route-data.ts`) keep importing
+// (`article-list-item.tsx`, `post-list-item.tsx`, `clone-actions-context.tsx`)
+// keep importing
 // `getContentHref` from `@/features/content`. See
 // `.claude/rules/agent-parity.md` § Href-parity invariant.
 import {
@@ -28,8 +28,6 @@ export {
 };
 
 export const CONTENT_KINDS = NAVIGABLE_CONTENT_KINDS;
-
-export const DEFAULT_PROFILE_CONTENT_KIND: ContentKind = "posts";
 
 export type ContentRouteView = "list" | "detail";
 

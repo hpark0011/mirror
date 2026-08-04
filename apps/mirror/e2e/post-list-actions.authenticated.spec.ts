@@ -85,9 +85,7 @@ async function ensureTestUser(): Promise<void> {
   }).finally(() => clearTimeout(timeoutId));
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(
-      `ensure-user failed with status ${res.status}: ${body}`,
-    );
+    throw new Error(`ensure-user failed with status ${res.status}: ${body}`);
   }
 }
 
@@ -172,28 +170,6 @@ test.describe.serial("Post list item actions", () => {
     });
     await expect(page.getByTestId("post-slug-input")).toHaveValue(
       publishedSlug,
-    );
-  });
-
-  test("owner edit action preserves an open chat panel", async ({
-    ownerPage: page,
-  }) => {
-    await page.setViewportSize({ width: 1440, height: 960 });
-    await page.goto(`/@${username}/posts?chat=1`, {
-      waitUntil: "domcontentloaded",
-    });
-    await waitForAuthReady(page);
-
-    const row = page.locator(
-      `[data-testid="post-list-item"][data-post-slug="${publishedSlug}"]`,
-    );
-    await expect(row).toBeVisible({ timeout: 10_000 });
-    await row.hover();
-    await row.getByTestId("post-list-edit-btn").click();
-
-    await expect(page).toHaveURL(
-      new RegExp(`/@${username}/posts/${publishedSlug}/edit\\?chat=1(?:&|$)`),
-      { timeout: 10_000 },
     );
   });
 
@@ -318,10 +294,15 @@ test.describe.serial("Post list item actions", () => {
     await expect(page.getByRole("alertdialog")).toBeVisible({ timeout: 3000 });
 
     // Cancel
-    await page.getByRole("alertdialog").getByRole("button", { name: /^cancel$/i }).click();
+    await page
+      .getByRole("alertdialog")
+      .getByRole("button", { name: /^cancel$/i })
+      .click();
 
     // Dialog dismissed
-    await expect(page.getByRole("alertdialog")).not.toBeVisible({ timeout: 3000 });
+    await expect(page.getByRole("alertdialog")).not.toBeVisible({
+      timeout: 3000,
+    });
 
     // Row is still visible — no optimistic removal
     await expect(row).toBeVisible();

@@ -4,7 +4,6 @@ import { memo, type MouseEvent, useCallback } from "react";
 import Link from "next/link";
 import { TableCell } from "@feel-good/ui/primitives/table";
 import { Checkbox } from "@feel-good/ui/primitives/checkbox";
-import { useChatSearchParams } from "@/hooks/use-chat-search-params";
 import { useCloneActions } from "@/app/[username]/_providers/clone-actions-context";
 import { formatShortDate, getContentHref } from "@/features/content";
 import { type ArticleSummary } from "../../types";
@@ -30,14 +29,11 @@ export const ArticleListItem = memo(function ArticleListItem({
   shouldAnimate = false,
   index = 0,
 }: ArticleListItemProps) {
-  const { buildChatAwareHref } = useChatSearchParams();
   const { navigateToContent } = useCloneActions();
   // Keep `<Link href>` populated for SEO/middle-click semantics. The
   // onClick below routes "normal" left-clicks through the same dispatcher
   // the agent uses (`useCloneActions().navigateToContent`).
-  const href = buildChatAwareHref(
-    getContentHref(username, "articles", article.slug),
-  );
+  const href = getContentHref(username, "articles", article.slug);
 
   const handleClick = useCallback(
     (event: MouseEvent<HTMLAnchorElement>) => {
@@ -94,15 +90,13 @@ export const ArticleListItem = memo(function ArticleListItem({
         {article.category}
       </TableCell>
       <TableCell className="text-right py-0 font-normal pr-6">
-        {article.status === "draft"
-          ? <span className="text-muted-foreground">Draft</span>
-          : article.publishedAt
-          ? (
-            <time dateTime={new Date(article.publishedAt).toISOString()}>
-              {formatShortDate(article.publishedAt)}
-            </time>
-          )
-          : null}
+        {article.status === "draft" ? (
+          <span className="text-muted-foreground">Draft</span>
+        ) : article.publishedAt ? (
+          <time dateTime={new Date(article.publishedAt).toISOString()}>
+            {formatShortDate(article.publishedAt)}
+          </time>
+        ) : null}
       </TableCell>
     </AnimatedArticleRow>
   );

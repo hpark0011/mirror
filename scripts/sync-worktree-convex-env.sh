@@ -5,8 +5,9 @@
 # Run after `./scripts/provision-worktree-convex.sh` writes this worktree's
 # packages/convex/.env.local.
 #
-# Idempotent: rewrites the three CONVEX_* lines in apps/mirror/.env.local
-# in place; everything else (Sentry, Anthropic, Better Auth) is preserved.
+# Idempotent: ensures the three CONVEX_* lines exist in
+# apps/mirror/.env.local, replacing stale values or appending missing keys;
+# everything else (Sentry, Anthropic, Better Auth) is preserved.
 
 set -e
 
@@ -54,18 +55,26 @@ awk \
   -v site_url="$SITE_URL" \
   '
     /^CONVEX_DEPLOYMENT=/ {
+      deployment_seen = 1
       print "CONVEX_DEPLOYMENT=" deployment
       next
     }
     /^NEXT_PUBLIC_CONVEX_URL=/ {
+      url_seen = 1
       print "NEXT_PUBLIC_CONVEX_URL=" url
       next
     }
     /^NEXT_PUBLIC_CONVEX_SITE_URL=/ {
+      site_url_seen = 1
       print "NEXT_PUBLIC_CONVEX_SITE_URL=" site_url
       next
     }
     { print }
+    END {
+      if (!deployment_seen) print "CONVEX_DEPLOYMENT=" deployment
+      if (!url_seen) print "NEXT_PUBLIC_CONVEX_URL=" url
+      if (!site_url_seen) print "NEXT_PUBLIC_CONVEX_SITE_URL=" site_url
+    }
   ' "$APP_ENV" > "$APP_ENV_TMP"
 
 mv "$APP_ENV_TMP" "$APP_ENV"

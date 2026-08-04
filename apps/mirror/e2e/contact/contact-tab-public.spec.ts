@@ -69,9 +69,7 @@ async function ensureTestUser(email: string, name: string): Promise<void> {
   });
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(
-      `ensure-user failed (${res.status}) for ${email}: ${body}`,
-    );
+    throw new Error(`ensure-user failed (${res.status}) for ${email}: ${body}`);
   }
 }
 
@@ -91,9 +89,7 @@ async function setupScenarioUser(scenario: string): Promise<{
 }
 
 test.describe("Contact tab — signed-out visitor", () => {
-  test("panel renders, tab trigger present, content panel is OPEN", async ({
-    page,
-  }) => {
+  test("panel renders and tab trigger is present", async ({ page }) => {
     const { username, email } = await setupScenarioUser("render");
     await ensureContactFixtures(email, [
       { kind: "email", value: "contact-user@example.com" },
@@ -108,11 +104,6 @@ test.describe("Contact tab — signed-out visitor", () => {
     await expect(page.getByRole("tab", { name: "Contact" })).toBeVisible({
       timeout: 5_000,
     });
-
-    await expect(page.getByTestId("desktop-content-panel")).toHaveAttribute(
-      "data-state",
-      "open",
-    );
   });
 
   test("entry cards render label + value; URL kinds get target=_blank + rel=noopener noreferrer; email uses mailto", async ({
